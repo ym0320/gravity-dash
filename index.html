@@ -9,9 +9,105 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Gravity Dash">
-<link rel="apple-touch-icon" href="icon.svg">
+<link rel="apple-touch-icon" id="apple-icon" href="icon.svg">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="manifest" href="manifest.json">
+<script>
+// Generate 180x180 PNG apple-touch-icon dynamically
+(function(){
+  var c=document.createElement('canvas'),x=c.getContext('2d'),S=180;
+  c.width=S;c.height=S;
+  // BG
+  var bg=x.createLinearGradient(0,0,0,S);
+  bg.addColorStop(0,'#0a0a2e');bg.addColorStop(1,'#1a1a4e');
+  x.fillStyle=bg;
+  x.beginPath();x.moveTo(S*0.17,0);x.lineTo(S*0.83,0);
+  x.quadraticCurveTo(S,0,S,S*0.17);x.lineTo(S,S*0.83);
+  x.quadraticCurveTo(S,S,S*0.83,S);x.lineTo(S*0.17,S);
+  x.quadraticCurveTo(0,S,0,S*0.83);x.lineTo(0,S*0.17);
+  x.quadraticCurveTo(0,0,S*0.17,0);x.closePath();x.fill();
+  // Fill full rect too for iOS clipping
+  x.fillStyle=bg;x.fillRect(0,0,S,S);
+  // Stars
+  [[28,35,0.5],[148,28,0.4],[123,53,0.6],[42,133,0.3],[140,140,0.5]].forEach(function(s){
+    x.globalAlpha=s[2];x.fillStyle='#fff';x.beginPath();x.arc(s[0],s[1],1,0,6.28);x.fill();
+  });
+  x.globalAlpha=1;
+  // Ground lines
+  x.strokeStyle='#2a6aaf';x.lineWidth=1.5;x.globalAlpha=0.5;
+  x.beginPath();x.moveTo(0,148);x.lineTo(S,148);x.stroke();
+  x.beginPath();x.moveTo(0,32);x.lineTo(S,32);x.stroke();
+  x.globalAlpha=1;
+  // Obstacles
+  x.globalAlpha=0.65;x.fillStyle='#ff3860';
+  // Left obs
+  x.beginPath();x.moveTo(44,32);x.lineTo(54,32);x.quadraticCurveTo(56,32,56,34);
+  x.lineTo(56,74);x.quadraticCurveTo(56,76,54,76);x.lineTo(44,76);x.quadraticCurveTo(42,76,42,74);
+  x.lineTo(42,34);x.quadraticCurveTo(42,32,44,32);x.fill();
+  x.beginPath();x.moveTo(44,102);x.lineTo(54,102);x.quadraticCurveTo(56,102,56,104);
+  x.lineTo(56,146);x.quadraticCurveTo(56,148,54,148);x.lineTo(44,148);x.quadraticCurveTo(42,148,42,146);
+  x.lineTo(42,104);x.quadraticCurveTo(42,102,44,102);x.fill();
+  // Right obs
+  x.globalAlpha=0.45;
+  x.beginPath();x.moveTo(126,32);x.lineTo(136,32);x.quadraticCurveTo(138,32,138,34);
+  x.lineTo(138,92);x.quadraticCurveTo(138,94,136,94);x.lineTo(126,94);x.quadraticCurveTo(124,94,124,92);
+  x.lineTo(124,34);x.quadraticCurveTo(124,32,126,32);x.fill();
+  x.beginPath();x.moveTo(126,122);x.lineTo(136,122);x.quadraticCurveTo(138,122,138,124);
+  x.lineTo(138,146);x.quadraticCurveTo(138,148,136,148);x.lineTo(126,148);x.quadraticCurveTo(124,148,124,146);
+  x.lineTo(124,124);x.quadraticCurveTo(124,122,126,122);x.fill();
+  x.globalAlpha=1;
+  // Player
+  var px=90,py=90,ps=26,ph=ps/2;
+  // Glow
+  x.fillStyle='#00e5ff';x.globalAlpha=0.12;
+  x.beginPath();x.moveTo(px-ph-4+4,py-ph-4);x.lineTo(px+ph+4-4,py-ph-4);
+  x.quadraticCurveTo(px+ph+4,py-ph-4,px+ph+4,py-ph);x.lineTo(px+ph+4,py+ph+4-4);
+  x.quadraticCurveTo(px+ph+4,py+ph+4,px+ph,py+ph+4);x.lineTo(px-ph-4+4,py+ph+4);
+  x.quadraticCurveTo(px-ph-4,py+ph+4,px-ph-4,py+ph);x.lineTo(px-ph-4,py-ph);
+  x.quadraticCurveTo(px-ph-4,py-ph-4,px-ph,py-ph-4);x.fill();
+  x.globalAlpha=1;
+  // Body
+  var pg=x.createLinearGradient(px-ph,py-ph,px+ph,py+ph);
+  pg.addColorStop(0,'#00e5ff');pg.addColorStop(1,'#00b8d4');
+  x.fillStyle=pg;
+  var r=4;
+  x.beginPath();x.moveTo(px-ph+r,py-ph);x.lineTo(px+ph-r,py-ph);
+  x.quadraticCurveTo(px+ph,py-ph,px+ph,py-ph+r);x.lineTo(px+ph,py+ph-r);
+  x.quadraticCurveTo(px+ph,py+ph,px+ph-r,py+ph);x.lineTo(px-ph+r,py+ph);
+  x.quadraticCurveTo(px-ph,py+ph,px-ph,py+ph-r);x.lineTo(px-ph,py-ph+r);
+  x.quadraticCurveTo(px-ph,py-ph,px-ph+r,py-ph);x.closePath();x.fill();
+  // Inner
+  x.fillStyle='rgba(255,255,255,0.12)';
+  var ir=3,io=3;
+  x.beginPath();x.moveTo(px-ph+io+ir,py-ph+io);x.lineTo(px+ph-io-ir,py-ph+io);
+  x.quadraticCurveTo(px+ph-io,py-ph+io,px+ph-io,py-ph+io+ir);x.lineTo(px+ph-io,py+ph-io-ir);
+  x.quadraticCurveTo(px+ph-io,py+ph-io,px+ph-io-ir,py+ph-io);x.lineTo(px-ph+io+ir,py+ph-io);
+  x.quadraticCurveTo(px-ph+io,py+ph-io,px-ph+io,py+ph-io-ir);x.lineTo(px-ph+io,py-ph+io+ir);
+  x.quadraticCurveTo(px-ph+io,py-ph+io,px-ph+io+ir,py-ph+io);x.fill();
+  // Eye
+  x.fillStyle='#fff';x.beginPath();x.arc(px+3,py-3,5,0,6.28);x.fill();
+  x.fillStyle='#0a0a2e';x.beginPath();x.arc(px+5,py-3,2.5,0,6.28);x.fill();
+  x.fillStyle='#fff';x.beginPath();x.arc(px+6,py-5,1.2,0,6.28);x.fill();
+  // Arrow
+  x.strokeStyle='rgba(255,255,255,0.55)';x.lineWidth=1.8;x.lineCap='round';
+  x.beginPath();x.moveTo(px-5,py+ph+3);x.lineTo(px,py+ph+7);x.lineTo(px+5,py+ph+3);x.stroke();
+  x.lineCap='butt';
+  // Coin
+  x.fillStyle='#ffd700';x.globalAlpha=0.8;
+  x.beginPath();x.arc(108,63,6,0,6.28);x.fill();
+  x.fillStyle='#fff';x.globalAlpha=0.35;
+  x.beginPath();x.arc(106.5,61.5,2,0,6.28);x.fill();
+  x.globalAlpha=1;
+  // Set as apple-touch-icon
+  try{
+    var url=c.toDataURL('image/png');
+    document.getElementById('apple-icon').href=url;
+    // Also set favicon
+    var fav=document.querySelector('link[rel="icon"]');
+    if(fav)fav.href=url;
+  }catch(e){}
+})();
+</script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body {
