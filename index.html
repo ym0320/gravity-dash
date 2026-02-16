@@ -259,7 +259,6 @@ function trySpawnCoins(){
   if(Math.random()<0.35){
     const cx=edge.x;
     const fy=floorSurfaceY(cx);
-    const cy_=floorSurfaceY(cx);
     // Coins float above floor or below ceiling
     if(player.gDir===1||Math.random()<0.5){
       for(let i=0;i<2+Math.floor(Math.random()*3);i++){
@@ -384,11 +383,11 @@ document.addEventListener('keydown',e=>{
 
 function handleTitleTouch(tx,ty){
   // Check character selection
-  const charY=H*0.55;
-  const charW=48,charGap=8;
+  const charY=H*0.47;
+  const charW=46,charGap=8;
   const totalW=CHARS.length*(charW+charGap)-charGap;
   const startX=W/2-totalW/2;
-  if(ty>charY-10&&ty<charY+charW+10){
+  if(ty>charY-10&&ty<charY+charW+20){
     for(let i=0;i<CHARS.length;i++){
       const cx=startX+i*(charW+charGap);
       if(tx>=cx&&tx<=cx+charW){
@@ -396,8 +395,8 @@ function handleTitleTouch(tx,ty){
       }
     }
   }
-  // Start game
-  if(ty>H*0.72){state=ST.PLAY;reset();}
+  // Start game (below character selection area)
+  if(ty>H*0.76){state=ST.PLAY;reset();}
 }
 
 // ===== COLLISION =====
