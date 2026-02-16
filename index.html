@@ -58,10 +58,15 @@ canvas{display:block;width:100%;height:100%}
 'use strict';
 const canvas=document.getElementById('game');
 const ctx=canvas.getContext('2d');
-let W,H;
+let W,H,safeTop=0,safeBot=0;
 function resize(){
   const dpr=Math.min(window.devicePixelRatio||1,2);
   W=window.innerWidth;H=window.innerHeight;
+  // Safe area insets for notch/home bar
+  const cs=getComputedStyle(document.documentElement);
+  safeTop=parseInt(cs.getPropertyValue('env(safe-area-inset-top)'))||0;
+  safeBot=parseInt(cs.getPropertyValue('env(safe-area-inset-bottom)'))||0;
+  if(!safeBot)safeBot=16; // fallback padding for bottom
   canvas.width=W*dpr;canvas.height=H*dpr;
   canvas.style.width=W+'px';canvas.style.height=H+'px';
   ctx.setTransform(dpr,0,0,dpr,0,0);
@@ -72,7 +77,7 @@ resize();window.addEventListener('resize',resize);
 const GRAVITY=0.38;
 const JUMP_POWER=9.5;
 const PLAYER_R=14;
-const GROUND_H=50;
+const GROUND_H=65;
 const SPEED_INIT=2.8;
 const SPEED_INC=0.00035;
 const SPEED_MAX=6.5;
@@ -192,7 +197,7 @@ function generateTerrain(arr,isFloor,startX,count){
     else if(r<0.08&&score>15) h+=8+Math.random()*12; // hill
     else if(r<0.15) h-=5+Math.random()*8; // gentle down
     else h+=(Math.random()-0.5)*4; // gentle undulation
-    h=Math.max(30,Math.min(H*0.38,h));
+    h=Math.max(45+safeBot,Math.min(H*0.38,h));
     arr.push({x,h});
   }
 }
@@ -382,21 +387,25 @@ document.addEventListener('keydown',e=>{
 });
 
 function handleTitleTouch(tx,ty){
-  // Check character selection
-  const charY=H*0.47;
-  const charW=46,charGap=8;
-  const totalW=CHARS.length*(charW+charGap)-charGap;
-  const startX=W/2-totalW/2;
-  if(ty>charY-10&&ty<charY+charW+20){
-    for(let i=0;i<CHARS.length;i++){
-      const cx=startX+i*(charW+charGap);
-      if(tx>=cx&&tx<=cx+charW){
-        selChar=i;localStorage.setItem('gd5char',selChar.toString());return;
+  // Character selection: 2 rows x 3 columns grid
+  const cols=3,rows=2;
+  const charW=58,charH=62,charGap=10;
+  const gridW=cols*(charW+charGap)-charGap;
+  const gridX=W/2-gridW/2;
+  const gridY=H*0.43;
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const idx=r*cols+c;if(idx>=CHARS.length)break;
+      const cx=gridX+c*(charW+charGap);
+      const cy=gridY+r*(charH+charGap);
+      if(tx>=cx-5&&tx<=cx+charW+5&&ty>=cy-5&&ty<=cy+charH+5){
+        selChar=idx;localStorage.setItem('gd5char',selChar.toString());return;
       }
     }
   }
-  // Start game (below character selection area)
-  if(ty>H*0.76){state=ST.PLAY;reset();}
+  // Start game (below character grid)
+  const gridBottom=gridY+rows*(charH+charGap)+20;
+  if(ty>gridBottom){state=ST.PLAY;reset();}
 }
 
 // ===== COLLISION =====
@@ -826,44 +835,51 @@ function drawTitle(){
   ctx.fillStyle='#ffffff33';ctx.font='11px monospace';ctx.textAlign='center';
   ctx.fillText('\u91CD\u529B\u53CD\u8EE2\u30A2\u30AF\u30B7\u30E7\u30F3\u30E9\u30F3\u30CA\u30FC',W/2,H*0.18+72);
 
-  // Character selection
+  // Character selection: 2 rows x 3 columns
   ctx.fillStyle='#fff8';ctx.font='bold 13px monospace';
-  ctx.fillText('\u30AD\u30E3\u30E9\u30AF\u30BF\u30FC\u9078\u629E',W/2,H*0.42);
+  ctx.fillText('\u30AD\u30E3\u30E9\u30AF\u30BF\u30FC\u9078\u629E',W/2,H*0.41);
 
-  const charY=H*0.47;
-  const charW=46,charGap=8;
-  const totalCW=CHARS.length*(charW+charGap)-charGap;
-  const startX=W/2-totalCW/2;
+  const cols=3,rows=2;
+  const charW=58,charH=62,charGap=10;
+  const gridW=cols*(charW+charGap)-charGap;
+  const gridX=W/2-gridW/2;
+  const gridY=H*0.43;
 
-  CHARS.forEach((ch,i)=>{
-    const cx=startX+i*(charW+charGap);
-    // Selection highlight
-    if(i===selChar){
-      ctx.strokeStyle=ch.col;ctx.lineWidth=2;ctx.shadowColor=ch.col;ctx.shadowBlur=8;
-      rr(cx-2,charY-2,charW+4,charW+18,8);ctx.stroke();ctx.shadowBlur=0;
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const idx=r*cols+c;if(idx>=CHARS.length)break;
+      const ch=CHARS[idx];
+      const cx=gridX+c*(charW+charGap);
+      const cy=gridY+r*(charH+charGap);
+      // Selection highlight
+      if(idx===selChar){
+        ctx.strokeStyle=ch.col;ctx.lineWidth=2;ctx.shadowColor=ch.col;ctx.shadowBlur=8;
+        rr(cx-2,cy-2,charW+4,charH+4,8);ctx.stroke();ctx.shadowBlur=0;
+      }
+      ctx.fillStyle=idx===selChar?'#ffffff18':'#ffffff08';
+      rr(cx,cy,charW,charH,6);ctx.fill();
+
+      // Draw character preview
+      drawCharacter(cx+charW/2,cy+charH/2-8,idx,14,0,1,'normal');
+
+      // Name
+      ctx.fillStyle=idx===selChar?'#fff':'#fff6';ctx.font='9px monospace';ctx.textAlign='center';
+      ctx.fillText(ch.name,cx+charW/2,cy+charH-4);
     }
-    ctx.fillStyle=i===selChar?'#ffffff15':'#ffffff08';
-    rr(cx,charY,charW,charW+14,6);ctx.fill();
-
-    // Draw character preview
-    drawCharacter(cx+charW/2,charY+charW/2-2,i,12,0,1,'normal');
-
-    // Name
-    ctx.fillStyle=i===selChar?'#fff':'#fff6';ctx.font='8px monospace';ctx.textAlign='center';
-    ctx.fillText(ch.name,cx+charW/2,charY+charW+10);
-  });
+  }
 
   // Stats
-  if(highScore>0){ctx.fillStyle='#ffd700';ctx.font='bold 16px monospace';ctx.textAlign='center';ctx.fillText('\u30D9\u30B9\u30C8: '+highScore,W/2,H*0.70);}
-  if(played>0){ctx.fillStyle='#fff3';ctx.font='11px monospace';ctx.fillText('\u30D7\u30EC\u30A4\u56DE\u6570: '+played,W/2,H*0.74);}
+  const statsY=gridY+rows*(charH+charGap)+8;
+  if(highScore>0){ctx.fillStyle='#ffd700';ctx.font='bold 16px monospace';ctx.textAlign='center';ctx.fillText('\u30D9\u30B9\u30C8: '+highScore,W/2,statsY);}
+  if(played>0){ctx.fillStyle='#fff3';ctx.font='11px monospace';ctx.fillText('\u30D7\u30EC\u30A4\u56DE\u6570: '+played,W/2,statsY+18);}
 
   const ta=Math.sin(titleT*2.5)*0.3+0.7;
   ctx.globalAlpha=ta;ctx.fillStyle='#fff';ctx.font='bold 18px monospace';ctx.textAlign='center';
-  ctx.fillText('\u30BF\u30C3\u30D7\u3067\u30B9\u30BF\u30FC\u30C8',W/2,H*0.82);ctx.globalAlpha=1;
+  ctx.fillText('\u25BC \u30BF\u30C3\u30D7\u3067\u30B9\u30BF\u30FC\u30C8 \u25BC',W/2,H*0.84);ctx.globalAlpha=1;
 
   ctx.fillStyle='#667';ctx.font='11px monospace';
-  ctx.fillText('\u30BF\u30C3\u30D7=\u30B8\u30E3\u30F3\u30D7 / \u30B9\u30EF\u30A4\u30D7=\u91CD\u529B\u53CD\u8EE2',W/2,H*0.89);
-  ctx.fillText('\u5C71\u3092\u8D8A\u3048\u3066\u30B3\u30A4\u30F3\u3092\u96C6\u3081\u3088\u3046\uFF01',W/2,H*0.89+18);
+  ctx.fillText('\u30BF\u30C3\u30D7=\u30B8\u30E3\u30F3\u30D7 / \u30B9\u30EF\u30A4\u30D7=\u91CD\u529B\u53CD\u8EE2',W/2,H*0.90);
+  ctx.fillText('\u5C71\u3092\u8D8A\u3048\u3066\u30B3\u30A4\u30F3\u3092\u96C6\u3081\u3088\u3046\uFF01',W/2,H*0.90+16);
 }
 
 function drawDead(){
