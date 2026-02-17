@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Gravity Dash</title>
 <meta name="description" content="重力反転アクションランナー。タップでジャンプ、スワイプで重力反転！">
 <meta name="theme-color" content="#0a0a2e">
@@ -47,7 +47,8 @@
 </script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;overflow:hidden;background:#0a0a1a;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;position:fixed;top:0;left:0}
+:root{--sat:env(safe-area-inset-top);--sab:env(safe-area-inset-bottom)}
+html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#0a0a1a;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;position:fixed;top:0;left:0;right:0;bottom:0;overscroll-behavior:none;-webkit-text-size-adjust:100%}
 canvas{display:block;width:100%;height:100%}
 </style>
 </head>
@@ -61,23 +62,29 @@ const ctx=canvas.getContext('2d');
 let W,H,safeTop=0,safeBot=0;
 function resize(){
   const dpr=Math.min(window.devicePixelRatio||1,2);
-  W=window.innerWidth;H=window.innerHeight;
+  if(window.visualViewport){
+    W=Math.round(window.visualViewport.width);
+    H=Math.round(window.visualViewport.height);
+  } else {
+    W=window.innerWidth;H=window.innerHeight;
+  }
   // Safe area insets for notch/home bar
   const cs=getComputedStyle(document.documentElement);
-  safeTop=parseInt(cs.getPropertyValue('env(safe-area-inset-top)'))||0;
-  safeBot=parseInt(cs.getPropertyValue('env(safe-area-inset-bottom)'))||0;
+  safeTop=parseInt(cs.getPropertyValue('--sat'))||0;
+  safeBot=parseInt(cs.getPropertyValue('--sab'))||0;
   if(!safeBot)safeBot=16; // fallback padding for bottom
   canvas.width=W*dpr;canvas.height=H*dpr;
   canvas.style.width=W+'px';canvas.style.height=H+'px';
   ctx.setTransform(dpr,0,0,dpr,0,0);
 }
 resize();window.addEventListener('resize',resize);
+if(window.visualViewport)window.visualViewport.addEventListener('resize',resize);
 
 // ===== CONSTANTS =====
 const GRAVITY=0.22;
 const JUMP_POWER=8.0;
 const PLAYER_R=14;
-const GROUND_H=65;
+const GROUND_H=85;
 const SPEED_INIT=1.5;
 const SPEED_INC=0.0003;
 const SPEED_MAX=5.0;
@@ -192,12 +199,18 @@ const BGM_DEAD={
   bass: [131,131,131,131, 110,110,110,110, 123,123,123,123, 110,110,98,98],
   tempo:400,vol:0.18,bassVol:0.1,wave:'sine',bassWave:'sine'
 };
+// Fever: fast, intense power-up feel (high energy, sawtooth)
+const BGM_FEVER={
+  notes:[784,988,1175,1319, 1175,988,784,988, 880,1175,1319,1568, 1319,1175,1047,880],
+  bass: [196,196,247,247, 196,196,247,247, 220,220,262,262, 220,220,196,196],
+  tempo:110,vol:0.3,bassVol:0.25,wave:'sawtooth',bassWave:'triangle'
+};
 
 function switchBGM(type){
   if(!audioCtx||bgmCurrent===type)return;
   bgmCurrent=type;
   if(bgmTimer){clearTimeout(bgmTimer);bgmTimer=null;}
-  const def=type==='title'?BGM_TITLE:type==='play'?BGM_PLAY:BGM_DEAD;
+  const def=type==='title'?BGM_TITLE:type==='play'?BGM_PLAY:type==='fever'?BGM_FEVER:BGM_DEAD;
   let bi=0;
   (function play(){
     if(bgmCurrent!==type)return;
@@ -224,8 +237,16 @@ function switchBGM(type){
         const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*0.03,audioCtx.sampleRate);
         const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*0.15;
         n.buffer=buf;const ng=audioCtx.createGain();n.connect(ng);ng.connect(bgmGain);
-        ng.gain.setValueAtTime(type==='title'?0.12:0.06,now);ng.gain.exponentialRampToValueAtTime(0.001,now+0.04);
+        ng.gain.setValueAtTime(type==='title'?0.12:type==='fever'?0.18:0.06,now);ng.gain.exponentialRampToValueAtTime(0.001,now+0.04);
         n.start(now);n.stop(now+0.04);
+      }
+      // Kick drum for fever mode (every other beat)
+      if(type==='fever'&&bi%2===0){
+        const kick=audioCtx.createOscillator(),kg=audioCtx.createGain();
+        kick.connect(kg);kg.connect(bgmGain);kick.type='sine';
+        kick.frequency.setValueAtTime(150,now);kick.frequency.exponentialRampToValueAtTime(40,now+0.08);
+        kg.gain.setValueAtTime(0.3,now);kg.gain.exponentialRampToValueAtTime(0.001,now+0.1);
+        kick.start(now);kick.stop(now+0.12);
       }
       bi++;
     }catch(e){}
@@ -363,7 +384,7 @@ function generatePlatform(arr,isCeil,forceGap){
   if(Math.random()<stepC){
     const maxDh=score<10?Math.min(15,5+score):Math.min(45,10+score*0.22);
     const dh=(Math.random()<0.5?1:-1)*(5+Math.random()*maxDh);
-    h=Math.max(45+safeBot,Math.min(H*0.38,h+dh));
+    h=Math.max(65+safeBot,Math.min(H*0.38,h+dh));
   }
   // Width (narrower at higher scores)
   let w;
@@ -548,7 +569,7 @@ function trySpawnItem(){
     // Pick random item: 0=invincible, 1=magnet, 2=double jump, 3=heart, 4=slow
     let it;
     if(hp<HP_MAX&&Math.random()<0.3){it=3;} // higher chance for heart when damaged
-    else{const pool=[0,1,2,4];it=pool[Math.floor(Math.random()*pool.length)];}
+    else{const r=Math.random();if(r<0.05){it=0;}else{const pool=[1,2,4];it=pool[Math.floor(Math.random()*pool.length)];}}
     items.push({x:ix,y:surfY-55-Math.random()*25,t:it,sz:14,p:Math.random()*6.28,col:false});
   } else {
     itemCD=20+Math.floor(Math.random()*15);
@@ -842,7 +863,7 @@ function checkMile(){
 function applyItem(type){
   vibrate(25);
   switch(type){
-    case 0:sfx('item');itemEff.invincible=600;break; // 10 seconds invincible
+    case 0:sfx('item');itemEff.invincible=600;switchBGM('fever');break; // 10 seconds invincible
     case 1:sfx('item');itemEff.magnet=600;break; // 10 seconds coin magnet
     case 2:sfx('item');djumpAvailable=true;djumpUsed=false;break; // one-time double jump
     case 3: // Heart: recover 1 HP
@@ -893,7 +914,9 @@ function update(dt){
   // Hurt invincibility timer
   if(hurtT>0)hurtT--;
   // Item timers
+  const wasInvincible=itemEff.invincible>0;
   for(const k in itemEff)if(itemEff[k]>0)itemEff[k]--;
+  if(wasInvincible&&itemEff.invincible<=0&&state===ST.PLAY)switchBGM('play');
 
   // Slow motion: gradual return to normal in last 120 frames
   let slowFactor=1;
@@ -1145,6 +1168,7 @@ function update(dt){
         // Bounce player off enemy
         player.vy=-JUMP_POWER*0.7*player.gDir;
         player.grounded=false;
+        flipCount=0;player.canFlip=true;djumpUsed=false;
         // Gravity stomp bonus: 3x if flipped recently
         const gstomp=flipTimer<40;
         const gsMul=gstomp?3:1;
