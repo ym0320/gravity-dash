@@ -248,26 +248,19 @@ function sfx(type){
       case'shoot':o.type='sawtooth';o.frequency.setValueAtTime(600,t);o.frequency.exponentialRampToValueAtTime(200,t+0.15);g.gain.setValueAtTime(0.1,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);o.start(t);o.stop(t+0.18);break;
       case'gstomp':o.type='sine';o.frequency.setValueAtTime(300,t);o.frequency.exponentialRampToValueAtTime(900,t+0.2);g.gain.setValueAtTime(0.15,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);o.start(t);o.stop(t+0.25);break;
       case'hurt':o.type='square';o.frequency.setValueAtTime(250,t);o.frequency.exponentialRampToValueAtTime(100,t+0.2);g.gain.setValueAtTime(0.15,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);o.start(t);o.stop(t+0.25);break;
+      case'heal':o.type='sine';o.frequency.setValueAtTime(523,t);o.frequency.exponentialRampToValueAtTime(1047,t+0.2);g.gain.setValueAtTime(0.1,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.3);o.start(t);o.stop(t+0.3);break;
     }
   }catch(e){}
 }
 function vibrate(ms){try{if(navigator.vibrate)navigator.vibrate(ms);}catch(e){}}
 
-// ===== ITEMS (13 unique effects) =====
+// ===== ITEMS (5 types) =====
 const ITEMS=[
-  {name:'\u30B7\u30FC\u30EB\u30C9',desc:'\u7121\u6575',col:'#3b82f6',icon:'\u25C6',dur:300},
-  {name:'\u30B9\u30ED\u30FC',desc:'\u6E1B\u901F',col:'#a855f7',icon:'\u25F7',dur:250},
-  {name:'\u30DE\u30B0\u30CD\u30C3\u30C8',desc:'\u30B3\u30A4\u30F3\u5438\u5F15',col:'#f59e0b',icon:'\u25CE',dur:350},
-  {name:'\u30C0\u30D6\u30EB',desc:'x2\u30B9\u30B3\u30A2',col:'#ef4444',icon:'\u00D7',dur:280},
-  {name:'\u30DF\u30CB\u5316',desc:'\u5C0F\u3055\u304F\u306A\u308B',col:'#06b6d4',icon:'\u25BD',dur:260},
-  {name:'\u30D0\u30CD',desc:'\u30B8\u30E3\u30F3\u30D7\u529B\u30A2\u30C3\u30D7',col:'#84cc16',icon:'\u2191',dur:300},
-  {name:'\u30B4\u30FC\u30B9\u30C8',desc:'\u900F\u660E\u3067\u3059\u308A\u629C\u3051',col:'#8b5cf6',icon:'\u25CB',dur:200},
-  {name:'\u30B3\u30A4\u30F3\u96E8',desc:'\u30B3\u30A4\u30F3\u5927\u91CF\u767A\u751F',col:'#fbbf24',icon:'\u2605',dur:0},
-  {name:'\u30BF\u30A4\u30E0\u30B9\u30C8\u30C3\u30D7',desc:'\u4E00\u6642\u505C\u6B62',col:'#ec4899',icon:'\u25A0',dur:120},
-  {name:'\u30ED\u30B1\u30C3\u30C8',desc:'\u8D85\u52A0\u901F',col:'#f97316',icon:'\u25B6',dur:150},
-  {name:'\u7121\u6575',desc:'\u4E00\u5B9A\u6642\u9593\u7121\u6575',col:'#ff00ff',icon:'\u2731',dur:250},
-  {name:'\u6D6E\u904A',desc:'\u9577\u62BC\u3057\u3067\u6D6E\u3051\u308B',col:'#00ffcc',icon:'\u2248',dur:350},
-  {name:'2\u6BB5\u30B8\u30E3\u30F3\u30D7',desc:'\u7A7A\u4E2D\u30B8\u30E3\u30F3\u30D7\u53EF',col:'#ffaa00',icon:'\u21C8',dur:400},
+  {name:'\u7121\u6575',desc:'10\u79D2\u9593\u7121\u6575',col:'#ff00ff',icon:'\u2731',dur:600},
+  {name:'\u30B3\u30A4\u30F3\u5438\u53CE',desc:'\u81EA\u52D5\u53CE\u96C6',col:'#f59e0b',icon:'\u25CE',dur:600},
+  {name:'2\u6BB5\u30B8\u30E3\u30F3\u30D7',desc:'\u7A7A\u4E2D\u30B8\u30E3\u30F3\u30D71\u56DE',col:'#ffaa00',icon:'\u21C8',dur:0},
+  {name:'\u30CF\u30FC\u30C8',desc:'HP\u56DE\u5FA9',col:'#ff3860',icon:'\u2665',dur:0},
+  {name:'\u30B9\u30ED\u30FC',desc:'\u30B9\u30ED\u30FC\u30E2\u30FC\u30B7\u30E7\u30F3',col:'#a855f7',icon:'\u25F7',dur:600},
 ];
 
 // ===== STAGE MODE =====
@@ -331,9 +324,9 @@ let dist=0;
 let hp=HP_MAX,hurtT=0; // hit points and hurt invincibility timer
 
 // Active item effects
-let itemEff={shield:0,slow:0,magnet:0,double:0,mini:0,spring:0,ghost:0,timestop:0,rocket:0,invincible:0,float:0,djump:0};
-let djumpUsed=false; // track if double jump was used in current air time
-let holdingTouch=false; // track if player is holding touch (for float)
+let itemEff={invincible:0,magnet:0,slowmo:0};
+let djumpAvailable=false; // one-time double jump from item
+let djumpUsed=false; // track if the item double jump was used
 
 // ===== PLAYER =====
 // gDir: 1=on floor (gravity down), -1=on ceiling (gravity up)
@@ -431,12 +424,11 @@ function reset(){
   shakeX=0;shakeY=0;shakeI=0;
   mileT=0;mileTxt='';lastMile=0;
   totalCoins=0;totalFlips=0;maxCombo=0;
-  itemEff={shield:0,slow:0,magnet:0,double:0,mini:0,spring:0,ghost:0,timestop:0,rocket:0,invincible:0,float:0,djump:0};
-  djumpUsed=false;holdingTouch=false;
-  coinCD=0;itemCD=0;enemyCD=0;flipCount=0;flipTimer=999;
+  itemEff={invincible:0,magnet:0,slowmo:0};
+  djumpAvailable=false;djumpUsed=false;
+  coinCD=0;itemCD=0;enemyCD=0;flipCount=0;flipTimer=999;lastCoinCourse='';
   flipZone={active:false,type:0,len:0,cd:0};
   hp=HP_MAX;hurtT=0;
-  if(ct().startShield)itemEff.shield=300;
   prevTheme=curTheme;curTheme=0;themeLerp=1;
 }
 
@@ -471,11 +463,10 @@ function resetStage(stageIdx){
   shakeX=0;shakeY=0;shakeI=0;
   mileT=0;mileTxt='';lastMile=0;
   totalCoins=0;totalFlips=0;maxCombo=0;
-  itemEff={shield:0,slow:0,magnet:0,double:0,mini:0,spring:0,ghost:0,timestop:0,rocket:0,invincible:0,float:0,djump:0};
-  djumpUsed=false;holdingTouch=false;
-  coinCD=0;itemCD=0;enemyCD=0;flipCount=0;flipTimer=999;
+  itemEff={invincible:0,magnet:0,slowmo:0};
+  djumpAvailable=false;djumpUsed=false;
+  coinCD=0;itemCD=0;enemyCD=0;flipCount=0;flipTimer=999;lastCoinCourse='';
   hp=HP_MAX;hurtT=0;
-  if(ct().startShield)itemEff.shield=300;
   prevTheme=curTheme;curTheme=0;themeLerp=1;
 }
 
@@ -490,13 +481,14 @@ function findEdgeSpawnPlat(){
   // Find a platform that extends past or starts at the right screen edge
   return platforms.find(p=>p.x<W+40&&p.x+p.w>W)||platforms.find(p=>p.x>=W&&p.x<W+100);
 }
+let lastCoinCourse=''; // track last coin placement: 'floor' or 'ceil'
 function coinOverlaps(cx,cy){
-  // Check if a proposed coin position overlaps with any existing coin
+  // Check if a proposed coin position overlaps with any existing coin (min 30px apart)
   for(let i=0;i<coins.length;i++){
     const c=coins[i];
     if(!c.col){
       const dx=cx-c.x,dy=cy-c.y;
-      if(dx*dx+dy*dy<20*20)return true; // within 20px = overlap
+      if(dx*dx+dy*dy<30*30)return true;
     }
   }
   return false;
@@ -505,22 +497,26 @@ function trySpawnCoins(){
   if(coinCD>0){coinCD--;return;}
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
-  if(Math.random()<0.30){
-    coinCD=28+Math.floor(Math.random()*20);
-    const onFloor=player.gDir===1||Math.random()<0.5;
+  if(Math.random()<0.18){ // reduced frequency (was 0.30)
+    coinCD=50+Math.floor(Math.random()*30); // longer cooldown (was 28+20)
+    // Alternate between floor and ceiling to prevent overlap
+    let onFloor;
+    if(lastCoinCourse==='floor') {onFloor=false;lastCoinCourse='ceil';}
+    else if(lastCoinCourse==='ceil') {onFloor=true;lastCoinCourse='floor';}
+    else {onFloor=player.gDir===1||Math.random()<0.5;lastCoinCourse=onFloor?'floor':'ceil';}
     const surfY=onFloor?H-plat.h:(()=>{const cp=ceilPlats.find(p=>plat.x+plat.w*0.3>=p.x&&plat.x+plat.w*0.3<=p.x+p.w);return cp?cp.h:GROUND_H;})();
     const pattern=Math.random();
-    const n=3+Math.floor(Math.random()*3); // 3-5 coins per group
+    const n=3+Math.floor(Math.random()*2); // 3-4 coins per group (was 3-5)
     const startX=Math.max(W+9,plat.x); // spawn at right screen edge
 
-    if(pattern<0.45){
+    if(pattern<0.5){
       // Straight horizontal line: exactly on running height (PLAYER_R above surface)
       const lineY=onFloor?surfY-PLAYER_R:surfY+PLAYER_R;
       for(let i=0;i<n;i++){
-        const cx=startX+i*24;
+        const cx=startX+i*28; // wider spacing (was 24)
         if(!coinOverlaps(cx,lineY))coins.push({x:cx,y:lineY,sz:9,col:false,p:0});
       }
-    } else if(pattern<0.85){
+    } else {
       // Perfect parabolic arc: matches actual jump physics exactly
       const jp=JUMP_POWER*ct().jumpMul;
       const gv=GRAVITY*ct().gravMul;
@@ -535,16 +531,9 @@ function trySpawnCoins(){
         const cy=onFloor?surfY-PLAYER_R-arcH:surfY+PLAYER_R+arcH;
         if(!coinOverlaps(cx,cy))coins.push({x:cx,y:cy,sz:9,col:false,p:0});
       }
-    } else {
-      // Diagonal line: ascending straight line (guides player upward)
-      for(let i=0;i<n;i++){
-        const cx=startX+i*26;
-        const cy=onFloor?surfY-PLAYER_R-i*18:surfY+PLAYER_R+i*18;
-        if(!coinOverlaps(cx,cy))coins.push({x:cx,y:cy,sz:9,col:false,p:0});
-      }
     }
   } else {
-    coinCD=12+Math.floor(Math.random()*8);
+    coinCD=20+Math.floor(Math.random()*15); // longer no-spawn cooldown (was 12+8)
   }
 }
 function trySpawnItem(){
@@ -556,7 +545,10 @@ function trySpawnItem(){
     itemCD=140+Math.floor(Math.random()*80);
     const ix=Math.max(W+14,plat.x); // spawn at right screen edge
     const surfY=H-plat.h;
-    const it=10; // Only spawn invincibility item
+    // Pick random item: 0=invincible, 1=magnet, 2=double jump, 3=heart, 4=slow
+    let it;
+    if(hp<HP_MAX&&Math.random()<0.3){it=3;} // higher chance for heart when damaged
+    else{const pool=[0,1,2,4];it=pool[Math.floor(Math.random()*pool.length)];}
     items.push({x:ix,y:surfY-55-Math.random()*25,t:it,sz:14,p:Math.random()*6.28,col:false});
   } else {
     itemCD=20+Math.floor(Math.random()*15);
@@ -632,7 +624,6 @@ canvas.addEventListener('touchstart',e=>{
   const t=e.touches[0];
   const p=canvasXY(t.clientX,t.clientY);
   touchStartY=t.clientY;touchStartX=t.clientX;touchStartT=Date.now();touchMoved=false;
-  holdingTouch=true;
   if(state===ST.STAGE_CLEAR&&stageClearT>60){state=ST.TITLE;switchBGM('title');return;}
   if(state===ST.PAUSE){
     if(hitResumeBtn(p.x,p.y)){state=ST.PLAY;switchBGM('play');return;}
@@ -653,12 +644,10 @@ canvas.addEventListener('touchmove',e=>{
   const dy=t.clientY-touchStartY;
   const dx=t.clientX-touchStartX;
   if(Math.abs(dy)>20||Math.abs(dx)>20) touchMoved=true;
-  holdingTouch=true;
 },{passive:false});
 
 canvas.addEventListener('touchend',e=>{
   e.preventDefault();
-  holdingTouch=false;
   if(state!==ST.PLAY||state===ST.PAUSE)return;
   const dt=Date.now()-touchStartT;
   const t=e.changedTouches[0];
@@ -686,16 +675,16 @@ canvas.addEventListener('touchend',e=>{
   } else if(!touchMoved||dt<200){
     // Tap: jump from current surface
     if(player.grounded){
-      const jp=JUMP_POWER*ct().jumpMul*(itemEff.spring>0?1.5:1);
+      const jp=JUMP_POWER*ct().jumpMul;
       player.vy=-jp*player.gDir;
       player.grounded=false;
       djumpUsed=false;
       sfx('jump');vibrate(10);
       player.face='flip';setTimeout(()=>{if(player.alive)player.face='normal';},180);
       emitParts(player.x,player.y+PLAYER_R*player.gDir,6,tc('ply'),2.5,2);
-    } else if(!djumpUsed){
-      // Double jump in mid-air (always available)
-      djumpUsed=true;
+    } else if(djumpAvailable&&!djumpUsed){
+      // Double jump from item (one-time use)
+      djumpUsed=true;djumpAvailable=false;
       const jp=JUMP_POWER*ct().jumpMul*0.85;
       player.vy=-jp*player.gDir;
       sfx('jump');vibrate(10);
@@ -722,13 +711,13 @@ canvas.addEventListener('mousedown',e=>{
     else{state=ST.TITLE;switchBGM('title');}
   }
   else if(state===ST.PLAY&&player.grounded){
-    const jp=JUMP_POWER*ct().jumpMul*(itemEff.spring>0?1.5:1);
+    const jp=JUMP_POWER*ct().jumpMul;
     player.vy=-jp*player.gDir;player.grounded=false;djumpUsed=false;
     sfx('jump');vibrate(10);
     emitParts(player.x,player.y+PLAYER_R*player.gDir,6,tc('ply'),2.5,2);
   }
-  else if(state===ST.PLAY&&!player.grounded&&!djumpUsed){
-    djumpUsed=true;
+  else if(state===ST.PLAY&&djumpAvailable&&!djumpUsed){
+    djumpUsed=true;djumpAvailable=false;
     const jp=JUMP_POWER*ct().jumpMul*0.85;
     player.vy=-jp*player.gDir;
     sfx('jump');vibrate(10);
@@ -751,30 +740,25 @@ document.addEventListener('keydown',e=>{
     else{state=ST.TITLE;switchBGM('title');}
   }
     else if(state===ST.PLAY&&player.grounded){
-      const jp=JUMP_POWER*ct().jumpMul*(itemEff.spring>0?1.5:1);
+      const jp=JUMP_POWER*ct().jumpMul;
       player.vy=-jp*player.gDir;player.grounded=false;djumpUsed=false;
       sfx('jump');vibrate(10);
       emitParts(player.x,player.y+PLAYER_R*player.gDir,6,tc('ply'),2.5,2);
     }
-    else if(state===ST.PLAY&&!player.grounded&&!djumpUsed){
-      djumpUsed=true;
+    else if(state===ST.PLAY&&djumpAvailable&&!djumpUsed){
+      djumpUsed=true;djumpAvailable=false;
       const jp=JUMP_POWER*ct().jumpMul*0.85;
       player.vy=-jp*player.gDir;
       sfx('jump');vibrate(10);
       emitParts(player.x,player.y,8,'#ffaa00',3,2.5);
     }
   }
-  // Hold space/up for float effect
-  if(e.code==='Space'||e.code==='ArrowUp')holdingTouch=true;
   if(e.code==='ArrowDown'&&state===ST.PLAY&&player.canFlip){
     e.preventDefault();
     flipCount++;flipTimer=0;
     if(player.gDir===1){player.gDir=-1;player.vy=-2;totalFlips++;player.canFlip=flipCount<ct().maxFlip;sfx('flip');vibrate(20);player.rotTarget-=Math.PI;emitParts(player.x,player.y,10,tc('ply'),3,2.5);}
     else{player.gDir=1;player.vy=2;totalFlips++;player.canFlip=flipCount<ct().maxFlip;sfx('flip');vibrate(20);player.rotTarget+=Math.PI;emitParts(player.x,player.y,10,tc('ply'),3,2.5);}
   }
-});
-document.addEventListener('keyup',e=>{
-  if(e.code==='Space'||e.code==='ArrowUp')holdingTouch=false;
 });
 
 function handleTitleTouch(tx,ty){
@@ -819,8 +803,6 @@ function handleTitleTouch(tx,ty){
 function hurt(){
   if(hurtT>0)return; // still invincible from previous hit
   if(itemEff.invincible>0){shakeI=4;emitParts(player.x,player.y,8,'#ff00ff',3,2);return;}
-  if(itemEff.shield>0){itemEff.shield=0;shakeI=6;emitParts(player.x,player.y,15,'#3b82f6',4,3);return;}
-  if(itemEff.ghost>0)return;
   hp--;
   if(hp<=0){die();return;}
   // Survive with damage
@@ -830,10 +812,8 @@ function hurt(){
   emitParts(player.x,player.y,12,tc('obs'),4,3);
   addPop(player.x,player.y-25,'HP -1','#ff3860');
 }
-// die(): instant death (void fall = lose all HP)
+// die(): instant death (void fall = lose all HP, even when invincible)
 function die(){
-  if(itemEff.invincible>0){shakeI=4;emitParts(player.x,player.y,8,'#ff00ff',3,2);return;}
-  if(itemEff.ghost>0)return;
   hp=0;
   player.alive=false;state=ST.DEAD;deadT=0;shakeI=14;switchBGM('dead');
   player.face='dead';sfx('death');vibrate([30,20,50]);
@@ -860,26 +840,16 @@ function checkMile(){
 }
 
 function applyItem(type){
-  sfx('item');vibrate(25);
-  const it=ITEMS[type];
+  vibrate(25);
   switch(type){
-    case 0:itemEff.shield=it.dur;break;
-    case 1:itemEff.slow=it.dur;break;
-    case 2:itemEff.magnet=it.dur;break;
-    case 3:itemEff.double=it.dur;break;
-    case 4:itemEff.mini=it.dur;break;
-    case 5:itemEff.spring=it.dur;break;
-    case 6:itemEff.ghost=it.dur;break;
-    case 7: // Coin rain - spawn lots of coins nearby
-      for(let i=0;i<15;i++){
-        coins.push({x:player.x+50+Math.random()*200,y:player.y-100+Math.random()*200,sz:9,col:false,p:Math.random()*6.28});
-      }
+    case 0:sfx('item');itemEff.invincible=600;break; // 10 seconds invincible
+    case 1:sfx('item');itemEff.magnet=600;break; // 10 seconds coin magnet
+    case 2:sfx('item');djumpAvailable=true;djumpUsed=false;break; // one-time double jump
+    case 3: // Heart: recover 1 HP
+      if(hp<HP_MAX){hp++;sfx('heal');addPop(player.x,player.y-25,'HP +1','#ff3860');emitParts(player.x,player.y,10,'#ff3860',3,2);}
+      else{sfx('coin');addPop(player.x,player.y-25,'HP MAX','#ff3860');}
       break;
-    case 8:itemEff.timestop=it.dur;break;
-    case 9:itemEff.rocket=it.dur;break;
-    case 10:itemEff.invincible=it.dur;break;
-    case 11:itemEff.float=it.dur;break;
-    case 12:itemEff.djump=it.dur;djumpUsed=false;break;
+    case 4:sfx('item');itemEff.slowmo=600;break; // slow motion
   }
 }
 
@@ -925,19 +895,21 @@ function update(dt){
   // Item timers
   for(const k in itemEff)if(itemEff[k]>0)itemEff[k]--;
 
-  const sm=itemEff.slow>0?0.55:1;
-  const rm=itemEff.rocket>0?2.2:1;
-  const ts=itemEff.timestop>0?0.15:1;
+  // Slow motion: gradual return to normal in last 120 frames
+  let slowFactor=1;
+  if(itemEff.slowmo>0){
+    if(itemEff.slowmo>120) slowFactor=0.35;
+    else slowFactor=0.35+(1-0.35)*(1-itemEff.slowmo/120);
+  }
   if(gameMode==='stage'){
     const stg=STAGES[currentStage];
-    speed=stg?stg.speed*sm*rm*ts*ct().speedMul:SPEED_INIT;
+    speed=stg?stg.speed*slowFactor*ct().speedMul:SPEED_INIT;
   } else {
-    speed=Math.min(SPEED_MAX,(SPEED_INIT+dist*SPEED_INC))*sm*rm*ts*ct().speedMul;
+    speed=Math.min(SPEED_MAX,(SPEED_INIT+dist*SPEED_INC))*slowFactor*ct().speedMul;
   }
 
   // Distance scoring
-  const scoreMul=itemEff.double>0?2:1;
-  dist+=speed*0.08*scoreMul;
+  dist+=speed*0.08;
   const ns=Math.floor(dist);
   if(ns>score){score=ns;checkMile();}
 
@@ -987,7 +959,7 @@ function update(dt){
     stageBigCoins.forEach(bc=>{bc.x-=speed;bc.p+=0.06;});
     if(stageGoal)stageGoal.x-=speed;
     // Big coin collection
-    const pr2=PLAYER_R*ct().sizeMul*(itemEff.mini>0?0.6:1);
+    const pr2=PLAYER_R*ct().sizeMul;
     stageBigCoins.forEach(bc=>{
       if(bc.col)return;
       const dx=player.x-bc.x,dy=player.y-bc.y;
@@ -1018,23 +990,11 @@ function update(dt){
 
   // Physics
   flipTimer++;
-  const pr=PLAYER_R*ct().sizeMul*(itemEff.mini>0?0.6:1);
-  const grav=GRAVITY*player.gDir*ct().gravMul;
+  const pr=PLAYER_R*ct().sizeMul;
+  const gravSlow=itemEff.slowmo>0?slowFactor:1;
+  const grav=GRAVITY*player.gDir*ct().gravMul*gravSlow;
   player.vy+=grav;
   player.vy=Math.max(-14,Math.min(14,player.vy));
-
-  // Float: holding touch/key dampens gravity and slowly lifts
-  if(itemEff.float>0&&holdingTouch&&!player.grounded){
-    player.vy*=0.75;
-    player.vy-=0.3*player.gDir; // gentle upward force
-    if(frame%3===0)emitParts(player.x-6+Math.random()*12,player.y+PLAYER_R*player.gDir,1,'#00ffcc',2,0.5);
-  }
-
-  // Rocket override
-  if(itemEff.rocket>0){
-    player.vy*=0.7; // dampen vertical movement during rocket
-    if(frame%2===0)emitParts(player.x-10,player.y,2,'#f97316',3,1);
-  }
 
   player.y+=player.vy;
 
@@ -1085,7 +1045,7 @@ function update(dt){
       if(Math.sqrt(dx*dx+dy*dy)<cd){
         c.col=true;totalCoins++;combo++;comboDsp=combo;comboDspT=55;
         if(combo>maxCombo)maxCombo=combo;
-        const bon=Math.ceil((3+Math.min(combo-1,8))*ct().coinMul*(itemEff.double>0?2:1));
+        const bon=Math.ceil((3+Math.min(combo-1,8))*ct().coinMul);
         dist+=bon;sfx(combo>1?'combo':'coin');
         addPop(c.x,c.y-14,'+'+bon,'#ffd700');vibrate(10);
         if(combo>1)addPop(c.x,c.y-34,combo+'x','#ff6b35');
@@ -1124,16 +1084,16 @@ function update(dt){
   enemies.forEach(en=>{
     if(!en.alive)return;
     en.x-=speed;
-    en.fr+=0.12;
+    en.fr+=0.12*slowFactor;
 
     if(en.type===2){
       // Flying enemy: sine wave movement, no ground snapping
-      en.flyPhase+=0.04;
+      en.flyPhase+=0.04*slowFactor;
       en.y=en.baseY+Math.sin(en.flyPhase)*en.flyAmp;
-      en.baseY-=speed*0.02; // slight drift doesn't matter, already scrolling via en.x
+      en.baseY-=speed*0.02;
     } else if(en.type===0&&en.patrolDir!==undefined){
       // Walker with left-right patrol
-      en.x+=en.patrolDir*en.walkSpd;
+      en.x+=en.patrolDir*en.walkSpd*slowFactor;
       en.patrolOriginX-=speed; // keep origin scrolling with terrain
       if(en.x>en.patrolOriginX+en.patrolRange) en.patrolDir=-1;
       if(en.x<en.patrolOriginX-en.patrolRange) en.patrolDir=1;
@@ -1149,7 +1109,7 @@ function update(dt){
       }
     } else {
       // Default movement (type 1 cannon and legacy)
-      en.x-=en.walkSpd;
+      en.x-=en.walkSpd*slowFactor;
       // Keep on surface or fall off cliff
       if(en.gDir===1){
         const sy=floorSurfaceY(en.x);
@@ -1162,10 +1122,20 @@ function update(dt){
       }
     }
     // Collision with player
-    if(itemEff.ghost>0)return;
     const dx=player.x-en.x,dy=player.y-en.y;
     const d=Math.sqrt(dx*dx+dy*dy);
     if(d<pr+en.sz){
+      // Invincible: destroy enemy on contact
+      if(itemEff.invincible>0){
+        en.alive=false;
+        sfx('stomp');vibrate(15);shakeI=4;
+        const bon=Math.floor(10+Math.min(score*0.1,20));
+        dist+=bon;
+        addPop(en.x,en.y-en.sz*en.gDir,'+'+bon,'#ff00ff');
+        emitParts(en.x,en.y,15,'#ff00ff',4,3);
+        player.face='happy';setTimeout(()=>{if(player.alive)player.face='normal';},300);
+        return;
+      }
       // Fast kill trait (Flame): destroy on contact at high speed
       const fkill=ct().fastKill&&speed>4;
       // Check stomp: player approaching from the "top" of the enemy
@@ -1178,7 +1148,7 @@ function update(dt){
         // Gravity stomp bonus: 3x if flipped recently
         const gstomp=flipTimer<40;
         const gsMul=gstomp?3:1;
-        const bon=Math.floor((10+Math.min(score*0.1,20))*gsMul*(itemEff.double>0?2:1));
+        const bon=Math.floor((10+Math.min(score*0.1,20))*gsMul);
         dist+=bon;
         if(gstomp){sfx('gstomp');vibrate([20,10,30]);shakeI=8;}else{sfx('stomp');vibrate(15);}
         addPop(en.x,en.y-en.sz*en.gDir,'+'+bon,gstomp?'#ffd700':'#ff3860');
@@ -1206,10 +1176,9 @@ function update(dt){
   });
 
   // Update bullets
-  const bpr=PLAYER_R*ct().sizeMul*(itemEff.mini>0?0.6:1);
+  const bpr=PLAYER_R*ct().sizeMul;
   bullets.forEach(b=>{
-    b.x+=b.vx;b.y+=b.vy;b.life--;
-    if(itemEff.ghost>0)return;
+    b.x+=b.vx*slowFactor;b.y+=b.vy*slowFactor;b.life--;
     const dx=player.x-b.x,dy=player.y-b.y;
     if(Math.sqrt(dx*dx+dy*dy)<bpr+b.sz){
       b.life=0;hurt();
@@ -1218,7 +1187,7 @@ function update(dt){
   bullets=bullets.filter(b=>b.life>0&&b.x>-50&&b.x<W+100&&b.y>-50&&b.y<H+50);
 
   // Wall collision: hitting the side of a higher platform step
-  if(itemEff.ghost<=0){
+  {
     if(player.gDir===1){
       // Check floor platform walls ahead
       for(let i=0;i<platforms.length;i++){
@@ -1246,14 +1215,12 @@ function update(dt){
     }
   }
 
-  // Shield particles
-  if(itemEff.shield>0&&frame%3===0){const a=Math.random()*6.28;parts.push({x:player.x+Math.cos(a)*18,y:player.y+Math.sin(a)*18,vx:Math.cos(a)*0.4,vy:Math.sin(a)*0.4,life:12,ml:12,sz:Math.random()*3+1,col:'#3b82f6'});}
-  // Ghost particles
-  if(itemEff.ghost>0&&frame%4===0)parts.push({x:player.x-8+Math.random()*16,y:player.y+pr,vx:0,vy:0.5,life:15,ml:15,sz:2,col:'#8b5cf688'});
   // Invincible particles (rainbow sparkle)
   if(itemEff.invincible>0&&frame%2===0){const a=Math.random()*6.28;const ic=['#ff00ff','#ffff00','#00ffff','#ff4444','#44ff44'][frame%5];parts.push({x:player.x+Math.cos(a)*22,y:player.y+Math.sin(a)*22,vx:Math.cos(a)*0.6,vy:Math.sin(a)*0.6,life:14,ml:14,sz:Math.random()*3.5+1.5,col:ic});}
-  // Double jump indicator
-  if(!player.grounded&&!djumpUsed&&frame%6===0){parts.push({x:player.x,y:player.y+pr*player.gDir+4*player.gDir,vx:(Math.random()-0.5)*0.5,vy:0.3*player.gDir,life:10,ml:10,sz:2,col:'#ffaa00'});}
+  // Slow motion particles (purple swirl)
+  if(itemEff.slowmo>0&&frame%4===0){const a=frame*0.1;parts.push({x:player.x+Math.cos(a)*16,y:player.y+Math.sin(a)*16,vx:Math.cos(a)*0.3,vy:Math.sin(a)*0.3,life:12,ml:12,sz:Math.random()*2.5+1,col:'#a855f7'});}
+  // Double jump available indicator
+  if(djumpAvailable&&!djumpUsed&&frame%6===0){parts.push({x:player.x,y:player.y+pr*player.gDir+4*player.gDir,vx:(Math.random()-0.5)*0.5,vy:0.3*player.gDir,life:10,ml:10,sz:2,col:'#ffaa00'});}
 
   parts=parts.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.life--;return p.life>0;});
   stars.forEach(s=>{s.x-=s.sp*speed*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
@@ -1589,10 +1556,10 @@ function drawCharacter(x,y,charIdx,r,rot,alpha,face,dmgLevel){
 }
 
 function drawPlayer(){
-  const pr=PLAYER_R*ct().sizeMul*(itemEff.mini>0?0.6:1);
+  const pr=PLAYER_R*ct().sizeMul;
   // Flashing during hurt invincibility
   if(hurtT>0&&Math.floor(hurtT/4)%2===0)return; // blink effect
-  let ghostA=itemEff.ghost>0?0.4+Math.sin(frame*0.15)*0.15:1;
+  let ghostA=1;
   if(hurtT>0)ghostA*=0.7; // slightly transparent during hurt
   const dmgLv=HP_MAX-hp; // 0=full, 1=hurt once, 2=critical
 
@@ -1604,10 +1571,10 @@ function drawPlayer(){
     ctx.shadowColor=ic;ctx.shadowBlur=12;
     ctx.beginPath();ctx.arc(player.x,player.y,pr+12,0,6.28);ctx.stroke();ctx.shadowBlur=0;ctx.globalAlpha=1;
   }
-  // Shield ring
-  if(itemEff.shield>0){
-    ctx.strokeStyle='#3b82f6';ctx.lineWidth=2;
-    ctx.globalAlpha=itemEff.shield<70?0.3+Math.sin(frame*0.3)*0.3:0.55;
+  // Slow motion ring (purple)
+  if(itemEff.slowmo>0){
+    ctx.strokeStyle='#a855f7';ctx.lineWidth=2;
+    ctx.globalAlpha=itemEff.slowmo<120?0.3+Math.sin(frame*0.2)*0.3:0.5;
     ctx.beginPath();ctx.arc(player.x,player.y,pr+8,0,6.28);ctx.stroke();ctx.globalAlpha=1;
   }
 
@@ -1677,18 +1644,10 @@ function drawUI(){
 
   // Active item bars
   const activeItems=[];
-  if(itemEff.shield>0)activeItems.push({n:'\u30B7\u30FC\u30EB\u30C9',c:'#3b82f6',t:itemEff.shield,m:300});
-  if(itemEff.slow>0)activeItems.push({n:'\u30B9\u30ED\u30FC',c:'#a855f7',t:itemEff.slow,m:250});
-  if(itemEff.magnet>0)activeItems.push({n:'\u30DE\u30B0\u30CD\u30C3\u30C8',c:'#f59e0b',t:itemEff.magnet,m:350});
-  if(itemEff.double>0)activeItems.push({n:'x2',c:'#ef4444',t:itemEff.double,m:280});
-  if(itemEff.mini>0)activeItems.push({n:'\u30DF\u30CB',c:'#06b6d4',t:itemEff.mini,m:260});
-  if(itemEff.spring>0)activeItems.push({n:'\u30D0\u30CD',c:'#84cc16',t:itemEff.spring,m:300});
-  if(itemEff.ghost>0)activeItems.push({n:'\u30B4\u30FC\u30B9\u30C8',c:'#8b5cf6',t:itemEff.ghost,m:200});
-  if(itemEff.timestop>0)activeItems.push({n:'\u6642\u9593\u505C\u6B62',c:'#ec4899',t:itemEff.timestop,m:120});
-  if(itemEff.rocket>0)activeItems.push({n:'\u30ED\u30B1\u30C3\u30C8',c:'#f97316',t:itemEff.rocket,m:150});
-  if(itemEff.invincible>0)activeItems.push({n:'\u7121\u6575',c:'#ff00ff',t:itemEff.invincible,m:250});
-  if(itemEff.float>0)activeItems.push({n:'\u6D6E\u904A',c:'#00ffcc',t:itemEff.float,m:350});
-  // Double jump is now always available (no HUD needed)
+  if(itemEff.invincible>0)activeItems.push({n:'\u7121\u6575',c:'#ff00ff',t:itemEff.invincible,m:600});
+  if(itemEff.magnet>0)activeItems.push({n:'\u5438\u53CE',c:'#f59e0b',t:itemEff.magnet,m:600});
+  if(itemEff.slowmo>0)activeItems.push({n:'\u30B9\u30ED\u30FC',c:'#a855f7',t:itemEff.slowmo,m:600});
+  if(djumpAvailable&&!djumpUsed)activeItems.push({n:'2\u6BB5\u30B8\u30E3\u30F3\u30D7',c:'#ffaa00',t:1,m:1});
 
   // Pause button (top-right)
   ctx.fillStyle='#ffffff18';rr(W-52,8,44,36,8);ctx.fill();
