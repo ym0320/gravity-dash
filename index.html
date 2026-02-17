@@ -88,7 +88,7 @@ const JUMP_POWER=8.0;
 const PLAYER_R=14;
 const GROUND_H=85;
 const SPEED_INIT=1.5;
-const SPEED_INC=0.0003;
+const SPEED_INC=0.0005;
 const SPEED_MAX=5.0;
 const HP_MAX=3;
 const HURT_INVINCIBLE=90; // frames of invincibility after taking damage
@@ -113,19 +113,20 @@ function tca(k,a){const c=tc(k);if(c[0]==='#')return c+(a<16?'0':'')+Math.round(
 // ===== CHARACTERS =====
 const CHARS=[
   {name:'\u30AD\u30E5\u30FC\u30D6',shape:'cube',col:'#00e5ff',col2:'#00b8d4',eye:'#fff',pupil:'#0a0a2e',
-   trait:'\u30D0\u30E9\u30F3\u30B9\u578B',desc:'\u6A19\u6E96\u7684\u306A\u6027\u80FD',jumpMul:1,speedMul:1,sizeMul:1,gravMul:1,coinMul:1,coinMag:0,maxFlip:1,startShield:false,fastKill:false,price:0},
+   trait:'\u30D0\u30E9\u30F3\u30B9\u578B',desc:'\u6A19\u6E96\u7684\u306A\u6027\u80FD',jumpMul:1,speedMul:1,sizeMul:1,gravMul:1,coinMul:1,coinMag:0,maxFlip:2,startShield:false,fastKill:false,price:0},
   {name:'\u30D0\u30A6\u30F3\u30B9',shape:'ball',col:'#ff6b6b',col2:'#e04040',eye:'#fff',pupil:'#2a0a0a',
-   trait:'\u30B8\u30E3\u30F3\u30D7\u578B',desc:'\u30B8\u30E3\u30F3\u30D71.3x',jumpMul:1.3,speedMul:0.92,sizeMul:1.05,gravMul:1,coinMul:1,coinMag:0,maxFlip:1,startShield:false,fastKill:false,price:50},
+   trait:'\u30B8\u30E3\u30F3\u30D7\u578B',desc:'\u30B8\u30E3\u30F3\u30D71.3x',jumpMul:1.3,speedMul:0.92,sizeMul:1.05,gravMul:1,coinMul:1,coinMag:0,maxFlip:2,startShield:false,fastKill:false,price:50},
   {name:'\u30BF\u30A4\u30E4',shape:'tire',col:'#555555',col2:'#333333',eye:'#fff',pupil:'#111',
-   trait:'\u8D70\u884C\u578B',desc:'\u6BB5\u5DEE\u306B\u5F37\u3044',jumpMul:0.95,speedMul:1.05,sizeMul:1,gravMul:1,coinMul:1,coinMag:0,maxFlip:1,startShield:false,fastKill:false,stepTol:45,price:80},
+   trait:'\u8D70\u884C\u578B',desc:'\u6BB5\u5DEE\u306B\u5F37\u3044',jumpMul:0.95,speedMul:1.05,sizeMul:1,gravMul:1,coinMul:1,coinMag:0,maxFlip:2,startShield:false,fastKill:false,stepTol:80,noStepDmg:true,price:80},
   {name:'\u30B4\u30FC\u30B9\u30C8',shape:'ghost',col:'#a855f7',col2:'#8b3fe0',eye:'#fff',pupil:'#1a0a30',
-   trait:'\u56DE\u907F\u578B',desc:'\u5C0F\u3055\u3044\u5F53\u305F\u308A\u5224\u5B9A',jumpMul:1,speedMul:1,sizeMul:0.75,gravMul:1,coinMul:1,coinMag:0,maxFlip:1,startShield:true,fastKill:false,price:120},
+   trait:'\u56DE\u907F\u578B',desc:'\u5C0F\u3055\u3044\u5F53\u305F\u308A\u5224\u5B9A',jumpMul:1,speedMul:1,sizeMul:0.75,gravMul:1,coinMul:1,coinMag:0,maxFlip:2,startShield:true,fastKill:false,price:120},
   {name:'\u30CB\u30F3\u30B8\u30E3',shape:'ninja',col:'#34d399',col2:'#20b878',eye:'#ff4444',pupil:'#000',
-   trait:'\u6A5F\u52D5\u578B',desc:'\u9AD8\u901F+2\u56DE\u53CD\u8EE2',jumpMul:1,speedMul:1.12,sizeMul:1,gravMul:1,coinMul:1,coinMag:0,maxFlip:2,startShield:false,fastKill:false,price:150},
-  {name:'\u30D5\u30EC\u30A4\u30E0',shape:'flame',col:'#f97316',col2:'#e05a00',eye:'#ffd700',pupil:'#4a1a00',
-   trait:'\u653B\u6483\u578B',desc:'\u9AD8\u901F\u3067\u6575\u7834\u58CA',jumpMul:0.95,speedMul:1.05,sizeMul:1.1,gravMul:1.2,coinMul:1,coinMag:0,maxFlip:1,startShield:false,fastKill:true,price:200},
+   trait:'\u6A5F\u52D5\u578B',desc:'\u9AD8\u901F+3\u56DE\u53CD\u8EE2',jumpMul:1,speedMul:1.12,sizeMul:1,gravMul:1,coinMul:1,coinMag:0,maxFlip:3,startShield:false,fastKill:false,price:150},
+  {name:'\u30B9\u30C8\u30FC\u30F3',shape:'stone',col:'#8B8B8B',col2:'#6B6B6B',eye:'#fff',pupil:'#333',
+   trait:'\u9632\u5FA1\u578B',desc:'HP+1\u3067\u8010\u4E45\u529B\u2191',jumpMul:0.9,speedMul:0.95,sizeMul:1.15,gravMul:1.1,coinMul:1,coinMag:0,maxFlip:2,startShield:false,fastKill:false,hpBonus:1,price:200},
 ];
 function ct(){return CHARS[selChar];}
+function maxHp(){return HP_MAX+(ct().hpBonus||0);}
 let selChar=parseInt(localStorage.getItem('gd5char')||'0');
 let walletCoins=parseInt(localStorage.getItem('gd5wallet')||'0');
 let unlockedChars=JSON.parse(localStorage.getItem('gd5unlocked')||'[0]');
@@ -600,7 +601,7 @@ function reset(){
   coinCD=0;itemCD=0;enemyCD=0;flipCount=0;flipTimer=999;lastCoinCourse='';
   flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
   bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:800,lastBossScore:0,bossCount:0};
-  hp=HP_MAX;hurtT=0;
+  hp=HP_MAX+(ct().hpBonus||0);hurtT=0;
   curTheme=0;prevTheme=0;themeLerp=1;
 }
 
@@ -658,7 +659,7 @@ function resetStage(stageIdx){
   itemEff={invincible:0,magnet:0};
   djumpAvailable=false;djumpUsed=false;
   coinCD=0;itemCD=0;enemyCD=0;flipCount=0;flipTimer=999;lastCoinCourse='';
-  hp=HP_MAX;hurtT=0;
+  hp=HP_MAX+(ct().hpBonus||0);hurtT=0;
   prevTheme=curTheme;curTheme=0;themeLerp=1;
 }
 
@@ -741,7 +742,7 @@ function trySpawnItem(){
     const surfY=H-plat.h;
     // Pick random item: 0=invincible, 1=magnet, 2=double jump, 3=heart, 4=slow
     let it;
-    if(hp<HP_MAX&&Math.random()<0.3){it=3;} // higher chance for heart when damaged
+    if(hp<maxHp()&&Math.random()<0.3){it=3;} // higher chance for heart when damaged
     else{const r=Math.random();if(r<0.05){it=0;}else{const pool=[1,2];it=pool[Math.floor(Math.random()*pool.length)];}}
     items.push({x:ix,y:surfY-55-Math.random()*25,t:it,sz:14,p:Math.random()*6.28,col:false});
   } else {
@@ -824,7 +825,7 @@ function trySpawnFloatPlat(){
     // Sometimes spawn an item on the floating platform
     if(Math.random()<0.4){
       const pool=[1,2]; // magnet or double jump
-      if(hp<HP_MAX&&Math.random()<0.3) pool.push(3); // heart if damaged
+      if(hp<maxHp()&&Math.random()<0.3) pool.push(3); // heart if damaged
       const it=pool[Math.floor(Math.random()*pool.length)];
       items.push({x:fx+fw/2,y:fy-25,t:it,sz:14,p:Math.random()*6.28,col:false});
     }
@@ -1063,7 +1064,7 @@ function updateBossPhase(){
     sfxFanfare();shakeI=10;vibrate([30,20,30,20,60]);
     addPop(W/2,H*0.3,'BOSS \u6483\u7834\uFF01','#ffd700');
     itemEff.invincible=600;switchBGM('fever');
-    if(hp<HP_MAX){hp++;addPop(player.x,player.y-40,'HP +1','#ff3860');}
+    if(hp<maxHp()){hp++;addPop(player.x,player.y-40,'HP +1','#ff3860');}
     const bonus=30+bossPhase.total*5;
     walletCoins+=bonus;localStorage.setItem('gd5wallet',walletCoins.toString());
     totalCoins+=bonus;
@@ -1594,7 +1595,7 @@ function applyItem(type){
     case 1:sfx('item');itemEff.magnet=600;break; // 10 seconds coin magnet
     case 2:sfx('item');djumpAvailable=true;djumpUsed=false;break; // one-time double jump
     case 3: // Heart: recover 1 HP
-      if(hp<HP_MAX){hp++;sfx('heal');addPop(player.x,player.y-25,'HP +1','#ff3860');emitParts(player.x,player.y,10,'#ff3860',3,2);}
+      if(hp<maxHp()){hp++;sfx('heal');addPop(player.x,player.y-25,'HP +1','#ff3860');emitParts(player.x,player.y,10,'#ff3860',3,2);}
       else{sfx('coin');addPop(player.x,player.y-25,'HP MAX','#ff3860');}
       break;
   }
@@ -1670,11 +1671,11 @@ function update(dt){
     if(platforms.length===0)platforms.push({x:player.x-30,w:200,h:GROUND_H});
     if(ceilPlats.length===0)ceilPlats.push({x:player.x-30,w:200,h:GROUND_H});
 
-    // Flip zone logic: after score 40, periodically force floor/ceiling gaps
+    // Flip zone logic: after first boss and score>100, periodically force floor/ceiling gaps
     // Creates long stretches where one side disappears, forcing gravity switching
     if(flipZone.cd>0)flipZone.cd--;
-    if(!flipZone.active&&flipZone.cd<=0&&score>40&&!bossPhase.active){
-      const flipChance=Math.min(0.08,0.02+(score-40)*0.001);
+    if(!flipZone.active&&flipZone.cd<=0&&score>100&&bossPhase.bossCount>=1&&!bossPhase.active){
+      const flipChance=Math.min(0.08,0.02+(score-100)*0.001);
       if(Math.random()<flipChance){
         flipZone.active=true;
         // Alternate: if last was floor gap, do ceiling gap (and vice versa)
@@ -2024,9 +2025,11 @@ function update(dt){
   bullets=bullets.filter(b=>b.life>0&&b.x>-50&&b.x<W+100&&b.y>-50&&b.y<H+50);
 
   // Wall collision: hitting the side of a higher platform step
-  // Small steps (<=20px) are auto-climbed when grounded; larger steps cause damage
+  // Small steps (<=STEP_TOLERANCE) are auto-climbed when grounded; larger steps cause damage
+  // Tire character (noStepDmg) ignores step damage and auto-climbs even large steps
   {
     const STEP_TOLERANCE=ct().stepTol||20;
+    const noStepDmg=ct().noStepDmg||false;
     if(player.gDir===1){
       for(let i=0;i<platforms.length;i++){
         const p=platforms[i];
@@ -2036,6 +2039,8 @@ function update(dt){
             const stepH=player.y+pr-surfY;
             if(stepH<=STEP_TOLERANCE&&player.grounded){
               player.y=surfY-pr; // auto step up
+            } else if(noStepDmg&&player.grounded){
+              player.y=surfY-pr; // tire: force step up without damage
             } else {
               hurt();return;
             }
@@ -2051,6 +2056,8 @@ function update(dt){
             const stepH=surfY-(player.y-pr);
             if(stepH<=STEP_TOLERANCE&&player.grounded){
               player.y=surfY+pr; // auto step down (ceiling)
+            } else if(noStepDmg&&player.grounded){
+              player.y=surfY+pr; // tire: force step without damage
             } else {
               hurt();return;
             }
@@ -2477,14 +2484,20 @@ function drawCharacter(x,y,charIdx,r,rot,alpha,face,dmgLevel){
       // tail
       ctx.strokeStyle='#1a1a1a';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(r*0.8,-r*0.1);ctx.quadraticCurveTo(r*1.4,-r*0.5,r*1.6,-r*0.8);ctx.stroke();
       break;
-    case'flame':
-      ctx.fillStyle=gr;ctx.beginPath();ctx.arc(0,r*0.15,r*0.85,0,6.28);ctx.fill();
-      // Flame tips
-      ctx.fillStyle=ch.col;
-      for(let i=0;i<3;i++){
-        const fx=-r*0.4+i*r*0.4,fy=-r*0.7-Math.sin(frame*0.15+i)*r*0.3;
-        ctx.beginPath();ctx.moveTo(fx-r*0.2,0);ctx.quadraticCurveTo(fx,fy,fx+r*0.2,0);ctx.fill();
-      }
+    case'stone':
+      // Rocky angular shape
+      ctx.fillStyle=gr;
+      ctx.beginPath();
+      ctx.moveTo(-r*0.5,-r*0.9);ctx.lineTo(r*0.4,-r*0.85);ctx.lineTo(r*0.85,-r*0.3);
+      ctx.lineTo(r*0.9,r*0.3);ctx.lineTo(r*0.5,r*0.85);ctx.lineTo(-r*0.3,r*0.9);
+      ctx.lineTo(-r*0.85,r*0.4);ctx.lineTo(-r*0.9,-r*0.2);ctx.closePath();ctx.fill();
+      // Crack lines
+      ctx.strokeStyle='rgba(0,0,0,0.3)';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(-r*0.3,-r*0.4);ctx.lineTo(r*0.1,-r*0.1);ctx.lineTo(-r*0.1,r*0.3);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(r*0.2,-r*0.5);ctx.lineTo(r*0.4,r*0.1);ctx.stroke();
+      // Highlight
+      ctx.fillStyle='rgba(255,255,255,0.15)';
+      ctx.beginPath();ctx.moveTo(-r*0.4,-r*0.7);ctx.lineTo(r*0.2,-r*0.65);ctx.lineTo(0,-r*0.2);ctx.lineTo(-r*0.5,-r*0.1);ctx.closePath();ctx.fill();
       break;
   }
 
@@ -2546,7 +2559,7 @@ function drawPlayer(){
   if(hurtT>0&&Math.floor(hurtT/4)%2===0)return; // blink effect
   let ghostA=1;
   if(hurtT>0)ghostA*=0.7; // slightly transparent during hurt
-  const dmgLv=HP_MAX-hp; // 0=full, 1=hurt once, 2=critical
+  const dmgLv=maxHp()-hp; // 0=full, 1=hurt once, 2=critical
 
   // Invincible ring (rainbow pulsing)
   if(itemEff.invincible>0){
@@ -2608,7 +2621,7 @@ function drawUI(){
   }
 
   // HP Hearts
-  for(let i=0;i<HP_MAX;i++){
+  for(let i=0;i<maxHp();i++){
     const hx=10+i*26,hy=uiTop+30;
     drawHeart(hx+10,hy,18,i<hp);
   }
@@ -2924,16 +2937,24 @@ function drawTraitDemo(ch,idx,cx,cy,t){
       ctx.fillStyle='#34d39966';ctx.font='16px monospace';ctx.textAlign='center';
       ctx.fillText('\u21BA',0,5);ctx.restore();
       break;
-    case'flame':
-      // Fire particles destroying enemies
-      for(let i=0;i<6;i++){
-        const fp=((t*0.05+i*0.5)%3)/3;
-        const fx=cx+30-fp*60,fy=cy+(Math.random()-0.5)*20;
-        ctx.fillStyle=i%2===0?'#f97316':'#ff4444';
-        ctx.globalAlpha=0.4*(1-fp);
-        ctx.beginPath();ctx.arc(fx,fy,3+Math.random()*3,0,6.28);ctx.fill();
+    case'stone':
+      // Shield/HP indicator - pulsing hearts
+      for(let i=0;i<4;i++){
+        const hx=cx-30+i*20,hy=cy-30+Math.sin(t*0.08+i*1.5)*3;
+        ctx.fillStyle=i<3?'#ff4444':'#ffaa00';
+        ctx.globalAlpha=0.4+Math.sin(t*0.1+i)*0.15;
+        ctx.font='12px monospace';ctx.textAlign='center';
+        ctx.fillText('\u2665',hx,hy);
       }
       ctx.globalAlpha=1;
+      // Sturdy ground impact particles
+      if(Math.floor(t*0.04)%3===0){
+        for(let i=0;i<3;i++){
+          const sx=cx-15+i*15,sy=cy+18;
+          ctx.fillStyle='#8B8B8B44';
+          ctx.beginPath();ctx.arc(sx,sy,2+Math.random()*2,0,6.28);ctx.fill();
+        }
+      }
       break;
     default: // cube
       // Balanced indicator
@@ -2951,7 +2972,7 @@ function drawPause(){
   ctx.fillStyle='#fff5';ctx.font='13px monospace';
   ctx.fillText('\u30B9\u30B3\u30A2: '+score,W/2,H*0.37);
   // HP in pause
-  for(let i=0;i<HP_MAX;i++)drawHeart(W/2-((HP_MAX-1)*13)+i*26,H*0.41,16,i<hp);
+  for(let i=0;i<maxHp();i++)drawHeart(W/2-((maxHp()-1)*13)+i*26,H*0.41,16,i<hp);
   // Resume button
   ctx.fillStyle='#00e5ff33';rr(W/2-80,H*0.45,160,44,10);ctx.fill();
   ctx.strokeStyle='#00e5ff';ctx.lineWidth=2;rr(W/2-80,H*0.45,160,44,10);ctx.stroke();
@@ -2981,7 +3002,7 @@ function drawDead(){
   ctx.strokeStyle='#fff1';ctx.lineWidth=1;rr(W/2-125,cardY,250,cardH,14);ctx.stroke();
 
   // Character (show fully damaged)
-  drawCharacter(W/2,cardY+35,selChar,18,0,1,'dead',HP_MAX);
+  drawCharacter(W/2,cardY+35,selChar,18,0,1,'dead',maxHp());
 
   ctx.fillStyle='#fff7';ctx.font='13px monospace';ctx.textAlign='center';ctx.fillText('\u30B9\u30B3\u30A2',W/2,cardY+65);
   ctx.fillStyle='#fff';ctx.font='bold 44px monospace';
