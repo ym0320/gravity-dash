@@ -243,7 +243,7 @@ function sfx(type){
       case'item':o.type='sine';o.frequency.setValueAtTime(400,t);o.frequency.exponentialRampToValueAtTime(1200,t+0.18);g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);o.start(t);o.stop(t+0.25);break;
       case'death':o.type='sawtooth';o.frequency.setValueAtTime(300,t);o.frequency.exponentialRampToValueAtTime(40,t+0.45);g.gain.setValueAtTime(0.18,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.5);o.start(t);o.stop(t+0.5);break;
       case'milestone':o.type='sine';o.frequency.setValueAtTime(523,t);g.gain.setValueAtTime(0.1,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.4);o.start(t);o.stop(t+0.4);[659,784,1047].forEach((f,i)=>{const x=audioCtx.createOscillator(),y=audioCtx.createGain();x.connect(y);y.connect(audioCtx.destination);x.type='sine';x.frequency.setValueAtTime(f,t+0.1*(i+1));y.gain.setValueAtTime(0.08,t+0.1*(i+1));y.gain.exponentialRampToValueAtTime(0.001,t+0.1*(i+1)+0.25);x.start(t+0.1*(i+1));x.stop(t+0.1*(i+1)+0.25);});break;
-      case'combo':o.type='sine';const cf=600+combo*80;o.frequency.setValueAtTime(cf,t);o.frequency.exponentialRampToValueAtTime(cf*1.5,t+0.07);g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.1);o.start(t);o.stop(t+0.1);break;
+      case'combo':o.type='sine';const cf=Math.min(1200,600+combo*80);o.frequency.setValueAtTime(cf,t);o.frequency.exponentialRampToValueAtTime(cf*1.5,t+0.07);g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.1);o.start(t);o.stop(t+0.1);break;
       case'stomp':o.type='square';o.frequency.setValueAtTime(200,t);o.frequency.exponentialRampToValueAtTime(80,t+0.12);g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.15);o.start(t);o.stop(t+0.15);break;
       case'shoot':o.type='sawtooth';o.frequency.setValueAtTime(600,t);o.frequency.exponentialRampToValueAtTime(200,t+0.15);g.gain.setValueAtTime(0.1,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);o.start(t);o.stop(t+0.18);break;
       case'gstomp':o.type='sine';o.frequency.setValueAtTime(300,t);o.frequency.exponentialRampToValueAtTime(900,t+0.2);g.gain.setValueAtTime(0.15,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);o.start(t);o.stop(t+0.25);break;
@@ -486,6 +486,10 @@ function findSpawnPlat(){
   // Find a platform that is ahead of screen (right side)
   return platforms.find(p=>p.x>W*0.55&&p.x+p.w<W+250)||platforms.find(p=>p.x+p.w>W*0.6&&p.x<W+200);
 }
+function findEdgeSpawnPlat(){
+  // Find a platform that extends past or starts at the right screen edge
+  return platforms.find(p=>p.x<W+40&&p.x+p.w>W)||platforms.find(p=>p.x>=W&&p.x<W+100);
+}
 function trySpawnCoins(){
   if(coinCD>0){coinCD--;return;}
   const plat=findSpawnPlat();
@@ -536,11 +540,11 @@ function trySpawnCoins(){
 function trySpawnItem(){
   if(itemCD>0){itemCD--;return;}
   if(score<5)return;
-  const plat=findSpawnPlat();
+  const plat=findEdgeSpawnPlat();
   if(!plat)return;
   if(Math.random()<0.12){
     itemCD=140+Math.floor(Math.random()*80);
-    const ix=plat.x+plat.w*0.5;
+    const ix=Math.max(W+14,plat.x); // spawn at right screen edge
     const surfY=H-plat.h;
     const it=10; // Only spawn invincibility item
     items.push({x:ix,y:surfY-55-Math.random()*25,t:it,sz:14,p:Math.random()*6.28,col:false});
@@ -553,18 +557,18 @@ function trySpawnItem(){
 function trySpawnEnemy(){
   if(enemyCD>0){enemyCD--;return;}
   if(score<15)return;
-  const plat=findSpawnPlat();
+  const plat=findEdgeSpawnPlat();
   if(!plat)return;
   const chance=Math.min(0.35,0.1+(score-15)*0.003);
   if(Math.random()<chance){
     enemyCD=50+Math.floor(Math.random()*40);
-    const ex=plat.x+plat.w*0.3;
+    const ex=Math.max(W+13,plat.x); // spawn at right screen edge
     const onCeil=Math.random()<0.3;
     const gd=onCeil?-1:1;
     const sz=13;
     const surfY=gd===1?H-plat.h:ceilSurfaceY(ex);
     const eType=(score>=25&&Math.random()<0.4)?1:0;
-    enemies.push({x:ex,y:gd===1?surfY-sz:surfY+sz,gDir:gd,walkSpd:eType===1?0.15+Math.random()*0.2:0.3+Math.random()*0.4,sz:sz,alive:true,fr:Math.random()*100,type:eType,shootT:eType===1?60+Math.floor(Math.random()*60):999});
+    enemies.push({x:ex,y:gd===1?surfY-sz:surfY+sz,vy:0,gDir:gd,walkSpd:eType===1?0.15+Math.random()*0.2:0.3+Math.random()*0.4,sz:sz,alive:true,fr:Math.random()*100,type:eType,shootT:eType===1?60+Math.floor(Math.random()*60):999});
   } else {
     enemyCD=15+Math.floor(Math.random()*10);
   }
@@ -1058,7 +1062,15 @@ function update(dt){
       }
     }
   });
-  coins=coins.filter(c=>c.x>-50&&!c.col);
+  // Reset combo if any uncollected coin goes off-screen
+  const prevCoinCount=coins.length;
+  coins=coins.filter(c=>{
+    if(c.col)return false; // collected, remove
+    if(c.x>-50)return true; // still on screen, keep
+    // Missed coin went off-screen: break combo
+    if(combo>0){combo=0;comboT=0;}
+    return false;
+  });
 
   // Items
   items.forEach(it=>{
@@ -1082,11 +1094,15 @@ function update(dt){
     en.x-=speed;
     en.x-=en.walkSpd;
     en.fr+=0.12;
-    // Keep on surface
+    // Keep on surface or fall off cliff
     if(en.gDir===1){
-      const sy=floorSurfaceY(en.x);en.y=sy-en.sz;
+      const sy=floorSurfaceY(en.x);
+      if(sy<H+100){en.y=sy-en.sz;en.vy=0;} // on platform
+      else{en.vy=(en.vy||0)+GRAVITY;en.y+=en.vy;} // falling
     }else{
-      const sy=ceilSurfaceY(en.x);en.y=sy+en.sz;
+      const sy=ceilSurfaceY(en.x);
+      if(sy>-100){en.y=sy+en.sz;en.vy=0;} // on ceiling
+      else{en.vy=(en.vy||0)-GRAVITY;en.y+=en.vy;} // falling up
     }
     // Collision with player
     if(itemEff.ghost>0)return;
@@ -1117,7 +1133,7 @@ function update(dt){
       }
     }
   });
-  enemies=enemies.filter(en=>en.x>-50&&en.alive&&en.y>-100&&en.y<H+100);
+  enemies=enemies.filter(en=>en.x>-50&&en.alive&&en.y>-200&&en.y<H+200);
 
   // Shooter enemies fire bullets
   enemies.forEach(en=>{
