@@ -102,20 +102,38 @@ function tc(k){return themeLerp>=1?THEMES[curTheme][k]:lerpColor(THEMES[prevThem
 // ===== CHARACTERS =====
 const CHARS=[
   {name:'\u30AD\u30E5\u30FC\u30D6',shape:'cube',col:'#00e5ff',col2:'#00b8d4',eye:'#fff',pupil:'#0a0a2e',
-   trait:'\u30D0\u30E9\u30F3\u30B9\u578B',desc:'\u6A19\u6E96\u7684\u306A\u6027\u80FD',jumpMul:1,speedMul:1,sizeMul:1,gravMul:1,coinMul:1,coinMag:0,maxFlip:1,startShield:false,fastKill:false},
+   trait:'\u30D0\u30E9\u30F3\u30B9\u578B',desc:'\u6A19\u6E96\u7684\u306A\u6027\u80FD',jumpMul:1,speedMul:1,sizeMul:1,gravMul:1,coinMul:1,coinMag:0,maxFlip:1,startShield:false,fastKill:false,price:0},
   {name:'\u30D0\u30A6\u30F3\u30B9',shape:'ball',col:'#ff6b6b',col2:'#e04040',eye:'#fff',pupil:'#2a0a0a',
-   trait:'\u30B8\u30E3\u30F3\u30D7\u578B',desc:'\u30B8\u30E3\u30F3\u30D71.3x',jumpMul:1.3,speedMul:0.92,sizeMul:1.05,gravMul:1,coinMul:1,coinMag:0,maxFlip:1,startShield:false,fastKill:false},
+   trait:'\u30B8\u30E3\u30F3\u30D7\u578B',desc:'\u30B8\u30E3\u30F3\u30D71.3x',jumpMul:1.3,speedMul:0.92,sizeMul:1.05,gravMul:1,coinMul:1,coinMag:0,maxFlip:1,startShield:false,fastKill:false,price:50},
   {name:'\u30B9\u30BF\u30FC',shape:'star',col:'#ffd700',col2:'#e5b800',eye:'#fff',pupil:'#3a2a00',
-   trait:'\u30B3\u30A4\u30F3\u578B',desc:'\u30B3\u30A4\u30F3\u5438\u5F15+1.5x',jumpMul:1,speedMul:0.95,sizeMul:1,gravMul:1,coinMul:1.5,coinMag:80,maxFlip:1,startShield:false,fastKill:false},
+   trait:'\u30B3\u30A4\u30F3\u578B',desc:'\u30B3\u30A4\u30F3\u5438\u5F15+1.5x',jumpMul:1,speedMul:0.95,sizeMul:1,gravMul:1,coinMul:1.5,coinMag:80,maxFlip:1,startShield:false,fastKill:false,price:80},
   {name:'\u30B4\u30FC\u30B9\u30C8',shape:'ghost',col:'#a855f7',col2:'#8b3fe0',eye:'#fff',pupil:'#1a0a30',
-   trait:'\u56DE\u907F\u578B',desc:'\u5C0F\u3055\u3044\u5F53\u305F\u308A\u5224\u5B9A',jumpMul:1,speedMul:1,sizeMul:0.75,gravMul:1,coinMul:1,coinMag:0,maxFlip:1,startShield:true,fastKill:false},
+   trait:'\u56DE\u907F\u578B',desc:'\u5C0F\u3055\u3044\u5F53\u305F\u308A\u5224\u5B9A',jumpMul:1,speedMul:1,sizeMul:0.75,gravMul:1,coinMul:1,coinMag:0,maxFlip:1,startShield:true,fastKill:false,price:120},
   {name:'\u30CB\u30F3\u30B8\u30E3',shape:'ninja',col:'#34d399',col2:'#20b878',eye:'#ff4444',pupil:'#000',
-   trait:'\u6A5F\u52D5\u578B',desc:'\u9AD8\u901F+2\u56DE\u53CD\u8EE2',jumpMul:1,speedMul:1.12,sizeMul:1,gravMul:1,coinMul:1,coinMag:0,maxFlip:2,startShield:false,fastKill:false},
+   trait:'\u6A5F\u52D5\u578B',desc:'\u9AD8\u901F+2\u56DE\u53CD\u8EE2',jumpMul:1,speedMul:1.12,sizeMul:1,gravMul:1,coinMul:1,coinMag:0,maxFlip:2,startShield:false,fastKill:false,price:150},
   {name:'\u30D5\u30EC\u30A4\u30E0',shape:'flame',col:'#f97316',col2:'#e05a00',eye:'#ffd700',pupil:'#4a1a00',
-   trait:'\u653B\u6483\u578B',desc:'\u9AD8\u901F\u3067\u6575\u7834\u58CA',jumpMul:0.95,speedMul:1.05,sizeMul:1.1,gravMul:1.2,coinMul:1,coinMag:0,maxFlip:1,startShield:false,fastKill:true},
+   trait:'\u653B\u6483\u578B',desc:'\u9AD8\u901F\u3067\u6575\u7834\u58CA',jumpMul:0.95,speedMul:1.05,sizeMul:1.1,gravMul:1.2,coinMul:1,coinMag:0,maxFlip:1,startShield:false,fastKill:true,price:200},
 ];
 function ct(){return CHARS[selChar];}
 let selChar=parseInt(localStorage.getItem('gd5char')||'0');
+let walletCoins=parseInt(localStorage.getItem('gd5wallet')||'0');
+let unlockedChars=JSON.parse(localStorage.getItem('gd5unlocked')||'[0]');
+function isCharUnlocked(idx){return unlockedChars.includes(idx);}
+function buyChar(idx){
+  const ch=CHARS[idx];
+  if(walletCoins>=ch.price&&!isCharUnlocked(idx)){
+    walletCoins-=ch.price;
+    unlockedChars.push(idx);
+    localStorage.setItem('gd5wallet',walletCoins.toString());
+    localStorage.setItem('gd5unlocked',JSON.stringify(unlockedChars));
+    selChar=idx;localStorage.setItem('gd5char',selChar.toString());
+    sfx('item');
+    return true;
+  }
+  return false;
+}
+// Ensure selChar is unlocked (reset to 0 if not)
+if(!isCharUnlocked(selChar)){selChar=0;localStorage.setItem('gd5char','0');}
 
 // ===== AUDIO =====
 let audioCtx=null,bgmPlaying=false,bgmGain=null;
@@ -214,12 +232,12 @@ function generatePlatform(arr,isCeil){
       gap=25+Math.random()*maxGap;
     }
   }
-  // Height change (step) - more frequent and larger with score
+  // Height change (step) - gentle at start, grows with score
   let h=lastH;
-  const stepC=Math.min(0.6,0.08+score*0.006);
+  const stepC=score<10?Math.min(0.12,0.02+score*0.01):Math.min(0.5,0.06+score*0.005);
   if(Math.random()<stepC){
-    const maxDh=Math.min(50,12+score*0.25);
-    const dh=(Math.random()<0.5?1:-1)*(10+Math.random()*maxDh);
+    const maxDh=score<10?Math.min(15,5+score):Math.min(45,10+score*0.22);
+    const dh=(Math.random()<0.5?1:-1)*(5+Math.random()*maxDh);
     h=Math.max(45+safeBot,Math.min(H*0.38,h+dh));
   }
   // Width (narrower at higher scores)
@@ -270,8 +288,8 @@ function reset(){
   player.grounded=false;player.face='normal';player.canFlip=true;
   platforms=[];ceilPlats=[];
   // Initial safe start platform (shorter so difficulty kicks in sooner)
-  platforms.push({x:-20,w:W*0.5,h:GROUND_H});
-  ceilPlats.push({x:-20,w:W*0.5,h:GROUND_H});
+  platforms.push({x:-20,w:W*0.9,h:GROUND_H});
+  ceilPlats.push({x:-20,w:W*0.9,h:GROUND_H});
   // Generate a few platforms ahead
   for(let i=0;i<5;i++){generatePlatform(platforms,false);generatePlatform(ceilPlats,true);}
   player.y=floorSurfaceY(player.x)-PLAYER_R;
@@ -300,23 +318,39 @@ function trySpawnCoins(){
   if(coinCD>0){coinCD--;return;}
   const plat=findSpawnPlat();
   if(!plat)return;
-  if(Math.random()<0.4){
-    coinCD=22+Math.floor(Math.random()*18);
-    const cx=plat.x+plat.w*0.3+Math.random()*plat.w*0.4;
-    const surfY=H-plat.h;
-    if(player.gDir===1||Math.random()<0.5){
-      for(let i=0;i<2+Math.floor(Math.random()*3);i++){
-        coins.push({x:cx+i*28,y:surfY-35-Math.random()*30,sz:9,col:false,p:Math.random()*6.28});
+  if(Math.random()<0.5){
+    coinCD=16+Math.floor(Math.random()*14);
+    const cx=plat.x+plat.w*0.2+Math.random()*plat.w*0.5;
+    const onFloor=player.gDir===1||Math.random()<0.5;
+    const surfY=onFloor?H-plat.h:(()=>{const cp=ceilPlats.find(p=>cx>=p.x&&cx<=p.x+p.w);return cp?cp.h:GROUND_H;})();
+    const gd=onFloor?1:-1;
+    const pattern=Math.random();
+    const n=2+Math.floor(Math.random()*3);
+    if(pattern<0.45){
+      // Ground-level: coins just above the platform surface (easy to collect while running)
+      for(let i=0;i<n;i++){
+        const cy=onFloor?surfY-20-Math.random()*8:surfY+20+Math.random()*8;
+        coins.push({x:cx+i*26,y:cy,sz:9,col:false,p:Math.random()*6.28});
+      }
+    } else if(pattern<0.8){
+      // Jump arc: coins along a parabolic jump trajectory
+      const jp=JUMP_POWER*ct().jumpMul;
+      const g=GRAVITY*ct().gravMul;
+      for(let i=0;i<n;i++){
+        const t=(i+1)*8; // time steps into jump
+        const arcH=jp*t-0.5*g*t*t; // parabolic height
+        const cy=onFloor?surfY-Math.max(15,arcH*0.7):surfY+Math.max(15,arcH*0.7);
+        coins.push({x:cx+i*32,y:cy,sz:9,col:false,p:Math.random()*6.28});
       }
     } else {
-      const cp=ceilPlats.find(p=>cx>=p.x&&cx<=p.x+p.w);
-      const csy=cp?cp.h:GROUND_H;
-      for(let i=0;i<2+Math.floor(Math.random()*3);i++){
-        coins.push({x:cx+i*28,y:csy+35+Math.random()*30,sz:9,col:false,p:Math.random()*6.28});
+      // Vertical line at step edges (helps players navigate height changes)
+      for(let i=0;i<n;i++){
+        const cy=onFloor?surfY-18-i*22:surfY+18+i*22;
+        coins.push({x:cx,y:cy,sz:9,col:false,p:Math.random()*6.28});
       }
     }
   } else {
-    coinCD=8+Math.floor(Math.random()*6);
+    coinCD=6+Math.floor(Math.random()*5);
   }
 }
 function trySpawnItem(){
@@ -338,10 +372,10 @@ function trySpawnItem(){
 // ===== ENEMIES =====
 function trySpawnEnemy(){
   if(enemyCD>0){enemyCD--;return;}
-  if(score<10)return;
+  if(score<15)return;
   const plat=findSpawnPlat();
   if(!plat)return;
-  const chance=Math.min(0.4,0.18+score*0.001);
+  const chance=Math.min(0.35,0.1+(score-15)*0.003);
   if(Math.random()<chance){
     enemyCD=50+Math.floor(Math.random()*40);
     const ex=plat.x+plat.w*0.3;
@@ -521,14 +555,19 @@ function handleTitleTouch(tx,ty){
   const charW=58,charH=62,charGap=10;
   const gridW=cols*(charW+charGap)-charGap;
   const gridX=W/2-gridW/2;
-  const gridY=H*0.43;
+  const gridY=H*0.44;
   for(let r=0;r<rows;r++){
     for(let c=0;c<cols;c++){
       const idx=r*cols+c;if(idx>=CHARS.length)break;
       const cx=gridX+c*(charW+charGap);
       const cy=gridY+r*(charH+charGap);
       if(tx>=cx-5&&tx<=cx+charW+5&&ty>=cy-5&&ty<=cy+charH+5){
-        selChar=idx;localStorage.setItem('gd5char',selChar.toString());return;
+        if(isCharUnlocked(idx)){
+          selChar=idx;localStorage.setItem('gd5char',selChar.toString());
+        } else {
+          buyChar(idx);
+        }
+        return;
       }
     }
   }
@@ -562,6 +601,7 @@ function die(){
   player.face='dead';sfx('death');vibrate([30,20,50]);
   if(score>highScore){highScore=score;newHi=true;localStorage.setItem('gd5hi',highScore.toString());}
   played++;localStorage.setItem('gd5plays',played.toString());
+  walletCoins+=totalCoins;localStorage.setItem('gd5wallet',walletCoins.toString());
   for(let i=0;i<35;i++){const a=(6.28/35)*i,s=2+Math.random()*6;parts.push({x:player.x,y:player.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:35+Math.random()*25,ml:60,sz:Math.random()*6+2,col:i%3===0?CHARS[selChar].col:i%3===1?tc('obs'):'#fff'});}
 }
 
@@ -1249,39 +1289,56 @@ function drawTitle(){
   ctx.fillStyle='#ffffff33';ctx.font='11px monospace';ctx.textAlign='center';
   ctx.fillText('\u91CD\u529B\u53CD\u8EE2\u30A2\u30AF\u30B7\u30E7\u30F3\u30E9\u30F3\u30CA\u30FC',W/2,H*0.18+72);
 
+  // Wallet display
+  ctx.fillStyle='#ffd700';ctx.font='bold 13px monospace';ctx.textAlign='center';
+  ctx.fillText('\u25CF '+walletCoins,W/2,H*0.38);
+
   // Character selection: 2 rows x 3 columns
   ctx.fillStyle='#fff8';ctx.font='bold 13px monospace';
-  ctx.fillText('\u30AD\u30E3\u30E9\u30AF\u30BF\u30FC\u9078\u629E',W/2,H*0.41);
+  ctx.fillText('\u30AD\u30E3\u30E9\u30AF\u30BF\u30FC\u9078\u629E',W/2,H*0.42);
 
   const cols=3,rows=2;
   const charW=58,charH=62,charGap=10;
   const gridW=cols*(charW+charGap)-charGap;
   const gridX=W/2-gridW/2;
-  const gridY=H*0.43;
+  const gridY=H*0.44;
 
   for(let r=0;r<rows;r++){
     for(let c=0;c<cols;c++){
       const idx=r*cols+c;if(idx>=CHARS.length)break;
       const ch=CHARS[idx];
+      const locked=!isCharUnlocked(idx);
       const cx=gridX+c*(charW+charGap);
       const cy=gridY+r*(charH+charGap);
       // Selection highlight
-      if(idx===selChar){
+      if(idx===selChar&&!locked){
         ctx.strokeStyle=ch.col;ctx.lineWidth=2;ctx.shadowColor=ch.col;ctx.shadowBlur=8;
         rr(cx-2,cy-2,charW+4,charH+4,8);ctx.stroke();ctx.shadowBlur=0;
       }
-      ctx.fillStyle=idx===selChar?'#ffffff18':'#ffffff08';
+      ctx.fillStyle=locked?'#ffffff06':idx===selChar?'#ffffff18':'#ffffff08';
       rr(cx,cy,charW,charH,6);ctx.fill();
 
-      // Draw character preview
-      drawCharacter(cx+charW/2,cy+charH/2-8,idx,14,0,1,'normal');
-
-      // Name
-      ctx.fillStyle=idx===selChar?'#fff':'#fff6';ctx.font='9px monospace';ctx.textAlign='center';
-      ctx.fillText(ch.name,cx+charW/2,cy+charH-14);
-      // Trait
-      ctx.fillStyle=idx===selChar?ch.col:ch.col+'66';ctx.font='7px monospace';
-      ctx.fillText(ch.trait,cx+charW/2,cy+charH-4);
+      if(locked){
+        // Locked: show silhouette and price
+        ctx.globalAlpha=0.25;
+        drawCharacter(cx+charW/2,cy+charH/2-8,idx,14,0,1,'normal');
+        ctx.globalAlpha=1;
+        // Lock icon
+        ctx.fillStyle='#fff5';ctx.font='bold 16px monospace';ctx.textAlign='center';
+        ctx.fillText('\uD83D\uDD12',cx+charW/2,cy+charH/2-4);
+        // Price
+        ctx.fillStyle='#ffd700';ctx.font='bold 8px monospace';
+        ctx.fillText('\u25CF'+ch.price,cx+charW/2,cy+charH-4);
+      } else {
+        // Unlocked: draw character preview
+        drawCharacter(cx+charW/2,cy+charH/2-8,idx,14,0,1,'normal');
+        // Name
+        ctx.fillStyle=idx===selChar?'#fff':'#fff6';ctx.font='9px monospace';ctx.textAlign='center';
+        ctx.fillText(ch.name,cx+charW/2,cy+charH-14);
+        // Trait
+        ctx.fillStyle=idx===selChar?ch.col:ch.col+'66';ctx.font='7px monospace';
+        ctx.fillText(ch.trait,cx+charW/2,cy+charH-4);
+      }
     }
   }
 
@@ -1359,6 +1416,7 @@ function drawDead(){
   ctx.fillText('\u30D9\u30B9\u30C8: '+highScore,W/2,cardY+130);
   if(maxCombo>1){ctx.fillStyle='#ff6b35aa';ctx.fillText('\u6700\u5927\u30B3\u30F3\u30DC: '+maxCombo+'x',W/2,cardY+146);}
   ctx.fillStyle='#fff4';ctx.fillText('\u30B3\u30A4\u30F3: '+totalCoins+'  \u53CD\u8EE2: '+totalFlips,W/2,cardY+162);
+  ctx.fillStyle='#ffd700aa';ctx.font='bold 11px monospace';ctx.fillText('\u25CF '+totalCoins+' \u7372\u5F97 \u2192 \u6240\u6301: '+walletCoins,W/2,cardY+178);
 
   let rating='';
   if(score>=500)rating='\u4F1D\u8AAC\u7D1A\uFF01 \u2605';
