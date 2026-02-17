@@ -490,9 +490,20 @@ function findEdgeSpawnPlat(){
   // Find a platform that extends past or starts at the right screen edge
   return platforms.find(p=>p.x<W+40&&p.x+p.w>W)||platforms.find(p=>p.x>=W&&p.x<W+100);
 }
+function coinOverlaps(cx,cy){
+  // Check if a proposed coin position overlaps with any existing coin
+  for(let i=0;i<coins.length;i++){
+    const c=coins[i];
+    if(!c.col){
+      const dx=cx-c.x,dy=cy-c.y;
+      if(dx*dx+dy*dy<20*20)return true; // within 20px = overlap
+    }
+  }
+  return false;
+}
 function trySpawnCoins(){
   if(coinCD>0){coinCD--;return;}
-  const plat=findSpawnPlat();
+  const plat=findEdgeSpawnPlat();
   if(!plat)return;
   if(Math.random()<0.30){
     coinCD=28+Math.floor(Math.random()*20);
@@ -500,37 +511,36 @@ function trySpawnCoins(){
     const surfY=onFloor?H-plat.h:(()=>{const cp=ceilPlats.find(p=>plat.x+plat.w*0.3>=p.x&&plat.x+plat.w*0.3<=p.x+p.w);return cp?cp.h:GROUND_H;})();
     const pattern=Math.random();
     const n=3+Math.floor(Math.random()*3); // 3-5 coins per group
-    const startX=plat.x+plat.w*0.15;
+    const startX=Math.max(W+9,plat.x); // spawn at right screen edge
 
     if(pattern<0.45){
       // Straight horizontal line: exactly on running height (PLAYER_R above surface)
       const lineY=onFloor?surfY-PLAYER_R:surfY+PLAYER_R;
       for(let i=0;i<n;i++){
-        coins.push({x:startX+i*24,y:lineY,sz:9,col:false,p:0});
+        const cx=startX+i*24;
+        if(!coinOverlaps(cx,lineY))coins.push({x:cx,y:lineY,sz:9,col:false,p:0});
       }
     } else if(pattern<0.85){
       // Perfect parabolic arc: matches actual jump physics exactly
-      // Jump: vy0 = JUMP_POWER, gravity = GRAVITY, horizontal speed = current speed
       const jp=JUMP_POWER*ct().jumpMul;
       const gv=GRAVITY*ct().gravMul;
-      // Peak time = jp/gv, peak height = jp^2/(2*gv)
       const peakT=jp/gv;
-      const totalT=peakT*2; // full jump duration
-      // Place coins evenly across the jump arc
+      const totalT=peakT*2;
       for(let i=0;i<n;i++){
-        const frac=(i+1)/(n+1); // evenly spaced from 0 to 1
+        const frac=(i+1)/(n+1);
         const t=frac*totalT;
-        const arcH=jp*t-0.5*gv*t*t; // exact parabola height
-        const hOffset=speed*t; // horizontal distance at current speed
+        const arcH=jp*t-0.5*gv*t*t;
+        const hOffset=speed*t;
+        const cx=startX+hOffset;
         const cy=onFloor?surfY-PLAYER_R-arcH:surfY+PLAYER_R+arcH;
-        coins.push({x:startX+hOffset,y:cy,sz:9,col:false,p:0});
+        if(!coinOverlaps(cx,cy))coins.push({x:cx,y:cy,sz:9,col:false,p:0});
       }
     } else {
       // Diagonal line: ascending straight line (guides player upward)
       for(let i=0;i<n;i++){
         const cx=startX+i*26;
         const cy=onFloor?surfY-PLAYER_R-i*18:surfY+PLAYER_R+i*18;
-        coins.push({x:cx,y:cy,sz:9,col:false,p:0});
+        if(!coinOverlaps(cx,cy))coins.push({x:cx,y:cy,sz:9,col:false,p:0});
       }
     }
   } else {
@@ -857,7 +867,7 @@ function update(dt){
   frame++;
   if(themeLerp<1)themeLerp=Math.min(1,themeLerp+0.015);
   if(shakeI>0){shakeX=(Math.random()-0.5)*shakeI;shakeY=(Math.random()-0.5)*shakeI;shakeI*=0.88;if(shakeI<0.3){shakeI=0;shakeX=0;shakeY=0;}}
-  if(comboT>0){comboT--;if(comboT===0)combo=0;}
+  // combo only resets when a coin is missed (goes off-screen)
   if(comboDspT>0)comboDspT--;
   if(mileT>0)mileT--;
   pops=pops.filter(p=>{p.y-=1.2;p.life--;return p.life>0;});
@@ -1051,7 +1061,7 @@ function update(dt){
       }
       const dx=player.x-c.x,dy=player.y-c.y;
       if(Math.sqrt(dx*dx+dy*dy)<cd){
-        c.col=true;totalCoins++;combo++;comboT=100;comboDsp=combo;comboDspT=55;
+        c.col=true;totalCoins++;combo++;comboDsp=combo;comboDspT=55;
         if(combo>maxCombo)maxCombo=combo;
         const bon=Math.ceil((3+Math.min(combo-1,8))*ct().coinMul*(itemEff.double>0?2:1));
         dist+=bon;sfx(combo>1?'combo':'coin');
