@@ -171,6 +171,38 @@ function sfxFanfare(){
     });
   }catch(e){}
 }
+function sfxBossAlert(){
+  if(!audioCtx)return;try{
+    const t=audioCtx.currentTime;
+    // Ominous low drone
+    const drone=audioCtx.createOscillator(),dg=audioCtx.createGain();
+    drone.connect(dg);dg.connect(audioCtx.destination);drone.type='sawtooth';
+    drone.frequency.setValueAtTime(55,t);drone.frequency.linearRampToValueAtTime(40,t+1.5);
+    dg.gain.setValueAtTime(0.2,t);dg.gain.linearRampToValueAtTime(0.3,t+0.8);dg.gain.exponentialRampToValueAtTime(0.001,t+2.0);
+    drone.start(t);drone.stop(t+2.1);
+    // Dissonant stabs (descending minor seconds)
+    [220,208,196,185,175].forEach((f,i)=>{
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(audioCtx.destination);o.type='square';
+      const st=t+i*0.3;
+      o.frequency.setValueAtTime(f,st);
+      g.gain.setValueAtTime(0.18,st);g.gain.exponentialRampToValueAtTime(0.001,st+0.25);
+      o.start(st);o.stop(st+0.3);
+    });
+    // Rising siren
+    const sir=audioCtx.createOscillator(),sg=audioCtx.createGain();
+    sir.connect(sg);sg.connect(audioCtx.destination);sir.type='sawtooth';
+    sir.frequency.setValueAtTime(300,t+0.5);sir.frequency.exponentialRampToValueAtTime(900,t+1.8);
+    sg.gain.setValueAtTime(0,t+0.5);sg.gain.linearRampToValueAtTime(0.15,t+0.8);sg.gain.exponentialRampToValueAtTime(0.001,t+2.0);
+    sir.start(t+0.5);sir.stop(t+2.1);
+    // Impact hit
+    const imp=audioCtx.createOscillator(),ig=audioCtx.createGain();
+    imp.connect(ig);ig.connect(audioCtx.destination);imp.type='triangle';
+    imp.frequency.setValueAtTime(80,t+1.8);imp.frequency.exponentialRampToValueAtTime(20,t+2.5);
+    ig.gain.setValueAtTime(0.25,t+1.8);ig.gain.exponentialRampToValueAtTime(0.001,t+2.5);
+    imp.start(t+1.8);imp.stop(t+2.6);
+  }catch(e){}
+}
 // Ensure selChar is unlocked (reset to 0 if not)
 if(!isCharUnlocked(selChar)){selChar=0;localStorage.setItem('gd5char','0');}
 
@@ -442,35 +474,57 @@ function generatePlatform(arr,isCeil,forceGap){
   const last=arr.length>0?arr[arr.length-1]:null;
   const lastH=last?last.h:GROUND_H;
   const lastRight=last?last.x+last.w:0;
+  // Boss phase: flat terrain
+  if(bossPhase.active||bossPhase.prepare>0){
+    arr.push({x:lastRight,w:150+Math.random()*100,h:GROUND_H});
+    return;
+  }
   // Forced gap for flip zones: create a large gap to force gravity flip
   if(forceGap){
-    const gapSize=120+Math.random()*80; // large gap (120-200px)
+    const gapSize=120+Math.random()*80;
     arr.push({x:lastRight+gapSize,w:60+Math.random()*40,h:lastH});
     return;
   }
-  // Gap (both floor and ceiling; starts at score 15, grows moderately)
+  // Gap: NO gaps until score 30, then gradually increase
   let gap=0;
-  if(score>15){
-    const gc=Math.min(0.38,0.07+(score-15)*0.004);
+  if(score>30){
+    const gc=Math.min(0.35,0.04+(score-30)*0.003);
     if(Math.random()<gc){
-      const maxGap=Math.min(70,20+score*0.35);
-      gap=25+Math.random()*maxGap;
+      const maxGap=Math.min(75,15+(score-30)*0.4);
+      gap=20+Math.random()*maxGap;
     }
   }
-  // Height change (step) - gentle at start, grows with score
+  // Height change (step): very gentle at start, grows gradually
   let h=lastH;
-  const stepC=score<10?Math.min(0.12,0.02+score*0.01):Math.min(0.5,0.06+score*0.005);
-  if(Math.random()<stepC){
-    const maxDh=score<10?Math.min(15,5+score):Math.min(45,10+score*0.22);
-    const dh=(Math.random()<0.5?1:-1)*(5+Math.random()*maxDh);
-    h=Math.max(65+safeBot,Math.min(H*0.38,h+dh));
+  if(score<15){
+    // Very gentle: small steps, low chance
+    const stepC=Math.min(0.15,0.01+score*0.01);
+    if(Math.random()<stepC){
+      const maxDh=Math.min(10,3+score*0.5);
+      const dh=(Math.random()<0.5?1:-1)*(2+Math.random()*maxDh);
+      h=Math.max(65+safeBot,Math.min(H*0.35,h+dh));
+    }
+  } else if(score<40){
+    const stepC=Math.min(0.35,0.08+(score-15)*0.005);
+    if(Math.random()<stepC){
+      const maxDh=Math.min(30,8+(score-15)*0.4);
+      const dh=(Math.random()<0.5?1:-1)*(4+Math.random()*maxDh);
+      h=Math.max(65+safeBot,Math.min(H*0.38,h+dh));
+    }
+  } else {
+    const stepC=Math.min(0.5,0.15+(score-40)*0.004);
+    if(Math.random()<stepC){
+      const maxDh=Math.min(50,15+score*0.2);
+      const dh=(Math.random()<0.5?1:-1)*(5+Math.random()*maxDh);
+      h=Math.max(65+safeBot,Math.min(H*0.38,h+dh));
+    }
   }
-  // Width (narrower at higher scores)
+  // Width: wider early, narrower later
   let w;
-  if(score<8)w=180+Math.random()*220;
-  else if(score<20)w=120+Math.random()*160;
-  else if(score<40)w=85+Math.random()*120;
-  else if(score<70)w=65+Math.random()*90;
+  if(score<10)w=200+Math.random()*250;
+  else if(score<25)w=150+Math.random()*180;
+  else if(score<45)w=100+Math.random()*140;
+  else if(score<70)w=70+Math.random()*100;
   else w=50+Math.random()*70;
   arr.push({x:lastRight+gap,w:w,h:h});
 }
@@ -479,6 +533,10 @@ let coins=[],items=[],parts=[],stars=[],mtns=[],enemies=[],bullets=[];
 // Floating mid-air platforms (between floor and ceiling)
 let floatPlats=[]; // {x, y, w, th} - y=top surface, th=thickness
 let floatCD=0;
+
+// ===== BOSS PHASE =====
+// Boss appears periodically in endless mode
+let bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:80,lastBossScore:0};
 
 function initBG(){
   stars=[];
@@ -531,8 +589,9 @@ function reset(){
   djumpAvailable=false;djumpUsed=false;
   coinCD=0;itemCD=0;enemyCD=0;flipCount=0;flipTimer=999;lastCoinCourse='';
   flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
+  bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:80,lastBossScore:0};
   hp=HP_MAX;hurtT=0;
-  prevTheme=curTheme;curTheme=0;themeLerp=1;
+  curTheme=0;prevTheme=0;themeLerp=1;
 }
 
 function resetStage(stageIdx){
@@ -618,6 +677,7 @@ function coinOverlaps(cx,cy){
 }
 function trySpawnCoins(){
   if(coinCD>0){coinCD--;return;}
+  if(bossPhase.active)return;
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
   if(Math.random()<0.18){ // reduced frequency (was 0.30)
@@ -662,6 +722,7 @@ function trySpawnCoins(){
 function trySpawnItem(){
   if(itemCD>0){itemCD--;return;}
   if(score<5)return;
+  if(bossPhase.active)return;
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
   if(Math.random()<0.12){
@@ -682,10 +743,11 @@ function trySpawnItem(){
 // Types: 0=左右パトロール, 1=砲台(水平砲弾), 2=空中飛行
 function trySpawnEnemy(){
   if(enemyCD>0){enemyCD--;return;}
-  if(score<15)return;
+  if(score<20)return;
+  if(bossPhase.active)return; // no normal enemies during boss
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
-  const chance=Math.min(0.35,0.1+(score-15)*0.003);
+  const chance=Math.min(0.35,0.08+(score-20)*0.003);
   if(Math.random()<chance){
     enemyCD=50+Math.floor(Math.random()*40);
     const ex=Math.max(W+13,plat.x);
@@ -693,8 +755,8 @@ function trySpawnEnemy(){
     // Choose enemy type based on score
     let eType=0;
     const tr=Math.random();
-    if(score>=35&&tr<0.25) eType=2; // flyer
-    else if(score>=25&&tr<0.45) eType=1; // cannon
+    if(score>=50&&tr<0.25) eType=2; // flyer (later)
+    else if(score>=35&&tr<0.45) eType=1; // cannon
     else eType=0; // walker/patrol
 
     if(eType===2){
@@ -724,10 +786,11 @@ function trySpawnEnemy(){
 // ===== FLOATING MID-AIR PLATFORMS =====
 function trySpawnFloatPlat(){
   if(floatCD>0){floatCD--;return;}
-  if(score<10)return;
+  if(score<35)return; // appear after more progression
+  if(bossPhase.active)return;
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
-  const chance=Math.min(0.18,0.06+(score-10)*0.002);
+  const chance=Math.min(0.18,0.04+(score-35)*0.002);
   if(Math.random()<chance){
     floatCD=80+Math.floor(Math.random()*60);
     const fx=Math.max(W+20,plat.x);
@@ -756,6 +819,113 @@ function trySpawnFloatPlat(){
     }
   } else {
     floatCD=20+Math.floor(Math.random()*15);
+  }
+}
+
+// ===== BOSS PHASE =====
+function startBossPhase(){
+  bossPhase.active=true;
+  bossPhase.prepare=120; // 2 sec flat terrain prep
+  bossPhase.alertT=0; // alert animation timer
+  bossPhase.enemies=[];
+  bossPhase.defeated=0;
+  bossPhase.reward=false;
+  bossPhase.rewardT=0;
+  // Clear existing normal enemies/bullets
+  enemies=[];bullets=[];floatPlats=[];
+  // Determine boss wave based on how many boss fights happened
+  const wave=Math.floor((score-80)/80);
+  bossPhase.lastBossScore=score;
+  bossPhase.nextAt=score+80+wave*20; // next boss further away each time
+  // Ominous alert effects
+  shakeI=18;sfxBossAlert();vibrate([50,30,50,30,80,40,100]);
+}
+function spawnBossEnemies(){
+  const wave=Math.floor((bossPhase.lastBossScore-80)/80);
+  const floorY=H-GROUND_H;
+  const ceilY=GROUND_H;
+  const cx=W*0.7; // spawn center
+  const sz=13;
+  // Wave composition grows with each boss encounter
+  // Type A: Giant enemy (sz=28, needs precise jump to stomp)
+  const giants=1+Math.min(wave,2);
+  for(let i=0;i<giants;i++){
+    const gx=cx+i*120;
+    const gsz=26+wave*2;
+    enemies.push({x:gx,y:floorY-gsz,vy:0,gDir:1,walkSpd:0.15+wave*0.05,sz:gsz,alive:true,fr:Math.random()*100,type:0,shootT:999,
+      patrolDir:1,patrolOriginX:gx,patrolRange:40+wave*10,boss:true});
+    bossPhase.enemies.push(enemies[enemies.length-1]);
+  }
+  // Type B: Swarm of small fast enemies
+  const swarmCount=3+Math.min(wave*2,8);
+  for(let i=0;i<swarmCount;i++){
+    const gDir=Math.random()<0.3?-1:1;
+    const sx=cx+80+i*50+Math.random()*30;
+    const surfY=gDir===1?floorY:ceilY;
+    const ey=gDir===1?surfY-8:surfY+8;
+    enemies.push({x:sx,y:ey,vy:0,gDir:gDir,walkSpd:0.6+Math.random()*0.5,sz:8,alive:true,fr:Math.random()*100,type:0,shootT:999,
+      patrolDir:Math.random()<0.5?1:-1,patrolOriginX:sx,patrolRange:50+Math.random()*30,boss:true});
+    bossPhase.enemies.push(enemies[enemies.length-1]);
+  }
+  // Type C: Rapid-fire cannons (after first boss)
+  if(wave>=1){
+    const cannons=1+Math.min(wave,3);
+    for(let i=0;i<cannons;i++){
+      const gDir=i%2===0?1:-1;
+      const sx=cx+200+i*100;
+      const surfY=gDir===1?floorY:ceilY;
+      const ey=gDir===1?surfY-sz:surfY+sz;
+      enemies.push({x:sx,y:ey,vy:0,gDir:gDir,walkSpd:0.1,sz:sz,alive:true,fr:Math.random()*100,type:1,shootT:30+Math.floor(Math.random()*20),boss:true});
+      bossPhase.enemies.push(enemies[enemies.length-1]);
+    }
+  }
+  bossPhase.total=bossPhase.enemies.length;
+}
+function updateBossPhase(){
+  if(!bossPhase.active)return;
+  bossPhase.alertT++;
+  // Prepare phase: flatten terrain before enemies spawn
+  if(bossPhase.prepare>0){
+    bossPhase.prepare--;
+    // Spawn warning particles during prepare
+    if(bossPhase.prepare%4===0){
+      for(let i=0;i<3;i++){
+        const side=Math.random()<0.5?-10:W+10;
+        parts.push({x:side,y:Math.random()*H,vx:side<0?3:-3,vy:(Math.random()-0.5)*2,life:40,ml:40,sz:Math.random()*4+2,col:['#ff3860','#ff0040','#cc0030'][i%3]});
+      }
+    }
+    if(bossPhase.prepare===0) spawnBossEnemies();
+    return;
+  }
+  // Reward phase: auto-collect rewards
+  if(bossPhase.reward){
+    bossPhase.rewardT++;
+    if(bossPhase.rewardT>=180){
+      // End boss phase
+      bossPhase.active=false;
+      bossPhase.reward=false;
+    }
+    return;
+  }
+  // Check if all boss enemies defeated
+  bossPhase.defeated=0;
+  for(let i=0;i<bossPhase.enemies.length;i++){
+    if(!bossPhase.enemies[i].alive)bossPhase.defeated++;
+  }
+  if(bossPhase.defeated>=bossPhase.total&&bossPhase.total>0){
+    // Boss cleared!
+    bossPhase.reward=true;bossPhase.rewardT=0;
+    sfxFanfare();shakeI=10;vibrate([30,20,30,20,60]);
+    addPop(W/2,H*0.3,'BOSS \u6483\u7834\uFF01','#ffd700');
+    // Give rewards: invincibility, heal, coins
+    itemEff.invincible=600;switchBGM('fever');
+    if(hp<HP_MAX){hp++;addPop(player.x,player.y-40,'HP +1','#ff3860');}
+    const bonus=30+bossPhase.total*5;
+    walletCoins+=bonus;localStorage.setItem('gd5wallet',walletCoins.toString());
+    totalCoins+=bonus;
+    addPop(W/2,H*0.45,'+'+bonus+' \u30B3\u30A4\u30F3\uFF01','#ffd700');
+    // Shower coins
+    for(let i=0;i<40;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*4,vy:1+Math.random()*4,life:80+Math.random()*40,ml:120,sz:Math.random()*5+3,col:['#ffd700','#ffaa00','#fff4b0'][i%3]});
   }
 }
 
@@ -1002,8 +1172,7 @@ function checkMile(){
     if(score>=m&&lastMile<m){
       lastMile=m;mileTxt=m+' \u30DD\u30A4\u30F3\u30C8\uFF01';mileT=100;
       sfx('milestone');shakeI=5;vibrate(40);
-      const ti=ms.indexOf(m);
-      if(ti<THEMES.length&&ti!==curTheme){prevTheme=curTheme;curTheme=ti;themeLerp=0;}
+      // Theme stays fixed (no color transitions)
       for(let i=0;i<25;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*3,vy:Math.random()*3+1,life:50+Math.random()*30,ml:80,sz:Math.random()*5+2,col:['#ff3860','#00e5ff','#ffd700','#a855f7','#34d399'][i%5]});
       break;
     }
@@ -1092,11 +1261,11 @@ function update(dt){
     if(platforms.length===0)platforms.push({x:player.x-30,w:200,h:GROUND_H});
     if(ceilPlats.length===0)ceilPlats.push({x:player.x-30,w:200,h:GROUND_H});
 
-    // Flip zone logic: after score 20, periodically force floor/ceiling gaps
+    // Flip zone logic: after score 40, periodically force floor/ceiling gaps
     // Creates long stretches where one side disappears, forcing gravity switching
     if(flipZone.cd>0)flipZone.cd--;
-    if(!flipZone.active&&flipZone.cd<=0&&score>20){
-      const flipChance=Math.min(0.08,0.03+(score-20)*0.001);
+    if(!flipZone.active&&flipZone.cd<=0&&score>40&&!bossPhase.active){
+      const flipChance=Math.min(0.08,0.02+(score-40)*0.001);
       if(Math.random()<flipChance){
         flipZone.active=true;
         // Alternate: if last was floor gap, do ceiling gap (and vice versa)
@@ -1127,6 +1296,13 @@ function update(dt){
     trySpawnItem();
     trySpawnEnemy();
     trySpawnFloatPlat();
+    // Boss phase trigger
+    if(!bossPhase.active&&score>=bossPhase.nextAt){
+      startBossPhase();
+    }
+    updateBossPhase();
+    // During boss prepare/active, cancel flip zones
+    if(bossPhase.active){flipZone.active=false;flipZone.cd=200;}
   }
 
   // Stage mode: scroll big coins and goal, check goal reached
@@ -1279,8 +1455,14 @@ function update(dt){
   // Enemies
   enemies.forEach(en=>{
     if(!en.alive)return;
-    en.x-=speed;
     en.fr+=0.12;
+    // Boss enemies stay on screen (don't scroll off)
+    if(en.boss){
+      if(en.x>W-30)en.x-=speed;
+      if(en.x<30)en.x=30;
+    } else {
+      en.x-=speed;
+    }
 
     if(en.type===2){
       // Flying enemy: sine wave movement, no ground snapping
@@ -1290,7 +1472,7 @@ function update(dt){
     } else if(en.type===0&&en.patrolDir!==undefined){
       // Walker with left-right patrol
       en.x+=en.patrolDir*en.walkSpd;
-      en.patrolOriginX-=speed; // keep origin scrolling with terrain
+      if(!en.boss) en.patrolOriginX-=speed; // keep origin scrolling with terrain (not for boss)
       if(en.x>en.patrolOriginX+en.patrolRange) en.patrolDir=-1;
       if(en.x<en.patrolOriginX-en.patrolRange) en.patrolDir=1;
       // Keep on surface or fall off cliff
@@ -1357,7 +1539,7 @@ function update(dt){
       }
     }
   });
-  enemies=enemies.filter(en=>en.x>-50&&en.alive&&en.y>-200&&en.y<H+200);
+  enemies=enemies.filter(en=>(en.boss||en.x>-50)&&en.alive&&en.y>-200&&en.y<H+200);
 
   // Shooter enemies fire horizontal bullets at player's Y position
   enemies.forEach(en=>{
@@ -1556,6 +1738,57 @@ function draw(){
   pops.forEach(p=>{const a=p.life/p.ml;ctx.globalAlpha=a;ctx.fillStyle=p.col;ctx.font='bold 16px monospace';ctx.textAlign='center';ctx.fillText(p.txt,p.x,p.y);});
   ctx.globalAlpha=1;
   if(mileT>0)drawMile();
+  // Invincibility rainbow overlay
+  if(itemEff.invincible>0&&state===ST.PLAY){
+    const hue=(frame*6)%360;
+    const ra=0.06+Math.sin(frame*0.15)*0.03;
+    ctx.fillStyle=`hsla(${hue},100%,60%,${ra})`;ctx.fillRect(-20,-20,W+40,H+40);
+    // Rainbow edge glow
+    const ew=8+Math.sin(frame*0.2)*4;
+    for(let i=0;i<4;i++){
+      const eh=(frame*4+i*90)%360;
+      ctx.fillStyle=`hsla(${eh},100%,50%,0.15)`;
+      if(i===0)ctx.fillRect(-5,-5,W+10,ew);
+      else if(i===1)ctx.fillRect(-5,H-ew,-5,ew+10);
+      else if(i===2)ctx.fillRect(-5,-5,ew,H+10);
+      else ctx.fillRect(W-ew,-5,ew+5,H+10);
+    }
+    // Sparkle particles in corners
+    if(frame%3===0){
+      const sx=Math.random()*W,sy=Math.random()<0.5?Math.random()*40:H-Math.random()*40;
+      parts.push({x:sx,y:sy,vx:(Math.random()-0.5)*1,vy:(Math.random()-0.5)*1,life:12,ml:12,sz:Math.random()*3+1,col:`hsl(${(frame*8+Math.random()*60)%360},100%,70%)`});
+    }
+  }
+  // Boss alert overlay
+  if(bossPhase.active&&bossPhase.prepare>0){
+    const t=bossPhase.alertT;
+    // Flashing red vignette
+    const flash=Math.sin(t*0.3)*0.15+0.15;
+    const vg=ctx.createRadialGradient(W/2,H/2,H*0.2,W/2,H/2,H*0.8);
+    vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,`rgba(180,0,0,${flash})`);
+    ctx.fillStyle=vg;ctx.fillRect(-20,-20,W+40,H+40);
+    // Warning text
+    if(t>15){
+      const ta=Math.min(1,(t-15)/10)*Math.abs(Math.sin(t*0.12));
+      ctx.save();ctx.globalAlpha=ta;
+      ctx.fillStyle='#ff3860';ctx.font='bold 42px monospace';ctx.textAlign='center';
+      ctx.shadowColor='#ff0000';ctx.shadowBlur=30;
+      ctx.fillText('\u26A0 WARNING',W/2,H*0.35);
+      ctx.font='bold 18px monospace';ctx.fillStyle='#ff6080';
+      ctx.fillText('BOSS \u51FA\u73FE',W/2,H*0.43);
+      ctx.shadowBlur=0;ctx.restore();
+    }
+    // Red scan lines
+    if(t%6<3){
+      ctx.fillStyle='rgba(255,0,0,0.04)';
+      for(let y=0;y<H;y+=4)ctx.fillRect(0,y,W,2);
+    }
+  }
+  // Boss phase UI (enemy count)
+  if(bossPhase.active&&bossPhase.prepare<=0&&!bossPhase.reward){
+    ctx.fillStyle='#ff3860';ctx.font='bold 13px monospace';ctx.textAlign='center';
+    ctx.fillText('\u6575: '+(bossPhase.total-bossPhase.defeated)+' / '+bossPhase.total,W/2,28);
+  }
   if(state===ST.DEAD)drawDead();
   if(state===ST.PAUSE)drawPause();
   if(state===ST.STAGE_CLEAR)drawStageClear();
