@@ -62,12 +62,14 @@ const ctx=canvas.getContext('2d');
 let W,H,safeTop=0,safeBot=0;
 function resize(){
   const dpr=Math.min(window.devicePixelRatio||1,2);
-  if(window.visualViewport){
-    W=Math.round(window.visualViewport.width);
-    H=Math.round(window.visualViewport.height);
-  } else {
-    W=window.innerWidth;H=window.innerHeight;
+  // Use visualViewport if available and valid, else fallback to innerWidth/Height
+  let vw=window.innerWidth,vh=window.innerHeight;
+  if(window.visualViewport&&window.visualViewport.width>0&&window.visualViewport.height>0){
+    vw=Math.round(window.visualViewport.width);
+    vh=Math.round(window.visualViewport.height);
   }
+  W=vw||window.innerWidth||390;
+  H=vh||window.innerHeight||844;
   // Safe area insets for notch/home bar
   const cs=getComputedStyle(document.documentElement);
   safeTop=parseInt(cs.getPropertyValue('--sat'))||0;
@@ -304,30 +306,105 @@ const STAGES=[
     requiredStars:0,
     speed:2.5,
     platforms:[
-      {x:-20,w:500,h:65},
-      {x:540,w:400,h:65},
-      {x:980,w:350,h:80},
-      {x:1370,w:300,h:80},
-      {x:1710,w:250,h:65},
-      {x:2000,w:400,h:65},
-      {x:2440,w:300,h:90},
-      {x:2780,w:350,h:70},
-      {x:3170,w:400,h:65},
-      {x:3610,w:500,h:65},
+      {x:-20,w:500,h:85},{x:540,w:400,h:85},{x:1000,w:350,h:90},
+      {x:1400,w:300,h:85},{x:1750,w:250,h:85},{x:2050,w:400,h:85},
+      {x:2500,w:300,h:90},{x:2850,w:350,h:85},{x:3250,w:400,h:85},
+      {x:3700,w:500,h:85},
+    ],
+    ceilPlats:[{x:-20,w:4300,h:85}],
+    enemies:[{x:1200,type:0,gDir:1},{x:2700,type:0,gDir:1}],
+    bigCoins:[{x:300,yOff:-50},{x:1600,yOff:-70},{x:3500,yOff:-50}],
+    goalX:4100,
+  },
+  {
+    name:'\u30B9\u30C6\u30FC\u30B8 1-2',
+    desc:'\u30B8\u30E3\u30F3\u30D7\u30EC\u30C3\u30B9\u30F3',
+    requiredStars:0,
+    speed:2.8,
+    platforms:[
+      {x:-20,w:450,h:85},{x:520,w:300,h:85},{x:900,w:200,h:100},
+      {x:1180,w:250,h:85},{x:1520,w:180,h:95},{x:1800,w:300,h:80},
+      {x:2200,w:200,h:90},{x:2500,w:250,h:85},{x:2850,w:300,h:75},
+      {x:3250,w:200,h:95},{x:3550,w:350,h:85},{x:4000,w:500,h:85},
+    ],
+    ceilPlats:[{x:-20,w:4600,h:85}],
+    enemies:[{x:1050,type:0,gDir:1},{x:2350,type:0,gDir:1},{x:3400,type:0,gDir:1}],
+    bigCoins:[{x:950,yOff:-60},{x:2100,yOff:-70},{x:3800,yOff:-50}],
+    goalX:4400,
+  },
+  {
+    name:'\u30B9\u30C6\u30FC\u30B8 1-3',
+    desc:'\u91CD\u529B\u30B9\u30A4\u30C3\u30C1',
+    requiredStars:2,
+    speed:3.0,
+    platforms:[
+      {x:-20,w:500,h:85},{x:560,w:300,h:85},
+      {x:1250,w:200,h:85},{x:1550,w:300,h:90},{x:1950,w:250,h:85},
+      {x:2600,w:200,h:85},{x:2900,w:300,h:80},{x:3300,w:250,h:90},
+      {x:3650,w:300,h:85},{x:4050,w:400,h:85},{x:4550,w:500,h:85},
     ],
     ceilPlats:[
-      {x:-20,w:4200,h:65},
+      {x:-20,w:900,h:85},{x:860,w:800,h:85},
+      {x:1800,w:250,h:85},{x:2150,w:800,h:85},
+      {x:3050,w:200,h:80},{x:3350,w:400,h:85},{x:3850,w:300,h:85},
+      {x:4250,w:900,h:85},
     ],
     enemies:[
-      {x:1200,type:0,gDir:1},
-      {x:2600,type:0,gDir:1},
+      {x:750,type:0,gDir:1},{x:1100,type:0,gDir:-1},
+      {x:2400,type:0,gDir:-1},{x:3500,type:0,gDir:1},
     ],
-    bigCoins:[
-      {x:300,yOff:-50},
-      {x:1550,yOff:-70},
-      {x:3400,yOff:-50},
+    bigCoins:[{x:1000,y:120},{x:2350,y:120},{x:4300,yOff:-50}],
+    goalX:4900,
+  },
+  {
+    name:'\u30B9\u30C6\u30FC\u30B8 1-4',
+    desc:'\u30AD\u30E3\u30CE\u30F3\u56DE\u5ECA',
+    requiredStars:4,
+    speed:3.2,
+    platforms:[
+      {x:-20,w:400,h:85},{x:470,w:350,h:85},{x:900,w:250,h:90},
+      {x:1230,w:300,h:85},{x:1620,w:200,h:100},{x:1920,w:350,h:85},
+      {x:2370,w:250,h:80},{x:2720,w:200,h:90},{x:3020,w:300,h:85},
+      {x:3420,w:250,h:95},{x:3770,w:300,h:85},{x:4170,w:400,h:85},
+      {x:4670,w:500,h:85},
     ],
-    goalX:4000,
+    ceilPlats:[
+      {x:-20,w:2000,h:85},{x:2100,w:800,h:85},
+      {x:3000,w:500,h:80},{x:3600,w:1600,h:85},
+    ],
+    enemies:[
+      {x:800,type:1,gDir:1},{x:1500,type:0,gDir:1},
+      {x:2500,type:1,gDir:1},{x:3200,type:0,gDir:-1},
+      {x:4400,type:1,gDir:1},
+    ],
+    bigCoins:[{x:650,yOff:-70},{x:2600,yOff:-60},{x:4400,yOff:-50}],
+    goalX:5100,
+  },
+  {
+    name:'\u30B9\u30C6\u30FC\u30B8 1-5',
+    desc:'\u6700\u7D42\u8A66\u7DF4',
+    requiredStars:7,
+    speed:3.5,
+    platforms:[
+      {x:-20,w:400,h:85},{x:480,w:250,h:90},{x:820,w:200,h:85},
+      {x:1400,w:180,h:85},{x:1680,w:250,h:95},{x:2030,w:200,h:85},
+      {x:2600,w:180,h:90},{x:2880,w:250,h:85},{x:3230,w:200,h:100},
+      {x:3530,w:250,h:85},{x:3880,w:200,h:90},{x:4180,w:300,h:85},
+      {x:4580,w:250,h:95},{x:4930,w:400,h:85},{x:5430,w:500,h:85},
+    ],
+    ceilPlats:[
+      {x:-20,w:850,h:85},{x:1000,w:800,h:85},{x:1900,w:300,h:80},
+      {x:2300,w:700,h:85},{x:3100,w:200,h:80},{x:3400,w:400,h:85},
+      {x:3900,w:300,h:85},{x:4300,w:400,h:85},{x:4800,w:1200,h:85},
+    ],
+    enemies:[
+      {x:650,type:0,gDir:1},{x:1200,type:2,gDir:1},
+      {x:1800,type:0,gDir:-1},{x:2500,type:1,gDir:1},
+      {x:3100,type:0,gDir:1},{x:3700,type:2,gDir:1},
+      {x:4800,type:1,gDir:1},
+    ],
+    bigCoins:[{x:500,yOff:-70},{x:1150,y:130},{x:5200,yOff:-50}],
+    goalX:5800,
   },
 ];
 
@@ -469,12 +546,32 @@ function resetStage(stageIdx){
   coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];floatPlats=[];floatCD=0;
   // Spawn stage enemies
   stg.enemies.forEach(e=>{
-    const surfY=e.gDir===1?H-65:65; // approximate, will snap in update
-    enemies.push({x:e.x,y:surfY,gDir:e.gDir,walkSpd:0.2+Math.random()*0.15,sz:13,alive:true,fr:Math.random()*100,type:e.type,shootT:e.type===1?80:999});
+    const sz=13;
+    if(e.type===2){
+      // Flyer: sine-wave mid-air enemy
+      const flyY=H*0.45+Math.random()*40;
+      enemies.push({x:e.x,y:flyY,vy:0,gDir:e.gDir,walkSpd:0,sz:sz,alive:true,fr:Math.random()*100,type:2,shootT:999,
+        baseY:flyY,flyPhase:Math.random()*6.28,flyAmp:20+Math.random()*25});
+    } else if(e.type===1){
+      // Cannon/Shooter
+      const surfY=e.gDir===1?floorSurfaceY(e.x):ceilSurfaceY(e.x);
+      const ey=e.gDir===1?surfY-sz:surfY+sz;
+      enemies.push({x:e.x,y:ey,vy:0,gDir:e.gDir,walkSpd:0.15+Math.random()*0.2,sz:sz,alive:true,fr:Math.random()*100,type:1,shootT:60+Math.floor(Math.random()*60)});
+    } else {
+      // Walker/Patrol (type 0)
+      const surfY=e.gDir===1?floorSurfaceY(e.x):ceilSurfaceY(e.x);
+      const ey=e.gDir===1?surfY-sz:surfY+sz;
+      enemies.push({x:e.x,y:ey,vy:0,gDir:e.gDir,walkSpd:0.3+Math.random()*0.4,sz:sz,alive:true,fr:Math.random()*100,type:0,shootT:999,
+        patrolDir:1,patrolOriginX:e.x,patrolRange:30+Math.random()*40});
+    }
   });
   // Spawn big coins
   stageBigCoins=stg.bigCoins.map(bc=>{
-    // Find the floor platform under this big coin
+    if(bc.y!==undefined){
+      // Absolute Y position (e.g. ceiling-side coins)
+      return {x:bc.x,y:bc.y,sz:16,col:false,p:0};
+    }
+    // Relative to floor platform
     let floorH=GROUND_H;
     for(const p of stg.platforms){if(bc.x>=p.x&&bc.x<=p.x+p.w){floorH=p.h;break;}}
     return {x:bc.x,y:H-floorH+bc.yOff,sz:16,col:false,p:0};
@@ -635,10 +732,12 @@ function trySpawnFloatPlat(){
     const fw=50+Math.random()*60; // width: 50-110px
     const floorY=H-plat.h;
     const ceilY=ceilSurfaceY(fx);
-    // Place between floor and ceiling (30-70% of the gap)
     const gap=floorY-ceilY;
     if(gap<120)return; // not enough room
-    const fy=ceilY+gap*(0.3+Math.random()*0.4);
+    // Place at a height reachable by jumping from the floor
+    // Max jump height ≈ JUMP_POWER^2 / (2*GRAVITY) ≈ 145px
+    const maxJumpH=JUMP_POWER*JUMP_POWER/(2*GRAVITY)*0.75; // ~109px (comfortable reach)
+    const fy=floorY-maxJumpH*(0.5+Math.random()*0.5); // 50-100% of comfortable jump height
     floatPlats.push({x:fx,y:fy,w:fw,th:10});
     // Sometimes spawn an item on the floating platform
     if(Math.random()<0.4){
@@ -684,7 +783,7 @@ canvas.addEventListener('touchstart',e=>{
   const t=e.touches[0];
   const p=canvasXY(t.clientX,t.clientY);
   touchStartY=t.clientY;touchStartX=t.clientX;touchStartT=Date.now();touchMoved=false;
-  if(state===ST.STAGE_CLEAR&&stageClearT>60){state=ST.TITLE;switchBGM('title');return;}
+  if(state===ST.STAGE_CLEAR&&stageClearT>60){const ns=currentStage+1;if(ns<STAGES.length&&getTotalStars()>=STAGES[ns].requiredStars){currentStage=ns;state=ST.PLAY;resetStage(currentStage);switchBGM('play');}else{state=ST.TITLE;switchBGM('title');}return;}
   if(state===ST.PAUSE){
     if(hitResumeBtn(p.x,p.y)){state=ST.PLAY;switchBGM('play');return;}
     if(hitQuitBtn(p.x,p.y)){state=ST.TITLE;switchBGM('title');return;}
@@ -757,7 +856,7 @@ canvas.addEventListener('touchend',e=>{
 // Keyboard support
 canvas.addEventListener('mousedown',e=>{
   initAudio();
-  if(state===ST.STAGE_CLEAR&&stageClearT>60){state=ST.TITLE;switchBGM('title');return;}
+  if(state===ST.STAGE_CLEAR&&stageClearT>60){const ns=currentStage+1;if(ns<STAGES.length&&getTotalStars()>=STAGES[ns].requiredStars){currentStage=ns;state=ST.PLAY;resetStage(currentStage);switchBGM('play');}else{state=ST.TITLE;switchBGM('title');}return;}
   const p=canvasXY(e.clientX,e.clientY);
   if(state===ST.PAUSE){
     if(hitResumeBtn(p.x,p.y)){state=ST.PLAY;switchBGM('play');return;}
@@ -792,7 +891,7 @@ document.addEventListener('keydown',e=>{
   }
   if(e.code==='Space'||e.code==='ArrowUp'){
     e.preventDefault();initAudio();
-    if(state===ST.STAGE_CLEAR&&stageClearT>60){state=ST.TITLE;switchBGM('title');return;}
+    if(state===ST.STAGE_CLEAR&&stageClearT>60){const ns=currentStage+1;if(ns<STAGES.length&&getTotalStars()>=STAGES[ns].requiredStars){currentStage=ns;state=ST.PLAY;resetStage(currentStage);switchBGM('play');}else{state=ST.TITLE;switchBGM('title');}return;}
     if(state===ST.PAUSE){state=ST.PLAY;switchBGM('play');return;}
     if(state===ST.TITLE){state=ST.PLAY;reset();switchBGM('play');}
     else if(state===ST.DEAD&&deadT>45){
@@ -852,9 +951,19 @@ function handleTitleTouch(tx,ty){
   if(tx>=ebx&&tx<=ebx+btnW&&ty>=btnY&&ty<=btnY+btnH){
     gameMode='endless';state=ST.PLAY;reset();switchBGM('play');return;
   }
-  // Stage mode button
+  // Stage mode button - start from first uncleared stage
   if(tx>=sbx&&tx<=sbx+btnW&&ty>=btnY&&ty<=btnY+btnH){
-    gameMode='stage';currentStage=0;state=ST.PLAY;resetStage(currentStage);switchBGM('play');return;
+    gameMode='stage';
+    let firstUncleared=0;
+    for(let i=0;i<STAGES.length;i++){
+      const sp=stageProgress[i];
+      if(!sp||!sp.cleared){firstUncleared=i;break;}
+      if(i===STAGES.length-1)firstUncleared=STAGES.length-1; // all cleared, replay last
+    }
+    // Also check star requirements
+    const totalSt=getTotalStars();
+    while(firstUncleared<STAGES.length&&STAGES[firstUncleared].requiredStars>totalSt){firstUncleared=Math.max(0,firstUncleared-1);break;}
+    currentStage=firstUncleared;state=ST.PLAY;resetStage(currentStage);switchBGM('play');return;
   }
 }
 
@@ -2052,7 +2161,8 @@ function drawStageClear(){
   if(stageClearT>60){
     const ta=Math.sin(stageClearT*0.07)*0.3+0.7;
     ctx.globalAlpha=ta*e;ctx.fillStyle='#fff';ctx.font='bold 15px monospace';
-    ctx.fillText('\u30BF\u30C3\u30D7\u3067\u30BF\u30A4\u30C8\u30EB\u3078',W/2,H*0.82);
+    const ns=currentStage+1;const canNext=ns<STAGES.length&&getTotalStars()>=STAGES[ns].requiredStars;
+    ctx.fillText(canNext?'\u30BF\u30C3\u30D7\u3067\u6B21\u306E\u30B9\u30C6\u30FC\u30B8\u3078':'\u30BF\u30C3\u30D7\u3067\u30BF\u30A4\u30C8\u30EB\u3078',W/2,H*0.82);
   }
 
   // Particles
