@@ -74,13 +74,13 @@ function resize(){
 resize();window.addEventListener('resize',resize);
 
 // ===== CONSTANTS =====
-const GRAVITY=0.38;
-const JUMP_POWER=9.5;
+const GRAVITY=0.22;
+const JUMP_POWER=8.0;
 const PLAYER_R=14;
 const GROUND_H=65;
-const SPEED_INIT=2.8;
-const SPEED_INC=0.0006;
-const SPEED_MAX=8.5;
+const SPEED_INIT=1.5;
+const SPEED_INC=0.0003;
+const SPEED_MAX=5.0;
 const HP_MAX=3;
 const HURT_INVINCIBLE=90; // frames of invincibility after taking damage
 
@@ -489,13 +489,13 @@ function trySpawnCoins(){
     const n=3+Math.floor(Math.random()*3); // 3-5 coins per group
     const startX=plat.x+plat.w*0.15;
 
-    if(pattern<0.4){
+    if(pattern<0.45){
       // Straight horizontal line: exactly on running height (PLAYER_R above surface)
       const lineY=onFloor?surfY-PLAYER_R:surfY+PLAYER_R;
       for(let i=0;i<n;i++){
         coins.push({x:startX+i*24,y:lineY,sz:9,col:false,p:0});
       }
-    } else if(pattern<0.75){
+    } else if(pattern<0.85){
       // Perfect parabolic arc: matches actual jump physics exactly
       // Jump: vy0 = JUMP_POWER, gravity = GRAVITY, horizontal speed = current speed
       const jp=JUMP_POWER*ct().jumpMul;
@@ -511,14 +511,6 @@ function trySpawnCoins(){
         const hOffset=speed*t; // horizontal distance at current speed
         const cy=onFloor?surfY-PLAYER_R-arcH:surfY+PLAYER_R+arcH;
         coins.push({x:startX+hOffset,y:cy,sz:9,col:false,p:0});
-      }
-    } else if(pattern<0.9){
-      // Perfect vertical column: evenly spaced straight up from surface
-      const cx=plat.x+plat.w*0.4;
-      const spacing=22;
-      for(let i=0;i<n;i++){
-        const cy=onFloor?surfY-PLAYER_R-i*spacing:surfY+PLAYER_R+i*spacing;
-        coins.push({x:cx,y:cy,sz:9,col:false,p:0});
       }
     } else {
       // Diagonal line: ascending straight line (guides player upward)
@@ -541,7 +533,7 @@ function trySpawnItem(){
     itemCD=70+Math.floor(Math.random()*50);
     const ix=plat.x+plat.w*0.5;
     const surfY=H-plat.h;
-    const it=Math.floor(Math.random()*ITEMS.length);
+    const it=10; // Only spawn invincibility item
     items.push({x:ix,y:surfY-55-Math.random()*25,t:it,sz:14,p:Math.random()*6.28,col:false});
   } else {
     itemCD=8+Math.floor(Math.random()*8);
@@ -656,8 +648,8 @@ canvas.addEventListener('touchend',e=>{
       sfx('jump');vibrate(10);
       player.face='flip';setTimeout(()=>{if(player.alive)player.face='normal';},180);
       emitParts(player.x,player.y+PLAYER_R*player.gDir,6,tc('ply'),2.5,2);
-    } else if(itemEff.djump>0&&!djumpUsed){
-      // Double jump in mid-air
+    } else if(!djumpUsed){
+      // Double jump in mid-air (always available)
       djumpUsed=true;
       const jp=JUMP_POWER*ct().jumpMul*0.85;
       player.vy=-jp*player.gDir;
@@ -690,7 +682,7 @@ canvas.addEventListener('mousedown',e=>{
     sfx('jump');vibrate(10);
     emitParts(player.x,player.y+PLAYER_R*player.gDir,6,tc('ply'),2.5,2);
   }
-  else if(state===ST.PLAY&&!player.grounded&&itemEff.djump>0&&!djumpUsed){
+  else if(state===ST.PLAY&&!player.grounded&&!djumpUsed){
     djumpUsed=true;
     const jp=JUMP_POWER*ct().jumpMul*0.85;
     player.vy=-jp*player.gDir;
@@ -719,7 +711,7 @@ document.addEventListener('keydown',e=>{
       sfx('jump');vibrate(10);
       emitParts(player.x,player.y+PLAYER_R*player.gDir,6,tc('ply'),2.5,2);
     }
-    else if(state===ST.PLAY&&!player.grounded&&itemEff.djump>0&&!djumpUsed){
+    else if(state===ST.PLAY&&!player.grounded&&!djumpUsed){
       djumpUsed=true;
       const jp=JUMP_POWER*ct().jumpMul*0.85;
       player.vy=-jp*player.gDir;
@@ -1158,7 +1150,7 @@ function update(dt){
   // Invincible particles (rainbow sparkle)
   if(itemEff.invincible>0&&frame%2===0){const a=Math.random()*6.28;const ic=['#ff00ff','#ffff00','#00ffff','#ff4444','#44ff44'][frame%5];parts.push({x:player.x+Math.cos(a)*22,y:player.y+Math.sin(a)*22,vx:Math.cos(a)*0.6,vy:Math.sin(a)*0.6,life:14,ml:14,sz:Math.random()*3.5+1.5,col:ic});}
   // Double jump indicator
-  if(itemEff.djump>0&&!player.grounded&&!djumpUsed&&frame%6===0){parts.push({x:player.x,y:player.y+pr*player.gDir+4*player.gDir,vx:(Math.random()-0.5)*0.5,vy:0.3*player.gDir,life:10,ml:10,sz:2,col:'#ffaa00'});}
+  if(!player.grounded&&!djumpUsed&&frame%6===0){parts.push({x:player.x,y:player.y+pr*player.gDir+4*player.gDir,vx:(Math.random()-0.5)*0.5,vy:0.3*player.gDir,life:10,ml:10,sz:2,col:'#ffaa00'});}
 
   parts=parts.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.life--;return p.life>0;});
   stars.forEach(s=>{s.x-=s.sp*speed*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
@@ -1552,7 +1544,7 @@ function drawUI(){
   if(itemEff.rocket>0)activeItems.push({n:'\u30ED\u30B1\u30C3\u30C8',c:'#f97316',t:itemEff.rocket,m:150});
   if(itemEff.invincible>0)activeItems.push({n:'\u7121\u6575',c:'#ff00ff',t:itemEff.invincible,m:250});
   if(itemEff.float>0)activeItems.push({n:'\u6D6E\u904A',c:'#00ffcc',t:itemEff.float,m:350});
-  if(itemEff.djump>0)activeItems.push({n:'2\u6BB5\u30B8\u30E3\u30F3\u30D7',c:'#ffaa00',t:itemEff.djump,m:400});
+  // Double jump is now always available (no HUD needed)
 
   // Pause button (top-right)
   ctx.fillStyle='#ffffff18';rr(W-52,8,44,36,8);ctx.fill();
