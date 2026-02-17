@@ -196,25 +196,30 @@ function generatePlatform(arr,isCeil){
   const last=arr.length>0?arr[arr.length-1]:null;
   const lastH=last?last.h:GROUND_H;
   const lastRight=last?last.x+last.w:0;
-  // Gap (no gaps early, increasing gaps later)
+  // Gap (floor only; starts at score 10, grows aggressively)
   let gap=0;
-  if(!isCeil&&score>15){
-    const gc=Math.min(0.45,0.08+score*0.003);
-    if(Math.random()<gc) gap=45+Math.random()*Math.min(90,25+score*0.3);
+  if(!isCeil&&score>10){
+    const gc=Math.min(0.55,0.1+(score-10)*0.006);
+    if(Math.random()<gc){
+      const maxGap=Math.min(130,35+score*0.6);
+      gap=35+Math.random()*maxGap;
+    }
   }
-  // Height change (step)
+  // Height change (step) - more frequent and larger with score
   let h=lastH;
-  const sc=Math.min(0.5,0.15+score*0.003);
-  if(Math.random()<sc){
-    const dh=(Math.random()<0.5?1:-1)*(15+Math.random()*20);
+  const stepC=Math.min(0.6,0.08+score*0.006);
+  if(Math.random()<stepC){
+    const maxDh=Math.min(50,12+score*0.25);
+    const dh=(Math.random()<0.5?1:-1)*(10+Math.random()*maxDh);
     h=Math.max(45+safeBot,Math.min(H*0.38,h+dh));
   }
-  // Width
+  // Width (narrower at higher scores)
   let w;
-  if(score<10)w=150+Math.random()*200;
-  else if(score<30)w=100+Math.random()*150;
-  else if(score<60)w=80+Math.random()*120;
-  else w=60+Math.random()*100;
+  if(score<8)w=180+Math.random()*220;
+  else if(score<20)w=120+Math.random()*160;
+  else if(score<40)w=85+Math.random()*120;
+  else if(score<70)w=65+Math.random()*90;
+  else w=50+Math.random()*70;
   arr.push({x:lastRight+gap,w:w,h:h});
 }
 
@@ -255,11 +260,11 @@ function reset(){
   player.rot=0;player.rotTarget=0;player.trail=[];player.alive=true;
   player.grounded=false;player.face='normal';player.canFlip=true;
   platforms=[];ceilPlats=[];
-  // Initial wide flat platform for safe start
-  platforms.push({x:-20,w:W*0.75,h:GROUND_H});
-  ceilPlats.push({x:-20,w:W*0.75,h:GROUND_H});
-  // Generate more platforms ahead
-  for(let i=0;i<10;i++){generatePlatform(platforms,false);generatePlatform(ceilPlats,true);}
+  // Initial safe start platform (shorter so difficulty kicks in sooner)
+  platforms.push({x:-20,w:W*0.5,h:GROUND_H});
+  ceilPlats.push({x:-20,w:W*0.5,h:GROUND_H});
+  // Generate a few platforms ahead
+  for(let i=0;i<5;i++){generatePlatform(platforms,false);generatePlatform(ceilPlats,true);}
   player.y=floorSurfaceY(player.x)-PLAYER_R;
   coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];
   score=0;dist=0;speed=SPEED_INIT;frame=0;deadT=0;newHi=false;
