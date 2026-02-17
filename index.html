@@ -81,6 +81,8 @@ const GROUND_H=65;
 const SPEED_INIT=2.8;
 const SPEED_INC=0.0006;
 const SPEED_MAX=8.5;
+const HP_MAX=3;
+const HURT_INVINCIBLE=90; // frames of invincibility after taking damage
 
 // ===== THEMES =====
 const THEMES=[
@@ -150,6 +152,7 @@ function sfx(type){
       case'stomp':o.type='square';o.frequency.setValueAtTime(200,t);o.frequency.exponentialRampToValueAtTime(80,t+0.12);g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.15);o.start(t);o.stop(t+0.15);break;
       case'shoot':o.type='sawtooth';o.frequency.setValueAtTime(600,t);o.frequency.exponentialRampToValueAtTime(200,t+0.15);g.gain.setValueAtTime(0.1,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);o.start(t);o.stop(t+0.18);break;
       case'gstomp':o.type='sine';o.frequency.setValueAtTime(300,t);o.frequency.exponentialRampToValueAtTime(900,t+0.2);g.gain.setValueAtTime(0.15,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);o.start(t);o.stop(t+0.25);break;
+      case'hurt':o.type='square';o.frequency.setValueAtTime(250,t);o.frequency.exponentialRampToValueAtTime(100,t+0.2);g.gain.setValueAtTime(0.15,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);o.start(t);o.stop(t+0.25);break;
     }
   }catch(e){}
 }
@@ -183,6 +186,7 @@ let mileT=0,mileTxt='',lastMile=0;
 let pops=[],totalCoins=0,totalFlips=0,maxCombo=0,flipCount=0,flipTimer=999;
 let played=parseInt(localStorage.getItem('gd5plays')||'0');
 let dist=0;
+let hp=HP_MAX,hurtT=0; // hit points and hurt invincibility timer
 
 // Active item effects
 let itemEff={shield:0,slow:0,magnet:0,double:0,mini:0,spring:0,ghost:0,timestop:0,rocket:0,invincible:0,float:0,djump:0};
@@ -280,6 +284,7 @@ function reset(){
   itemEff={shield:0,slow:0,magnet:0,double:0,mini:0,spring:0,ghost:0,timestop:0,rocket:0,invincible:0,float:0,djump:0};
   djumpUsed=false;holdingTouch=false;
   coinCD=0;itemCD=0;enemyCD=0;flipCount=0;flipTimer=999;
+  hp=HP_MAX;hurtT=0;
   if(ct().startShield)itemEff.shield=300;
   prevTheme=curTheme;curTheme=0;themeLerp=1;
 }
@@ -533,10 +538,26 @@ function handleTitleTouch(tx,ty){
 }
 
 // ===== COLLISION =====
-function die(){
+// hurt(): take 1 HP damage (walls, enemies, bullets, crush)
+function hurt(){
+  if(hurtT>0)return; // still invincible from previous hit
   if(itemEff.invincible>0){shakeI=4;emitParts(player.x,player.y,8,'#ff00ff',3,2);return;}
   if(itemEff.shield>0){itemEff.shield=0;shakeI=6;emitParts(player.x,player.y,15,'#3b82f6',4,3);return;}
   if(itemEff.ghost>0)return;
+  hp--;
+  if(hp<=0){die();return;}
+  // Survive with damage
+  hurtT=HURT_INVINCIBLE;
+  shakeI=10;sfx('hurt');vibrate([20,10,30]);
+  player.face='hurt';setTimeout(()=>{if(player.alive)player.face='normal';},400);
+  emitParts(player.x,player.y,12,tc('obs'),4,3);
+  addPop(player.x,player.y-25,'HP -1','#ff3860');
+}
+// die(): instant death (void fall = lose all HP)
+function die(){
+  if(itemEff.invincible>0){shakeI=4;emitParts(player.x,player.y,8,'#ff00ff',3,2);return;}
+  if(itemEff.ghost>0)return;
+  hp=0;
   player.alive=false;state=ST.DEAD;deadT=0;shakeI=14;
   player.face='dead';sfx('death');vibrate([30,20,50]);
   if(score>highScore){highScore=score;newHi=true;localStorage.setItem('gd5hi',highScore.toString());}
@@ -609,6 +630,8 @@ function update(dt){
   }
 
   // === PLAYING ===
+  // Hurt invincibility timer
+  if(hurtT>0)hurtT--;
   // Item timers
   for(const k in itemEff)if(itemEff[k]>0)itemEff[k]--;
 
@@ -681,9 +704,9 @@ function update(dt){
   const fSurf=floorSurfaceY(player.x);
   const cSurf=ceilSurfaceY(player.x);
   if(fSurf-cSurf<pr*2+4){
-    die();return;
+    hurt();return;
   }
-  // Boundaries
+  // Boundaries (void fall = instant death, lose all HP)
   if(player.y+pr>H+30||player.y-pr<-30){die();return;}
 
   // Rotation
@@ -774,7 +797,7 @@ function update(dt){
         else{emitParts(en.x,en.y,12,'#ff3860',4,3);}
         player.face='happy';setTimeout(()=>{if(player.alive)player.face='normal';},300);
       }else{
-        die();return;
+        hurt();return;
       }
     }
   });
@@ -801,7 +824,7 @@ function update(dt){
     if(itemEff.ghost>0)return;
     const dx=player.x-b.x,dy=player.y-b.y;
     if(Math.sqrt(dx*dx+dy*dy)<bpr+b.sz){
-      b.life=0;die();
+      b.life=0;hurt();
     }
   });
   bullets=bullets.filter(b=>b.life>0&&b.x>-50&&b.x<W+100&&b.y>-50&&b.y<H+50);
@@ -817,8 +840,7 @@ function update(dt){
           const surfY=H-p.h;
           // Player's bottom is below this platform's surface (would hit wall)
           if(player.y+pr>surfY+4){
-            if(itemEff.shield>0){itemEff.shield=0;shakeI=6;emitParts(player.x,player.y,15,'#3b82f6',4,3);}
-            else{die();return;}
+            hurt();return;
           }
         }
       }
@@ -829,8 +851,7 @@ function update(dt){
         if(p.x>player.x-pr&&p.x<player.x+pr+speed*2){
           const surfY=p.h;
           if(player.y-pr<surfY-4){
-            if(itemEff.shield>0){itemEff.shield=0;shakeI=6;emitParts(player.x,player.y,15,'#3b82f6',4,3);}
-            else{die();return;}
+            hurt();return;
           }
         }
       }
@@ -1004,11 +1025,15 @@ function drawBullet(b){
   ctx.shadowBlur=0;ctx.restore();
 }
 
-function drawCharacter(x,y,charIdx,r,rot,alpha,face){
+function drawCharacter(x,y,charIdx,r,rot,alpha,face,dmgLevel){
+  dmgLevel=dmgLevel||0; // 0=full HP, 1=hurt once, 2=critical
   const ch=CHARS[charIdx];
   ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.globalAlpha=alpha;
   const gr=ctx.createRadialGradient(0,0,0,0,0,r);
-  gr.addColorStop(0,ch.col);gr.addColorStop(1,ch.col2);
+  // Desaturate color with damage
+  if(dmgLevel>=2){gr.addColorStop(0,'#888');gr.addColorStop(1,'#555');}
+  else if(dmgLevel===1){gr.addColorStop(0,ch.col);gr.addColorStop(1,'#666');}
+  else{gr.addColorStop(0,ch.col);gr.addColorStop(1,ch.col2);}
 
   switch(ch.shape){
     case'cube':
@@ -1059,13 +1084,54 @@ function drawCharacter(x,y,charIdx,r,rot,alpha,face){
     ctx.fillStyle=ch.pupil;ctx.beginPath();ctx.arc(r*0.28,eY,r*0.14,0,6.28);ctx.fill();
     ctx.fillStyle=ch.eye;ctx.beginPath();ctx.arc(r*0.33,eY-r*0.1,r*0.06,0,6.28);ctx.fill();
     if(face==='happy'){ctx.strokeStyle=ch.eye;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(r*0.15,eY+r*0.3,r*0.15,0.2,Math.PI-0.2);ctx.stroke();}
+    if(face==='hurt'){
+      // Grimace mouth
+      ctx.strokeStyle=ch.eye;ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(-r*0.1,eY+r*0.4);
+      ctx.lineTo(r*0.05,eY+r*0.3);ctx.lineTo(r*0.2,eY+r*0.45);ctx.lineTo(r*0.35,eY+r*0.3);
+      ctx.stroke();
+    }
   }
+
+  // Damage overlays (scratches, cracks, soot)
+  if(dmgLevel>=1){
+    ctx.strokeStyle='rgba(60,20,0,0.5)';ctx.lineWidth=1.5;ctx.lineCap='round';
+    // Scratch 1
+    ctx.beginPath();ctx.moveTo(-r*0.6,-r*0.3);ctx.lineTo(-r*0.1,r*0.2);ctx.stroke();
+    // Scratch 2
+    ctx.beginPath();ctx.moveTo(r*0.2,-r*0.5);ctx.lineTo(r*0.5,r*0.1);ctx.stroke();
+    // Soot marks
+    ctx.fillStyle='rgba(40,20,10,0.2)';
+    ctx.beginPath();ctx.arc(-r*0.3,r*0.3,r*0.2,0,6.28);ctx.fill();
+  }
+  if(dmgLevel>=2){
+    ctx.strokeStyle='rgba(80,10,0,0.6)';ctx.lineWidth=2;
+    // Big crack
+    ctx.beginPath();ctx.moveTo(-r*0.2,-r*0.8);ctx.lineTo(-r*0.05,-r*0.3);
+    ctx.lineTo(r*0.2,-r*0.45);ctx.lineTo(r*0.1,0);
+    ctx.lineTo(r*0.35,r*0.2);ctx.stroke();
+    // More soot
+    ctx.fillStyle='rgba(40,20,10,0.3)';
+    ctx.beginPath();ctx.arc(r*0.4,-r*0.2,r*0.25,0,6.28);ctx.fill();
+    ctx.beginPath();ctx.arc(-r*0.5,r*0.1,r*0.18,0,6.28);ctx.fill();
+    // Bandage
+    ctx.strokeStyle='rgba(255,255,220,0.6)';ctx.lineWidth=r*0.15;
+    ctx.beginPath();ctx.moveTo(-r*0.7,r*0.05);ctx.lineTo(-r*0.3,r*0.05);ctx.stroke();
+    ctx.strokeStyle='rgba(200,50,50,0.4)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(-r*0.6,r*0.0);ctx.lineTo(-r*0.6,r*0.1);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(-r*0.4,r*0.0);ctx.lineTo(-r*0.4,r*0.1);ctx.stroke();
+  }
+
   ctx.restore();
 }
 
 function drawPlayer(){
   const pr=PLAYER_R*ct().sizeMul*(itemEff.mini>0?0.6:1);
-  const ghostA=itemEff.ghost>0?0.4+Math.sin(frame*0.15)*0.15:1;
+  // Flashing during hurt invincibility
+  if(hurtT>0&&Math.floor(hurtT/4)%2===0)return; // blink effect
+  let ghostA=itemEff.ghost>0?0.4+Math.sin(frame*0.15)*0.15:1;
+  if(hurtT>0)ghostA*=0.7; // slightly transparent during hurt
+  const dmgLv=HP_MAX-hp; // 0=full, 1=hurt once, 2=critical
 
   // Invincible ring (rainbow pulsing)
   if(itemEff.invincible>0){
@@ -1088,9 +1154,30 @@ function drawPlayer(){
   ctx.beginPath();ctx.moveTo(player.x-5,player.y+ay-3*ad);ctx.lineTo(player.x,player.y+ay+3*ad);ctx.lineTo(player.x+5,player.y+ay-3*ad);ctx.stroke();
   ctx.lineCap='butt';
 
-  drawCharacter(player.x,player.y,selChar,pr,player.rot,ghostA,player.face);
+  drawCharacter(player.x,player.y,selChar,pr,player.rot,ghostA,player.face,dmgLv);
 }
 
+function drawHeart(cx,cy,sz,filled){
+  ctx.save();ctx.translate(cx,cy);
+  const s=sz*0.5;
+  ctx.beginPath();
+  ctx.moveTo(0,s*0.8);
+  ctx.bezierCurveTo(-s*0.1,s*0.4,-s,s*0.1,-s,-s*0.3);
+  ctx.bezierCurveTo(-s,-s*0.8,-s*0.2,-s*0.9,0,-s*0.4);
+  ctx.bezierCurveTo(s*0.2,-s*0.9,s,-s*0.8,s,-s*0.3);
+  ctx.bezierCurveTo(s,s*0.1,s*0.1,s*0.4,0,s*0.8);
+  ctx.closePath();
+  if(filled){
+    ctx.fillStyle='#ff3860';ctx.shadowColor='#ff386066';ctx.shadowBlur=6;ctx.fill();ctx.shadowBlur=0;
+    // Highlight
+    ctx.fillStyle='rgba(255,255,255,0.3)';
+    ctx.beginPath();ctx.arc(-s*0.35,-s*0.35,s*0.2,0,6.28);ctx.fill();
+  } else {
+    ctx.fillStyle='rgba(255,56,96,0.12)';ctx.fill();
+    ctx.strokeStyle='#ff386044';ctx.lineWidth=1.5;ctx.stroke();
+  }
+  ctx.restore();
+}
 function drawUI(){
   ctx.fillStyle='#fff';ctx.font='bold 34px monospace';ctx.textAlign='center';
   ctx.shadowColor='#fff3';ctx.shadowBlur=8;ctx.fillText(score,W/2,42);ctx.shadowBlur=0;
@@ -1098,6 +1185,12 @@ function drawUI(){
   ctx.fillStyle='#8899aa';ctx.font='11px monospace';ctx.textAlign='left';
   ctx.fillText('\u901F\u5EA6 '+speed.toFixed(1),10,22);
   ctx.fillText('\u25CF '+totalCoins,10,38);
+
+  // HP Hearts
+  for(let i=0;i<HP_MAX;i++){
+    const hx=10+i*26,hy=56;
+    drawHeart(hx+10,hy,18,i<hp);
+  }
 
   if(comboDspT>0&&comboDsp>1){
     const a=comboDspT/55,sc=1+(1-a)*0.25;
@@ -1218,7 +1311,9 @@ function drawPause(){
   ctx.shadowColor='#fff3';ctx.shadowBlur=12;
   ctx.fillText('\u4E00\u6642\u505C\u6B62',W/2,H*0.32);ctx.shadowBlur=0;
   ctx.fillStyle='#fff5';ctx.font='13px monospace';
-  ctx.fillText('\u30B9\u30B3\u30A2: '+score,W/2,H*0.38);
+  ctx.fillText('\u30B9\u30B3\u30A2: '+score,W/2,H*0.37);
+  // HP in pause
+  for(let i=0;i<HP_MAX;i++)drawHeart(W/2-((HP_MAX-1)*13)+i*26,H*0.41,16,i<hp);
   // Resume button
   ctx.fillStyle='#00e5ff33';rr(W/2-80,H*0.45,160,44,10);ctx.fill();
   ctx.strokeStyle='#00e5ff';ctx.lineWidth=2;rr(W/2-80,H*0.45,160,44,10);ctx.stroke();
@@ -1247,8 +1342,8 @@ function drawDead(){
   ctx.fillStyle='#0008';rr(W/2-125,cardY,250,cardH,14);ctx.fill();
   ctx.strokeStyle='#fff1';ctx.lineWidth=1;rr(W/2-125,cardY,250,cardH,14);ctx.stroke();
 
-  // Character
-  drawCharacter(W/2,cardY+35,selChar,18,0,1,'dead');
+  // Character (show fully damaged)
+  drawCharacter(W/2,cardY+35,selChar,18,0,1,'dead',HP_MAX);
 
   ctx.fillStyle='#fff7';ctx.font='13px monospace';ctx.textAlign='center';ctx.fillText('\u30B9\u30B3\u30A2',W/2,cardY+65);
   ctx.fillStyle='#fff';ctx.font='bold 44px monospace';
