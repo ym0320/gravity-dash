@@ -544,6 +544,11 @@ let coins=[],items=[],parts=[],stars=[],mtns=[],enemies=[],bullets=[];
 // Floating mid-air platforms (between floor and ceiling)
 let floatPlats=[]; // {x, y, w, th} - y=top surface, th=thickness
 let floatCD=0;
+// Stage gimmicks
+let spikes=[]; // {x, w, h, phase, timer, state} - ground spikes that emerge/retract
+let spikeCD=0;
+let movingHills=[]; // {x, w, baseH, ampH, phase, spd} - terrain that oscillates vertically
+let hillCD=0;
 
 // ===== BOSS PHASE =====
 // Boss appears periodically in endless mode
@@ -591,6 +596,7 @@ function reset(){
   for(let i=0;i<5;i++){generatePlatform(platforms,false);generatePlatform(ceilPlats,true);}
   player.y=floorSurfaceY(player.x)-PLAYER_R;
   coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];floatPlats=[];floatCD=0;
+  spikes=[];spikeCD=0;movingHills=[];hillCD=0;
   score=0;dist=0;speed=SPEED_INIT;frame=0;deadT=0;newHi=false;
   combo=0;comboT=0;comboDsp=0;comboDspT=0;
   shakeX=0;shakeY=0;shakeI=0;
@@ -616,6 +622,7 @@ function resetStage(stageIdx){
   ceilPlats=stg.ceilPlats.map(p=>({x:p.x,w:p.w,h:p.h}));
   player.y=floorSurfaceY(player.x)-PLAYER_R;
   coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];floatPlats=[];floatCD=0;
+  spikes=[];spikeCD=0;movingHills=[];hillCD=0;
   // Spawn stage enemies
   stg.enemies.forEach(e=>{
     const sz=13;
@@ -766,12 +773,28 @@ function trySpawnEnemy(){
     // Choose enemy type based on score - early game = walkers only
     let eType=0;
     const tr=Math.random();
-    if(score>=200&&tr<0.2) eType=3; // bomber (late game)
+    if(score>=200&&bossPhase.bossCount>=1&&tr<0.15) eType=3; // bomber (after boss)
+    else if(score>=160&&tr<0.12) eType=5; // phantom (mid-late)
+    else if(score>=140&&tr<0.15) eType=4; // vertical mover (mid-late)
     else if(score>=120&&tr<0.22) eType=2; // flyer (mid-late)
     else if(score>=80&&tr<0.35) eType=1; // cannon (mid)
     else eType=0; // walker/patrol (always available)
 
-    if(eType===2){
+    if(eType===4){
+      // Vertical mover: bounces between floor and ceiling
+      const surfY=H-plat.h;
+      const sz=14;
+      enemies.push({x:ex,y:surfY-sz,vy:-2.5-Math.random()*1.5,gDir:1,walkSpd:0,sz:sz,alive:true,fr:Math.random()*100,type:4,shootT:999,
+        moveDir:-1,moveSpd:2.5+Math.random()*1.5,pauseT:0});
+    } else if(eType===5){
+      // Phantom: floats in air, periodically becomes invisible
+      const surfY=H-plat.h;
+      const flyY=surfY-50-Math.random()*60;
+      const sz=13;
+      enemies.push({x:ex,y:flyY,vy:0,gDir:1,walkSpd:0,sz:sz,alive:true,fr:Math.random()*100,type:5,shootT:999,
+        baseY:flyY,flyPhase:Math.random()*6.28,flyAmp:15+Math.random()*15,
+        visTimer:0,visCycle:90+Math.floor(Math.random()*60),visible:true,fadeT:0});
+    } else if(eType===2){
       // Flying enemy: spawns in the air between floor and ceiling
       const surfY=H-plat.h;
       const flyY=surfY-60-Math.random()*80;
@@ -840,6 +863,44 @@ function trySpawnFloatPlat(){
   }
 }
 
+// ===== STAGE GIMMICKS =====
+function trySpawnSpike(){
+  if(spikeCD>0){spikeCD--;return;}
+  if(score<80||bossPhase.active)return;
+  const plat=findEdgeSpawnPlat();
+  if(!plat)return;
+  const chance=Math.min(0.15,0.03+(score-80)*0.001);
+  if(Math.random()<chance){
+    spikeCD=80+Math.floor(Math.random()*60);
+    const sx=Math.max(W+10,plat.x+Math.random()*plat.w*0.5);
+    const sw=30+Math.random()*30;
+    // state: 'hidden','warning','up','retracting'
+    spikes.push({x:sx,w:sw,h:H-plat.h,spikeH:22,phase:0,timer:0,state:'hidden',
+      cycle:120+Math.floor(Math.random()*80),upTime:60+Math.floor(Math.random()*30),
+      isFloor:true});
+  } else {
+    spikeCD=25+Math.floor(Math.random()*15);
+  }
+}
+
+function trySpawnMovingHill(){
+  if(hillCD>0){hillCD--;return;}
+  if(score<120||bossPhase.active)return;
+  const plat=findEdgeSpawnPlat();
+  if(!plat)return;
+  const chance=Math.min(0.1,0.02+(score-120)*0.001);
+  if(Math.random()<chance){
+    hillCD=120+Math.floor(Math.random()*80);
+    const hx=Math.max(W+10,plat.x);
+    const hw=60+Math.random()*50;
+    const baseH=plat.h;
+    const ampH=25+Math.random()*30;
+    movingHills.push({x:hx,w:hw,baseH:baseH,ampH:ampH,phase:Math.random()*6.28,spd:0.03+Math.random()*0.02});
+  } else {
+    hillCD=30+Math.floor(Math.random()*15);
+  }
+}
+
 // ===== BOSS PHASE =====
 function startBossPhase(){
   bossPhase.active=true;
@@ -852,7 +913,8 @@ function startBossPhase(){
   bossPhase.chargeQueue=[]; // queue of charge enemies to spawn
   bossPhase.chargeIdx=0;
   bossPhase.bruiser=null; // the multi-stomp boss
-  enemies=[];bullets=[];floatPlats=[];
+  bossPhase.wizard=null; // the teleporting wizard boss
+  enemies=[];bullets=[];floatPlats=[];spikes=[];movingHills=[];
   bossPhase.bossCount++;
   bossPhase.lastBossScore=score;
   bossPhase.nextAt=score+800+bossPhase.bossCount*100;
@@ -865,32 +927,37 @@ function spawnBossEnemies(){
   bossPhase.chargeQueue=[];
   bossPhase.chargeIdx=0;
   bossPhase.bruiser=null;
-  // Randomly choose boss type: charge (dodge/stomp) or bruiser (stomp)
-  const isBruiser=Math.random()<0.5;
-  if(!isBruiser){
+  bossPhase.wizard=null;
+  // Randomly choose boss type: charge, bruiser, or wizard (3rd type from bc>=2)
+  const roll=Math.random();
+  const bossType=bc>=2&&roll<0.33?'wizard':roll<(bc>=2?0.66:0.5)?'bruiser':'charge';
+  if(bossType==='charge'){
     // Charge type: 5x player size, stompable, speed scales with bossCount
     const chargeCount=5+Math.min(bc-1,3);
-    const baseSpd=3+Math.min(bc-1,5)*0.35; // gradual speed increase
-    const spdVariance=Math.min(bc-1,4)*0.6; // more variance at higher counts
+    const baseSpd=3+Math.min(bc-1,5)*0.35;
+    const spdVariance=Math.min(bc-1,4)*0.6;
     for(let i=0;i<chargeCount;i++){
       const fromCeil=Math.random()<0.5;
       const gDir=fromCeil?-1:1;
       const sy=gDir===1?floorY:ceilY;
       const sz=PLAYER_R*5;
       const ey=gDir===1?sy-sz:sy+sz;
+      // From 2nd encounter: some charge diagonally (cross from floor to ceiling or vice versa)
+      const diagVy=bc>=2&&Math.random()<0.4?(gDir===1?-2-Math.random()*1.5:2+Math.random()*1.5):0;
       bossPhase.chargeQueue.push({
         x:W+80+i*10,y:ey,vy:0,gDir:gDir,sz:sz,alive:true,fr:Math.random()*100,
         type:10,shootT:999,boss:true,bossType:'charge',
         chargeVx:-(baseSpd+Math.random()*(1.5+spdVariance)),
+        diagVy:diagVy,
         chargeState:'wait',
         rushDelay:30+Math.floor(Math.random()*90),
         timer:0
       });
     }
     bossPhase.total=chargeCount;
-  } else {
-    // Bruiser type: always 3 stomps to defeat, speed scales with bossCount
-    const bsz=30+Math.min(bc-1,3)*3;
+  } else if(bossType==='bruiser'){
+    // Bruiser type: 2x previous size, always 3 stomps, from 2nd encounter moves between floor/ceiling
+    const bsz=(30+Math.min(bc-1,3)*3)*2;
     const bruiser={
       x:W+80,y:floorY-bsz,vy:0,gDir:1,sz:bsz,alive:true,fr:0,
       type:11,shootT:999,boss:true,bossType:'bruiser',
@@ -898,9 +965,24 @@ function spawnBossEnemies(){
       chargeVx:-(3.5+Math.min(bc-1,6)*0.4), retreatVx:2.5+Math.min(bc-1,4)*0.2,
       state:'enter',
       timer:0, stunT:0, hurtFlash:0, invT:0, feinted:false,
+      flipEnabled:bc>=2, // from 2nd encounter: can move between floor and ceiling
       patrolDir:1,patrolOriginX:W*0.6,patrolRange:0
     };
     bossPhase.bruiser=bruiser;
+    bossPhase.total=1;
+  } else {
+    // Wizard type: teleports, shoots patterns, vulnerable during cast
+    const wsz=24+Math.min(bc-1,3)*2;
+    const wizard={
+      x:W+60,y:H/2,vy:0,gDir:1,sz:wsz,alive:true,fr:0,
+      type:12,shootT:999,boss:true,bossType:'wizard',
+      hp:3,maxHp:3,
+      state:'enter',timer:0,hurtFlash:0,invT:0,
+      castT:0,castType:0, // 0=ring, 1=wave
+      teleportT:0,teleportTarget:{x:0,y:0},
+      alpha:1
+    };
+    bossPhase.wizard=wizard;
     bossPhase.total=1;
   }
 }
@@ -943,6 +1025,13 @@ function updateBossPhase(){
     if(!en.alive||en.bossType!=='charge')return;
     if(en.chargeState==='rush'){
       en.x+=en.chargeVx;
+      // Diagonal movement (from 2nd encounter)
+      if(en.diagVy){
+        en.y+=en.diagVy;
+        // Clamp within arena
+        if(en.y-en.sz<ceilY)en.y=ceilY+en.sz;
+        if(en.y+en.sz>floorY)en.y=floorY-en.sz;
+      }
       en.fr+=0.2;
       // Trail particles
       if(frame%2===0){
@@ -962,10 +1051,10 @@ function updateBossPhase(){
           en.alive=false;
           emitParts(en.x,en.y,15,'#ff00ff',4,3);sfx('stomp');shakeI=4;
         } else {
-          // Stomp check: player on correct side and moving toward enemy
+          // Stomp check: stricter - player must be clearly above/below enemy top
           const stomped=en.gDir===1
-            ?(player.y+pr<en.y+en.sz*0.15&&player.vy>=0)
-            :(player.y-pr>en.y-en.sz*0.15&&player.vy<=0);
+            ?(player.y+pr<en.y-en.sz*0.15&&player.vy>=0)
+            :(player.y-pr>en.y+en.sz*0.15&&player.vy<=0);
           if(stomped){
             en.alive=false;
             player.vy=en.gDir===1?-JUMP_POWER*0.8:JUMP_POWER*0.8;
@@ -1018,7 +1107,13 @@ function updateBossPhase(){
       if(b.invT<=0){b.state='retreat';b.timer=0;}
     } else if(b.state==='retreat'){
       b.x+=b.retreatVx;
-      if(b.x>=W*0.7){b.state='charge';b.timer=0;b.feinted=false;}
+      if(b.x>=W*0.7){
+        // From 2nd encounter: sometimes flip to other surface when re-engaging
+        if(b.flipEnabled&&Math.random()<0.4){
+          b.gDir*=-1;
+        }
+        b.state='charge';b.timer=0;b.feinted=false;
+      }
     }
     // Collision check (skip during invincible state)
     if(b.invT<=0){
@@ -1031,16 +1126,18 @@ function updateBossPhase(){
           emitParts(b.x,b.y,15,'#ff00ff',4,3);
           if(b.hp<=0){bossBruiserDefeat(b);}
         } else {
-          // Stomp check: player above bruiser and falling
-          const stomped=(player.y+pr<b.y+b.sz*0.1&&player.vy>=0&&player.gDir===1);
+          // Stomp check: stricter - player must be well above bruiser top (gDir-aware)
+          const stomped=b.gDir===1
+            ?(player.y+pr<b.y-b.sz*0.15&&player.vy>=0&&player.gDir===1)
+            :(player.y-pr>b.y+b.sz*0.15&&player.vy<=0&&player.gDir===-1);
           if(stomped){
             b.hp--;b.hurtFlash=20;
             b.state='invincible';b.invT=60;b.timer=0;
-            player.vy=-JUMP_POWER*0.8;player.grounded=false;
+            player.vy=b.gDir===1?-JUMP_POWER*0.8:JUMP_POWER*0.8;player.grounded=false;
             flipCount=0;player.canFlip=true;djumpUsed=false;
             shakeI=12;sfx('gstomp');vibrate([20,10,30]);
-            addPop(b.x,b.y-b.sz-10,'HP '+b.hp+'/'+b.maxHp,'#ff3860');
-            emitParts(b.x,b.y-b.sz,12,'#ff3860',5,3);
+            addPop(b.x,b.y-b.sz*b.gDir-10,'HP '+b.hp+'/'+b.maxHp,'#ff3860');
+            emitParts(b.x,b.y-b.sz*b.gDir,12,'#ff3860',5,3);
             if(b.hp<=0){bossBruiserDefeat(b);}
           } else {
             hurt();
@@ -1048,17 +1145,112 @@ function updateBossPhase(){
         }
       }
     }
-    // Keep on floor
-    const sy=floorSurfaceY(b.x);
-    if(sy<H+100)b.y=sy-b.sz;
+    // Keep on correct surface (floor or ceiling based on gDir)
+    if(b.gDir===1){
+      const sy=floorSurfaceY(b.x);
+      if(sy<H+100)b.y=sy-b.sz;
+    } else {
+      const sy=ceilSurfaceY(b.x);
+      if(sy>-100)b.y=sy+b.sz;
+    }
   }
+  // Phase C: wizard boss logic
+  const wizardActive=bossPhase.wizard&&bossPhase.wizard.alive;
+  if(chargesCleared&&wizardActive){
+    const w=bossPhase.wizard;
+    if(!enemies.includes(w)){
+      enemies.push(w);bossPhase.enemies.push(w);
+    }
+    w.timer++;w.fr+=0.1;
+    if(w.hurtFlash>0)w.hurtFlash--;
+    if(w.invT>0)w.invT--;
+    if(w.state==='enter'){
+      w.x-=2;w.alpha=Math.min(1,w.alpha+0.02);
+      if(w.x<=W*0.7){w.state='idle';w.timer=0;}
+    } else if(w.state==='idle'){
+      // Hover in place, preparing to cast
+      w.y+=Math.sin(w.fr*0.5)*0.5;
+      if(w.timer>=50){w.state='cast';w.timer=0;w.castType=Math.floor(Math.random()*2);w.castT=0;}
+    } else if(w.state==='cast'){
+      // Casting animation - VULNERABLE to stomp during cast
+      w.castT++;
+      w.y+=Math.sin(w.fr)*0.3;
+      if(w.castT===30){
+        // Fire projectiles
+        if(w.castType===0){
+          // Ring of 8 bullets
+          for(let i=0;i<8;i++){
+            const a=i*Math.PI/4;
+            bullets.push({x:w.x,y:w.y,vx:Math.cos(a)*3,vy:Math.sin(a)*3,sz:5,life:120,wizBullet:true});
+          }
+        } else {
+          // 3 aimed shots toward player
+          for(let i=-1;i<=1;i++){
+            const dx=player.x-w.x,dy=player.y-w.y;
+            const d=Math.sqrt(dx*dx+dy*dy)||1;
+            const spd=3.5;
+            const spread=i*0.3;
+            bullets.push({x:w.x,y:w.y,vx:dx/d*spd+Math.cos(Math.atan2(dy,dx)+Math.PI/2)*spread*spd,
+              vy:dy/d*spd+Math.sin(Math.atan2(dy,dx)+Math.PI/2)*spread*spd,sz:6,life:100,wizBullet:true});
+          }
+        }
+        sfx('shoot');
+      }
+      if(w.castT>=50){w.state='teleport';w.timer=0;w.teleportT=0;
+        // Pick random target position in arena
+        w.teleportTarget={x:W*0.3+Math.random()*W*0.5,y:GROUND_H+40+Math.random()*(H-GROUND_H*2-80)};
+      }
+    } else if(w.state==='teleport'){
+      w.teleportT++;
+      w.alpha=Math.max(0,1-w.teleportT/15);
+      if(w.teleportT>=15){
+        w.x=w.teleportTarget.x;w.y=w.teleportTarget.y;
+        w.state='appear';w.timer=0;w.teleportT=0;
+      }
+    } else if(w.state==='appear'){
+      w.teleportT++;
+      w.alpha=Math.min(1,w.teleportT/15);
+      if(w.teleportT>=15){w.state='idle';w.timer=0;}
+    }
+    // Collision (skip during invincible or teleporting)
+    if(w.invT<=0&&w.alpha>0.5){
+      const dx=player.x-w.x,dy=player.y-w.y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<pr+w.sz){
+        if(itemEff.invincible>0){
+          w.hp--;w.hurtFlash=20;w.invT=60;w.state='teleport';w.timer=0;w.teleportT=0;
+          w.teleportTarget={x:W*0.3+Math.random()*W*0.5,y:GROUND_H+40+Math.random()*(H-GROUND_H*2-80)};
+          shakeI=8;sfx('stomp');emitParts(w.x,w.y,15,'#ff00ff',4,3);
+          if(w.hp<=0){bossWizardDefeat(w);}
+        } else {
+          // Stomp: only during cast state (vulnerable), player above
+          const stomped=w.state==='cast'&&player.y+pr<w.y-w.sz*0.2&&player.vy>=0;
+          if(stomped){
+            w.hp--;w.hurtFlash=20;w.invT=60;
+            w.state='teleport';w.timer=0;w.teleportT=0;
+            w.teleportTarget={x:W*0.3+Math.random()*W*0.5,y:GROUND_H+40+Math.random()*(H-GROUND_H*2-80)};
+            player.vy=-JUMP_POWER*0.8;player.grounded=false;
+            flipCount=0;player.canFlip=true;djumpUsed=false;
+            shakeI=12;sfx('gstomp');vibrate([20,10,30]);
+            addPop(w.x,w.y-w.sz-10,'HP '+w.hp+'/'+w.maxHp,'#aa44ff');
+            emitParts(w.x,w.y-w.sz,12,'#aa44ff',5,3);
+            if(w.hp<=0){bossWizardDefeat(w);}
+          } else {
+            hurt();
+          }
+        }
+      }
+    }
+  }
+
   // Check victory
   bossPhase.defeated=0;
   for(let i=0;i<bossPhase.enemies.length;i++){
     if(!bossPhase.enemies[i].alive)bossPhase.defeated++;
   }
   const bruiserDone=!bossPhase.bruiser||!bossPhase.bruiser.alive;
-  const allDone=chargesCleared&&bruiserDone;
+  const wizardDone=!bossPhase.wizard||!bossPhase.wizard.alive;
+  const allDone=chargesCleared&&bruiserDone&&wizardDone;
   if(allDone&&bossPhase.enemies.length>0&&!bossPhase.reward){
     bossPhase.reward=true;bossPhase.rewardT=0;
     sfxFanfare();shakeI=10;vibrate([30,20,30,20,60]);
@@ -1098,6 +1290,94 @@ function bossBruiserDefeat(b){
   }
   addPop(b.x,b.y-b.sz-20,'\u6483\u7834\uFF01','#ffd700');
   sfx('death');
+}
+function bossWizardDefeat(w){
+  w.alive=false;
+  shakeI=18;vibrate([40,20,60,30,100]);
+  const cols=['#aa44ff','#6622cc','#ff44ff','#4488ff','#ffd700'];
+  for(let i=0;i<30;i++){
+    const a=(6.28/30)*i,s=2+Math.random()*6;
+    parts.push({x:w.x+(Math.random()-0.5)*w.sz,y:w.y+(Math.random()-0.5)*w.sz,
+      vx:Math.cos(a)*s,vy:Math.sin(a)*s-2,life:50+Math.random()*40,ml:90,
+      sz:Math.random()*7+2,col:cols[i%cols.length]});
+  }
+  for(let i=0;i<12;i++){
+    parts.push({x:w.x,y:w.y,vx:(Math.random()-0.5)*3,vy:-2-Math.random()*4,
+      life:35+Math.random()*25,ml:60,sz:Math.random()*5+2,col:'#ffd700'});
+  }
+  addPop(w.x,w.y-w.sz-20,'\u6483\u7834\uFF01','#ffd700');
+  sfx('death');
+}
+// === Boss enemy draw: wizard type ===
+function drawBossWizard(en){
+  const s=en.sz,t=en.fr;
+  const dmg=en.maxHp-en.hp;
+  ctx.save();ctx.translate(en.x,en.y);
+  ctx.globalAlpha=en.alpha||1;
+  if(en.invT>0&&en.invT%6<3)ctx.globalAlpha*=0.25;
+  if(en.hurtFlash>0&&en.hurtFlash%4<2)ctx.globalAlpha*=0.5;
+  // Floating shadow
+  ctx.fillStyle='rgba(0,0,0,0.2)';
+  ctx.beginPath();ctx.ellipse(0,s*1.2,s*0.6,s*0.12,0,0,6.28);ctx.fill();
+  // Robe body (dark purple with flowing bottom)
+  const robeGr=ctx.createLinearGradient(0,-s,0,s);
+  robeGr.addColorStop(0,dmg>=2?'#2a0a3a':'#4a1a6a');
+  robeGr.addColorStop(1,dmg>=2?'#1a0520':'#2a0a40');
+  ctx.fillStyle=robeGr;
+  ctx.beginPath();
+  ctx.moveTo(-s*0.6,-s*0.3);
+  ctx.quadraticCurveTo(-s*0.8,-s*0.8,0,-s);
+  ctx.quadraticCurveTo(s*0.8,-s*0.8,s*0.6,-s*0.3);
+  ctx.lineTo(s*0.7+Math.sin(t*0.5)*s*0.1,s*0.8);
+  ctx.quadraticCurveTo(s*0.3,s*0.6+Math.sin(t*0.7)*s*0.1,0,s*0.9+Math.sin(t*0.6)*s*0.08);
+  ctx.quadraticCurveTo(-s*0.3,s*0.6-Math.sin(t*0.7)*s*0.1,-s*0.7-Math.sin(t*0.5)*s*0.1,s*0.8);
+  ctx.closePath();ctx.fill();
+  // Hat/hood point
+  ctx.fillStyle=dmg>=2?'#3a1050':'#5a2a8a';
+  ctx.beginPath();
+  ctx.moveTo(-s*0.3,-s*0.85);ctx.lineTo(0,-s*1.5-Math.sin(t*0.4)*s*0.1);ctx.lineTo(s*0.3,-s*0.85);
+  ctx.closePath();ctx.fill();
+  // Star on hat
+  ctx.fillStyle='#ffd700';ctx.shadowColor='#ffd700';ctx.shadowBlur=6;
+  ctx.font=(s*0.3)+'px monospace';ctx.textAlign='center';
+  ctx.fillText('\u2605',0,-s*1.1);ctx.shadowBlur=0;
+  // Glowing eyes
+  ctx.fillStyle='#ff44ff';ctx.shadowColor='#ff44ff';ctx.shadowBlur=8;
+  ctx.beginPath();ctx.arc(-s*0.2,-s*0.45,s*0.12,0,6.28);ctx.fill();
+  ctx.beginPath();ctx.arc(s*0.2,-s*0.45,s*0.12,0,6.28);ctx.fill();
+  ctx.shadowBlur=0;
+  // Staff/wand (glows during cast)
+  ctx.strokeStyle=en.state==='cast'?'#ffd700':'#8844aa';
+  ctx.lineWidth=s*0.08;
+  ctx.beginPath();ctx.moveTo(s*0.5,-s*0.2);ctx.lineTo(s*0.8,s*0.7);ctx.stroke();
+  // Staff orb
+  const orbGlow=en.state==='cast'?0.8+Math.sin(t*2)*0.2:0.3;
+  ctx.fillStyle=`rgba(170,68,255,${orbGlow})`;ctx.shadowColor='#aa44ff';ctx.shadowBlur=en.state==='cast'?15:5;
+  ctx.beginPath();ctx.arc(s*0.5,-s*0.25,s*0.12,0,6.28);ctx.fill();ctx.shadowBlur=0;
+  // Casting circle (only during cast state)
+  if(en.state==='cast'){
+    ctx.strokeStyle='rgba(170,68,255,'+0.4*Math.abs(Math.sin(t))+')';
+    ctx.lineWidth=1.5;
+    const cr=s*1.5+Math.sin(t*2)*s*0.2;
+    ctx.beginPath();ctx.arc(0,0,cr,0,6.28);ctx.stroke();
+    // Rotating runes
+    for(let i=0;i<4;i++){
+      const ra=t*0.5+i*Math.PI/2;
+      ctx.fillStyle='rgba(255,200,255,0.5)';ctx.font=(s*0.2)+'px monospace';
+      ctx.fillText('\u2726',Math.cos(ra)*cr,Math.sin(ra)*cr);
+    }
+  }
+  // Damage cracks
+  if(dmg>=1){
+    ctx.strokeStyle='rgba(255,100,255,0.4)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(-s*0.2,0);ctx.lineTo(s*0.1,s*0.3);ctx.stroke();
+  }
+  if(dmg>=2){
+    ctx.strokeStyle='rgba(255,100,100,0.5)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(s*0.1,-s*0.3);ctx.lineTo(-s*0.1,s*0.1);ctx.lineTo(s*0.2,s*0.4);ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+  ctx.restore();
 }
 // === Boss enemy draw: charge type ===
 function drawBossCharge(en){
@@ -1157,6 +1437,7 @@ function drawBossBruiser(en){
   const s=en.sz,t=en.fr;
   const dmg=en.maxHp-en.hp; // damage level: 0=fresh, 1=cracked, 2+=broken
   ctx.save();ctx.translate(en.x,en.y);
+  if(en.gDir===-1)ctx.scale(1,-1);
   // Hurt flash / invincible blink
   if(en.invT>0&&en.invT%6<3){ctx.globalAlpha=0.25;}
   else if(en.hurtFlash>0&&en.hurtFlash%4<2){ctx.globalAlpha=0.5;}
@@ -1662,10 +1943,14 @@ function update(dt){
   platforms.forEach(p=>p.x-=speed);
   ceilPlats.forEach(p=>p.x-=speed);
   floatPlats.forEach(p=>p.x-=speed);
+  spikes.forEach(s=>s.x-=speed);
+  movingHills.forEach(h=>{h.x-=speed;h.phase+=h.spd;});
   // Remove off-screen platforms
   platforms=platforms.filter(p=>p.x+p.w>-50);
   ceilPlats=ceilPlats.filter(p=>p.x+p.w>-50);
   floatPlats=floatPlats.filter(p=>p.x+p.w>-50);
+  spikes=spikes.filter(s=>s.x+s.w>-50);
+  movingHills=movingHills.filter(h=>h.x+h.w>-50);
   // Generate new platforms ahead (endless mode only)
   if(gameMode==='endless'){
     if(platforms.length===0)platforms.push({x:player.x-30,w:200,h:GROUND_H});
@@ -1706,6 +1991,8 @@ function update(dt){
     trySpawnItem();
     trySpawnEnemy();
     trySpawnFloatPlat();
+    trySpawnSpike();
+    trySpawnMovingHill();
     // Boss phase trigger
     if(!bossPhase.active&&score>=bossPhase.nextAt){
       startBossPhase();
@@ -1793,6 +2080,44 @@ function update(dt){
       }
     }
   }
+
+  // Spike gimmick update & collision
+  spikes.forEach(sp=>{
+    sp.timer++;
+    if(sp.state==='hidden'&&sp.timer>=sp.cycle){
+      sp.state='warning';sp.timer=0;
+    } else if(sp.state==='warning'&&sp.timer>=30){
+      sp.state='up';sp.timer=0;
+    } else if(sp.state==='up'&&sp.timer>=sp.upTime){
+      sp.state='retracting';sp.timer=0;
+    } else if(sp.state==='retracting'&&sp.timer>=15){
+      sp.state='hidden';sp.timer=0;
+    }
+    // Collision when spikes are up
+    if(sp.state==='up'&&itemEff.invincible<=0&&hurtT<=0){
+      const spY=sp.h; // floor surface Y = H - sp.h... actually sp.h is stored as H-plat.h
+      const spTopY=sp.h-sp.spikeH; // top of spike
+      if(player.x+pr>sp.x&&player.x-pr<sp.x+sp.w){
+        if(player.y+pr>spTopY&&player.y-pr<sp.h){
+          hurt();
+        }
+      }
+    }
+  });
+
+  // Moving hill collision (acts as temporary elevated terrain)
+  movingHills.forEach(mh=>{
+    const curH=mh.baseH+Math.sin(mh.phase)*mh.ampH;
+    const surfY=H-curH;
+    if(player.gDir===1&&player.x+pr>mh.x&&player.x-pr<mh.x+mh.w){
+      if(player.y+pr>=surfY&&player.y+pr<surfY+20&&player.vy>=0){
+        player.y=surfY-pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;
+      } else if(player.y+pr>surfY+4&&player.y-pr<surfY&&player.grounded){
+        // Push player up with the hill
+        player.y=surfY-pr;
+      }
+    }
+  });
 
   // Crush detection (terrain pinch)
   const fSurf=floorSurfaceY(player.x);
@@ -1911,6 +2236,33 @@ function update(dt){
       const sy=floorSurfaceY(en.x);
       if(sy<H+100){en.y=sy-en.sz;en.vy=0;}
       else{en.vy=(en.vy||0)+GRAVITY;en.y+=en.vy;}
+    } else if(en.type===4){
+      // Vertical mover: bounces between floor and ceiling
+      if(en.pauseT>0){
+        en.pauseT--;
+      } else {
+        en.y+=en.moveDir*en.moveSpd;
+        const floorY=floorSurfaceY(en.x);
+        const ceilY2=ceilSurfaceY(en.x);
+        if(en.y+en.sz>=floorY){
+          en.y=floorY-en.sz;en.moveDir=-1;en.pauseT=20+Math.floor(Math.random()*15);en.gDir=1;
+        }
+        if(en.y-en.sz<=ceilY2){
+          en.y=ceilY2+en.sz;en.moveDir=1;en.pauseT=20+Math.floor(Math.random()*15);en.gDir=-1;
+        }
+      }
+    } else if(en.type===5){
+      // Phantom: float with sine, periodically turn invisible
+      en.flyPhase+=0.03;
+      en.y=en.baseY+Math.sin(en.flyPhase)*en.flyAmp;
+      en.baseY-=speed*0.01;
+      en.visTimer++;
+      if(en.visible&&en.visTimer>=en.visCycle){
+        en.visible=false;en.visTimer=0;en.fadeT=20; // fade out over 20 frames
+      } else if(!en.visible&&en.visTimer>=en.visCycle*0.6){
+        en.visible=true;en.visTimer=0;en.fadeT=20; // fade in over 20 frames
+      }
+      if(en.fadeT>0)en.fadeT--;
     } else {
       // Default movement (type 1 cannon and legacy)
       en.x-=en.walkSpd;
@@ -1927,6 +2279,8 @@ function update(dt){
     }
     // Collision with player (boss enemies handle their own collision)
     if(en.bossType)return;
+    // Phantom: no collision when invisible
+    if(en.type===5&&!en.visible)return;
     const dx=player.x-en.x,dy=player.y-en.y;
     const d=Math.sqrt(dx*dx+dy*dy);
     if(d<pr+en.sz){
@@ -2130,6 +2484,78 @@ function drawFloatPlats(){
   });
 }
 
+function drawSpikes(){
+  spikes.forEach(sp=>{
+    if(sp.x+sp.w<-10||sp.x>W+10)return;
+    const baseY=sp.h; // floor surface Y position (stored as H-plat.h originally)
+    let spikeShow=0; // 0=hidden, 0-1=partial
+    if(sp.state==='warning'){
+      spikeShow=Math.sin(sp.timer/30*Math.PI*4)*0.15; // pulsing warning
+    } else if(sp.state==='up'){
+      spikeShow=1;
+    } else if(sp.state==='retracting'){
+      spikeShow=1-sp.timer/15;
+    }
+    if(spikeShow<=0)return;
+    const sH=sp.spikeH*spikeShow;
+    const spikes_n=Math.floor(sp.w/10);
+    ctx.save();
+    // Warning glow on ground
+    if(sp.state==='warning'){
+      ctx.fillStyle='rgba(255,60,60,'+0.2*Math.abs(Math.sin(sp.timer*0.3))+')';
+      ctx.fillRect(sp.x,baseY-3,sp.w,3);
+    }
+    // Draw spike triangles
+    for(let i=0;i<spikes_n;i++){
+      const sx=sp.x+i*(sp.w/spikes_n);
+      const sw=sp.w/spikes_n;
+      ctx.fillStyle='#cc3344';
+      ctx.beginPath();
+      ctx.moveTo(sx,baseY);
+      ctx.lineTo(sx+sw/2,baseY-sH);
+      ctx.lineTo(sx+sw,baseY);
+      ctx.closePath();ctx.fill();
+      // Metallic highlight
+      ctx.fillStyle='rgba(255,150,150,0.3)';
+      ctx.beginPath();
+      ctx.moveTo(sx+sw*0.3,baseY);
+      ctx.lineTo(sx+sw/2,baseY-sH);
+      ctx.lineTo(sx+sw*0.5,baseY);
+      ctx.closePath();ctx.fill();
+    }
+    // Base
+    ctx.fillStyle='#881122';
+    ctx.fillRect(sp.x,baseY-2,sp.w,4);
+    ctx.restore();
+  });
+}
+
+function drawMovingHills(){
+  movingHills.forEach(mh=>{
+    if(mh.x+mh.w<-10||mh.x>W+10)return;
+    const curH=mh.baseH+Math.sin(mh.phase)*mh.ampH;
+    const surfY=H-curH;
+    // Draw as elevated terrain block
+    const gr=ctx.createLinearGradient(0,surfY,0,H);
+    gr.addColorStop(0,tc('gnd'));gr.addColorStop(1,tc('gnd2'));
+    ctx.fillStyle=gr;
+    ctx.fillRect(mh.x,surfY,mh.w,H-surfY);
+    // Neon top edge
+    ctx.strokeStyle=tc('line');ctx.lineWidth=2;
+    ctx.shadowColor=tc('line');ctx.shadowBlur=8;
+    ctx.beginPath();ctx.moveTo(mh.x,surfY);ctx.lineTo(mh.x+mh.w,surfY);ctx.stroke();
+    ctx.shadowBlur=0;
+    // Arrow indicator (up/down)
+    const dir=Math.cos(mh.phase);
+    ctx.fillStyle='rgba(255,255,255,0.15)';
+    const ax=mh.x+mh.w/2,ay=surfY+15;
+    ctx.beginPath();
+    if(dir<0){ctx.moveTo(ax-6,ay+6);ctx.lineTo(ax,ay-6);ctx.lineTo(ax+6,ay+6);}
+    else{ctx.moveTo(ax-6,ay-6);ctx.lineTo(ax,ay+6);ctx.lineTo(ax+6,ay-6);}
+    ctx.closePath();ctx.fill();
+  });
+}
+
 function draw(){
   ctx.save();ctx.translate(shakeX,shakeY);
   const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,tc('bg1'));bg.addColorStop(1,tc('bg2'));
@@ -2144,6 +2570,8 @@ function draw(){
   drawPlatforms(platforms,true);
   drawPlatforms(ceilPlats,false);
   drawFloatPlats();
+  drawSpikes();
+  drawMovingHills();
 
   if(state===ST.TITLE){drawTitle();drawCharModal();ctx.restore();return;}
 
@@ -2278,9 +2706,12 @@ function drawItem(it){
 function drawEnemy(en){
   if(en.bossType==='charge'){drawBossCharge(en);return;}
   if(en.bossType==='bruiser'){drawBossBruiser(en);return;}
+  if(en.bossType==='wizard'){drawBossWizard(en);return;}
   if(en.type===1){drawShooter(en);return;}
   if(en.type===2){drawFlyer(en);return;}
   if(en.type===3){drawBomber(en);return;}
+  if(en.type===4){drawVertMover(en);return;}
+  if(en.type===5){drawPhantom(en);return;}
   const s=en.sz,flip=en.gDir;
   ctx.save();ctx.translate(en.x,en.y);
   if(flip===-1)ctx.scale(1,-1);
@@ -2410,6 +2841,66 @@ function drawBomber(en){
   ctx.fillRect(s*0.2-step,s*0.45,s*0.25,s*0.15);
   ctx.restore();
 }
+function drawVertMover(en){
+  const s=en.sz;
+  ctx.save();ctx.translate(en.x,en.y);
+  // Body (blue-purple bouncing slime)
+  const squash=en.pauseT>0?1.2:0.9+Math.abs(Math.sin(en.fr*0.15))*0.2;
+  ctx.scale(1/squash,squash);
+  const gr=ctx.createRadialGradient(0,0,0,0,0,s);
+  gr.addColorStop(0,'#4488ff');gr.addColorStop(1,'#2244aa');
+  ctx.fillStyle=gr;ctx.beginPath();ctx.arc(0,0,s*0.9,0,6.28);ctx.fill();
+  // Arrow indicator showing movement direction
+  ctx.fillStyle='#fff5';
+  const arrowY=en.moveDir<0?-s*0.5:s*0.5;
+  ctx.beginPath();ctx.moveTo(-s*0.3,arrowY);ctx.lineTo(0,arrowY+en.moveDir*(-s*0.4));ctx.lineTo(s*0.3,arrowY);ctx.closePath();ctx.fill();
+  // Eyes
+  ctx.fillStyle='#fff';
+  ctx.beginPath();ctx.arc(-s*0.2,-s*0.15,s*0.2,0,6.28);ctx.fill();
+  ctx.beginPath();ctx.arc(s*0.2,-s*0.15,s*0.2,0,6.28);ctx.fill();
+  ctx.fillStyle='#111';
+  const eyeOff=en.moveDir<0?-s*0.06:s*0.06;
+  ctx.beginPath();ctx.arc(-s*0.15,-s*0.15+eyeOff,s*0.1,0,6.28);ctx.fill();
+  ctx.beginPath();ctx.arc(s*0.25,-s*0.15+eyeOff,s*0.1,0,6.28);ctx.fill();
+  ctx.restore();
+}
+function drawPhantom(en){
+  const s=en.sz;
+  // Calculate alpha based on visibility state
+  let alpha=1;
+  if(!en.visible){
+    alpha=en.fadeT>0?en.fadeT/20*0.8:0.08;
+  } else if(en.fadeT>0){
+    alpha=1-(en.fadeT/20*0.8);
+    if(alpha<0.2)alpha=0.2;
+  }
+  ctx.save();ctx.translate(en.x,en.y);
+  ctx.globalAlpha=alpha;
+  // Ghost-like wispy body
+  const wobble=Math.sin(en.fr*0.1)*s*0.1;
+  ctx.fillStyle='#88ddff';ctx.shadowColor='#88ddff';ctx.shadowBlur=12;
+  ctx.beginPath();
+  ctx.moveTo(-s*0.7,-s*0.3);
+  ctx.quadraticCurveTo(-s*0.8,-s*0.8,0,-s*0.9);
+  ctx.quadraticCurveTo(s*0.8,-s*0.8,s*0.7,-s*0.3);
+  ctx.quadraticCurveTo(s*0.8,s*0.3,s*0.5+wobble,s*0.8);
+  ctx.quadraticCurveTo(s*0.2,s*0.5,0,s*0.7+wobble*0.5);
+  ctx.quadraticCurveTo(-s*0.2,s*0.5,-s*0.5-wobble,s*0.8);
+  ctx.quadraticCurveTo(-s*0.8,s*0.3,-s*0.7,-s*0.3);
+  ctx.closePath();ctx.fill();ctx.shadowBlur=0;
+  // Inner glow
+  ctx.fillStyle='rgba(200,240,255,0.3)';
+  ctx.beginPath();ctx.arc(0,-s*0.2,s*0.4,0,6.28);ctx.fill();
+  // Eyes (glowing)
+  ctx.fillStyle=en.visible?'#fff':'#fff4';
+  ctx.beginPath();ctx.arc(-s*0.2,-s*0.3,s*0.18,0,6.28);ctx.fill();
+  ctx.beginPath();ctx.arc(s*0.2,-s*0.3,s*0.18,0,6.28);ctx.fill();
+  ctx.fillStyle=en.visible?'#4400aa':'#4400aa44';
+  ctx.beginPath();ctx.arc(-s*0.15,-s*0.32,s*0.1,0,6.28);ctx.fill();
+  ctx.beginPath();ctx.arc(s*0.25,-s*0.32,s*0.1,0,6.28);ctx.fill();
+  ctx.globalAlpha=1;
+  ctx.restore();
+}
 function drawBullet(b){
   ctx.save();ctx.translate(b.x,b.y);
   if(b.bomb){
@@ -2422,6 +2913,12 @@ function drawBullet(b){
     // Spark
     ctx.fillStyle='#ff6600';ctx.shadowColor='#ff6600';ctx.shadowBlur=6;
     ctx.beginPath();ctx.arc(b.sz*0.3,-b.sz*1.8,2+Math.random()*2,0,6.28);ctx.fill();
+    ctx.shadowBlur=0;
+  } else if(b.wizBullet){
+    // Wizard magic bullet - purple energy orb
+    ctx.shadowColor='#aa44ff';ctx.shadowBlur=10;
+    ctx.fillStyle='#aa44ff';ctx.beginPath();ctx.arc(0,0,b.sz,0,6.28);ctx.fill();
+    ctx.fillStyle='#eeccff';ctx.beginPath();ctx.arc(0,0,b.sz*0.4,0,6.28);ctx.fill();
     ctx.shadowBlur=0;
   } else {
     ctx.shadowColor='#ef4444';ctx.shadowBlur=10;
