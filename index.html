@@ -342,11 +342,19 @@ let player={x:0,y:0,vy:0,gDir:1,rot:0,rotTarget:0,trail:[],alive:true,grounded:f
 // ===== TERRAIN (PLATFORM SYSTEM) =====
 // Each platform: {x, w, h} where h is height from bottom (floor) or top (ceiling)
 let platforms=[],ceilPlats=[];
+// Flip zone: forces player to switch between floor and ceiling
+let flipZone={active:false,type:0,len:0,cd:0}; // type: 0=floor gap, 1=ceiling gap
 
-function generatePlatform(arr,isCeil){
+function generatePlatform(arr,isCeil,forceGap){
   const last=arr.length>0?arr[arr.length-1]:null;
   const lastH=last?last.h:GROUND_H;
   const lastRight=last?last.x+last.w:0;
+  // Forced gap for flip zones: create a large gap to force gravity flip
+  if(forceGap){
+    const gapSize=120+Math.random()*80; // large gap (120-200px)
+    arr.push({x:lastRight+gapSize,w:60+Math.random()*40,h:lastH});
+    return;
+  }
   // Gap (both floor and ceiling; starts at score 15, grows moderately)
   let gap=0;
   if(score>15){
@@ -426,6 +434,7 @@ function reset(){
   itemEff={shield:0,slow:0,magnet:0,double:0,mini:0,spring:0,ghost:0,timestop:0,rocket:0,invincible:0,float:0,djump:0};
   djumpUsed=false;holdingTouch=false;
   coinCD=0;itemCD=0;enemyCD=0;flipCount=0;flipTimer=999;
+  flipZone={active:false,type:0,len:0,cd:0};
   hp=HP_MAX;hurtT=0;
   if(ct().startShield)itemEff.shield=300;
   prevTheme=curTheme;curTheme=0;themeLerp=1;
@@ -481,8 +490,8 @@ function trySpawnCoins(){
   if(coinCD>0){coinCD--;return;}
   const plat=findSpawnPlat();
   if(!plat)return;
-  if(Math.random()<0.55){
-    coinCD=14+Math.floor(Math.random()*12);
+  if(Math.random()<0.30){
+    coinCD=28+Math.floor(Math.random()*20);
     const onFloor=player.gDir===1||Math.random()<0.5;
     const surfY=onFloor?H-plat.h:(()=>{const cp=ceilPlats.find(p=>plat.x+plat.w*0.3>=p.x&&plat.x+plat.w*0.3<=p.x+p.w);return cp?cp.h:GROUND_H;})();
     const pattern=Math.random();
@@ -521,7 +530,7 @@ function trySpawnCoins(){
       }
     }
   } else {
-    coinCD=5+Math.floor(Math.random()*4);
+    coinCD=12+Math.floor(Math.random()*8);
   }
 }
 function trySpawnItem(){
@@ -529,14 +538,14 @@ function trySpawnItem(){
   if(score<5)return;
   const plat=findSpawnPlat();
   if(!plat)return;
-  if(Math.random()<0.25){
-    itemCD=70+Math.floor(Math.random()*50);
+  if(Math.random()<0.12){
+    itemCD=140+Math.floor(Math.random()*80);
     const ix=plat.x+plat.w*0.5;
     const surfY=H-plat.h;
     const it=10; // Only spawn invincibility item
     items.push({x:ix,y:surfY-55-Math.random()*25,t:it,sz:14,p:Math.random()*6.28,col:false});
   } else {
-    itemCD=8+Math.floor(Math.random()*8);
+    itemCD=20+Math.floor(Math.random()*15);
   }
 }
 
@@ -906,10 +915,32 @@ function update(dt){
   if(gameMode==='endless'){
     if(platforms.length===0)platforms.push({x:player.x-30,w:200,h:GROUND_H});
     if(ceilPlats.length===0)ceilPlats.push({x:player.x-30,w:200,h:GROUND_H});
+
+    // Flip zone logic: after score 20, periodically force floor/ceiling gaps
+    if(flipZone.cd>0)flipZone.cd--;
+    if(!flipZone.active&&flipZone.cd<=0&&score>20){
+      // Chance to start a flip zone each generation cycle
+      if(Math.random()<0.03){
+        flipZone.active=true;
+        flipZone.type=Math.random()<0.5?0:1; // 0=floor gap, 1=ceiling gap
+        flipZone.len=3+Math.floor(Math.random()*3); // 3-5 forced-gap platforms
+      }
+    }
+
     let lastF=platforms[platforms.length-1];
     let lastC=ceilPlats[ceilPlats.length-1];
-    while(lastF.x+lastF.w<W+300){generatePlatform(platforms,false);lastF=platforms[platforms.length-1];}
-    while(lastC.x+lastC.w<W+300){generatePlatform(ceilPlats,true);lastC=ceilPlats[ceilPlats.length-1];}
+    while(lastF.x+lastF.w<W+300){
+      const forceFloorGap=flipZone.active&&flipZone.type===0&&flipZone.len>0;
+      generatePlatform(platforms,false,forceFloorGap);
+      if(forceFloorGap){flipZone.len--;if(flipZone.len<=0){flipZone.active=false;flipZone.cd=200+Math.floor(Math.random()*150);}}
+      lastF=platforms[platforms.length-1];
+    }
+    while(lastC.x+lastC.w<W+300){
+      const forceCeilGap=flipZone.active&&flipZone.type===1&&flipZone.len>0;
+      generatePlatform(ceilPlats,true,forceCeilGap);
+      if(forceCeilGap){flipZone.len--;if(flipZone.len<=0){flipZone.active=false;flipZone.cd=200+Math.floor(Math.random()*150);}}
+      lastC=ceilPlats[ceilPlats.length-1];
+    }
     trySpawnCoins();
     trySpawnItem();
     trySpawnEnemy();
@@ -1637,17 +1668,23 @@ function drawTitle(){
   // Selected character detail (with background panel for readability)
   const selCh=CHARS[selChar];
   const detY=gridY+rows*(charH+charGap)-8;
-  const panelTop=detY-14;
-  const panelH=highScore>0?(played>0?56:42):28;
-  ctx.fillStyle='rgba(0,0,0,0.55)';rr(W/2-130,panelTop,260,panelH,8);ctx.fill();
-  ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.lineWidth=1;rr(W/2-130,panelTop,260,panelH,8);ctx.stroke();
+  const detPanelTop=detY-14;
+  const detPanelH=28;
+  ctx.fillStyle='rgba(0,0,0,0.55)';rr(W/2-130,detPanelTop,260,detPanelH,8);ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.lineWidth=1;rr(W/2-130,detPanelTop,260,detPanelH,8);ctx.stroke();
   ctx.fillStyle=selCh.col;ctx.font='bold 11px monospace';ctx.textAlign='center';
   ctx.fillText(selCh.name+' - '+selCh.desc,W/2,detY);
 
-  // Stats
-  const statsY=gridY+rows*(charH+charGap)+8;
-  if(highScore>0){ctx.fillStyle='#ffd700';ctx.font='bold 16px monospace';ctx.textAlign='center';ctx.fillText('\u30D9\u30B9\u30C8: '+highScore,W/2,statsY);}
-  if(played>0){ctx.fillStyle='#fff3';ctx.font='11px monospace';ctx.fillText('\u30D7\u30EC\u30A4\u56DE\u6570: '+played,W/2,statsY+18);}
+  // Stats (separate panel below character description)
+  const statsY=detY+24;
+  if(highScore>0||played>0){
+    const statsPanelTop=statsY-14;
+    const statsPanelH=highScore>0&&played>0?44:26;
+    ctx.fillStyle='rgba(0,0,0,0.4)';rr(W/2-100,statsPanelTop,200,statsPanelH,8);ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;rr(W/2-100,statsPanelTop,200,statsPanelH,8);ctx.stroke();
+  }
+  if(highScore>0){ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='center';ctx.fillText('\u30D9\u30B9\u30C8: '+highScore,W/2,statsY);}
+  if(played>0){ctx.fillStyle='#fff3';ctx.font='11px monospace';ctx.fillText('\u30D7\u30EC\u30A4\u56DE\u6570: '+played,W/2,statsY+(highScore>0?20:0));}
 
   // Mode selection buttons
   const btnW=130,btnH=38,btnGap=12;
