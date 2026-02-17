@@ -357,7 +357,7 @@ let player={x:0,y:0,vy:0,gDir:1,rot:0,rotTarget:0,trail:[],alive:true,grounded:f
 // Each platform: {x, w, h} where h is height from bottom (floor) or top (ceiling)
 let platforms=[],ceilPlats=[];
 // Flip zone: forces player to switch between floor and ceiling
-let flipZone={active:false,type:0,len:0,cd:0}; // type: 0=floor gap, 1=ceiling gap
+let flipZone={active:false,type:0,len:0,cd:0,lastType:-1}; // type: 0=floor gap, 1=ceiling gap
 
 function generatePlatform(arr,isCeil,forceGap){
   const last=arr.length>0?arr[arr.length-1]:null;
@@ -397,6 +397,9 @@ function generatePlatform(arr,isCeil,forceGap){
 }
 
 let coins=[],items=[],parts=[],stars=[],mtns=[],enemies=[],bullets=[];
+// Floating mid-air platforms (between floor and ceiling)
+let floatPlats=[]; // {x, y, w, th} - y=top surface, th=thickness
+let floatCD=0;
 
 function initBG(){
   stars=[];
@@ -439,16 +442,16 @@ function reset(){
   // Generate a few platforms ahead
   for(let i=0;i<5;i++){generatePlatform(platforms,false);generatePlatform(ceilPlats,true);}
   player.y=floorSurfaceY(player.x)-PLAYER_R;
-  coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];
+  coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];floatPlats=[];floatCD=0;
   score=0;dist=0;speed=SPEED_INIT;frame=0;deadT=0;newHi=false;
   combo=0;comboT=0;comboDsp=0;comboDspT=0;
   shakeX=0;shakeY=0;shakeI=0;
   mileT=0;mileTxt='';lastMile=0;
   totalCoins=0;totalFlips=0;maxCombo=0;
-  itemEff={invincible:0,magnet:0,slowmo:0};
+  itemEff={invincible:0,magnet:0};
   djumpAvailable=false;djumpUsed=false;
   coinCD=0;itemCD=0;enemyCD=0;flipCount=0;flipTimer=999;lastCoinCourse='';
-  flipZone={active:false,type:0,len:0,cd:0};
+  flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
   hp=HP_MAX;hurtT=0;
   prevTheme=curTheme;curTheme=0;themeLerp=1;
 }
@@ -463,7 +466,7 @@ function resetStage(stageIdx){
   platforms=stg.platforms.map(p=>({x:p.x,w:p.w,h:p.h}));
   ceilPlats=stg.ceilPlats.map(p=>({x:p.x,w:p.w,h:p.h}));
   player.y=floorSurfaceY(player.x)-PLAYER_R;
-  coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];
+  coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];floatPlats=[];floatCD=0;
   // Spawn stage enemies
   stg.enemies.forEach(e=>{
     const surfY=e.gDir===1?H-65:65; // approximate, will snap in update
@@ -484,7 +487,7 @@ function resetStage(stageIdx){
   shakeX=0;shakeY=0;shakeI=0;
   mileT=0;mileTxt='';lastMile=0;
   totalCoins=0;totalFlips=0;maxCombo=0;
-  itemEff={invincible:0,magnet:0,slowmo:0};
+  itemEff={invincible:0,magnet:0};
   djumpAvailable=false;djumpUsed=false;
   coinCD=0;itemCD=0;enemyCD=0;flipCount=0;flipTimer=999;lastCoinCourse='';
   hp=HP_MAX;hurtT=0;
@@ -569,7 +572,7 @@ function trySpawnItem(){
     // Pick random item: 0=invincible, 1=magnet, 2=double jump, 3=heart, 4=slow
     let it;
     if(hp<HP_MAX&&Math.random()<0.3){it=3;} // higher chance for heart when damaged
-    else{const r=Math.random();if(r<0.05){it=0;}else{const pool=[1,2,4];it=pool[Math.floor(Math.random()*pool.length)];}}
+    else{const r=Math.random();if(r<0.05){it=0;}else{const pool=[1,2];it=pool[Math.floor(Math.random()*pool.length)];}}
     items.push({x:ix,y:surfY-55-Math.random()*25,t:it,sz:14,p:Math.random()*6.28,col:false});
   } else {
     itemCD=20+Math.floor(Math.random()*15);
@@ -616,6 +619,42 @@ function trySpawnEnemy(){
     }
   } else {
     enemyCD=15+Math.floor(Math.random()*10);
+  }
+}
+
+// ===== FLOATING MID-AIR PLATFORMS =====
+function trySpawnFloatPlat(){
+  if(floatCD>0){floatCD--;return;}
+  if(score<10)return;
+  const plat=findEdgeSpawnPlat();
+  if(!plat)return;
+  const chance=Math.min(0.18,0.06+(score-10)*0.002);
+  if(Math.random()<chance){
+    floatCD=80+Math.floor(Math.random()*60);
+    const fx=Math.max(W+20,plat.x);
+    const fw=50+Math.random()*60; // width: 50-110px
+    const floorY=H-plat.h;
+    const ceilY=ceilSurfaceY(fx);
+    // Place between floor and ceiling (30-70% of the gap)
+    const gap=floorY-ceilY;
+    if(gap<120)return; // not enough room
+    const fy=ceilY+gap*(0.3+Math.random()*0.4);
+    floatPlats.push({x:fx,y:fy,w:fw,th:10});
+    // Sometimes spawn an item on the floating platform
+    if(Math.random()<0.4){
+      const pool=[1,2]; // magnet or double jump
+      if(hp<HP_MAX&&Math.random()<0.3) pool.push(3); // heart if damaged
+      const it=pool[Math.floor(Math.random()*pool.length)];
+      items.push({x:fx+fw/2,y:fy-25,t:it,sz:14,p:Math.random()*6.28,col:false});
+    }
+    // Sometimes spawn coins in an arc above
+    if(Math.random()<0.5){
+      for(let i=0;i<3;i++){
+        coins.push({x:fx+10+i*(fw-20)/2,y:fy-30-Math.sin(i/2*Math.PI)*15,sz:9,col:false,p:0});
+      }
+    }
+  } else {
+    floatCD=20+Math.floor(Math.random()*15);
   }
 }
 
@@ -870,7 +909,6 @@ function applyItem(type){
       if(hp<HP_MAX){hp++;sfx('heal');addPop(player.x,player.y-25,'HP +1','#ff3860');emitParts(player.x,player.y,10,'#ff3860',3,2);}
       else{sfx('coin');addPop(player.x,player.y-25,'HP MAX','#ff3860');}
       break;
-    case 4:sfx('item');itemEff.slowmo=600;break; // slow motion
   }
 }
 
@@ -918,17 +956,11 @@ function update(dt){
   for(const k in itemEff)if(itemEff[k]>0)itemEff[k]--;
   if(wasInvincible&&itemEff.invincible<=0&&state===ST.PLAY)switchBGM('play');
 
-  // Slow motion: gradual return to normal in last 120 frames
-  let slowFactor=1;
-  if(itemEff.slowmo>0){
-    if(itemEff.slowmo>120) slowFactor=0.35;
-    else slowFactor=0.35+(1-0.35)*(1-itemEff.slowmo/120);
-  }
   if(gameMode==='stage'){
     const stg=STAGES[currentStage];
-    speed=stg?stg.speed*slowFactor*ct().speedMul:SPEED_INIT;
+    speed=stg?stg.speed*ct().speedMul:SPEED_INIT;
   } else {
-    speed=Math.min(SPEED_MAX,(SPEED_INIT+dist*SPEED_INC))*slowFactor*ct().speedMul;
+    speed=Math.min(SPEED_MAX,(SPEED_INIT+dist*SPEED_INC))*ct().speedMul;
   }
 
   // Distance scoring
@@ -939,22 +971,30 @@ function update(dt){
   // Platform scrolling
   platforms.forEach(p=>p.x-=speed);
   ceilPlats.forEach(p=>p.x-=speed);
+  floatPlats.forEach(p=>p.x-=speed);
   // Remove off-screen platforms
   platforms=platforms.filter(p=>p.x+p.w>-50);
   ceilPlats=ceilPlats.filter(p=>p.x+p.w>-50);
+  floatPlats=floatPlats.filter(p=>p.x+p.w>-50);
   // Generate new platforms ahead (endless mode only)
   if(gameMode==='endless'){
     if(platforms.length===0)platforms.push({x:player.x-30,w:200,h:GROUND_H});
     if(ceilPlats.length===0)ceilPlats.push({x:player.x-30,w:200,h:GROUND_H});
 
     // Flip zone logic: after score 20, periodically force floor/ceiling gaps
+    // Creates long stretches where one side disappears, forcing gravity switching
     if(flipZone.cd>0)flipZone.cd--;
     if(!flipZone.active&&flipZone.cd<=0&&score>20){
-      // Chance to start a flip zone each generation cycle
-      if(Math.random()<0.03){
+      const flipChance=Math.min(0.08,0.03+(score-20)*0.001);
+      if(Math.random()<flipChance){
         flipZone.active=true;
-        flipZone.type=Math.random()<0.5?0:1; // 0=floor gap, 1=ceiling gap
-        flipZone.len=3+Math.floor(Math.random()*3); // 3-5 forced-gap platforms
+        // Alternate: if last was floor gap, do ceiling gap (and vice versa)
+        if(flipZone.lastType===0) flipZone.type=1;
+        else if(flipZone.lastType===1) flipZone.type=0;
+        else flipZone.type=Math.random()<0.5?0:1;
+        flipZone.lastType=flipZone.type;
+        // Long zones: 6-12 forced-gap platforms (much longer than before)
+        flipZone.len=6+Math.floor(Math.random()*7);
       }
     }
 
@@ -963,18 +1003,19 @@ function update(dt){
     while(lastF.x+lastF.w<W+300){
       const forceFloorGap=flipZone.active&&flipZone.type===0&&flipZone.len>0;
       generatePlatform(platforms,false,forceFloorGap);
-      if(forceFloorGap){flipZone.len--;if(flipZone.len<=0){flipZone.active=false;flipZone.cd=200+Math.floor(Math.random()*150);}}
+      if(forceFloorGap){flipZone.len--;if(flipZone.len<=0){flipZone.active=false;flipZone.cd=120+Math.floor(Math.random()*100);}}
       lastF=platforms[platforms.length-1];
     }
     while(lastC.x+lastC.w<W+300){
       const forceCeilGap=flipZone.active&&flipZone.type===1&&flipZone.len>0;
       generatePlatform(ceilPlats,true,forceCeilGap);
-      if(forceCeilGap){flipZone.len--;if(flipZone.len<=0){flipZone.active=false;flipZone.cd=200+Math.floor(Math.random()*150);}}
+      if(forceCeilGap){flipZone.len--;if(flipZone.len<=0){flipZone.active=false;flipZone.cd=120+Math.floor(Math.random()*100);}}
       lastC=ceilPlats[ceilPlats.length-1];
     }
     trySpawnCoins();
     trySpawnItem();
     trySpawnEnemy();
+    trySpawnFloatPlat();
   }
 
   // Stage mode: scroll big coins and goal, check goal reached
@@ -1014,8 +1055,7 @@ function update(dt){
   // Physics
   flipTimer++;
   const pr=PLAYER_R*ct().sizeMul;
-  const gravSlow=itemEff.slowmo>0?slowFactor:1;
-  const grav=GRAVITY*player.gDir*ct().gravMul*gravSlow;
+  const grav=GRAVITY*player.gDir*ct().gravMul;
   player.vy+=grav;
   player.vy=Math.max(-14,Math.min(14,player.vy));
 
@@ -1032,6 +1072,28 @@ function update(dt){
     const surfY=ceilSurfaceY(player.x);
     if(player.y-pr<=surfY){
       player.y=surfY+pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;
+    }
+  }
+
+  // Floating platform collision (mid-air landing)
+  if(!player.grounded){
+    for(let fi=0;fi<floatPlats.length;fi++){
+      const fp=floatPlats[fi];
+      if(player.x>=fp.x-pr*0.5&&player.x<=fp.x+fp.w+pr*0.5){
+        if(player.gDir===1&&player.vy>=0){
+          // Falling onto top of float plat
+          if(player.y+pr>=fp.y&&player.y+pr<fp.y+fp.th+8){
+            player.y=fp.y-pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;
+            break;
+          }
+        } else if(player.gDir===-1&&player.vy<=0){
+          // Rising into bottom of float plat
+          if(player.y-pr<=fp.y+fp.th&&player.y-pr>fp.y-8){
+            player.y=fp.y+fp.th+pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;
+            break;
+          }
+        }
+      }
     }
   }
 
@@ -1107,16 +1169,16 @@ function update(dt){
   enemies.forEach(en=>{
     if(!en.alive)return;
     en.x-=speed;
-    en.fr+=0.12*slowFactor;
+    en.fr+=0.12;
 
     if(en.type===2){
       // Flying enemy: sine wave movement, no ground snapping
-      en.flyPhase+=0.04*slowFactor;
+      en.flyPhase+=0.04;
       en.y=en.baseY+Math.sin(en.flyPhase)*en.flyAmp;
       en.baseY-=speed*0.02;
     } else if(en.type===0&&en.patrolDir!==undefined){
       // Walker with left-right patrol
-      en.x+=en.patrolDir*en.walkSpd*slowFactor;
+      en.x+=en.patrolDir*en.walkSpd;
       en.patrolOriginX-=speed; // keep origin scrolling with terrain
       if(en.x>en.patrolOriginX+en.patrolRange) en.patrolDir=-1;
       if(en.x<en.patrolOriginX-en.patrolRange) en.patrolDir=1;
@@ -1132,7 +1194,7 @@ function update(dt){
       }
     } else {
       // Default movement (type 1 cannon and legacy)
-      en.x-=en.walkSpd*slowFactor;
+      en.x-=en.walkSpd;
       // Keep on surface or fall off cliff
       if(en.gDir===1){
         const sy=floorSurfaceY(en.x);
@@ -1193,8 +1255,8 @@ function update(dt){
     if(en.shootT<=0&&en.x>0&&en.x<W+50){
       en.shootT=90+Math.floor(Math.random()*50);
       const bspd=4+speed*0.3;
-      // Fire horizontally at the player's current Y coordinate
-      bullets.push({x:en.x-en.sz,y:player.y,vx:-bspd,vy:0,sz:5,life:180});
+      // Fire horizontally from the enemy's position
+      bullets.push({x:en.x-en.sz,y:en.y,vx:-bspd,vy:0,sz:5,life:180});
       sfx('shoot');
     }
   });
@@ -1202,7 +1264,7 @@ function update(dt){
   // Update bullets
   const bpr=PLAYER_R*ct().sizeMul;
   bullets.forEach(b=>{
-    b.x+=b.vx*slowFactor;b.y+=b.vy*slowFactor;b.life--;
+    b.x+=b.vx;b.y+=b.vy;b.life--;
     const dx=player.x-b.x,dy=player.y-b.y;
     if(Math.sqrt(dx*dx+dy*dy)<bpr+b.sz){
       b.life=0;hurt();
@@ -1211,28 +1273,36 @@ function update(dt){
   bullets=bullets.filter(b=>b.life>0&&b.x>-50&&b.x<W+100&&b.y>-50&&b.y<H+50);
 
   // Wall collision: hitting the side of a higher platform step
+  // Small steps (<=20px) are auto-climbed when grounded; larger steps cause damage
   {
+    const STEP_TOLERANCE=20;
     if(player.gDir===1){
-      // Check floor platform walls ahead
       for(let i=0;i<platforms.length;i++){
         const p=platforms[i];
-        // Platform left edge is near player's front
         if(p.x>player.x-pr&&p.x<player.x+pr+speed*2){
           const surfY=H-p.h;
-          // Player's bottom is below this platform's surface (would hit wall)
           if(player.y+pr>surfY+4){
-            hurt();return;
+            const stepH=player.y+pr-surfY;
+            if(stepH<=STEP_TOLERANCE&&player.grounded){
+              player.y=surfY-pr; // auto step up
+            } else {
+              hurt();return;
+            }
           }
         }
       }
     } else {
-      // Check ceiling platform walls ahead
       for(let i=0;i<ceilPlats.length;i++){
         const p=ceilPlats[i];
         if(p.x>player.x-pr&&p.x<player.x+pr+speed*2){
           const surfY=p.h;
           if(player.y-pr<surfY-4){
-            hurt();return;
+            const stepH=surfY-(player.y-pr);
+            if(stepH<=STEP_TOLERANCE&&player.grounded){
+              player.y=surfY+pr; // auto step down (ceiling)
+            } else {
+              hurt();return;
+            }
           }
         }
       }
@@ -1241,8 +1311,6 @@ function update(dt){
 
   // Invincible particles (rainbow sparkle)
   if(itemEff.invincible>0&&frame%2===0){const a=Math.random()*6.28;const ic=['#ff00ff','#ffff00','#00ffff','#ff4444','#44ff44'][frame%5];parts.push({x:player.x+Math.cos(a)*22,y:player.y+Math.sin(a)*22,vx:Math.cos(a)*0.6,vy:Math.sin(a)*0.6,life:14,ml:14,sz:Math.random()*3.5+1.5,col:ic});}
-  // Slow motion particles (purple swirl)
-  if(itemEff.slowmo>0&&frame%4===0){const a=frame*0.1;parts.push({x:player.x+Math.cos(a)*16,y:player.y+Math.sin(a)*16,vx:Math.cos(a)*0.3,vy:Math.sin(a)*0.3,life:12,ml:12,sz:Math.random()*2.5+1,col:'#a855f7'});}
   // Double jump available indicator
   if(djumpAvailable&&!djumpUsed&&frame%6===0){parts.push({x:player.x,y:player.y+pr*player.gDir+4*player.gDir,vx:(Math.random()-0.5)*0.5,vy:0.3*player.gDir,life:10,ml:10,sz:2,col:'#ffaa00'});}
 
@@ -1282,6 +1350,28 @@ function drawPlatforms(arr,isFloor){
   });
 }
 
+function drawFloatPlats(){
+  floatPlats.forEach(fp=>{
+    if(fp.x+fp.w<-10||fp.x>W+10)return;
+    // Glowing thin platform
+    const gr=ctx.createLinearGradient(fp.x,0,fp.x+fp.w,0);
+    gr.addColorStop(0,tc('line')+'44');gr.addColorStop(0.5,tc('line')+'88');gr.addColorStop(1,tc('line')+'44');
+    ctx.fillStyle=gr;
+    ctx.fillRect(fp.x,fp.y,fp.w,fp.th);
+    // Neon top edge
+    ctx.strokeStyle=tc('line');ctx.lineWidth=2;
+    ctx.shadowColor=tc('line');ctx.shadowBlur=10;
+    ctx.beginPath();ctx.moveTo(fp.x,fp.y);ctx.lineTo(fp.x+fp.w,fp.y);ctx.stroke();
+    // Bottom edge
+    ctx.beginPath();ctx.moveTo(fp.x,fp.y+fp.th);ctx.lineTo(fp.x+fp.w,fp.y+fp.th);ctx.stroke();
+    ctx.shadowBlur=0;
+    // Side caps
+    ctx.strokeStyle=tc('line')+'88';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(fp.x,fp.y);ctx.lineTo(fp.x,fp.y+fp.th);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(fp.x+fp.w,fp.y);ctx.lineTo(fp.x+fp.w,fp.y+fp.th);ctx.stroke();
+  });
+}
+
 function draw(){
   ctx.save();ctx.translate(shakeX,shakeY);
   const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,tc('bg1'));bg.addColorStop(1,tc('bg2'));
@@ -1295,6 +1385,7 @@ function draw(){
   // Platforms
   drawPlatforms(platforms,true);
   drawPlatforms(ceilPlats,false);
+  drawFloatPlats();
 
   if(state===ST.TITLE){drawTitle();ctx.restore();return;}
 
@@ -1595,13 +1686,6 @@ function drawPlayer(){
     ctx.shadowColor=ic;ctx.shadowBlur=12;
     ctx.beginPath();ctx.arc(player.x,player.y,pr+12,0,6.28);ctx.stroke();ctx.shadowBlur=0;ctx.globalAlpha=1;
   }
-  // Slow motion ring (purple)
-  if(itemEff.slowmo>0){
-    ctx.strokeStyle='#a855f7';ctx.lineWidth=2;
-    ctx.globalAlpha=itemEff.slowmo<120?0.3+Math.sin(frame*0.2)*0.3:0.5;
-    ctx.beginPath();ctx.arc(player.x,player.y,pr+8,0,6.28);ctx.stroke();ctx.globalAlpha=1;
-  }
-
   // Gravity arrow
   ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=2;ctx.lineCap='round';
   const ay=player.gDir===1?pr+6:-pr-6,ad=player.gDir;
@@ -1670,7 +1754,6 @@ function drawUI(){
   const activeItems=[];
   if(itemEff.invincible>0)activeItems.push({n:'\u7121\u6575',c:'#ff00ff',t:itemEff.invincible,m:600});
   if(itemEff.magnet>0)activeItems.push({n:'\u5438\u53CE',c:'#f59e0b',t:itemEff.magnet,m:600});
-  if(itemEff.slowmo>0)activeItems.push({n:'\u30B9\u30ED\u30FC',c:'#a855f7',t:itemEff.slowmo,m:600});
   if(djumpAvailable&&!djumpUsed)activeItems.push({n:'2\u6BB5\u30B8\u30E3\u30F3\u30D7',c:'#ffaa00',t:1,m:1});
 
   // Pause button (top-right)
