@@ -107,6 +107,8 @@ function lerpColor(a,b,t){
   return`rgb(${Math.round(s(a,1)+(s(b,1)-s(a,1))*t)},${Math.round(s(a,3)+(s(b,3)-s(a,3))*t)},${Math.round(s(a,5)+(s(b,5)-s(a,5))*t)})`;
 }
 function tc(k){return themeLerp>=1?THEMES[curTheme][k]:lerpColor(THEMES[prevTheme][k],THEMES[curTheme][k],themeLerp);}
+// tc() returns hex (#rrggbb) or rgb(...) during lerp; tca() adds alpha safely
+function tca(k,a){const c=tc(k);if(c[0]==='#')return c+(a<16?'0':'')+Math.round(a).toString(16);const m=c.match(/\d+/g);return m?`rgba(${m[0]},${m[1]},${m[2]},${(a/255).toFixed(2)})`:`rgba(0,0,0,${(a/255).toFixed(2)})`;}
 
 // ===== CHARACTERS =====
 const CHARS=[
@@ -1464,7 +1466,7 @@ function drawFloatPlats(){
     if(fp.x+fp.w<-10||fp.x>W+10)return;
     // Glowing thin platform
     const gr=ctx.createLinearGradient(fp.x,0,fp.x+fp.w,0);
-    gr.addColorStop(0,tc('line')+'44');gr.addColorStop(0.5,tc('line')+'88');gr.addColorStop(1,tc('line')+'44');
+    gr.addColorStop(0,tca('line',0x44));gr.addColorStop(0.5,tca('line',0x88));gr.addColorStop(1,tca('line',0x44));
     ctx.fillStyle=gr;
     ctx.fillRect(fp.x,fp.y,fp.w,fp.th);
     // Neon top edge
@@ -1475,7 +1477,7 @@ function drawFloatPlats(){
     ctx.beginPath();ctx.moveTo(fp.x,fp.y+fp.th);ctx.lineTo(fp.x+fp.w,fp.y+fp.th);ctx.stroke();
     ctx.shadowBlur=0;
     // Side caps
-    ctx.strokeStyle=tc('line')+'88';ctx.lineWidth=1;
+    ctx.strokeStyle=tca('line',0x88);ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(fp.x,fp.y);ctx.lineTo(fp.x,fp.y+fp.th);ctx.stroke();
     ctx.beginPath();ctx.moveTo(fp.x+fp.w,fp.y);ctx.lineTo(fp.x+fp.w,fp.y+fp.th);ctx.stroke();
   });
@@ -2070,7 +2072,7 @@ function drawDead(){
   ctx.save();ctx.translate(0,-55*(1-e));ctx.globalAlpha=e;
 
   ctx.fillStyle=tc('obs');ctx.font='bold 40px monospace';ctx.textAlign='center';
-  ctx.shadowColor=tc('obs')+'55';ctx.shadowBlur=22;
+  ctx.shadowColor=tca('obs',0x55);ctx.shadowBlur=22;
   ctx.fillText('\u30B2\u30FC\u30E0\u30AA\u30FC\u30D0\u30FC',W/2,H*0.22);ctx.shadowBlur=0;
 
   const cardY=H*0.27,cardH=200;
@@ -2174,7 +2176,8 @@ function drawStageClear(){
 function loop(ts){
   if(!lastTime)lastTime=ts;
   const dt=Math.min((ts-lastTime)/16.67,3);lastTime=ts;
-  update(dt);draw();requestAnimationFrame(loop);
+  try{update(dt);draw();}catch(e){console.error('loop error:',e);}
+  requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
 })();
