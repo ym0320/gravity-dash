@@ -106,7 +106,10 @@ function lerpColor(a,b,t){
   const p=parseInt,s=(c,i)=>p(c.slice(i,i+2),16);
   return`rgb(${Math.round(s(a,1)+(s(b,1)-s(a,1))*t)},${Math.round(s(a,3)+(s(b,3)-s(a,3))*t)},${Math.round(s(a,5)+(s(b,5)-s(a,5))*t)})`;
 }
-function tc(k){return themeLerp>=1?THEMES[curTheme][k]:lerpColor(THEMES[prevTheme][k],THEMES[curTheme][k],themeLerp);}
+function tc(k){
+  if(isPackMode&&STAGE_THEMES[currentPackIdx]){const st=STAGE_THEMES[currentPackIdx];if(st[k]!==undefined)return st[k];}
+  return themeLerp>=1?THEMES[curTheme][k]:lerpColor(THEMES[prevTheme][k],THEMES[curTheme][k],themeLerp);
+}
 // tc() returns hex (#rrggbb) or rgb(...) during lerp; tca() adds alpha safely
 function tca(k,a){const c=tc(k);if(c[0]==='#')return c+(a<16?'0':'')+Math.round(a).toString(16);const m=c.match(/\d+/g);return m?`rgba(${m[0]},${m[1]},${m[2]},${(a/255).toFixed(2)})`:`rgba(0,0,0,${(a/255).toFixed(2)})`;}
 
@@ -443,8 +446,64 @@ const STAGES=[
   },
 ];
 
+// ===== STAGE PACK SYSTEM =====
+// 5 themed packs × 5 stages each = 25 stages
+const STAGE_THEMES=[
+  {bg1:'#05051e',bg2:'#0a0a3a',gnd:'#1a2a5f',gnd2:'#10184a',line:'#2266cc',ply:'#00e5ff',obs:'#ff3860',n:'宇宙',partType:'twinkle',partCol:'#6688ff'},
+  {bg1:'#b8ccdd',bg2:'#7899bb',gnd:'#dde8f2',gnd2:'#c0d0e4',line:'#88aacc',ply:'#00b4d8',obs:'#e63946',n:'雪山',partType:'snow',partCol:'#ffffff'},
+  {bg1:'#1a0500',bg2:'#3a0800',gnd:'#5a1a00',gnd2:'#3a1000',line:'#ff4400',ply:'#ffaa00',obs:'#ff0044',n:'マグマ',partType:'ember',partCol:'#ff6600'},
+  {bg1:'#001830',bg2:'#003060',gnd:'#004488',gnd2:'#003366',line:'#00aaff',ply:'#00ffc8',obs:'#ff6b9d',n:'海',partType:'bubble',partCol:'#66ccff'},
+  {bg1:'#1a0a1e',bg2:'#2a1030',gnd:'#3a1840',gnd2:'#2a1030',line:'#ff69b4',ply:'#ffb7d5',obs:'#cc00ff',n:'桜幻',partType:'petal',partCol:'#ffaacc'},
+];
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t^=t+Math.imul(t^t>>>7,61|t);return((t^t>>>14)>>>0)/4294967296;};}
+const STAGE_PACKS=[
+  {name:'宇宙',theme:0,unlock:0,stages:[
+    {id:'1-1',name:'1-1',dist:120,spdMul:0.85,seed:1001,hillChance:0.04},
+    {id:'1-2',name:'1-2',dist:160,spdMul:0.9,seed:1002,hillChance:0.06},
+    {id:'1-3',name:'1-3',dist:200,spdMul:0.95,seed:1003,hillChance:0.08},
+    {id:'1-4',name:'1-4',dist:250,spdMul:1.0,seed:1004,hillChance:0.10},
+    {id:'1-5',name:'1-5',dist:300,spdMul:1.05,seed:1005,hillChance:0.12},
+  ]},
+  {name:'雪山',theme:1,unlock:3,stages:[
+    {id:'2-1',name:'2-1',dist:150,spdMul:0.85,seed:2001,hillChance:0.06},
+    {id:'2-2',name:'2-2',dist:200,spdMul:0.9,seed:2002,hillChance:0.08},
+    {id:'2-3',name:'2-3',dist:250,spdMul:0.95,seed:2003,hillChance:0.10},
+    {id:'2-4',name:'2-4',dist:300,spdMul:1.0,seed:2004,hillChance:0.12},
+    {id:'2-5',name:'2-5',dist:350,spdMul:1.05,seed:2005,hillChance:0.14},
+  ]},
+  {name:'マグマ',theme:2,unlock:5,stages:[
+    {id:'3-1',name:'3-1',dist:180,spdMul:0.9,seed:3001,hillChance:0.08},
+    {id:'3-2',name:'3-2',dist:230,spdMul:0.95,seed:3002,hillChance:0.10},
+    {id:'3-3',name:'3-3',dist:280,spdMul:1.0,seed:3003,hillChance:0.12},
+    {id:'3-4',name:'3-4',dist:350,spdMul:1.05,seed:3004,hillChance:0.14},
+    {id:'3-5',name:'3-5',dist:400,spdMul:1.1,seed:3005,hillChance:0.16},
+  ]},
+  {name:'海',theme:3,unlock:8,stages:[
+    {id:'4-1',name:'4-1',dist:200,spdMul:0.9,seed:4001,hillChance:0.08},
+    {id:'4-2',name:'4-2',dist:260,spdMul:0.95,seed:4002,hillChance:0.10},
+    {id:'4-3',name:'4-3',dist:320,spdMul:1.0,seed:4003,hillChance:0.12},
+    {id:'4-4',name:'4-4',dist:380,spdMul:1.05,seed:4004,hillChance:0.14},
+    {id:'4-5',name:'4-5',dist:440,spdMul:1.1,seed:4005,hillChance:0.16},
+  ]},
+  {name:'桜幻',theme:4,unlock:12,stages:[
+    {id:'5-1',name:'5-1',dist:250,spdMul:0.95,seed:5001,hillChance:0.10},
+    {id:'5-2',name:'5-2',dist:320,spdMul:1.0,seed:5002,hillChance:0.12},
+    {id:'5-3',name:'5-3',dist:380,spdMul:1.05,seed:5003,hillChance:0.14},
+    {id:'5-4',name:'5-4',dist:440,spdMul:1.1,seed:5004,hillChance:0.16},
+    {id:'5-5',name:'5-5',dist:500,spdMul:1.2,seed:5005,hillChance:0.18},
+  ]},
+];
+// Stage pack progress: {stageId: true} for cleared stages
+let packProgress=JSON.parse(localStorage.getItem('gd5pp')||'{}');
+let bigCoins=Object.keys(packProgress).length;
+let isPackMode=false,currentPackIdx=0,currentPackStageIdx=0,currentPackStage=null,stageRng=null;
+let stageSelScroll=0,stageSelTarget=0;
+let gotNewBigCoin=false;
+// Ambient particles for stage themes
+let ambientParts=[];
+
 // ===== STATE =====
-const ST={TITLE:0,PLAY:1,DEAD:2,PAUSE:3,STAGE_CLEAR:4};
+const ST={TITLE:0,PLAY:1,DEAD:2,PAUSE:3,STAGE_CLEAR:4,STAGE_SEL:5};
 let state=ST.TITLE;
 let score=0,highScore=parseInt(localStorage.getItem('gd5hi')||'0');
 let newHi=false,speed=SPEED_INIT,frame=0,deadT=0,titleT=0;
@@ -671,6 +730,54 @@ function resetStage(stageIdx){
   coinCD=0;itemCD=0;enemyCD=0;flipCount=0;flipTimer=999;lastCoinCourse='';
   hp=HP_MAX+(ct().hpBonus||0);hurtT=0;
   prevTheme=curTheme;curTheme=0;themeLerp=1;
+}
+
+function resetPackStage(pi,si){
+  const pack=STAGE_PACKS[pi];if(!pack)return;
+  const stage=pack.stages[si];if(!stage)return;
+  isPackMode=true;currentPackIdx=pi;currentPackStageIdx=si;currentPackStage=stage;
+  stageRng=mulberry32(stage.seed);gotNewBigCoin=false;
+  player.x=W*0.2;player.gDir=1;player.vy=0;
+  player.rot=0;player.rotTarget=0;player.trail=[];player.alive=true;
+  player.grounded=false;player.face='normal';player.canFlip=true;
+  // Generate deterministic terrain from seed
+  platforms=[];ceilPlats=[];
+  platforms.push({x:-20,w:W*0.9,h:GROUND_H});
+  ceilPlats.push({x:-20,w:W*0.9,h:GROUND_H});
+  for(let i=0;i<5;i++){generatePackPlatform(platforms,false,stage);generatePackPlatform(ceilPlats,true,stage);}
+  player.y=floorSurfaceY(player.x)-PLAYER_R;
+  coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];floatPlats=[];floatCD=0;
+  spikes=[];spikeCD=0;movingHills=[];hillCD=0;
+  stageBigCoins=[];stageGoal=null;stageBigCollected=0;stageClearT=0;
+  ambientParts=[];
+  score=0;dist=0;speed=SPEED_INIT*stage.spdMul;frame=0;deadT=0;newHi=false;
+  combo=0;comboT=0;comboDsp=0;comboDspT=0;
+  shakeX=0;shakeY=0;shakeI=0;
+  mileT=0;mileTxt='';lastMile=0;
+  totalCoins=0;totalFlips=0;maxCombo=0;
+  itemEff={invincible:0,magnet:0};
+  djumpAvailable=false;djumpUsed=false;ghostPhaseT=0;ghostInvis=false;
+  coinCD=0;itemCD=0;enemyCD=0;flipCount=0;flipTimer=999;lastCoinCourse='';
+  flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
+  bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:99999,lastBossScore:0,bossCount:0};
+  hp=HP_MAX+(ct().hpBonus||0);hurtT=0;
+  curTheme=0;prevTheme=0;themeLerp=1;
+}
+function generatePackPlatform(arr,isCeil,stage){
+  const last=arr.length>0?arr[arr.length-1]:null;
+  const lastH=last?last.h:GROUND_H;
+  const lastRight=last?last.x+last.w:0;
+  const rng=stageRng;if(!rng)return;
+  let gap=0;
+  if(rng()<0.12){gap=10+rng()*40;}
+  let h=lastH;
+  const hc=stage.hillChance||0.08;
+  if(rng()<hc){
+    const dh=(rng()<0.5?1:-1)*(3+rng()*20);
+    h=Math.max(65+safeBot,Math.min(H*0.32,h+dh));
+  }
+  const w=100+rng()*180;
+  arr.push({x:lastRight+gap,w:w,h:h});
 }
 
 // ===== SPAWNING (cooldown-based for reliable continuous generation) =====
@@ -1622,10 +1729,14 @@ canvas.addEventListener('touchstart',e=>{
   const t=e.touches[0];
   const p=canvasXY(t.clientX,t.clientY);
   touchStartY=t.clientY;touchStartX=t.clientX;touchStartT=Date.now();touchMoved=false;
-  if(state===ST.STAGE_CLEAR&&stageClearT>60){const ns=currentStage+1;if(ns<STAGES.length&&getTotalStars()>=STAGES[ns].requiredStars){currentStage=ns;state=ST.PLAY;resetStage(currentStage);switchBGM('play');}else{state=ST.TITLE;switchBGM('title');}return;}
+  if(state===ST.STAGE_SEL){stageSelTouchY=t.clientY;stageSelDragging=false;handleStageSelTouch(p.x,p.y);return;}
+  if(state===ST.STAGE_CLEAR&&stageClearT>60){
+    if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;}
+    const ns=currentStage+1;if(ns<STAGES.length&&getTotalStars()>=STAGES[ns].requiredStars){currentStage=ns;state=ST.PLAY;resetStage(currentStage);switchBGM('play');}else{state=ST.TITLE;switchBGM('title');}return;
+  }
   if(state===ST.PAUSE){
     if(hitResumeBtn(p.x,p.y)){state=ST.PLAY;switchBGM('play');return;}
-    if(hitQuitBtn(p.x,p.y)){state=ST.TITLE;switchBGM('title');return;}
+    if(hitQuitBtn(p.x,p.y)){state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     return;
   }
   if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){state=ST.PAUSE;return;}
@@ -1636,12 +1747,12 @@ canvas.addEventListener('touchstart',e=>{
     if(cidx>=0&&isCharUnlocked(cidx)){
       longPressTimer=setTimeout(()=>{longPressFired=true;charModal={show:true,idx:cidx,animT:0};vibrate(15);},400);
     } else if(cidx>=0){
-      // Locked char - save for touchend buy
     } else {
       handleTitleTouch(p.x,p.y);
     }
   }
   else if(state===ST.DEAD&&deadT>45){
+    if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;}
     if(gameMode==='stage'){state=ST.PLAY;resetStage(currentStage);switchBGM('play');}
     else{state=ST.TITLE;switchBGM('title');}
   }
@@ -1653,6 +1764,13 @@ canvas.addEventListener('touchmove',e=>{
   const dy=t.clientY-touchStartY;
   const dx=t.clientX-touchStartX;
   if(Math.abs(dy)>20||Math.abs(dx)>20){touchMoved=true;if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}}
+  // Stage selection scroll
+  if(state===ST.STAGE_SEL){
+    const scrollDy=t.clientY-stageSelTouchY;
+    if(Math.abs(scrollDy)>5){stageSelDragging=true;stageSelScroll+=scrollDy;stageSelTouchY=t.clientY;
+    const maxScroll=0,minScroll=-(STAGE_PACKS.length*144-H+120);
+    stageSelScroll=Math.max(minScroll,Math.min(maxScroll,stageSelScroll));}
+  }
 },{passive:false});
 
 canvas.addEventListener('touchend',e=>{
@@ -1708,16 +1826,21 @@ canvas.addEventListener('touchend',e=>{
 // Keyboard support
 canvas.addEventListener('mousedown',e=>{
   initAudio();
-  if(state===ST.STAGE_CLEAR&&stageClearT>60){const ns=currentStage+1;if(ns<STAGES.length&&getTotalStars()>=STAGES[ns].requiredStars){currentStage=ns;state=ST.PLAY;resetStage(currentStage);switchBGM('play');}else{state=ST.TITLE;switchBGM('title');}return;}
   const p=canvasXY(e.clientX,e.clientY);
+  if(state===ST.STAGE_SEL){handleStageSelTouch(p.x,p.y);return;}
+  if(state===ST.STAGE_CLEAR&&stageClearT>60){
+    if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;}
+    const ns=currentStage+1;if(ns<STAGES.length&&getTotalStars()>=STAGES[ns].requiredStars){currentStage=ns;state=ST.PLAY;resetStage(currentStage);switchBGM('play');}else{state=ST.TITLE;switchBGM('title');}return;
+  }
   if(state===ST.PAUSE){
     if(hitResumeBtn(p.x,p.y)){state=ST.PLAY;switchBGM('play');return;}
-    if(hitQuitBtn(p.x,p.y)){state=ST.TITLE;switchBGM('title');return;}
+    if(hitQuitBtn(p.x,p.y)){state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     return;
   }
   if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){state=ST.PAUSE;return;}
   if(state===ST.TITLE){if(charModal.show){charModal.show=false;return;}handleTitleTouch(p.x,p.y);}
   else if(state===ST.DEAD&&deadT>45){
+    if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;}
     if(gameMode==='stage'){state=ST.PLAY;resetStage(currentStage);switchBGM('play');}
     else{state=ST.TITLE;switchBGM('title');}
   }
@@ -1738,15 +1861,21 @@ canvas.addEventListener('mousedown',e=>{
 document.addEventListener('keydown',e=>{
   if(e.code==='Escape'){
     e.preventDefault();
+    if(state===ST.STAGE_SEL){state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     if(state===ST.PLAY){state=ST.PAUSE;return;}
     if(state===ST.PAUSE){state=ST.PLAY;return;}
   }
   if(e.code==='Space'||e.code==='ArrowUp'){
     e.preventDefault();initAudio();
-    if(state===ST.STAGE_CLEAR&&stageClearT>60){const ns=currentStage+1;if(ns<STAGES.length&&getTotalStars()>=STAGES[ns].requiredStars){currentStage=ns;state=ST.PLAY;resetStage(currentStage);switchBGM('play');}else{state=ST.TITLE;switchBGM('title');}return;}
+    if(state===ST.STAGE_SEL)return;
+    if(state===ST.STAGE_CLEAR&&stageClearT>60){
+      if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;}
+      const ns=currentStage+1;if(ns<STAGES.length&&getTotalStars()>=STAGES[ns].requiredStars){currentStage=ns;state=ST.PLAY;resetStage(currentStage);switchBGM('play');}else{state=ST.TITLE;switchBGM('title');}return;
+    }
     if(state===ST.PAUSE){state=ST.PLAY;switchBGM('play');return;}
-    if(state===ST.TITLE){state=ST.PLAY;reset();switchBGM('play');}
+    if(state===ST.TITLE){gameMode='endless';isPackMode=false;state=ST.PLAY;reset();switchBGM('play');}
     else if(state===ST.DEAD&&deadT>45){
+    if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;}
     if(gameMode==='stage'){state=ST.PLAY;resetStage(currentStage);switchBGM('play');}
     else{state=ST.TITLE;switchBGM('title');}
   }
@@ -1807,28 +1936,34 @@ function handleTitleTouch(tx,ty){
       }
     }
   }
-  // Mode selection buttons
-  const btnW=130,btnH=38,btnGap=12;
-  const btnY=H*0.80;
-  const ebx=W/2-btnW-btnGap/2;
-  const sbx=W/2+btnGap/2;
+  // Mode selection buttons (3 buttons)
+  const btnW=W*0.28,btnH=38,btnGap=8;
+  const totalBtnW=btnW*3+btnGap*2;
+  const btnStartX=W/2-totalBtnW/2;
+  const btnY=H*0.78;
+  const ebx=btnStartX;
+  const sbx=btnStartX+btnW+btnGap;
+  const pbx=btnStartX+2*(btnW+btnGap);
   // Endless mode button
   if(tx>=ebx&&tx<=ebx+btnW&&ty>=btnY&&ty<=btnY+btnH){
-    gameMode='endless';state=ST.PLAY;reset();switchBGM('play');return;
+    gameMode='endless';isPackMode=false;state=ST.PLAY;reset();switchBGM('play');return;
   }
-  // Stage mode button - start from first uncleared stage
+  // Stage mode button
   if(tx>=sbx&&tx<=sbx+btnW&&ty>=btnY&&ty<=btnY+btnH){
-    gameMode='stage';
+    gameMode='stage';isPackMode=false;
     let firstUncleared=0;
     for(let i=0;i<STAGES.length;i++){
       const sp=stageProgress[i];
       if(!sp||!sp.cleared){firstUncleared=i;break;}
-      if(i===STAGES.length-1)firstUncleared=STAGES.length-1; // all cleared, replay last
+      if(i===STAGES.length-1)firstUncleared=STAGES.length-1;
     }
-    // Also check star requirements
     const totalSt=getTotalStars();
     while(firstUncleared<STAGES.length&&STAGES[firstUncleared].requiredStars>totalSt){firstUncleared=Math.max(0,firstUncleared-1);break;}
     currentStage=firstUncleared;state=ST.PLAY;resetStage(currentStage);switchBGM('play');return;
+  }
+  // Pack mode button -> go to stage selection screen
+  if(tx>=pbx&&tx<=pbx+btnW&&ty>=btnY&&ty<=btnY+btnH){
+    state=ST.STAGE_SEL;stageSelScroll=0;stageSelTarget=0;return;
   }
 }
 
@@ -1867,9 +2002,9 @@ function checkMile(){
     if(score>=m&&lastMile<m){
       lastMile=m;mileTxt=m+' \u30DD\u30A4\u30F3\u30C8\uFF01';mileT=100;
       sfx('milestone');shakeI=5;vibrate(40);
-      // Theme transition at certain milestones for visual progression
+      // Theme transition at certain milestones (endless mode only, not in pack mode)
       const themeMap={50:1,150:2,300:3,500:4};
-      if(themeMap[m]!==undefined&&curTheme!==themeMap[m]){
+      if(!isPackMode&&themeMap[m]!==undefined&&curTheme!==themeMap[m]){
         prevTheme=curTheme;curTheme=themeMap[m];themeLerp=0;
         mileTxt=THEMES[curTheme].n+'!';
       }
@@ -1905,6 +2040,7 @@ function update(dt){
 
   if(state===ST.PAUSE)return; // freeze everything while paused
 
+  if(state===ST.STAGE_SEL){frame++;return;}
   if(state===ST.TITLE){
     titleT+=0.03;
     if(unlockCelebT>0)unlockCelebT--;
@@ -1959,7 +2095,9 @@ function update(dt){
   // Invincibility ending warning: slow down BGM and flash at 90 frames remaining
   if(wasInvincible&&prevInvT===90&&state===ST.PLAY)switchBGM('play');
 
-  if(gameMode==='stage'){
+  if(isPackMode&&currentPackStage){
+    speed=SPEED_INIT*currentPackStage.spdMul*ct().speedMul;
+  } else if(gameMode==='stage'){
     const stg=STAGES[currentStage];
     speed=stg?stg.speed*ct().speedMul:SPEED_INIT;
   } else {
@@ -1983,8 +2121,36 @@ function update(dt){
   floatPlats=floatPlats.filter(p=>p.x+p.w>-50);
   spikes=spikes.filter(s=>s.x+s.w>-50);
   movingHills=movingHills.filter(h=>h.x+h.w>-50);
+  // Generate new platforms ahead (pack mode: seeded terrain)
+  if(isPackMode&&currentPackStage){
+    if(platforms.length===0)platforms.push({x:player.x-30,w:200,h:GROUND_H});
+    if(ceilPlats.length===0)ceilPlats.push({x:player.x-30,w:200,h:GROUND_H});
+    while(platforms.length>0&&platforms[platforms.length-1].x+platforms[platforms.length-1].w<W+300){
+      generatePackPlatform(platforms,false,currentPackStage);
+    }
+    while(ceilPlats.length>0&&ceilPlats[ceilPlats.length-1].x+ceilPlats[ceilPlats.length-1].w<W+300){
+      generatePackPlatform(ceilPlats,true,currentPackStage);
+    }
+    // Pack mode clear check
+    if(dist>=currentPackStage.dist){
+      state=ST.STAGE_CLEAR;stageClearT=0;gotNewBigCoin=false;
+      sfxFanfare();vibrate([30,20,30,20,60]);shakeI=8;
+      if(!packProgress[currentPackStage.id]){
+        packProgress[currentPackStage.id]=true;
+        bigCoins=Object.keys(packProgress).length;
+        localStorage.setItem('gd5pp',JSON.stringify(packProgress));
+        gotNewBigCoin=true;
+      }
+      const reward=10+(gotNewBigCoin?15:0);
+      walletCoins+=reward;localStorage.setItem('gd5wallet',walletCoins.toString());
+      switchBGM('title');
+      for(let i=0;i<30;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*3,vy:1+Math.random()*3,life:60+Math.random()*40,ml:100,sz:Math.random()*5+2,col:['#ffd700','#00e5ff','#ff3860','#34d399','#a855f7'][i%5]});
+    }
+    // Ambient particles for theme
+    updateAmbient();
+  }
   // Generate new platforms ahead (endless mode only)
-  if(gameMode==='endless'){
+  if(gameMode==='endless'&&!isPackMode){
     if(platforms.length===0)platforms.push({x:player.x-30,w:200,h:GROUND_H});
     if(ceilPlats.length===0)ceilPlats.push({x:player.x-30,w:200,h:GROUND_H});
 
@@ -2463,6 +2629,39 @@ function update(dt){
   mtns.forEach(m=>{m.off-=m.sp*speed*0.15;if(m.off<-500)m.off+=500;});
 }
 
+// ===== AMBIENT PARTICLES (stage pack themes) =====
+function updateAmbient(){
+  if(!isPackMode)return;
+  const st=STAGE_THEMES[currentPackIdx];if(!st)return;
+  const pt=st.partType;
+  if(frame%4===0){
+    if(pt==='twinkle'){ambientParts.push({x:W+5,y:Math.random()*H,vx:-0.3-Math.random()*0.5,vy:(Math.random()-0.5)*0.3,life:120,ml:120,sz:Math.random()*2+1,col:st.partCol,tw:Math.random()*6.28});}
+    else if(pt==='snow'){ambientParts.push({x:Math.random()*W,y:-5,vx:(Math.random()-0.5)*0.5-0.3,vy:0.5+Math.random()*1,life:200,ml:200,sz:Math.random()*3+1,col:'#ffffff'});}
+    else if(pt==='ember'){ambientParts.push({x:Math.random()*W,y:H+5,vx:(Math.random()-0.5)*0.8,vy:-1-Math.random()*2,life:100,ml:100,sz:Math.random()*3+1,col:['#ff4400','#ff6600','#ffaa00'][Math.floor(Math.random()*3)]});}
+    else if(pt==='bubble'){ambientParts.push({x:Math.random()*W,y:H+5,vx:(Math.random()-0.5)*0.3,vy:-0.5-Math.random()*0.8,life:180,ml:180,sz:Math.random()*4+2,col:'#66ccff44'});}
+    else if(pt==='petal'){ambientParts.push({x:W+5,y:Math.random()*H*0.7,vx:-1-Math.random()*1.5,vy:0.3+Math.random()*0.8,life:150,ml:150,sz:Math.random()*4+2,col:['#ffaacc','#ff88bb','#ffccdd'][Math.floor(Math.random()*3)]});}
+  }
+  ambientParts=ambientParts.filter(p=>{p.x+=p.vx;p.y+=p.vy;if(p.tw!==undefined)p.tw+=0.05;p.life--;return p.life>0;});
+}
+function drawAmbient(){
+  ambientParts.forEach(p=>{
+    const a=(p.life/p.ml)*0.6;ctx.globalAlpha=a;
+    const st=STAGE_THEMES[currentPackIdx];
+    if(st&&st.partType==='bubble'){
+      ctx.strokeStyle=p.col;ctx.lineWidth=1;ctx.beginPath();ctx.arc(p.x,p.y,p.sz,0,6.28);ctx.stroke();
+    } else if(st&&st.partType==='twinkle'){
+      ctx.globalAlpha=a*(0.5+Math.sin(p.tw||0)*0.5);
+      ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.sz,0,6.28);ctx.fill();
+    } else if(st&&st.partType==='petal'){
+      ctx.fillStyle=p.col;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.life*0.05);
+      ctx.beginPath();ctx.ellipse(0,0,p.sz,p.sz*0.5,0,0,6.28);ctx.fill();ctx.restore();
+    } else {
+      ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.sz,0,6.28);ctx.fill();
+    }
+  });
+  ctx.globalAlpha=1;
+}
+
 // ===== DRAW =====
 function rr(x,y,w,h,r){
   ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
@@ -2613,7 +2812,9 @@ function draw(){
   drawSpikes();
   drawMovingHills();
 
+  if(isPackMode)drawAmbient();
   if(state===ST.TITLE){drawTitle();drawCharModal();ctx.restore();return;}
+  if(state===ST.STAGE_SEL){drawStageSel();ctx.restore();return;}
 
   // Stage mode: draw big coins and goal
   if(gameMode==='stage'){
@@ -3171,7 +3372,17 @@ function drawHeart(cx,cy,sz,filled){
 function drawUI(){
   // iOS PWA safe offset: push UI below status bar / notch area
   const uiTop=50;
-  if(gameMode==='stage'){
+  if(isPackMode&&currentPackStage){
+    // Pack stage UI: progress bar + stage name
+    const prog=Math.min(1,dist/currentPackStage.dist);
+    ctx.fillStyle='#ffffff15';ctx.fillRect(0,2,W,4);
+    ctx.fillStyle=tc('ply');ctx.shadowColor=tc('ply');ctx.shadowBlur=6;ctx.fillRect(0,2,W*prog,4);ctx.shadowBlur=0;
+    const pname=STAGE_PACKS[currentPackIdx].name+' '+currentPackStage.name;
+    ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='left';
+    ctx.fillText(pname,10,uiTop);
+    ctx.fillStyle='#fff8';ctx.font='11px monospace';
+    ctx.fillText(Math.floor(dist)+'m / '+currentPackStage.dist+'m',10,uiTop+16);
+  } else if(gameMode==='stage'){
     const stg=STAGES[currentStage];
     ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='left';
     ctx.fillText(stg?stg.name:'',10,uiTop);
@@ -3312,27 +3523,39 @@ function drawTitle(){
   if(highScore>0){ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='center';ctx.fillText('\u30D9\u30B9\u30C8: '+highScore,W/2,statsY);}
   if(played>0){ctx.fillStyle='#fff3';ctx.font='11px monospace';ctx.fillText('\u30D7\u30EC\u30A4\u56DE\u6570: '+played,W/2,statsY+(highScore>0?20:0));}
 
-  // Mode selection buttons
-  const btnW=130,btnH=38,btnGap=12;
-  const btnY=H*0.80;
+  // Mode selection buttons (3 buttons)
+  const btnW=W*0.28,btnH=38,btnGap=8;
+  const totalBtnW=btnW*3+btnGap*2;
+  const btnStartX=W/2-totalBtnW/2;
+  const btnY=H*0.78;
   // Endless mode button
-  const ebx=W/2-btnW-btnGap/2;
+  const ebx=btnStartX;
   ctx.fillStyle='#00e5ff22';rr(ebx,btnY,btnW,btnH,8);ctx.fill();
   ctx.strokeStyle='#00e5ff';ctx.lineWidth=1.5;rr(ebx,btnY,btnW,btnH,8);ctx.stroke();
-  ctx.fillStyle='#00e5ff';ctx.font='bold 12px monospace';ctx.textAlign='center';
-  ctx.fillText('\u30A8\u30F3\u30C9\u30EC\u30B9',ebx+btnW/2,btnY+24);
-  // Stage mode button
-  const sbx=W/2+btnGap/2;
+  ctx.fillStyle='#00e5ff';ctx.font='bold 11px monospace';ctx.textAlign='center';
+  ctx.fillText('エンドレス',ebx+btnW/2,btnY+24);
+  // Old stage mode button
+  const sbx=btnStartX+btnW+btnGap;
   ctx.fillStyle='#ffd70022';rr(sbx,btnY,btnW,btnH,8);ctx.fill();
   ctx.strokeStyle='#ffd700';ctx.lineWidth=1.5;rr(sbx,btnY,btnW,btnH,8);ctx.stroke();
-  ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';
-  ctx.fillText('\u30B9\u30C6\u30FC\u30B8',sbx+btnW/2,btnY+24);
-  // Star count for stage mode
+  ctx.fillStyle='#ffd700';ctx.font='bold 11px monospace';
+  ctx.fillText('ステージ',sbx+btnW/2,btnY+24);
   const ts=getTotalStars();
-  if(ts>0){ctx.fillStyle='#ffd700aa';ctx.font='9px monospace';ctx.fillText('\u2605'+ts,sbx+btnW/2,btnY+36);}
+  if(ts>0){ctx.fillStyle='#ffd700aa';ctx.font='8px monospace';ctx.fillText('★'+ts,sbx+btnW/2,btnY+36);}
+  // Pack mode button (new!)
+  const pbx=btnStartX+2*(btnW+btnGap);
+  const packPulse=0.5+Math.sin(frame*0.06)*0.3;
+  ctx.fillStyle='#ff69b422';rr(pbx,btnY,btnW,btnH,8);ctx.fill();
+  ctx.strokeStyle='#ff69b4';ctx.lineWidth=1.5+packPulse*0.5;rr(pbx,btnY,btnW,btnH,8);ctx.stroke();
+  ctx.fillStyle='#ff69b4';ctx.font='bold 11px monospace';
+  ctx.fillText('パック',pbx+btnW/2,btnY+24);
+  // Big coin count on pack button
+  drawBigCoinIcon(pbx+btnW/2-20,btnY+36,5);
+  ctx.fillStyle='#ffd700';ctx.font='bold 8px monospace';ctx.textAlign='left';
+  ctx.fillText('×'+bigCoins,pbx+btnW/2-12,btnY+38);
 
   ctx.fillStyle='#667';ctx.font='10px monospace';ctx.textAlign='center';
-  ctx.fillText('\u30BF\u30C3\u30D7=\u30B8\u30E3\u30F3\u30D7 / \u30B9\u30EF\u30A4\u30D7=\u91CD\u529B\u53CD\u8EE2',W/2,H*0.93);
+  ctx.fillText('タップ=ジャンプ / スワイプ=重力反転',W/2,H*0.93);
 
   // Character unlock celebration overlay
   if(unlockCelebT>0&&unlockCelebChar>=0){
@@ -3604,74 +3827,236 @@ function drawDead(){
   else if(score>=25)rating='\u307E\u305A\u307E\u305A';
   if(rating){ctx.fillStyle='#fff6';ctx.font='bold 13px monospace';ctx.fillText(rating,W/2,cardY+182);}
 
-  if(deadT>45){const ta=Math.sin(deadT*0.07)*0.3+0.7;ctx.globalAlpha=ta*e;ctx.fillStyle='#fff';ctx.font='bold 15px monospace';ctx.fillText(gameMode==='stage'?'\u30BF\u30C3\u30D7\u3067\u30EA\u30C8\u30E9\u30A4':'\u30BF\u30C3\u30D7\u3067\u7D9A\u3051\u308B',W/2,H*0.82);}
+  if(deadT>45){const ta=Math.sin(deadT*0.07)*0.3+0.7;ctx.globalAlpha=ta*e;ctx.fillStyle='#fff';ctx.font='bold 15px monospace';ctx.fillText(isPackMode?'タップでステージ選択へ':gameMode==='stage'?'タップでリトライ':'タップで続ける',W/2,H*0.82);}
 
   ctx.restore();ctx.globalAlpha=1;
 }
+
+// ===== STAGE SELECTION SCREEN =====
+function drawBigCoinIcon(cx,cy,r){
+  ctx.fillStyle='#ffd700';ctx.beginPath();
+  for(let i=0;i<5;i++){
+    const a=-Math.PI/2+i*Math.PI*2/5,a2=a+Math.PI/5;
+    ctx.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r);
+    ctx.lineTo(cx+Math.cos(a2)*r*0.45,cy+Math.sin(a2)*r*0.45);
+  }
+  ctx.closePath();ctx.fill();
+}
+function drawStageSel(){
+  // Background
+  const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#08081e');bg.addColorStop(1,'#14143a');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  // Header
+  ctx.fillStyle='#fff';ctx.font='bold 20px monospace';ctx.textAlign='center';
+  ctx.fillText('ステージ選択',W/2,40+safeTop);
+  // Back button
+  ctx.fillStyle='#ffffff22';rr(10,22+safeTop,50,30,8);ctx.fill();
+  ctx.fillStyle='#fff8';ctx.font='bold 14px monospace';ctx.textAlign='center';
+  ctx.fillText('← 戻る',35,42+safeTop);
+  // Big coin display
+  drawBigCoinIcon(W-50,37+safeTop,10);
+  ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='left';
+  ctx.fillText('×'+bigCoins,W-36,42+safeTop);
+  // Scrollable pack list
+  ctx.save();
+  ctx.beginPath();ctx.rect(0,60+safeTop,W,H-70-safeTop-safeBot);ctx.clip();
+  const startY=70+safeTop+stageSelScroll;
+  const cardH=130,cardGap=14,cardW=W-30;
+  for(let pi=0;pi<STAGE_PACKS.length;pi++){
+    const pack=STAGE_PACKS[pi];
+    const cy=startY+pi*(cardH+cardGap);
+    if(cy+cardH<60+safeTop||cy>H)continue; // off-screen cull
+    const locked=bigCoins<pack.unlock;
+    const st=STAGE_THEMES[pack.theme];
+    const cleared=pack.stages.filter(s=>packProgress[s.id]).length;
+    // Card background
+    const cg=ctx.createLinearGradient(15,cy,15+cardW,cy+cardH);
+    cg.addColorStop(0,locked?'#111118':st.bg1+'cc');cg.addColorStop(1,locked?'#0a0a12':st.bg2+'cc');
+    ctx.fillStyle=cg;rr(15,cy,cardW,cardH,12);ctx.fill();
+    ctx.strokeStyle=locked?'#333':st.line+'88';ctx.lineWidth=1.5;rr(15,cy,cardW,cardH,12);ctx.stroke();
+    if(locked){
+      // Locked pack overlay
+      ctx.fillStyle='#00000088';rr(15,cy,cardW,cardH,12);ctx.fill();
+      ctx.fillStyle='#888';ctx.font='bold 28px monospace';ctx.textAlign='center';
+      ctx.fillText('🔒',W/2,cy+55);
+      ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';
+      ctx.fillText('大コイン '+pack.unlock+'枚で解放',W/2,cy+82);
+      ctx.fillStyle='#fff4';ctx.font='10px monospace';
+      ctx.fillText('現在: '+bigCoins+' / '+pack.unlock,W/2,cy+98);
+      // Pack name (dimmed)
+      ctx.fillStyle='#fff3';ctx.font='bold 14px monospace';
+      ctx.fillText(pack.name,W/2,cy+22);
+      continue;
+    }
+    // Pack name and progress
+    ctx.fillStyle=st.ply;ctx.font='bold 16px monospace';ctx.textAlign='left';
+    ctx.fillText(pack.name,28,cy+24);
+    ctx.fillStyle='#fff6';ctx.font='11px monospace';
+    ctx.fillText(cleared+'/5 クリア',28,cy+40);
+    // Stage buttons (5 in a row)
+    const sbW=44,sbH=44,sbGap=8;
+    const sbX=15+(cardW-(5*sbW+4*sbGap))/2;
+    const sbY=cy+52;
+    for(let si=0;si<5;si++){
+      const stage=pack.stages[si];
+      const sx=sbX+si*(sbW+sbGap);
+      const isClear=!!packProgress[stage.id];
+      // Determine if playable: first stage always, or previous cleared
+      const canPlay=si===0||!!packProgress[pack.stages[si-1].id];
+      if(isClear){
+        // Cleared: gold circle with check
+        ctx.fillStyle='#ffd70033';rr(sx,sbY,sbW,sbH,10);ctx.fill();
+        ctx.strokeStyle='#ffd700';ctx.lineWidth=1.5;rr(sx,sbY,sbW,sbH,10);ctx.stroke();
+        ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';ctx.textAlign='center';
+        ctx.fillText(stage.name,sx+sbW/2,sbY+18);
+        ctx.fillText('✓',sx+sbW/2,sbY+36);
+      } else if(canPlay){
+        // Next playable: white border, pulse
+        const pulse=0.5+Math.sin(frame*0.08)*0.3;
+        ctx.fillStyle=st.ply+'22';rr(sx,sbY,sbW,sbH,10);ctx.fill();
+        ctx.strokeStyle=st.ply;ctx.lineWidth=1.5+pulse;rr(sx,sbY,sbW,sbH,10);ctx.stroke();
+        ctx.fillStyle='#fff';ctx.font='bold 12px monospace';ctx.textAlign='center';
+        ctx.fillText(stage.name,sx+sbW/2,sbY+18);
+        ctx.fillStyle='#fff6';ctx.font='10px monospace';
+        ctx.fillText(stage.dist+'m',sx+sbW/2,sbY+36);
+      } else {
+        // Locked stage: gray
+        ctx.fillStyle='#ffffff08';rr(sx,sbY,sbW,sbH,10);ctx.fill();
+        ctx.strokeStyle='#ffffff22';ctx.lineWidth=1;rr(sx,sbY,sbW,sbH,10);ctx.stroke();
+        ctx.fillStyle='#fff3';ctx.font='bold 12px monospace';ctx.textAlign='center';
+        ctx.fillText(stage.name,sx+sbW/2,sbY+18);
+        ctx.fillStyle='#fff2';ctx.font='10px monospace';
+        ctx.fillText('🔒',sx+sbW/2,sbY+36);
+      }
+    }
+    // Big coin indicator at bottom of card
+    const bcY=sbY+sbH+8;
+    drawBigCoinIcon(28,bcY,7);
+    ctx.fillStyle='#ffd700';ctx.font='9px monospace';ctx.textAlign='left';
+    ctx.fillText(cleared+' / 5 大コイン',40,bcY+4);
+  }
+  ctx.restore();
+  // Scroll indicator
+  const totalH=STAGE_PACKS.length*(cardH+cardGap);
+  const viewH=H-70-safeTop-safeBot;
+  if(totalH>viewH){
+    const scrollR=viewH/totalH;
+    const barH=Math.max(30,viewH*scrollR);
+    const barY=60+safeTop+(-stageSelScroll/totalH)*viewH;
+    ctx.fillStyle='#ffffff22';rr(W-6,60+safeTop,4,viewH,2);ctx.fill();
+    ctx.fillStyle='#ffffff55';rr(W-6,barY,4,barH,2);ctx.fill();
+  }
+}
+function handleStageSelTouch(tx,ty){
+  // Back button
+  if(tx>=10&&tx<=60&&ty>=22+safeTop&&ty<=52+safeTop){
+    state=ST.TITLE;isPackMode=false;switchBGM('title');return;
+  }
+  const startY=70+safeTop+stageSelScroll;
+  const cardH=130,cardGap=14,cardW=W-30;
+  for(let pi=0;pi<STAGE_PACKS.length;pi++){
+    const pack=STAGE_PACKS[pi];
+    const cy=startY+pi*(cardH+cardGap);
+    if(ty<cy||ty>cy+cardH)continue;
+    const locked=bigCoins<pack.unlock;
+    if(locked){sfx('hurt');vibrate(15);addPop(W/2,ty,'ロック中','#ff4444');return;}
+    // Check stage buttons
+    const sbW=44,sbH=44,sbGap=8;
+    const sbX=15+(cardW-(5*sbW+4*sbGap))/2;
+    const sbY=cy+52;
+    for(let si=0;si<5;si++){
+      const stage=pack.stages[si];
+      const sx=sbX+si*(sbW+sbGap);
+      if(tx>=sx&&tx<=sx+sbW&&ty>=sbY&&ty<=sbY+sbH){
+        const canPlay=si===0||!!packProgress[pack.stages[si-1].id];
+        if(!canPlay){sfx('hurt');vibrate(10);addPop(sx+sbW/2,sbY-5,'前をクリアして','#ff8844');return;}
+        // Start this stage!
+        gameMode='pack';isPackMode=true;
+        state=ST.PLAY;resetPackStage(pi,si);switchBGM('play');
+        return;
+      }
+    }
+    return;
+  }
+}
+let stageSelTouchY=0,stageSelDragging=false;
 
 function drawStageClear(){
   const oa=Math.min(stageClearT/30,0.6);
   ctx.fillStyle=`rgba(0,0,0,${oa})`;ctx.fillRect(-20,-20,W+40,H+40);
   if(stageClearT<10)return;
-  const si=Math.min((stageClearT-10)/20,1),e=1-Math.pow(1-si,3);
+  const si2=Math.min((stageClearT-10)/20,1),e=1-Math.pow(1-si2,3);
   ctx.save();ctx.translate(0,-40*(1-e));ctx.globalAlpha=e;
 
-  // Title
   ctx.fillStyle='#ffd700';ctx.font='bold 36px monospace';ctx.textAlign='center';
   ctx.shadowColor='#ffd70066';ctx.shadowBlur=20;
-  ctx.fillText('\u30AF\u30EA\u30A2\uFF01',W/2,H*0.25);ctx.shadowBlur=0;
+  ctx.fillText('クリア！',W/2,H*0.25);ctx.shadowBlur=0;
 
-  // Stage name
-  const stg=STAGES[currentStage];
-  ctx.fillStyle='#fff8';ctx.font='14px monospace';
-  ctx.fillText(stg?stg.name+' - '+stg.desc:'',W/2,H*0.32);
-
-  // Card
-  const cardY=H*0.36,cardH=140;
-  ctx.fillStyle='#0008';rr(W/2-120,cardY,240,cardH,12);ctx.fill();
-  ctx.strokeStyle='#ffd70033';ctx.lineWidth=1;rr(W/2-120,cardY,240,cardH,12);ctx.stroke();
-
-  // Character happy
-  drawCharacter(W/2,cardY+35,selChar,20,0,1,'happy');
-
-  // Stars display (big, animated)
-  const starY=cardY+80;
-  for(let i=0;i<3;i++){
-    const sx=W/2-30+i*30;
-    const collected=i<stageBigCollected;
-    const delay=i*12;
-    const ap=stageClearT>20+delay?Math.min(1,(stageClearT-20-delay)/15):0;
-    if(collected){
-      const sc=1+Math.sin(stageClearT*0.1+i)*0.1;
-      ctx.save();ctx.translate(sx,starY);ctx.scale(sc*ap,sc*ap);
-      ctx.fillStyle='#ffd700';ctx.shadowColor='#ffd70088';ctx.shadowBlur=12;
-      ctx.font='bold 26px monospace';ctx.textAlign='center';
-      ctx.fillText('\u2605',0,8);ctx.shadowBlur=0;
-      ctx.restore();
+  if(isPackMode&&currentPackStage){
+    // Pack mode clear
+    const pname=STAGE_PACKS[currentPackIdx].name+' '+currentPackStage.name;
+    ctx.fillStyle='#fff8';ctx.font='14px monospace';
+    ctx.fillText(pname,W/2,H*0.32);
+    const cardY=H*0.36,cardH=160;
+    ctx.fillStyle='#0008';rr(W/2-120,cardY,240,cardH,12);ctx.fill();
+    ctx.strokeStyle='#ffd70033';ctx.lineWidth=1;rr(W/2-120,cardY,240,cardH,12);ctx.stroke();
+    drawCharacter(W/2,cardY+35,selChar,20,0,1,'happy');
+    // Score info
+    ctx.fillStyle='#fff';ctx.font='bold 24px monospace';ctx.textAlign='center';
+    ctx.fillText(Math.floor(dist)+'m',W/2,cardY+72);
+    ctx.fillStyle='#fff5';ctx.font='11px monospace';
+    ctx.fillText('目標: '+currentPackStage.dist+'m  コイン: '+totalCoins,W/2,cardY+92);
+    // Big coin earned
+    if(gotNewBigCoin){
+      const bcA=stageClearT>30?Math.min(1,(stageClearT-30)/20):0;
+      ctx.globalAlpha=bcA*e;
+      const sc=1+Math.sin(stageClearT*0.1)*0.15;
+      ctx.save();ctx.translate(W/2,cardY+120);ctx.scale(sc,sc);
+      drawBigCoinIcon(0,0,14);
+      ctx.fillStyle='#fff';ctx.font='bold 12px monospace';ctx.textAlign='center';
+      ctx.fillText('大コイン GET!',0,22);
+      ctx.restore();ctx.globalAlpha=e;
     } else {
-      ctx.globalAlpha=e*0.3;
-      ctx.fillStyle='#fff';ctx.font='bold 26px monospace';ctx.textAlign='center';
-      ctx.fillText('\u2606',sx,starY+8);
-      ctx.globalAlpha=e;
+      ctx.fillStyle='#fff4';ctx.font='11px monospace';ctx.textAlign='center';
+      ctx.fillText('(クリア済み)',W/2,cardY+120);
+    }
+    if(stageClearT>60){
+      const ta=Math.sin(stageClearT*0.07)*0.3+0.7;
+      ctx.globalAlpha=ta*e;ctx.fillStyle='#fff';ctx.font='bold 15px monospace';
+      ctx.fillText('タップでステージ選択へ',W/2,H*0.82);
+    }
+  } else {
+    // Old stage mode clear
+    const stg=STAGES[currentStage];
+    ctx.fillStyle='#fff8';ctx.font='14px monospace';
+    ctx.fillText(stg?stg.name+' - '+stg.desc:'',W/2,H*0.32);
+    const cardY=H*0.36,cardH=140;
+    ctx.fillStyle='#0008';rr(W/2-120,cardY,240,cardH,12);ctx.fill();
+    ctx.strokeStyle='#ffd70033';ctx.lineWidth=1;rr(W/2-120,cardY,240,cardH,12);ctx.stroke();
+    drawCharacter(W/2,cardY+35,selChar,20,0,1,'happy');
+    const starY=cardY+80;
+    for(let i=0;i<3;i++){
+      const sx=W/2-30+i*30,collected=i<stageBigCollected;
+      const delay=i*12,ap=stageClearT>20+delay?Math.min(1,(stageClearT-20-delay)/15):0;
+      if(collected){
+        const sc=1+Math.sin(stageClearT*0.1+i)*0.1;
+        ctx.save();ctx.translate(sx,starY);ctx.scale(sc*ap,sc*ap);
+        ctx.fillStyle='#ffd700';ctx.shadowColor='#ffd70088';ctx.shadowBlur=12;
+        ctx.font='bold 26px monospace';ctx.textAlign='center';ctx.fillText('★',0,8);ctx.shadowBlur=0;ctx.restore();
+      } else {ctx.globalAlpha=e*0.3;ctx.fillStyle='#fff';ctx.font='bold 26px monospace';ctx.textAlign='center';ctx.fillText('☆',sx,starY+8);ctx.globalAlpha=e;}
+    }
+    const reward=10+stageBigCollected*5;
+    ctx.fillStyle='#ffd700';ctx.font='bold 13px monospace';ctx.textAlign='center';
+    ctx.fillText('● +'+reward+' コイン獲得',W/2,cardY+cardH-10);
+    if(stageClearT>60){
+      const ta=Math.sin(stageClearT*0.07)*0.3+0.7;
+      ctx.globalAlpha=ta*e;ctx.fillStyle='#fff';ctx.font='bold 15px monospace';
+      const ns=currentStage+1;const canNext=ns<STAGES.length&&getTotalStars()>=STAGES[ns].requiredStars;
+      ctx.fillText(canNext?'タップで次のステージへ':'タップでタイトルへ',W/2,H*0.82);
     }
   }
 
-  // Coin reward
-  const reward=10+stageBigCollected*5;
-  ctx.fillStyle='#ffd700';ctx.font='bold 13px monospace';ctx.textAlign='center';
-  ctx.fillText('\u25CF +'+reward+' \u30B3\u30A4\u30F3\u7372\u5F97',W/2,cardY+cardH-10);
-
-  // Continue prompt
-  if(stageClearT>60){
-    const ta=Math.sin(stageClearT*0.07)*0.3+0.7;
-    ctx.globalAlpha=ta*e;ctx.fillStyle='#fff';ctx.font='bold 15px monospace';
-    const ns=currentStage+1;const canNext=ns<STAGES.length&&getTotalStars()>=STAGES[ns].requiredStars;
-    ctx.fillText(canNext?'\u30BF\u30C3\u30D7\u3067\u6B21\u306E\u30B9\u30C6\u30FC\u30B8\u3078':'\u30BF\u30C3\u30D7\u3067\u30BF\u30A4\u30C8\u30EB\u3078',W/2,H*0.82);
-  }
-
-  // Particles
   parts.forEach(p=>{ctx.globalAlpha=p.life/p.ml;ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.sz*(p.life/p.ml),0,6.28);ctx.fill();});
-
   ctx.restore();ctx.globalAlpha=1;
 }
 
