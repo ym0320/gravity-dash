@@ -564,6 +564,7 @@ function trySpawnItem(){
 }
 
 // ===== ENEMIES =====
+// Types: 0=左右パトロール, 1=砲台(水平砲弾), 2=空中飛行
 function trySpawnEnemy(){
   if(enemyCD>0){enemyCD--;return;}
   if(score<15)return;
@@ -572,13 +573,34 @@ function trySpawnEnemy(){
   const chance=Math.min(0.35,0.1+(score-15)*0.003);
   if(Math.random()<chance){
     enemyCD=50+Math.floor(Math.random()*40);
-    const ex=Math.max(W+13,plat.x); // spawn at right screen edge
-    const onCeil=Math.random()<0.3;
-    const gd=onCeil?-1:1;
+    const ex=Math.max(W+13,plat.x);
     const sz=13;
-    const surfY=gd===1?H-plat.h:ceilSurfaceY(ex);
-    const eType=(score>=25&&Math.random()<0.4)?1:0;
-    enemies.push({x:ex,y:gd===1?surfY-sz:surfY+sz,vy:0,gDir:gd,walkSpd:eType===1?0.15+Math.random()*0.2:0.3+Math.random()*0.4,sz:sz,alive:true,fr:Math.random()*100,type:eType,shootT:eType===1?60+Math.floor(Math.random()*60):999});
+    // Choose enemy type based on score
+    let eType=0;
+    const tr=Math.random();
+    if(score>=35&&tr<0.25) eType=2; // flyer
+    else if(score>=25&&tr<0.45) eType=1; // cannon
+    else eType=0; // walker/patrol
+
+    if(eType===2){
+      // Flying enemy: spawns in the air between floor and ceiling
+      const surfY=H-plat.h;
+      const flyY=surfY-60-Math.random()*80;
+      enemies.push({x:ex,y:flyY,vy:0,gDir:1,walkSpd:0,sz:sz,alive:true,fr:Math.random()*100,type:2,shootT:999,
+        baseY:flyY,flyPhase:Math.random()*6.28,flyAmp:20+Math.random()*25});
+    } else {
+      const onCeil=Math.random()<0.3;
+      const gd=onCeil?-1:1;
+      const surfY=gd===1?H-plat.h:ceilSurfaceY(ex);
+      if(eType===0){
+        // Walker with left-right patrol
+        enemies.push({x:ex,y:gd===1?surfY-sz:surfY+sz,vy:0,gDir:gd,walkSpd:0.3+Math.random()*0.4,sz:sz,alive:true,fr:Math.random()*100,type:0,shootT:999,
+          patrolDir:1,patrolOriginX:ex,patrolRange:30+Math.random()*40});
+      } else {
+        // Cannon (shooter) - stationary
+        enemies.push({x:ex,y:gd===1?surfY-sz:surfY+sz,vy:0,gDir:gd,walkSpd:0.15+Math.random()*0.2,sz:sz,alive:true,fr:Math.random()*100,type:1,shootT:60+Math.floor(Math.random()*60)});
+      }
+    }
   } else {
     enemyCD=15+Math.floor(Math.random()*10);
   }
@@ -1102,17 +1124,42 @@ function update(dt){
   enemies.forEach(en=>{
     if(!en.alive)return;
     en.x-=speed;
-    en.x-=en.walkSpd;
     en.fr+=0.12;
-    // Keep on surface or fall off cliff
-    if(en.gDir===1){
-      const sy=floorSurfaceY(en.x);
-      if(sy<H+100){en.y=sy-en.sz;en.vy=0;} // on platform
-      else{en.vy=(en.vy||0)+GRAVITY;en.y+=en.vy;} // falling
-    }else{
-      const sy=ceilSurfaceY(en.x);
-      if(sy>-100){en.y=sy+en.sz;en.vy=0;} // on ceiling
-      else{en.vy=(en.vy||0)-GRAVITY;en.y+=en.vy;} // falling up
+
+    if(en.type===2){
+      // Flying enemy: sine wave movement, no ground snapping
+      en.flyPhase+=0.04;
+      en.y=en.baseY+Math.sin(en.flyPhase)*en.flyAmp;
+      en.baseY-=speed*0.02; // slight drift doesn't matter, already scrolling via en.x
+    } else if(en.type===0&&en.patrolDir!==undefined){
+      // Walker with left-right patrol
+      en.x+=en.patrolDir*en.walkSpd;
+      en.patrolOriginX-=speed; // keep origin scrolling with terrain
+      if(en.x>en.patrolOriginX+en.patrolRange) en.patrolDir=-1;
+      if(en.x<en.patrolOriginX-en.patrolRange) en.patrolDir=1;
+      // Keep on surface or fall off cliff
+      if(en.gDir===1){
+        const sy=floorSurfaceY(en.x);
+        if(sy<H+100){en.y=sy-en.sz;en.vy=0;}
+        else{en.vy=(en.vy||0)+GRAVITY;en.y+=en.vy;}
+      }else{
+        const sy=ceilSurfaceY(en.x);
+        if(sy>-100){en.y=sy+en.sz;en.vy=0;}
+        else{en.vy=(en.vy||0)-GRAVITY;en.y+=en.vy;}
+      }
+    } else {
+      // Default movement (type 1 cannon and legacy)
+      en.x-=en.walkSpd;
+      // Keep on surface or fall off cliff
+      if(en.gDir===1){
+        const sy=floorSurfaceY(en.x);
+        if(sy<H+100){en.y=sy-en.sz;en.vy=0;}
+        else{en.vy=(en.vy||0)+GRAVITY;en.y+=en.vy;}
+      }else{
+        const sy=ceilSurfaceY(en.x);
+        if(sy>-100){en.y=sy+en.sz;en.vy=0;}
+        else{en.vy=(en.vy||0)-GRAVITY;en.y+=en.vy;}
+      }
     }
     // Collision with player
     if(itemEff.ghost>0)return;
@@ -1145,16 +1192,15 @@ function update(dt){
   });
   enemies=enemies.filter(en=>en.x>-50&&en.alive&&en.y>-200&&en.y<H+200);
 
-  // Shooter enemies fire bullets
+  // Shooter enemies fire horizontal bullets at player's Y position
   enemies.forEach(en=>{
     if(!en.alive||en.type!==1)return;
     en.shootT--;
     if(en.shootT<=0&&en.x>0&&en.x<W+50){
       en.shootT=90+Math.floor(Math.random()*50);
-      const dx=player.x-en.x,dy=player.y-en.y;
-      const d=Math.sqrt(dx*dx+dy*dy)||1;
-      const bspd=3+speed*0.3;
-      bullets.push({x:en.x,y:en.y,vx:dx/d*bspd,vy:dy/d*bspd,sz:5,life:180});
+      const bspd=4+speed*0.3;
+      // Fire horizontally at the player's current Y coordinate
+      bullets.push({x:en.x-en.sz,y:player.y,vx:-bspd,vy:0,sz:5,life:180});
       sfx('shoot');
     }
   });
@@ -1340,6 +1386,7 @@ function drawItem(it){
 
 function drawEnemy(en){
   if(en.type===1){drawShooter(en);return;}
+  if(en.type===2){drawFlyer(en);return;}
   const s=en.sz,flip=en.gDir;
   ctx.save();ctx.translate(en.x,en.y);
   if(flip===-1)ctx.scale(1,-1);
@@ -1353,6 +1400,12 @@ function drawEnemy(en){
   ctx.fillStyle='#4a2508';
   ctx.fillRect(-s*0.5+step,s*0.4,fw,fh);
   ctx.fillRect(s*0.2-step,s*0.4,fw,fh);
+  // Direction indicator for patrol enemies
+  if(en.patrolDir!==undefined){
+    ctx.fillStyle='#4a2508';
+    const arrowX=en.patrolDir>0?s*0.6:-s*0.6;
+    ctx.beginPath();ctx.moveTo(arrowX,0);ctx.lineTo(arrowX-en.patrolDir*4,-3);ctx.lineTo(arrowX-en.patrolDir*4,3);ctx.closePath();ctx.fill();
+  }
   // Angry eyes
   ctx.fillStyle='#fff';
   ctx.beginPath();ctx.arc(-s*0.25,-s*0.25,s*0.22,0,6.28);ctx.fill();
@@ -1364,6 +1417,32 @@ function drawEnemy(en){
   ctx.strokeStyle='#4a2508';ctx.lineWidth=2;
   ctx.beginPath();ctx.moveTo(-s*0.45,-s*0.3);ctx.lineTo(-s*0.1,-s*0.48);ctx.stroke();
   ctx.beginPath();ctx.moveTo(s*0.45,-s*0.3);ctx.lineTo(s*0.1,-s*0.48);ctx.stroke();
+  ctx.restore();
+}
+function drawFlyer(en){
+  const s=en.sz;
+  ctx.save();ctx.translate(en.x,en.y);
+  // Body (orange flying enemy)
+  const gr=ctx.createRadialGradient(0,0,0,0,0,s);
+  gr.addColorStop(0,'#f97316');gr.addColorStop(1,'#c2410c');
+  ctx.fillStyle=gr;ctx.shadowColor='#f9731655';ctx.shadowBlur=8;
+  ctx.beginPath();ctx.arc(0,0,s*0.8,0,6.28);ctx.fill();ctx.shadowBlur=0;
+  // Wings (animated flapping)
+  const wf=Math.sin(en.fr*1.2)*6;
+  ctx.fillStyle='#ea580c';
+  ctx.beginPath();ctx.moveTo(-s*0.7,0);ctx.quadraticCurveTo(-s-8,-6+wf,-s-3,-14+wf);ctx.quadraticCurveTo(-s*0.5+2,-4,-s*0.7,0);ctx.fill();
+  ctx.beginPath();ctx.moveTo(s*0.7,0);ctx.quadraticCurveTo(s+8,-6+wf,s+3,-14+wf);ctx.quadraticCurveTo(s*0.5-2,-4,s*0.7,0);ctx.fill();
+  // Eyes
+  ctx.fillStyle='#fff';
+  ctx.beginPath();ctx.arc(-s*0.2,-s*0.15,s*0.2,0,6.28);ctx.fill();
+  ctx.beginPath();ctx.arc(s*0.2,-s*0.15,s*0.2,0,6.28);ctx.fill();
+  ctx.fillStyle='#1a0a00';
+  ctx.beginPath();ctx.arc(-s*0.15,-s*0.18,s*0.1,0,6.28);ctx.fill();
+  ctx.beginPath();ctx.arc(s*0.25,-s*0.18,s*0.1,0,6.28);ctx.fill();
+  // Angry brows
+  ctx.strokeStyle='#c2410c';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(-s*0.4,-s*0.2);ctx.lineTo(-s*0.05,-s*0.38);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(s*0.4,-s*0.2);ctx.lineTo(s*0.05,-s*0.38);ctx.stroke();
   ctx.restore();
 }
 function drawShooter(en){
@@ -1380,15 +1459,18 @@ function drawShooter(en){
   gr.addColorStop(0,'#9333ea');gr.addColorStop(1,'#581c87');
   ctx.fillStyle=gr;
   ctx.beginPath();ctx.arc(0,-s*0.1,s*0.6,0,6.28);ctx.fill();
+  // Cannon barrel pointing left
+  ctx.fillStyle='#4a1080';
+  ctx.fillRect(-s*1.1,-s*0.15,s*0.6,s*0.3);
   // Single glowing eye
   ctx.fillStyle='#fbbf24';ctx.shadowColor='#fbbf24';ctx.shadowBlur=8;
   ctx.beginPath();ctx.arc(0,-s*0.2,s*0.28,0,6.28);ctx.fill();ctx.shadowBlur=0;
   ctx.fillStyle='#1a0a00';
   ctx.beginPath();ctx.arc(s*0.05,-s*0.22,s*0.13,0,6.28);ctx.fill();
-  // Cannon indicator (flashes when about to shoot)
+  // Cannon muzzle flash when about to shoot
   if(en.shootT<30){
     ctx.globalAlpha=0.5+Math.sin(en.fr*3)*0.5;
-    ctx.fillStyle='#ef4444';ctx.beginPath();ctx.arc(-s*0.7,0,s*0.2,0,6.28);ctx.fill();
+    ctx.fillStyle='#ef4444';ctx.beginPath();ctx.arc(-s*1.1,0,s*0.25,0,6.28);ctx.fill();
     ctx.globalAlpha=1;
   }
   ctx.restore();
@@ -1398,7 +1480,12 @@ function drawBullet(b){
   ctx.shadowColor='#ef4444';ctx.shadowBlur=10;
   ctx.fillStyle='#ef4444';ctx.beginPath();ctx.arc(0,0,b.sz,0,6.28);ctx.fill();
   ctx.fillStyle='#fbbf24';ctx.beginPath();ctx.arc(0,0,b.sz*0.5,0,6.28);ctx.fill();
-  ctx.shadowBlur=0;ctx.restore();
+  ctx.shadowBlur=0;
+  // Trail behind bullet (in direction of travel)
+  ctx.fillStyle='#ef444444';
+  ctx.beginPath();ctx.arc(b.sz+4,0,b.sz*0.6,0,6.28);ctx.fill();
+  ctx.beginPath();ctx.arc(b.sz+10,0,b.sz*0.3,0,6.28);ctx.fill();
+  ctx.restore();
 }
 
 function drawCharacter(x,y,charIdx,r,rot,alpha,face,dmgLevel){
