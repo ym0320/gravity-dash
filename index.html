@@ -205,13 +205,13 @@ function generatePlatform(arr,isCeil){
   const last=arr.length>0?arr[arr.length-1]:null;
   const lastH=last?last.h:GROUND_H;
   const lastRight=last?last.x+last.w:0;
-  // Gap (both floor and ceiling; starts at score 10, grows aggressively)
+  // Gap (both floor and ceiling; starts at score 15, grows moderately)
   let gap=0;
-  if(score>10){
-    const gc=Math.min(0.55,0.1+(score-10)*0.006);
+  if(score>15){
+    const gc=Math.min(0.38,0.07+(score-15)*0.004);
     if(Math.random()<gc){
-      const maxGap=Math.min(130,35+score*0.6);
-      gap=35+Math.random()*maxGap;
+      const maxGap=Math.min(70,20+score*0.35);
+      gap=25+Math.random()*maxGap;
     }
   }
   // Height change (step) - more frequent and larger with score
@@ -1285,9 +1285,13 @@ function drawTitle(){
     }
   }
 
-  // Selected character detail
+  // Selected character detail (with background panel for readability)
   const selCh=CHARS[selChar];
   const detY=gridY+rows*(charH+charGap)-8;
+  const panelTop=detY-14;
+  const panelH=highScore>0?(played>0?56:42):28;
+  ctx.fillStyle='rgba(0,0,0,0.55)';rr(W/2-130,panelTop,260,panelH,8);ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.lineWidth=1;rr(W/2-130,panelTop,260,panelH,8);ctx.stroke();
   ctx.fillStyle=selCh.col;ctx.font='bold 11px monospace';ctx.textAlign='center';
   ctx.fillText(selCh.name+' - '+selCh.desc,W/2,detY);
 
