@@ -71,9 +71,6 @@ function update(dt){
 
   if(isPackMode&&currentPackStage){
     speed=SPEED_INIT*currentPackStage.spdMul*ct().speedMul;
-  } else if(gameMode==='stage'){
-    const stg=STAGES[currentStage];
-    speed=stg?stg.speed*ct().speedMul:SPEED_INIT;
   } else {
     speed=Math.min(SPEED_MAX,(SPEED_INIT+dist*SPEED_INC))*ct().speedMul;
   }
@@ -107,18 +104,45 @@ function update(dt){
     }
     // Pack mode clear check
     if(dist>=currentPackStage.dist){
-      state=ST.STAGE_CLEAR;stageClearT=0;gotNewBigCoin=false;
+      state=ST.STAGE_CLEAR;stageClearT=0;gotNewStars=0;
       sfxFanfare();vibrate([30,20,30,20,60]);shakeI=8;
-      if(!packProgress[currentPackStage.id]){
-        packProgress[currentPackStage.id]=true;
-        bigCoins=Object.keys(packProgress).length;
-        localStorage.setItem('gd5pp',JSON.stringify(packProgress));
-        gotNewBigCoin=true;
-      }
-      const reward=10+(gotNewBigCoin?15:0);
+      // Count stars collected this run
+      const starsThisRun=stageBigCoins.filter(bc=>bc.col).length;
+      const sid=currentPackStage.id;
+      const prev=packProgress[sid];
+      const prevStars=prev?prev.stars:0;
+      const newStars=Math.max(prevStars,starsThisRun);
+      gotNewStars=Math.max(0,newStars-prevStars);
+      packProgress[sid]={cleared:true,stars:newStars};
+      localStorage.setItem('gd5pp',JSON.stringify(packProgress));
+      totalStars=getTotalStars();
+      const reward=10+starsThisRun*5+(gotNewStars>0?10:0);
       walletCoins+=reward;localStorage.setItem('gd5wallet',walletCoins.toString());
       switchBGM('title');
       for(let i=0;i<30;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*3,vy:1+Math.random()*3,life:60+Math.random()*40,ml:100,sz:Math.random()*5+2,col:['#ffd700','#00e5ff','#ff3860','#34d399','#a855f7'][i%5]});
+    }
+    // Star scrolling and collection
+    const pr2=PLAYER_R*ct().sizeMul;
+    stageBigCoins.forEach(bc=>{
+      bc.x-=speed;bc.p+=0.06;
+      // Compute Y from floor surface + offset
+      const fsy=floorSurfaceY(bc.x);
+      if(fsy<H+100) bc.y=fsy+bc.yOff;
+      else bc.y=H*0.4; // fallback if in gap
+    });
+    stageBigCoins.forEach(bc=>{
+      if(bc.col)return;
+      const dx=player.x-bc.x,dy=player.y-bc.y;
+      if(Math.sqrt(dx*dx+dy*dy)<pr2+bc.sz){
+        bc.col=true;stageBigCollected++;
+        sfx('milestone');vibrate([20,10,40]);shakeI=6;
+        addPop(bc.x,bc.y-20,'\u2605 STAR!','#ffd700');
+        emitParts(bc.x,bc.y,15,'#ffd700',5,3);
+      }
+    });
+    // Enemy spawning in pack mode (based on stage enemyChance)
+    if(currentPackStage.enemyChance&&Math.random()<currentPackStage.enemyChance*0.3){
+      trySpawnEnemy();
     }
     // Ambient particles for theme
     updateAmbient();
@@ -172,40 +196,6 @@ function update(dt){
     updateBossPhase();
     // During boss prepare/active, cancel flip zones
     if(bossPhase.active){flipZone.active=false;flipZone.cd=200;}
-  }
-
-  // Stage mode: scroll big coins and goal, check goal reached
-  if(gameMode==='stage'){
-    stageBigCoins.forEach(bc=>{bc.x-=speed;bc.p+=0.06;});
-    if(stageGoal)stageGoal.x-=speed;
-    // Big coin collection
-    const pr2=PLAYER_R*ct().sizeMul;
-    stageBigCoins.forEach(bc=>{
-      if(bc.col)return;
-      const dx=player.x-bc.x,dy=player.y-bc.y;
-      if(Math.sqrt(dx*dx+dy*dy)<pr2+bc.sz){
-        bc.col=true;stageBigCollected++;
-        sfx('milestone');vibrate([20,10,40]);shakeI=6;
-        addPop(bc.x,bc.y-20,'\u2605 BIG!','#ffd700');
-        emitParts(bc.x,bc.y,15,'#ffd700',5,3);
-      }
-    });
-    // Goal check
-    if(stageGoal&&player.x>=stageGoal.x-10&&stageGoal.x<W){
-      // Stage clear!
-      state=ST.STAGE_CLEAR;stageClearT=0;
-      sfxFanfare();vibrate([30,20,30,20,60]);shakeI=8;
-      // Save progress
-      const prev=stageProgress[currentStage]||{cleared:false,stars:0};
-      const newStars=Math.max(prev.stars,stageBigCollected);
-      stageProgress[currentStage]={cleared:true,stars:newStars};
-      localStorage.setItem('gd5stages',JSON.stringify(stageProgress));
-      // Coin reward
-      const reward=10+stageBigCollected*5;
-      walletCoins+=reward;localStorage.setItem('gd5wallet',walletCoins.toString());
-      switchBGM('title');
-      for(let i=0;i<30;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*3,vy:1+Math.random()*3,life:60+Math.random()*40,ml:100,sz:Math.random()*5+2,col:['#ffd700','#00e5ff','#ff3860','#34d399','#a855f7'][i%5]});
-    }
   }
 
   // Physics
@@ -476,7 +466,7 @@ function update(dt){
         // Bounce player off enemy
         player.vy=-JUMP_POWER*0.7*player.gDir;
         player.grounded=false;
-        flipCount=0;player.canFlip=true;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
+        flipCount=0;player.canFlip=true;djumpUsed=false;djumpAvailable=true;
         // Gravity stomp bonus: 3x if flipped recently
         const gstomp=flipTimer<40;
         const gsMul=gstomp?3:1;

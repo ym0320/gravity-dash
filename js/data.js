@@ -280,125 +280,9 @@ const ITEMS=[
 
 // ===== STAGE MODE =====
 let gameMode='endless'; // 'endless' or 'stage'
-let currentStage=0;
-let stageBigCoins=[]; // {x,y,sz,col:false} - 3 per stage
-let stageGoal=null;   // {x} - goal position
+let stageBigCoins=[]; // {x,y,sz,col:false} - 3 per stage (stars)
 let stageClearT=0;
-let stageBigCollected=0; // big coins collected this run
-let stageProgress=JSON.parse(localStorage.getItem('gd5stages')||'{}');
-// stageProgress = { "0": {cleared:true, stars:2}, "1": {cleared:false, stars:0} }
-
-function getStageStars(idx){return (stageProgress[idx]&&stageProgress[idx].stars)||0;}
-function getTotalStars(){let t=0;for(const k in stageProgress)t+=(stageProgress[k].stars||0);return t;}
-
-const STAGES=[
-  {
-    name:'\u30B9\u30C6\u30FC\u30B8 1-1',
-    desc:'\u306F\u3058\u3081\u306E\u4E00\u6B69',
-    requiredStars:0,
-    speed:2.5,
-    platforms:[
-      {x:-20,w:500,h:85},{x:540,w:400,h:85},{x:1000,w:350,h:90},
-      {x:1400,w:300,h:85},{x:1750,w:250,h:85},{x:2050,w:400,h:85},
-      {x:2500,w:300,h:90},{x:2850,w:350,h:85},{x:3250,w:400,h:85},
-      {x:3700,w:500,h:85},
-    ],
-    ceilPlats:[{x:-20,w:4300,h:85}],
-    enemies:[{x:1200,type:0,gDir:1},{x:2700,type:0,gDir:1}],
-    bigCoins:[{x:300,yOff:-50},{x:1600,yOff:-70},{x:3500,yOff:-50}],
-    goalX:4100,
-  },
-  {
-    name:'\u30B9\u30C6\u30FC\u30B8 1-2',
-    desc:'\u30B8\u30E3\u30F3\u30D7\u30EC\u30C3\u30B9\u30F3',
-    requiredStars:0,
-    speed:2.8,
-    platforms:[
-      {x:-20,w:450,h:85},{x:520,w:300,h:85},{x:900,w:200,h:100},
-      {x:1180,w:250,h:85},{x:1520,w:180,h:95},{x:1800,w:300,h:80},
-      {x:2200,w:200,h:90},{x:2500,w:250,h:85},{x:2850,w:300,h:75},
-      {x:3250,w:200,h:95},{x:3550,w:350,h:85},{x:4000,w:500,h:85},
-    ],
-    ceilPlats:[{x:-20,w:4600,h:85}],
-    enemies:[{x:1050,type:0,gDir:1},{x:2350,type:0,gDir:1},{x:3400,type:0,gDir:1}],
-    bigCoins:[{x:950,yOff:-60},{x:2100,yOff:-70},{x:3800,yOff:-50}],
-    goalX:4400,
-  },
-  {
-    name:'\u30B9\u30C6\u30FC\u30B8 1-3',
-    desc:'\u91CD\u529B\u30B9\u30A4\u30C3\u30C1',
-    requiredStars:2,
-    speed:3.0,
-    platforms:[
-      {x:-20,w:500,h:85},{x:560,w:300,h:85},
-      {x:1250,w:200,h:85},{x:1550,w:300,h:90},{x:1950,w:250,h:85},
-      {x:2600,w:200,h:85},{x:2900,w:300,h:80},{x:3300,w:250,h:90},
-      {x:3650,w:300,h:85},{x:4050,w:400,h:85},{x:4550,w:500,h:85},
-    ],
-    ceilPlats:[
-      {x:-20,w:900,h:85},{x:860,w:800,h:85},
-      {x:1800,w:250,h:85},{x:2150,w:800,h:85},
-      {x:3050,w:200,h:80},{x:3350,w:400,h:85},{x:3850,w:300,h:85},
-      {x:4250,w:900,h:85},
-    ],
-    enemies:[
-      {x:750,type:0,gDir:1},{x:1100,type:0,gDir:-1},
-      {x:2400,type:0,gDir:-1},{x:3500,type:0,gDir:1},
-    ],
-    bigCoins:[{x:1000,y:120},{x:2350,y:120},{x:4300,yOff:-50}],
-    goalX:4900,
-  },
-  {
-    name:'\u30B9\u30C6\u30FC\u30B8 1-4',
-    desc:'\u30AD\u30E3\u30CE\u30F3\u56DE\u5ECA',
-    requiredStars:4,
-    speed:3.2,
-    platforms:[
-      {x:-20,w:400,h:85},{x:470,w:350,h:85},{x:900,w:250,h:90},
-      {x:1230,w:300,h:85},{x:1620,w:200,h:100},{x:1920,w:350,h:85},
-      {x:2370,w:250,h:80},{x:2720,w:200,h:90},{x:3020,w:300,h:85},
-      {x:3420,w:250,h:95},{x:3770,w:300,h:85},{x:4170,w:400,h:85},
-      {x:4670,w:500,h:85},
-    ],
-    ceilPlats:[
-      {x:-20,w:2000,h:85},{x:2100,w:800,h:85},
-      {x:3000,w:500,h:80},{x:3600,w:1600,h:85},
-    ],
-    enemies:[
-      {x:800,type:1,gDir:1},{x:1500,type:0,gDir:1},
-      {x:2500,type:1,gDir:1},{x:3200,type:0,gDir:-1},
-      {x:4400,type:1,gDir:1},
-    ],
-    bigCoins:[{x:650,yOff:-70},{x:2600,yOff:-60},{x:4400,yOff:-50}],
-    goalX:5100,
-  },
-  {
-    name:'\u30B9\u30C6\u30FC\u30B8 1-5',
-    desc:'\u6700\u7D42\u8A66\u7DF4',
-    requiredStars:7,
-    speed:3.5,
-    platforms:[
-      {x:-20,w:400,h:85},{x:480,w:250,h:90},{x:820,w:200,h:85},
-      {x:1400,w:180,h:85},{x:1680,w:250,h:95},{x:2030,w:200,h:85},
-      {x:2600,w:180,h:90},{x:2880,w:250,h:85},{x:3230,w:200,h:100},
-      {x:3530,w:250,h:85},{x:3880,w:200,h:90},{x:4180,w:300,h:85},
-      {x:4580,w:250,h:95},{x:4930,w:400,h:85},{x:5430,w:500,h:85},
-    ],
-    ceilPlats:[
-      {x:-20,w:850,h:85},{x:1000,w:800,h:85},{x:1900,w:300,h:80},
-      {x:2300,w:700,h:85},{x:3100,w:200,h:80},{x:3400,w:400,h:85},
-      {x:3900,w:300,h:85},{x:4300,w:400,h:85},{x:4800,w:1200,h:85},
-    ],
-    enemies:[
-      {x:650,type:0,gDir:1},{x:1200,type:2,gDir:1},
-      {x:1800,type:0,gDir:-1},{x:2500,type:1,gDir:1},
-      {x:3100,type:0,gDir:1},{x:3700,type:2,gDir:1},
-      {x:4800,type:1,gDir:1},
-    ],
-    bigCoins:[{x:500,yOff:-70},{x:1150,y:130},{x:5200,yOff:-50}],
-    goalX:5800,
-  },
-];
+let stageBigCollected=0; // stars collected this run
 
 // ===== STAGE PACK SYSTEM =====
 // 5 themed packs × 5 stages each = 25 stages
@@ -412,47 +296,51 @@ const STAGE_THEMES=[
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t^=t+Math.imul(t^t>>>7,61|t);return((t^t>>>14)>>>0)/4294967296;};}
 const STAGE_PACKS=[
   {name:'宇宙',theme:0,unlock:0,stages:[
-    {id:'1-1',name:'1-1',dist:120,spdMul:0.85,seed:1001,hillChance:0.04},
-    {id:'1-2',name:'1-2',dist:160,spdMul:0.9,seed:1002,hillChance:0.06},
-    {id:'1-3',name:'1-3',dist:200,spdMul:0.95,seed:1003,hillChance:0.08},
-    {id:'1-4',name:'1-4',dist:250,spdMul:1.0,seed:1004,hillChance:0.10},
-    {id:'1-5',name:'1-5',dist:300,spdMul:1.05,seed:1005,hillChance:0.12},
+    {id:'1-1',name:'1-1',dist:120,spdMul:1.0,seed:1001,hillChance:0.04,gapChance:0.05,enemyChance:0.05},
+    {id:'1-2',name:'1-2',dist:160,spdMul:1.0,seed:1002,hillChance:0.06,gapChance:0.06,enemyChance:0.08},
+    {id:'1-3',name:'1-3',dist:200,spdMul:1.0,seed:1003,hillChance:0.08,gapChance:0.08,enemyChance:0.10},
+    {id:'1-4',name:'1-4',dist:250,spdMul:1.0,seed:1004,hillChance:0.10,gapChance:0.10,enemyChance:0.13},
+    {id:'1-5',name:'1-5',dist:300,spdMul:1.0,seed:1005,hillChance:0.12,gapChance:0.12,enemyChance:0.16},
   ]},
   {name:'雪山',theme:1,unlock:3,stages:[
-    {id:'2-1',name:'2-1',dist:150,spdMul:0.85,seed:2001,hillChance:0.06},
-    {id:'2-2',name:'2-2',dist:200,spdMul:0.9,seed:2002,hillChance:0.08},
-    {id:'2-3',name:'2-3',dist:250,spdMul:0.95,seed:2003,hillChance:0.10},
-    {id:'2-4',name:'2-4',dist:300,spdMul:1.0,seed:2004,hillChance:0.12},
-    {id:'2-5',name:'2-5',dist:350,spdMul:1.05,seed:2005,hillChance:0.14},
+    {id:'2-1',name:'2-1',dist:150,spdMul:1.0,seed:2001,hillChance:0.06,gapChance:0.07,enemyChance:0.08},
+    {id:'2-2',name:'2-2',dist:200,spdMul:1.0,seed:2002,hillChance:0.08,gapChance:0.09,enemyChance:0.11},
+    {id:'2-3',name:'2-3',dist:250,spdMul:1.0,seed:2003,hillChance:0.10,gapChance:0.11,enemyChance:0.14},
+    {id:'2-4',name:'2-4',dist:300,spdMul:1.0,seed:2004,hillChance:0.12,gapChance:0.13,enemyChance:0.17},
+    {id:'2-5',name:'2-5',dist:350,spdMul:1.0,seed:2005,hillChance:0.14,gapChance:0.15,enemyChance:0.20},
   ]},
-  {name:'マグマ',theme:2,unlock:5,stages:[
-    {id:'3-1',name:'3-1',dist:180,spdMul:0.9,seed:3001,hillChance:0.08},
-    {id:'3-2',name:'3-2',dist:230,spdMul:0.95,seed:3002,hillChance:0.10},
-    {id:'3-3',name:'3-3',dist:280,spdMul:1.0,seed:3003,hillChance:0.12},
-    {id:'3-4',name:'3-4',dist:350,spdMul:1.05,seed:3004,hillChance:0.14},
-    {id:'3-5',name:'3-5',dist:400,spdMul:1.1,seed:3005,hillChance:0.16},
+  {name:'マグマ',theme:2,unlock:8,stages:[
+    {id:'3-1',name:'3-1',dist:180,spdMul:1.0,seed:3001,hillChance:0.08,gapChance:0.08,enemyChance:0.10},
+    {id:'3-2',name:'3-2',dist:230,spdMul:1.0,seed:3002,hillChance:0.10,gapChance:0.10,enemyChance:0.14},
+    {id:'3-3',name:'3-3',dist:280,spdMul:1.0,seed:3003,hillChance:0.12,gapChance:0.12,enemyChance:0.17},
+    {id:'3-4',name:'3-4',dist:350,spdMul:1.0,seed:3004,hillChance:0.14,gapChance:0.14,enemyChance:0.20},
+    {id:'3-5',name:'3-5',dist:400,spdMul:1.0,seed:3005,hillChance:0.16,gapChance:0.16,enemyChance:0.23},
   ]},
-  {name:'海',theme:3,unlock:8,stages:[
-    {id:'4-1',name:'4-1',dist:200,spdMul:0.9,seed:4001,hillChance:0.08},
-    {id:'4-2',name:'4-2',dist:260,spdMul:0.95,seed:4002,hillChance:0.10},
-    {id:'4-3',name:'4-3',dist:320,spdMul:1.0,seed:4003,hillChance:0.12},
-    {id:'4-4',name:'4-4',dist:380,spdMul:1.05,seed:4004,hillChance:0.14},
-    {id:'4-5',name:'4-5',dist:440,spdMul:1.1,seed:4005,hillChance:0.16},
+  {name:'海',theme:3,unlock:15,stages:[
+    {id:'4-1',name:'4-1',dist:200,spdMul:1.0,seed:4001,hillChance:0.08,gapChance:0.09,enemyChance:0.12},
+    {id:'4-2',name:'4-2',dist:260,spdMul:1.0,seed:4002,hillChance:0.10,gapChance:0.11,enemyChance:0.16},
+    {id:'4-3',name:'4-3',dist:320,spdMul:1.0,seed:4003,hillChance:0.12,gapChance:0.13,enemyChance:0.19},
+    {id:'4-4',name:'4-4',dist:380,spdMul:1.0,seed:4004,hillChance:0.14,gapChance:0.15,enemyChance:0.22},
+    {id:'4-5',name:'4-5',dist:440,spdMul:1.0,seed:4005,hillChance:0.16,gapChance:0.17,enemyChance:0.25},
   ]},
-  {name:'桜幻',theme:4,unlock:12,stages:[
-    {id:'5-1',name:'5-1',dist:250,spdMul:0.95,seed:5001,hillChance:0.10},
-    {id:'5-2',name:'5-2',dist:320,spdMul:1.0,seed:5002,hillChance:0.12},
-    {id:'5-3',name:'5-3',dist:380,spdMul:1.05,seed:5003,hillChance:0.14},
-    {id:'5-4',name:'5-4',dist:440,spdMul:1.1,seed:5004,hillChance:0.16},
-    {id:'5-5',name:'5-5',dist:500,spdMul:1.2,seed:5005,hillChance:0.18},
+  {name:'桜幻',theme:4,unlock:22,stages:[
+    {id:'5-1',name:'5-1',dist:250,spdMul:1.0,seed:5001,hillChance:0.10,gapChance:0.10,enemyChance:0.14},
+    {id:'5-2',name:'5-2',dist:320,spdMul:1.0,seed:5002,hillChance:0.12,gapChance:0.13,enemyChance:0.18},
+    {id:'5-3',name:'5-3',dist:380,spdMul:1.0,seed:5003,hillChance:0.14,gapChance:0.15,enemyChance:0.22},
+    {id:'5-4',name:'5-4',dist:440,spdMul:1.0,seed:5004,hillChance:0.16,gapChance:0.17,enemyChance:0.25},
+    {id:'5-5',name:'5-5',dist:500,spdMul:1.0,seed:5005,hillChance:0.18,gapChance:0.18,enemyChance:0.28},
   ]},
 ];
-// Stage pack progress: {stageId: true} for cleared stages
+// Stage pack progress: {stageId: {cleared:true, stars:N}} for cleared stages
 let packProgress=JSON.parse(localStorage.getItem('gd5pp')||'{}');
-let bigCoins=Object.keys(packProgress).length;
+// Migrate old format: {stageId: true} -> {stageId: {cleared:true, stars:0}}
+(function(){for(const k in packProgress){if(packProgress[k]===true)packProgress[k]={cleared:true,stars:0};}})();
+function getPackStageStars(stageId){return (packProgress[stageId]&&packProgress[stageId].stars)||0;}
+function getTotalStars(){let t=0;for(const k in packProgress)t+=(packProgress[k].stars||0);return t;}
+let totalStars=getTotalStars();
 let isPackMode=false,currentPackIdx=0,currentPackStageIdx=0,currentPackStage=null,stageRng=null;
 let stageSelScroll=0,stageSelTarget=0;
-let gotNewBigCoin=false;
+let gotNewStars=0; // how many new stars obtained this clear
 // Ambient particles for stage themes
 let ambientParts=[];
 

@@ -145,70 +145,11 @@ function reset(){
   curTheme=0;prevTheme=0;themeLerp=1;
 }
 
-function resetStage(stageIdx){
-  const stg=STAGES[stageIdx];
-  if(!stg)return;
-  player.x=W*0.2;player.gDir=1;player.vy=0;
-  player.rot=0;player.rotTarget=0;player.trail=[];player.alive=true;
-  player.grounded=false;player.face='normal';player.canFlip=true;
-  // Load stage platforms (deep copy so we can scroll them)
-  platforms=stg.platforms.map(p=>({x:p.x,w:p.w,h:p.h}));
-  ceilPlats=stg.ceilPlats.map(p=>({x:p.x,w:p.w,h:p.h}));
-  player.y=floorSurfaceY(player.x)-PLAYER_R;
-  coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];floatPlats=[];floatCD=0;
-  spikes=[];spikeCD=0;movingHills=[];hillCD=0;
-  // Spawn stage enemies
-  stg.enemies.forEach(e=>{
-    const sz=13;
-    if(e.type===2){
-      // Flyer: sine-wave mid-air enemy
-      const flyY=H*0.45+Math.random()*40;
-      enemies.push({x:e.x,y:flyY,vy:0,gDir:e.gDir,walkSpd:0,sz:sz,alive:true,fr:Math.random()*100,type:2,shootT:999,
-        baseY:flyY,flyPhase:Math.random()*6.28,flyAmp:20+Math.random()*25});
-    } else if(e.type===1){
-      // Cannon/Shooter
-      const surfY=e.gDir===1?floorSurfaceY(e.x):ceilSurfaceY(e.x);
-      const ey=e.gDir===1?surfY-sz:surfY+sz;
-      enemies.push({x:e.x,y:ey,vy:0,gDir:e.gDir,walkSpd:0.15+Math.random()*0.2,sz:sz,alive:true,fr:Math.random()*100,type:1,shootT:60+Math.floor(Math.random()*60)});
-    } else {
-      // Walker/Patrol (type 0)
-      const surfY=e.gDir===1?floorSurfaceY(e.x):ceilSurfaceY(e.x);
-      const ey=e.gDir===1?surfY-sz:surfY+sz;
-      enemies.push({x:e.x,y:ey,vy:0,gDir:e.gDir,walkSpd:0.3+Math.random()*0.4,sz:sz,alive:true,fr:Math.random()*100,type:0,shootT:999,
-        patrolDir:1,patrolOriginX:e.x,patrolRange:30+Math.random()*40});
-    }
-  });
-  // Spawn big coins
-  stageBigCoins=stg.bigCoins.map(bc=>{
-    if(bc.y!==undefined){
-      // Absolute Y position (e.g. ceiling-side coins)
-      return {x:bc.x,y:bc.y,sz:16,col:false,p:0};
-    }
-    // Relative to floor platform
-    let floorH=GROUND_H;
-    for(const p of stg.platforms){if(bc.x>=p.x&&bc.x<=p.x+p.w){floorH=p.h;break;}}
-    return {x:bc.x,y:H-floorH+bc.yOff,sz:16,col:false,p:0};
-  });
-  stageBigCollected=0;
-  stageGoal={x:stg.goalX};
-  stageClearT=0;
-  score=0;dist=0;speed=stg.speed;frame=0;deadT=0;newHi=false;
-  combo=0;comboT=0;comboDsp=0;comboDspT=0;
-  shakeX=0;shakeY=0;shakeI=0;
-  mileT=0;mileTxt='';lastMile=0;
-  totalCoins=0;totalFlips=0;maxCombo=0;
-  itemEff={invincible:0,magnet:0};bombCount=0;bombFlashT=0;
-  djumpAvailable=!!ct().hasDjump;djumpUsed=false;ghostPhaseT=0;ghostInvis=false;
-  coinCD=0;itemCD=0;enemyCD=0;flipCount=0;flipTimer=999;lastCoinCourse='';
-  hp=HP_MAX+(ct().hpBonus||0);hurtT=0;
-  prevTheme=curTheme;curTheme=0;themeLerp=1;
-}
-
 function resetPackStage(pi,si){
   const pack=STAGE_PACKS[pi];if(!pack)return;
   const stage=pack.stages[si];if(!stage)return;
   isPackMode=true;currentPackIdx=pi;currentPackStageIdx=si;currentPackStage=stage;
-  stageRng=mulberry32(stage.seed);gotNewBigCoin=false;
+  stageRng=mulberry32(stage.seed);gotNewStars=0;
   player.x=W*0.2;player.gDir=1;player.vy=0;
   player.rot=0;player.rotTarget=0;player.trail=[];player.alive=true;
   player.grounded=false;player.face='normal';player.canFlip=true;
@@ -220,7 +161,19 @@ function resetPackStage(pi,si){
   player.y=floorSurfaceY(player.x)-PLAYER_R;
   coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];floatPlats=[];floatCD=0;
   spikes=[];spikeCD=0;movingHills=[];hillCD=0;
-  stageBigCoins=[];stageGoal=null;stageBigCollected=0;stageClearT=0;
+  // Place 3 stars at 25%, 50%, 80% of stage distance
+  const starRng=mulberry32(stage.seed+777);
+  stageBigCoins=[];
+  const starPositions=[0.25,0.5,0.8];
+  for(let si2=0;si2<3;si2++){
+    const starDist=stage.dist*starPositions[si2];
+    // Convert distance to approximate x position (speed * frames * 0.08 = dist)
+    // x offset from player start = starDist / 0.08 * speed_approx_frames... simplified: use dist directly as scroll units
+    const starX=W*0.2 + starDist / (SPEED_INIT * stage.spdMul * 0.08) * (SPEED_INIT * stage.spdMul);
+    const yOff=-40-starRng()*40; // 40-80px above floor
+    stageBigCoins.push({x:starX,y:0,yOff:yOff,sz:16,col:false,p:0,distMark:starDist});
+  }
+  stageBigCollected=0;stageClearT=0;
   ambientParts=[];
   score=0;dist=0;speed=SPEED_INIT*stage.spdMul;frame=0;deadT=0;newHi=false;
   combo=0;comboT=0;comboDsp=0;comboDspT=0;
@@ -241,7 +194,8 @@ function generatePackPlatform(arr,isCeil,stage){
   const lastRight=last?last.x+last.w:0;
   const rng=stageRng;if(!rng)return;
   let gap=0;
-  if(rng()<0.12){gap=10+rng()*40;}
+  const gc=stage.gapChance||0.12;
+  if(rng()<gc){gap=10+rng()*40;}
   let h=lastH;
   const hc=stage.hillChance||0.08;
   if(rng()<hc){

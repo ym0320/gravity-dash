@@ -153,8 +153,8 @@ function draw(){
   if(state===ST.TITLE){drawTitle();drawCharModal();ctx.restore();return;}
   if(state===ST.STAGE_SEL){drawStageSel();ctx.restore();return;}
 
-  // Stage mode: draw big coins and goal
-  if(gameMode==='stage'){
+  // Pack mode: draw stars (stageBigCoins)
+  if(isPackMode){
     stageBigCoins.forEach(bc=>{
       if(bc.col||bc.x<-30||bc.x>W+30)return;
       const p=Math.sin(bc.p)*0.15+1,sz=bc.sz*p;
@@ -172,18 +172,6 @@ function draw(){
       // Inner highlight
       ctx.fillStyle='rgba(255,255,255,0.5)';ctx.beginPath();ctx.arc(bc.x-sz*0.15,bc.y-sz*0.2,sz*0.3,0,6.28);ctx.fill();
     });
-    // Goal flag
-    if(stageGoal&&stageGoal.x>-30&&stageGoal.x<W+50){
-      const gx=stageGoal.x,gy=H-GROUND_H;
-      // Pole
-      ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(gx,gy);ctx.lineTo(gx,gy-80);ctx.stroke();
-      // Flag
-      ctx.fillStyle='#ff3860';ctx.beginPath();ctx.moveTo(gx,gy-80);ctx.lineTo(gx+30,gy-65);ctx.lineTo(gx,gy-50);ctx.closePath();ctx.fill();
-      // "GOAL" text
-      ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='center';
-      ctx.shadowColor='#ffd70066';ctx.shadowBlur=10;
-      ctx.fillText('GOAL',gx,gy-88);ctx.shadowBlur=0;
-    }
   }
 
   // Coins & Items
@@ -332,7 +320,7 @@ function drawItem(it){
 }
 
 function drawEnemy(en){
-  if(en.bossType==='charge'){drawBossCharge(en);return;}
+  if(en.bossType==='charge'||en.bossType==='dodge'){drawBossCharge(en);return;}
   if(en.bossType==='bruiser'){drawBossBruiser(en);return;}
   if(en.bossType==='wizard'){drawBossWizard(en);return;}
   if(en.type===1){drawShooter(en);return;}
@@ -747,15 +735,12 @@ function drawUI(){
     ctx.fillText(pname,10,uiTop);
     ctx.fillStyle='#fff8';ctx.font='11px monospace';
     ctx.fillText(Math.floor(dist)+'m / '+currentPackStage.dist+'m',10,uiTop+16);
-  } else if(gameMode==='stage'){
-    const stg=STAGES[currentStage];
-    ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='left';
-    ctx.fillText(stg?stg.name:'',10,uiTop);
+    // Stars collected indicator
     ctx.textAlign='left';
     for(let i=0;i<3;i++){
       const collected=i<stageBigCollected;
-      ctx.fillStyle=collected?'#ffd700':'#ffffff22';ctx.font='bold 18px monospace';
-      ctx.fillText('\u2605',10+i*22,uiTop+22);
+      ctx.fillStyle=collected?'#ffd700':'#ffffff22';ctx.font='bold 16px monospace';
+      ctx.fillText('\u2605',10+i*20,uiTop+34);
     }
   } else {
     // Endless mode: score is shown in bottom panel, top just shows speed & coins
@@ -927,36 +912,25 @@ function drawTitle(){
   if(highScore>0){ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='center';ctx.fillText('\u30D9\u30B9\u30C8: '+highScore,W/2,statsY);}
   if(played>0){ctx.fillStyle='#fff3';ctx.font='11px monospace';ctx.fillText('\u30D7\u30EC\u30A4\u56DE\u6570: '+played,W/2,statsY+(highScore>0?20:0));}
 
-  // Mode selection buttons (3 buttons)
-  const btnW=W*0.28,btnH=38,btnGap=8;
-  const totalBtnW=btnW*3+btnGap*2;
+  // Mode selection buttons (2 buttons: Endless, Stage)
+  const btnW=W*0.35,btnH=38,btnGap=12;
+  const totalBtnW=btnW*2+btnGap;
   const btnStartX=W/2-totalBtnW/2;
   const btnY=H*0.78;
   // Endless mode button
   const ebx=btnStartX;
   ctx.fillStyle='#00e5ff22';rr(ebx,btnY,btnW,btnH,8);ctx.fill();
   ctx.strokeStyle='#00e5ff';ctx.lineWidth=1.5;rr(ebx,btnY,btnW,btnH,8);ctx.stroke();
-  ctx.fillStyle='#00e5ff';ctx.font='bold 11px monospace';ctx.textAlign='center';
+  ctx.fillStyle='#00e5ff';ctx.font='bold 13px monospace';ctx.textAlign='center';
   ctx.fillText('エンドレス',ebx+btnW/2,btnY+24);
-  // Old stage mode button
+  // Stage mode button
   const sbx=btnStartX+btnW+btnGap;
   ctx.fillStyle='#ffd70022';rr(sbx,btnY,btnW,btnH,8);ctx.fill();
   ctx.strokeStyle='#ffd700';ctx.lineWidth=1.5;rr(sbx,btnY,btnW,btnH,8);ctx.stroke();
-  ctx.fillStyle='#ffd700';ctx.font='bold 11px monospace';
+  ctx.fillStyle='#ffd700';ctx.font='bold 13px monospace';
   ctx.fillText('ステージ',sbx+btnW/2,btnY+24);
   const ts=getTotalStars();
-  if(ts>0){ctx.fillStyle='#ffd700aa';ctx.font='8px monospace';ctx.fillText('★'+ts,sbx+btnW/2,btnY+36);}
-  // Pack mode button (new!)
-  const pbx=btnStartX+2*(btnW+btnGap);
-  const packPulse=0.5+Math.sin(frame*0.06)*0.3;
-  ctx.fillStyle='#ff69b422';rr(pbx,btnY,btnW,btnH,8);ctx.fill();
-  ctx.strokeStyle='#ff69b4';ctx.lineWidth=1.5+packPulse*0.5;rr(pbx,btnY,btnW,btnH,8);ctx.stroke();
-  ctx.fillStyle='#ff69b4';ctx.font='bold 11px monospace';
-  ctx.fillText('パック',pbx+btnW/2,btnY+24);
-  // Big coin count on pack button
-  drawBigCoinIcon(pbx+btnW/2-20,btnY+36,5);
-  ctx.fillStyle='#ffd700';ctx.font='bold 8px monospace';ctx.textAlign='left';
-  ctx.fillText('×'+bigCoins,pbx+btnW/2-12,btnY+38);
+  if(ts>0){ctx.fillStyle='#ffd700aa';ctx.font='9px monospace';ctx.fillText('★'+ts,sbx+btnW/2,btnY+36);}
 
   ctx.fillStyle='#667';ctx.font='10px monospace';ctx.textAlign='center';
   ctx.fillText('タップ=ジャンプ / スワイプ=重力反転',W/2,H*0.93);
@@ -1231,7 +1205,7 @@ function drawDead(){
   else if(score>=25)rating='\u307E\u305A\u307E\u305A';
   if(rating){ctx.fillStyle='#fff6';ctx.font='bold 13px monospace';ctx.fillText(rating,W/2,cardY+182);}
 
-  if(deadT>45){const ta=Math.sin(deadT*0.07)*0.3+0.7;ctx.globalAlpha=ta*e;ctx.fillStyle='#fff';ctx.font='bold 15px monospace';ctx.fillText(isPackMode?'タップでステージ選択へ':gameMode==='stage'?'タップでリトライ':'タップで続ける',W/2,H*0.82);}
+  if(deadT>45){const ta=Math.sin(deadT*0.07)*0.3+0.7;ctx.globalAlpha=ta*e;ctx.fillStyle='#fff';ctx.font='bold 15px monospace';ctx.fillText(isPackMode?'タップでステージ選択へ':'タップで続ける',W/2,H*0.82);}
 
   ctx.restore();ctx.globalAlpha=1;
 }
@@ -1257,10 +1231,9 @@ function drawStageSel(){
   ctx.fillStyle='#ffffff22';rr(10,22+safeTop,50,30,8);ctx.fill();
   ctx.fillStyle='#fff8';ctx.font='bold 14px monospace';ctx.textAlign='center';
   ctx.fillText('← 戻る',35,42+safeTop);
-  // Big coin display
-  drawBigCoinIcon(W-50,37+safeTop,10);
-  ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='left';
-  ctx.fillText('×'+bigCoins,W-36,42+safeTop);
+  // Star total display
+  ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='right';
+  ctx.fillText('★'+totalStars,W-12,42+safeTop);
   // Scrollable pack list
   ctx.save();
   ctx.beginPath();ctx.rect(0,60+safeTop,W,H-70-safeTop-safeBot);ctx.clip();
@@ -1270,9 +1243,9 @@ function drawStageSel(){
     const pack=STAGE_PACKS[pi];
     const cy=startY+pi*(cardH+cardGap);
     if(cy+cardH<60+safeTop||cy>H)continue; // off-screen cull
-    const locked=bigCoins<pack.unlock;
+    const locked=totalStars<pack.unlock;
     const st=STAGE_THEMES[pack.theme];
-    const cleared=pack.stages.filter(s=>packProgress[s.id]).length;
+    const cleared=pack.stages.filter(s=>packProgress[s.id]&&packProgress[s.id].cleared).length;
     // Card background
     const cg=ctx.createLinearGradient(15,cy,15+cardW,cy+cardH);
     cg.addColorStop(0,locked?'#111118':st.bg1+'cc');cg.addColorStop(1,locked?'#0a0a12':st.bg2+'cc');
@@ -1284,9 +1257,9 @@ function drawStageSel(){
       ctx.fillStyle='#888';ctx.font='bold 28px monospace';ctx.textAlign='center';
       ctx.fillText('🔒',W/2,cy+55);
       ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';
-      ctx.fillText('大コイン '+pack.unlock+'枚で解放',W/2,cy+82);
+      ctx.fillText('★'+pack.unlock+'個で解放',W/2,cy+82);
       ctx.fillStyle='#fff4';ctx.font='10px monospace';
-      ctx.fillText('現在: '+bigCoins+' / '+pack.unlock,W/2,cy+98);
+      ctx.fillText('現在: ★'+totalStars+' / '+pack.unlock,W/2,cy+98);
       // Pack name (dimmed)
       ctx.fillStyle='#fff3';ctx.font='bold 14px monospace';
       ctx.fillText(pack.name,W/2,cy+22);
@@ -1304,16 +1277,24 @@ function drawStageSel(){
     for(let si=0;si<5;si++){
       const stage=pack.stages[si];
       const sx=sbX+si*(sbW+sbGap);
-      const isClear=!!packProgress[stage.id];
+      const prog=packProgress[stage.id];
+      const isClear=prog&&prog.cleared;
+      const stageStars=prog?prog.stars:0;
       // Determine if playable: first stage always, or previous cleared
-      const canPlay=si===0||!!packProgress[pack.stages[si-1].id];
+      const prevProg=si>0?packProgress[pack.stages[si-1].id]:null;
+      const canPlay=si===0||(prevProg&&prevProg.cleared);
       if(isClear){
-        // Cleared: gold circle with check
+        // Cleared: gold circle with stars
         ctx.fillStyle='#ffd70033';rr(sx,sbY,sbW,sbH,10);ctx.fill();
         ctx.strokeStyle='#ffd700';ctx.lineWidth=1.5;rr(sx,sbY,sbW,sbH,10);ctx.stroke();
         ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';ctx.textAlign='center';
-        ctx.fillText(stage.name,sx+sbW/2,sbY+18);
-        ctx.fillText('✓',sx+sbW/2,sbY+36);
+        ctx.fillText(stage.name,sx+sbW/2,sbY+16);
+        // Show stars earned
+        ctx.font='10px monospace';
+        for(let si2=0;si2<3;si2++){
+          ctx.fillStyle=si2<stageStars?'#ffd700':'#ffffff33';
+          ctx.fillText('★',sx+sbW/2-10+si2*10,sbY+36);
+        }
       } else if(canPlay){
         // Next playable: white border, pulse
         const pulse=0.5+Math.sin(frame*0.08)*0.3;
@@ -1333,11 +1314,11 @@ function drawStageSel(){
         ctx.fillText('🔒',sx+sbW/2,sbY+36);
       }
     }
-    // Big coin indicator at bottom of card
+    // Star total indicator at bottom of card
     const bcY=sbY+sbH+8;
-    drawBigCoinIcon(28,bcY,7);
+    const packStars=pack.stages.reduce((sum,s)=>{const p=packProgress[s.id];return sum+(p?p.stars:0);},0);
     ctx.fillStyle='#ffd700';ctx.font='9px monospace';ctx.textAlign='left';
-    ctx.fillText(cleared+' / 5 大コイン',40,bcY+4);
+    ctx.fillText('★ '+packStars+' / 15  ('+cleared+'/5 クリア)',28,bcY+4);
   }
   ctx.restore();
   // Scroll indicator
@@ -1362,7 +1343,7 @@ function handleStageSelTouch(tx,ty){
     const pack=STAGE_PACKS[pi];
     const cy=startY+pi*(cardH+cardGap);
     if(ty<cy||ty>cy+cardH)continue;
-    const locked=bigCoins<pack.unlock;
+    const locked=totalStars<pack.unlock;
     if(locked){sfx('hurt');vibrate(15);addPop(W/2,ty,'ロック中','#ff4444');return;}
     // Check stage buttons
     const sbW=44,sbH=44,sbGap=8;
@@ -1372,7 +1353,8 @@ function handleStageSelTouch(tx,ty){
       const stage=pack.stages[si];
       const sx=sbX+si*(sbW+sbGap);
       if(tx>=sx&&tx<=sx+sbW&&ty>=sbY&&ty<=sbY+sbH){
-        const canPlay=si===0||!!packProgress[pack.stages[si-1].id];
+        const prevProg=si>0?packProgress[pack.stages[si-1].id]:null;
+        const canPlay=si===0||(prevProg&&prevProg.cleared);
         if(!canPlay){sfx('hurt');vibrate(10);addPop(sx+sbW/2,sbY-5,'前をクリアして','#ff8844');return;}
         // Start this stage!
         gameMode='pack';isPackMode=true;
@@ -1396,68 +1378,47 @@ function drawStageClear(){
   ctx.shadowColor='#ffd70066';ctx.shadowBlur=20;
   ctx.fillText('クリア！',W/2,H*0.25);ctx.shadowBlur=0;
 
-  if(isPackMode&&currentPackStage){
-    // Pack mode clear
-    const pname=STAGE_PACKS[currentPackIdx].name+' '+currentPackStage.name;
-    ctx.fillStyle='#fff8';ctx.font='14px monospace';
-    ctx.fillText(pname,W/2,H*0.32);
-    const cardY=H*0.36,cardH=160;
-    ctx.fillStyle='#0008';rr(W/2-120,cardY,240,cardH,12);ctx.fill();
-    ctx.strokeStyle='#ffd70033';ctx.lineWidth=1;rr(W/2-120,cardY,240,cardH,12);ctx.stroke();
-    drawCharacter(W/2,cardY+35,selChar,20,0,1,'happy');
-    // Score info
-    ctx.fillStyle='#fff';ctx.font='bold 24px monospace';ctx.textAlign='center';
-    ctx.fillText(Math.floor(dist)+'m',W/2,cardY+72);
-    ctx.fillStyle='#fff5';ctx.font='11px monospace';
-    ctx.fillText('目標: '+currentPackStage.dist+'m  コイン: '+totalCoins,W/2,cardY+92);
-    // Big coin earned
-    if(gotNewBigCoin){
-      const bcA=stageClearT>30?Math.min(1,(stageClearT-30)/20):0;
-      ctx.globalAlpha=bcA*e;
-      const sc=1+Math.sin(stageClearT*0.1)*0.15;
-      ctx.save();ctx.translate(W/2,cardY+120);ctx.scale(sc,sc);
-      drawBigCoinIcon(0,0,14);
-      ctx.fillStyle='#fff';ctx.font='bold 12px monospace';ctx.textAlign='center';
-      ctx.fillText('大コイン GET!',0,22);
-      ctx.restore();ctx.globalAlpha=e;
-    } else {
-      ctx.fillStyle='#fff4';ctx.font='11px monospace';ctx.textAlign='center';
-      ctx.fillText('(クリア済み)',W/2,cardY+120);
-    }
-    if(stageClearT>60){
-      const ta=Math.sin(stageClearT*0.07)*0.3+0.7;
-      ctx.globalAlpha=ta*e;ctx.fillStyle='#fff';ctx.font='bold 15px monospace';
-      ctx.fillText('タップでステージ選択へ',W/2,H*0.82);
-    }
-  } else {
-    // Old stage mode clear
-    const stg=STAGES[currentStage];
-    ctx.fillStyle='#fff8';ctx.font='14px monospace';
-    ctx.fillText(stg?stg.name+' - '+stg.desc:'',W/2,H*0.32);
-    const cardY=H*0.36,cardH=140;
-    ctx.fillStyle='#0008';rr(W/2-120,cardY,240,cardH,12);ctx.fill();
-    ctx.strokeStyle='#ffd70033';ctx.lineWidth=1;rr(W/2-120,cardY,240,cardH,12);ctx.stroke();
-    drawCharacter(W/2,cardY+35,selChar,20,0,1,'happy');
-    const starY=cardY+80;
-    for(let i=0;i<3;i++){
-      const sx=W/2-30+i*30,collected=i<stageBigCollected;
-      const delay=i*12,ap=stageClearT>20+delay?Math.min(1,(stageClearT-20-delay)/15):0;
-      if(collected){
-        const sc=1+Math.sin(stageClearT*0.1+i)*0.1;
-        ctx.save();ctx.translate(sx,starY);ctx.scale(sc*ap,sc*ap);
-        ctx.fillStyle='#ffd700';ctx.shadowColor='#ffd70088';ctx.shadowBlur=12;
-        ctx.font='bold 26px monospace';ctx.textAlign='center';ctx.fillText('★',0,8);ctx.shadowBlur=0;ctx.restore();
-      } else {ctx.globalAlpha=e*0.3;ctx.fillStyle='#fff';ctx.font='bold 26px monospace';ctx.textAlign='center';ctx.fillText('☆',sx,starY+8);ctx.globalAlpha=e;}
-    }
-    const reward=10+stageBigCollected*5;
+  // Stage clear display (unified - always pack mode)
+  const pname=currentPackStage?STAGE_PACKS[currentPackIdx].name+' '+currentPackStage.name:'';
+  ctx.fillStyle='#fff8';ctx.font='14px monospace';
+  ctx.fillText(pname,W/2,H*0.32);
+  const cardY=H*0.36,cardH=170;
+  ctx.fillStyle='#0008';rr(W/2-120,cardY,240,cardH,12);ctx.fill();
+  ctx.strokeStyle='#ffd70033';ctx.lineWidth=1;rr(W/2-120,cardY,240,cardH,12);ctx.stroke();
+  drawCharacter(W/2,cardY+35,selChar,20,0,1,'happy');
+  // Score info
+  ctx.fillStyle='#fff';ctx.font='bold 24px monospace';ctx.textAlign='center';
+  ctx.fillText(Math.floor(dist)+'m',W/2,cardY+72);
+  ctx.fillStyle='#fff5';ctx.font='11px monospace';
+  ctx.fillText('目標: '+(currentPackStage?currentPackStage.dist:0)+'m  コイン: '+totalCoins,W/2,cardY+92);
+  // Stars display (3 stars with animation)
+  const starY=cardY+115;
+  for(let i=0;i<3;i++){
+    const sx=W/2-30+i*30,collected=i<stageBigCollected;
+    const delay=i*12,ap=stageClearT>20+delay?Math.min(1,(stageClearT-20-delay)/15):0;
+    if(collected){
+      const sc=1+Math.sin(stageClearT*0.1+i)*0.1;
+      ctx.save();ctx.translate(sx,starY);ctx.scale(sc*ap,sc*ap);
+      ctx.fillStyle='#ffd700';ctx.shadowColor='#ffd70088';ctx.shadowBlur=12;
+      ctx.font='bold 26px monospace';ctx.textAlign='center';ctx.fillText('★',0,8);ctx.shadowBlur=0;ctx.restore();
+    } else {ctx.globalAlpha=e*0.3;ctx.fillStyle='#fff';ctx.font='bold 26px monospace';ctx.textAlign='center';ctx.fillText('☆',sx,starY+8);ctx.globalAlpha=e;}
+  }
+  // New stars earned
+  if(gotNewStars>0){
+    const bcA=stageClearT>30?Math.min(1,(stageClearT-30)/20):0;
+    ctx.globalAlpha=bcA*e;
     ctx.fillStyle='#ffd700';ctx.font='bold 13px monospace';ctx.textAlign='center';
-    ctx.fillText('● +'+reward+' コイン獲得',W/2,cardY+cardH-10);
-    if(stageClearT>60){
-      const ta=Math.sin(stageClearT*0.07)*0.3+0.7;
-      ctx.globalAlpha=ta*e;ctx.fillStyle='#fff';ctx.font='bold 15px monospace';
-      const ns=currentStage+1;const canNext=ns<STAGES.length&&getTotalStars()>=STAGES[ns].requiredStars;
-      ctx.fillText(canNext?'タップで次のステージへ':'タップでタイトルへ',W/2,H*0.82);
-    }
+    ctx.fillText('★ +'+gotNewStars+' NEW!',W/2,cardY+150);
+    ctx.globalAlpha=e;
+  }
+  const starsCollected=stageBigCoins?stageBigCoins.filter(bc=>bc.col).length:0;
+  const reward=10+starsCollected*5+(gotNewStars>0?10:0);
+  ctx.fillStyle='#ffd700';ctx.font='bold 11px monospace';ctx.textAlign='center';
+  ctx.fillText('● +'+reward+' コイン獲得',W/2,cardY+cardH-6);
+  if(stageClearT>60){
+    const ta=Math.sin(stageClearT*0.07)*0.3+0.7;
+    ctx.globalAlpha=ta*e;ctx.fillStyle='#fff';ctx.font='bold 15px monospace';
+    ctx.fillText('タップでステージ選択へ',W/2,H*0.82);
   }
 
   parts.forEach(p=>{ctx.globalAlpha=p.life/p.ml;ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.sz*(p.life/p.ml),0,6.28);ctx.fill();});

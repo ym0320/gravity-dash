@@ -22,8 +22,7 @@ canvas.addEventListener('touchstart',e=>{
   touchStartY=t.clientY;touchStartX=t.clientX;touchStartT=Date.now();touchMoved=false;
   if(state===ST.STAGE_SEL){stageSelTouchY=t.clientY;stageSelDragging=false;handleStageSelTouch(p.x,p.y);return;}
   if(state===ST.STAGE_CLEAR&&stageClearT>60){
-    if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;}
-    const ns=currentStage+1;if(ns<STAGES.length&&getTotalStars()>=STAGES[ns].requiredStars){currentStage=ns;state=ST.PLAY;resetStage(currentStage);switchBGM('play');}else{state=ST.TITLE;switchBGM('title');}return;
+    state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;
   }
   if(state===ST.PAUSE){
     if(hitResumeBtn(p.x,p.y)){state=ST.PLAY;switchBGM('play');return;}
@@ -45,8 +44,7 @@ canvas.addEventListener('touchstart',e=>{
   }
   else if(state===ST.DEAD&&deadT>45){
     if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;}
-    if(gameMode==='stage'){state=ST.PLAY;resetStage(currentStage);switchBGM('play');}
-    else{state=ST.TITLE;switchBGM('title');}
+    state=ST.TITLE;switchBGM('title');
   }
 },{passive:false});
 
@@ -121,8 +119,7 @@ canvas.addEventListener('mousedown',e=>{
   const p=canvasXY(e.clientX,e.clientY);
   if(state===ST.STAGE_SEL){handleStageSelTouch(p.x,p.y);return;}
   if(state===ST.STAGE_CLEAR&&stageClearT>60){
-    if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;}
-    const ns=currentStage+1;if(ns<STAGES.length&&getTotalStars()>=STAGES[ns].requiredStars){currentStage=ns;state=ST.PLAY;resetStage(currentStage);switchBGM('play');}else{state=ST.TITLE;switchBGM('title');}return;
+    state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;
   }
   if(state===ST.PAUSE){
     if(hitResumeBtn(p.x,p.y)){state=ST.PLAY;switchBGM('play');return;}
@@ -134,8 +131,7 @@ canvas.addEventListener('mousedown',e=>{
   if(state===ST.TITLE){if(charModal.show){charModal.show=false;return;}handleTitleTouch(p.x,p.y);}
   else if(state===ST.DEAD&&deadT>45){
     if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;}
-    if(gameMode==='stage'){state=ST.PLAY;resetStage(currentStage);switchBGM('play');}
-    else{state=ST.TITLE;switchBGM('title');}
+    state=ST.TITLE;switchBGM('title');
   }
   else if(state===ST.PLAY&&player.grounded){
     const jp=JUMP_POWER*ct().jumpMul;
@@ -162,16 +158,14 @@ document.addEventListener('keydown',e=>{
     e.preventDefault();initAudio();
     if(state===ST.STAGE_SEL)return;
     if(state===ST.STAGE_CLEAR&&stageClearT>60){
-      if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;}
-      const ns=currentStage+1;if(ns<STAGES.length&&getTotalStars()>=STAGES[ns].requiredStars){currentStage=ns;state=ST.PLAY;resetStage(currentStage);switchBGM('play');}else{state=ST.TITLE;switchBGM('title');}return;
+      state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;
     }
     if(state===ST.PAUSE){state=ST.PLAY;switchBGM('play');return;}
     if(state===ST.TITLE){gameMode='endless';isPackMode=false;state=ST.PLAY;reset();switchBGM('play');}
     else if(state===ST.DEAD&&deadT>45){
-    if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;}
-    if(gameMode==='stage'){state=ST.PLAY;resetStage(currentStage);switchBGM('play');}
-    else{state=ST.TITLE;switchBGM('title');}
-  }
+      if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;}
+      state=ST.TITLE;switchBGM('title');
+    }
     else if(state===ST.PLAY&&player.grounded){
       const jp=JUMP_POWER*ct().jumpMul;
       player.vy=-jp*player.gDir;player.grounded=false;djumpUsed=false;
@@ -230,33 +224,19 @@ function handleTitleTouch(tx,ty){
       }
     }
   }
-  // Mode selection buttons (3 buttons)
-  const btnW=W*0.28,btnH=38,btnGap=8;
-  const totalBtnW=btnW*3+btnGap*2;
+  // Mode selection buttons (2 buttons: Endless, Stage)
+  const btnW=W*0.35,btnH=38,btnGap=12;
+  const totalBtnW=btnW*2+btnGap;
   const btnStartX=W/2-totalBtnW/2;
   const btnY=H*0.78;
   const ebx=btnStartX;
   const sbx=btnStartX+btnW+btnGap;
-  const pbx=btnStartX+2*(btnW+btnGap);
   // Endless mode button
   if(tx>=ebx&&tx<=ebx+btnW&&ty>=btnY&&ty<=btnY+btnH){
     gameMode='endless';isPackMode=false;state=ST.PLAY;reset();switchBGM('play');return;
   }
-  // Stage mode button
+  // Stage mode button -> go to stage selection screen
   if(tx>=sbx&&tx<=sbx+btnW&&ty>=btnY&&ty<=btnY+btnH){
-    gameMode='stage';isPackMode=false;
-    let firstUncleared=0;
-    for(let i=0;i<STAGES.length;i++){
-      const sp=stageProgress[i];
-      if(!sp||!sp.cleared){firstUncleared=i;break;}
-      if(i===STAGES.length-1)firstUncleared=STAGES.length-1;
-    }
-    const totalSt=getTotalStars();
-    while(firstUncleared<STAGES.length&&STAGES[firstUncleared].requiredStars>totalSt){firstUncleared=Math.max(0,firstUncleared-1);break;}
-    currentStage=firstUncleared;state=ST.PLAY;resetStage(currentStage);switchBGM('play');return;
-  }
-  // Pack mode button -> go to stage selection screen
-  if(tx>=pbx&&tx<=pbx+btnW&&ty>=btnY&&ty<=btnY+btnH){
-    state=ST.STAGE_SEL;stageSelScroll=0;stageSelTarget=0;return;
+    gameMode='stage';state=ST.STAGE_SEL;stageSelScroll=0;stageSelTarget=0;return;
   }
 }
