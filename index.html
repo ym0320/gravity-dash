@@ -825,69 +825,63 @@ function trySpawnFloatPlat(){
 // ===== BOSS PHASE =====
 function startBossPhase(){
   bossPhase.active=true;
-  bossPhase.prepare=120; // 2 sec flat terrain prep
-  bossPhase.alertT=0; // alert animation timer
+  bossPhase.prepare=120;
+  bossPhase.alertT=0;
   bossPhase.enemies=[];
   bossPhase.defeated=0;
   bossPhase.reward=false;
   bossPhase.rewardT=0;
-  // Clear existing normal enemies/bullets
+  bossPhase.chargeQueue=[]; // queue of charge enemies to spawn
+  bossPhase.chargeIdx=0;
+  bossPhase.bruiser=null; // the multi-stomp boss
   enemies=[];bullets=[];floatPlats=[];
-  // Determine boss wave based on how many boss fights happened
   const wave=Math.floor((score-80)/80);
   bossPhase.lastBossScore=score;
-  bossPhase.nextAt=score+80+wave*20; // next boss further away each time
-  // Ominous alert effects
+  bossPhase.nextAt=score+80+wave*20;
   shakeI=18;sfxBossAlert();vibrate([50,30,50,30,80,40,100]);
 }
 function spawnBossEnemies(){
   const wave=Math.floor((bossPhase.lastBossScore-80)/80);
   const floorY=H-GROUND_H;
   const ceilY=GROUND_H;
-  const cx=W*0.7; // spawn center
-  const sz=13;
-  // Wave composition grows with each boss encounter
-  // Type A: Giant enemy (sz=28, needs precise jump to stomp)
-  const giants=1+Math.min(wave,2);
-  for(let i=0;i<giants;i++){
-    const gx=cx+i*120;
-    const gsz=26+wave*2;
-    enemies.push({x:gx,y:floorY-gsz,vy:0,gDir:1,walkSpd:0.15+wave*0.05,sz:gsz,alive:true,fr:Math.random()*100,type:0,shootT:999,
-      patrolDir:1,patrolOriginX:gx,patrolRange:40+wave*10,boss:true});
-    bossPhase.enemies.push(enemies[enemies.length-1]);
+  // Phase A: 5 charge enemies that rush alternating top/bottom
+  const chargeCount=5+Math.min(wave,3);
+  for(let i=0;i<chargeCount;i++){
+    const fromCeil=i%2===1;
+    const gDir=fromCeil?-1:1;
+    const sy=gDir===1?floorY:ceilY;
+    const sz=22+wave*2; // big enough that jump barely clears
+    const ey=gDir===1?sy-sz:sy+sz;
+    bossPhase.chargeQueue.push({
+      x:W+60+i*10,y:ey,vy:0,gDir:gDir,sz:sz,alive:true,fr:Math.random()*100,
+      type:10,shootT:999,boss:true,bossType:'charge',
+      chargeVx:-(7+wave*0.5+Math.random()*2), // rush speed
+      chargeState:'wait', // wait -> rush -> done
+      rushDelay:60+i*35, // stagger spawns
+      timer:0
+    });
   }
-  // Type B: Swarm of small fast enemies
-  const swarmCount=3+Math.min(wave*2,8);
-  for(let i=0;i<swarmCount;i++){
-    const gDir=Math.random()<0.3?-1:1;
-    const sx=cx+80+i*50+Math.random()*30;
-    const surfY=gDir===1?floorY:ceilY;
-    const ey=gDir===1?surfY-8:surfY+8;
-    enemies.push({x:sx,y:ey,vy:0,gDir:gDir,walkSpd:0.6+Math.random()*0.5,sz:8,alive:true,fr:Math.random()*100,type:0,shootT:999,
-      patrolDir:Math.random()<0.5?1:-1,patrolOriginX:sx,patrolRange:50+Math.random()*30,boss:true});
-    bossPhase.enemies.push(enemies[enemies.length-1]);
-  }
-  // Type C: Rapid-fire cannons (after first boss)
-  if(wave>=1){
-    const cannons=1+Math.min(wave,3);
-    for(let i=0;i<cannons;i++){
-      const gDir=i%2===0?1:-1;
-      const sx=cx+200+i*100;
-      const surfY=gDir===1?floorY:ceilY;
-      const ey=gDir===1?surfY-sz:surfY+sz;
-      enemies.push({x:sx,y:ey,vy:0,gDir:gDir,walkSpd:0.1,sz:sz,alive:true,fr:Math.random()*100,type:1,shootT:30+Math.floor(Math.random()*20),boss:true});
-      bossPhase.enemies.push(enemies[enemies.length-1]);
-    }
-  }
-  bossPhase.total=bossPhase.enemies.length;
+  bossPhase.chargeIdx=0;
+  // Phase B: bruiser boss that needs 3 stomps
+  const bsz=30+wave*3;
+  const bruiser={
+    x:W+80,y:floorY-bsz,vy:0,gDir:1,sz:bsz,alive:true,fr:0,
+    type:11,shootT:999,boss:true,bossType:'bruiser',
+    hp:3+Math.min(wave,2), maxHp:3+Math.min(wave,2),
+    chargeVx:-(3.5+wave*0.3), retreatVx:2.5+wave*0.2,
+    state:'enter', // enter -> charge -> stunned -> retreat -> charge...
+    timer:0, stunT:0, hurtFlash:0,
+    patrolDir:1,patrolOriginX:W*0.6,patrolRange:0
+  };
+  bossPhase.bruiser=bruiser;
+  // Total: charges + 1 bruiser
+  bossPhase.total=chargeCount+1;
 }
 function updateBossPhase(){
   if(!bossPhase.active)return;
   bossPhase.alertT++;
-  // Prepare phase: flatten terrain before enemies spawn
   if(bossPhase.prepare>0){
     bossPhase.prepare--;
-    // Spawn warning particles during prepare
     if(bossPhase.prepare%4===0){
       for(let i=0;i<3;i++){
         const side=Math.random()<0.5?-10:W+10;
@@ -897,36 +891,252 @@ function updateBossPhase(){
     if(bossPhase.prepare===0) spawnBossEnemies();
     return;
   }
-  // Reward phase: auto-collect rewards
   if(bossPhase.reward){
     bossPhase.rewardT++;
-    if(bossPhase.rewardT>=180){
-      // End boss phase
-      bossPhase.active=false;
-      bossPhase.reward=false;
-    }
+    if(bossPhase.rewardT>=180){bossPhase.active=false;bossPhase.reward=false;}
     return;
   }
-  // Check if all boss enemies defeated
+  const floorY=H-GROUND_H;
+  const ceilY=GROUND_H;
+  const pr=PLAYER_R*ct().sizeMul;
+  // Phase A: spawn charge enemies from queue
+  if(bossPhase.chargeIdx<bossPhase.chargeQueue.length){
+    const next=bossPhase.chargeQueue[bossPhase.chargeIdx];
+    next.rushDelay--;
+    if(next.rushDelay<=0){
+      next.chargeState='rush';
+      enemies.push(next);
+      bossPhase.enemies.push(next);
+      bossPhase.chargeIdx++;
+      sfx('shoot');shakeI=4;
+    }
+  }
+  // Update charge enemies
+  enemies.forEach(en=>{
+    if(!en.alive||en.bossType!=='charge')return;
+    if(en.chargeState==='rush'){
+      en.x+=en.chargeVx;
+      en.fr+=0.2;
+      // Trail particles
+      if(frame%2===0){
+        const tc2=en.gDir===1?'#ff4444':'#4444ff';
+        parts.push({x:en.x+en.sz,y:en.y,vx:1+Math.random(),vy:(Math.random()-0.5)*2,life:12,ml:12,sz:Math.random()*4+2,col:tc2});
+      }
+      // If went off left edge: dodged successfully = defeated
+      if(en.x<-en.sz*2){
+        en.alive=false;
+        addPop(40,en.y,'\u56DE\u907F!','#34d399');
+        emitParts(10,en.y,8,'#34d399',3,2);
+      }
+      // Collision with player
+      const dx=player.x-en.x,dy=player.y-en.y;
+      if(Math.sqrt(dx*dx+dy*dy)<pr+en.sz){
+        if(itemEff.invincible>0){
+          en.alive=false;
+          emitParts(en.x,en.y,15,'#ff00ff',4,3);sfx('stomp');shakeI=4;
+        } else {
+          hurt();
+          en.alive=false; // pass through after hit
+        }
+      }
+    }
+  });
+  // Phase B: bruiser logic (only after all charges done or cleared)
+  const allChargesDone=bossPhase.chargeQueue.every(c=>!c.alive||c.chargeState==='done');
+  const chargesCleared=bossPhase.chargeIdx>=bossPhase.chargeQueue.length&&
+    bossPhase.enemies.filter(e=>e.bossType==='charge'&&e.alive).length===0;
+  if(chargesCleared&&bossPhase.bruiser&&bossPhase.bruiser.alive){
+    const b=bossPhase.bruiser;
+    if(!enemies.includes(b)){
+      enemies.push(b);bossPhase.enemies.push(b);
+    }
+    b.timer++;b.fr+=0.1;
+    if(b.hurtFlash>0)b.hurtFlash--;
+    if(b.state==='enter'){
+      b.x+=b.chargeVx*0.5;
+      if(b.x<=W*0.7){b.state='charge';b.timer=0;}
+    } else if(b.state==='charge'){
+      b.x+=b.chargeVx;
+      b.fr+=0.15;
+      // Trail
+      if(frame%2===0)parts.push({x:b.x+b.sz,y:b.y,vx:2,vy:(Math.random()-0.5)*1.5,life:15,ml:15,sz:Math.random()*5+2,col:'#ff3860'});
+      // Hit left wall: retreat
+      if(b.x<W*0.15){b.state='retreat';b.timer=0;}
+      // Collision
+      const dx=player.x-b.x,dy=player.y-b.y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<pr+b.sz){
+        if(itemEff.invincible>0){
+          b.hp--;b.hurtFlash=20;shakeI=8;sfx('stomp');
+          emitParts(b.x,b.y,15,'#ff00ff',4,3);
+          if(b.hp<=0)b.alive=false;
+        } else {
+          // Stomp check: player on top
+          const stomped=(player.y<b.y-b.sz*0.3&&player.vy>=0);
+          if(stomped){
+            b.hp--;b.hurtFlash=20;b.state='stunned';b.stunT=90;b.timer=0;
+            player.vy=-JUMP_POWER*0.8;player.grounded=false;
+            flipCount=0;player.canFlip=true;djumpUsed=false;
+            shakeI=12;sfx('gstomp');vibrate([20,10,30]);
+            addPop(b.x,b.y-b.sz-10,'HP '+b.hp+'/'+b.maxHp,'#ff3860');
+            emitParts(b.x,b.y-b.sz,12,'#ff3860',5,3);
+            if(b.hp<=0)b.alive=false;
+          } else {
+            hurt();
+          }
+        }
+      }
+    } else if(b.state==='stunned'){
+      b.stunT--;
+      // Wobble
+      b.x+=Math.sin(b.timer*0.5)*0.5;
+      if(b.stunT<=0){b.state='retreat';b.timer=0;}
+    } else if(b.state==='retreat'){
+      b.x+=b.retreatVx;
+      if(b.x>=W*0.7){b.state='charge';b.timer=0;}
+    }
+    // Keep on floor
+    const sy=floorSurfaceY(b.x);
+    if(sy<H+100)b.y=sy-b.sz;
+  }
+  // Check victory
   bossPhase.defeated=0;
   for(let i=0;i<bossPhase.enemies.length;i++){
     if(!bossPhase.enemies[i].alive)bossPhase.defeated++;
   }
-  if(bossPhase.defeated>=bossPhase.total&&bossPhase.total>0){
-    // Boss cleared!
+  const bruiserDead=!bossPhase.bruiser||!bossPhase.bruiser.alive;
+  if(chargesCleared&&bruiserDead&&bossPhase.bruiser&&!bossPhase.reward){
     bossPhase.reward=true;bossPhase.rewardT=0;
     sfxFanfare();shakeI=10;vibrate([30,20,30,20,60]);
     addPop(W/2,H*0.3,'BOSS \u6483\u7834\uFF01','#ffd700');
-    // Give rewards: invincibility, heal, coins
     itemEff.invincible=600;switchBGM('fever');
     if(hp<HP_MAX){hp++;addPop(player.x,player.y-40,'HP +1','#ff3860');}
     const bonus=30+bossPhase.total*5;
     walletCoins+=bonus;localStorage.setItem('gd5wallet',walletCoins.toString());
     totalCoins+=bonus;
     addPop(W/2,H*0.45,'+'+bonus+' \u30B3\u30A4\u30F3\uFF01','#ffd700');
-    // Shower coins
     for(let i=0;i<40;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*4,vy:1+Math.random()*4,life:80+Math.random()*40,ml:120,sz:Math.random()*5+3,col:['#ffd700','#ffaa00','#fff4b0'][i%3]});
   }
+}
+// === Boss enemy draw: charge type ===
+function drawBossCharge(en){
+  const s=en.sz,flip=en.gDir;
+  ctx.save();ctx.translate(en.x,en.y);
+  if(flip===-1)ctx.scale(1,-1);
+  // Armored rhino shape - dark metallic
+  const gr=ctx.createRadialGradient(-s*0.1,0,s*0.1,-s*0.1,0,s);
+  gr.addColorStop(0,'#6a7a8a');gr.addColorStop(0.6,'#3a4a5a');gr.addColorStop(1,'#1a2a3a');
+  ctx.fillStyle=gr;
+  // Main body (angular armored shape)
+  ctx.beginPath();
+  ctx.moveTo(-s*0.9,-s*0.5);ctx.lineTo(-s*0.3,-s*0.8);ctx.lineTo(s*0.4,-s*0.7);
+  ctx.lineTo(s*0.8,-s*0.3);ctx.lineTo(s*0.9,s*0.1);ctx.lineTo(s*0.6,s*0.6);
+  ctx.lineTo(-s*0.2,s*0.7);ctx.lineTo(-s*0.8,s*0.5);ctx.lineTo(-s*1.0,0);
+  ctx.closePath();ctx.fill();
+  // Horn/spike
+  ctx.fillStyle='#c0d0e0';
+  ctx.beginPath();ctx.moveTo(-s*1.0,-s*0.1);ctx.lineTo(-s*1.5,0);ctx.lineTo(-s*1.0,s*0.1);ctx.closePath();ctx.fill();
+  // Armor plates (chevron lines)
+  ctx.strokeStyle='#8090a0';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(-s*0.2,-s*0.6);ctx.lineTo(s*0.1,-s*0.2);ctx.lineTo(-s*0.2,s*0.2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(s*0.2,-s*0.5);ctx.lineTo(s*0.5,-s*0.1);ctx.lineTo(s*0.2,s*0.3);ctx.stroke();
+  // Glowing red eye
+  ctx.fillStyle='#ff0000';ctx.shadowColor='#ff0000';ctx.shadowBlur=8;
+  ctx.beginPath();ctx.arc(-s*0.5,-s*0.2,s*0.12,0,6.28);ctx.fill();
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(-s*0.52,-s*0.22,s*0.04,0,6.28);ctx.fill();
+  ctx.shadowBlur=0;
+  // Speed lines when rushing
+  ctx.strokeStyle='rgba(255,100,100,0.4)';ctx.lineWidth=1;
+  for(let i=0;i<3;i++){
+    const ly=-s*0.3+i*s*0.3;
+    ctx.beginPath();ctx.moveTo(s*0.5,ly);ctx.lineTo(s*1.2+Math.random()*s*0.5,ly);ctx.stroke();
+  }
+  // Exhaust particles from back
+  ctx.fillStyle='rgba(255,80,40,0.3)';
+  for(let i=0;i<2;i++){
+    const px=s*0.7+Math.random()*s*0.4,py=(Math.random()-0.5)*s*0.4;
+    ctx.beginPath();ctx.arc(px,py,s*0.1+Math.random()*s*0.1,0,6.28);ctx.fill();
+  }
+  ctx.restore();
+}
+// === Boss enemy draw: bruiser type (multi-stomp) ===
+function drawBossBruiser(en){
+  const s=en.sz,t=en.fr;
+  ctx.save();ctx.translate(en.x,en.y);
+  // Hurt flash
+  if(en.hurtFlash>0&&en.hurtFlash%4<2){ctx.globalAlpha=0.5;}
+  // Shadow on ground
+  ctx.fillStyle='rgba(0,0,0,0.3)';ctx.beginPath();ctx.ellipse(0,s*0.9,s*0.8,s*0.15,0,0,6.28);ctx.fill();
+  // Legs (animated)
+  const legPhase=Math.sin(t*1.5)*s*0.12;
+  ctx.fillStyle='#2a1a3a';
+  ctx.fillRect(-s*0.5+legPhase,s*0.3,s*0.25,s*0.6);
+  ctx.fillRect(s*0.25-legPhase,s*0.3,s*0.25,s*0.6);
+  // Armored boots
+  ctx.fillStyle='#5a3a6a';
+  ctx.fillRect(-s*0.55+legPhase,s*0.7,s*0.35,s*0.2);
+  ctx.fillRect(s*0.2-legPhase,s*0.7,s*0.35,s*0.2);
+  // Main body (large armored torso)
+  const bodyGr=ctx.createRadialGradient(0,-s*0.1,s*0.1,0,-s*0.1,s*0.9);
+  bodyGr.addColorStop(0,'#7a3a8a');bodyGr.addColorStop(0.5,'#4a1a5a');bodyGr.addColorStop(1,'#2a0a3a');
+  ctx.fillStyle=bodyGr;
+  ctx.beginPath();
+  ctx.moveTo(-s*0.7,-s*0.6);ctx.quadraticCurveTo(-s*0.9,-s*0.1,-s*0.7,s*0.4);
+  ctx.lineTo(s*0.7,s*0.4);ctx.quadraticCurveTo(s*0.9,-s*0.1,s*0.7,-s*0.6);
+  ctx.quadraticCurveTo(0,-s*0.8,-s*0.7,-s*0.6);
+  ctx.closePath();ctx.fill();
+  // Chest armor plate
+  ctx.fillStyle='#6a2a7a';
+  ctx.beginPath();
+  ctx.moveTo(-s*0.4,-s*0.5);ctx.lineTo(0,-s*0.65);ctx.lineTo(s*0.4,-s*0.5);
+  ctx.lineTo(s*0.35,s*0.15);ctx.lineTo(0,s*0.25);ctx.lineTo(-s*0.35,s*0.15);
+  ctx.closePath();ctx.fill();
+  // Glowing core (shows HP)
+  const hpRatio=en.hp/en.maxHp;
+  const coreCol=hpRatio>0.6?'#ff00ff':hpRatio>0.3?'#ff6600':'#ff0000';
+  ctx.fillStyle=coreCol;ctx.shadowColor=coreCol;ctx.shadowBlur=15;
+  ctx.beginPath();ctx.arc(0,-s*0.15,s*0.18,0,6.28);ctx.fill();
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(-s*0.05,-s*0.18,s*0.06,0,6.28);ctx.fill();
+  ctx.shadowBlur=0;
+  // Shoulder pauldrons
+  ctx.fillStyle='#8a4a9a';
+  ctx.beginPath();ctx.arc(-s*0.65,-s*0.35,s*0.22,0,6.28);ctx.fill();
+  ctx.beginPath();ctx.arc(s*0.65,-s*0.35,s*0.22,0,6.28);ctx.fill();
+  // Spikes on pauldrons
+  ctx.fillStyle='#c0d0e0';
+  [-1,1].forEach(side=>{
+    const sx=side*s*0.65;
+    ctx.beginPath();ctx.moveTo(sx,-s*0.55);ctx.lineTo(sx+side*s*0.15,-s*0.8);ctx.lineTo(sx+side*s*0.05,-s*0.5);ctx.closePath();ctx.fill();
+  });
+  // Head (helmet)
+  const headGr=ctx.createRadialGradient(0,-s*0.7,s*0.05,0,-s*0.7,s*0.3);
+  headGr.addColorStop(0,'#5a2a6a');headGr.addColorStop(1,'#3a0a4a');
+  ctx.fillStyle=headGr;
+  ctx.beginPath();ctx.arc(0,-s*0.7,s*0.28,0,6.28);ctx.fill();
+  // Helmet crest
+  ctx.fillStyle='#9a5aaa';
+  ctx.beginPath();ctx.moveTo(0,-s*1.05);ctx.lineTo(-s*0.08,-s*0.75);ctx.lineTo(s*0.08,-s*0.75);ctx.closePath();ctx.fill();
+  // Eyes (glowing slits)
+  ctx.fillStyle='#ff0040';ctx.shadowColor='#ff0040';ctx.shadowBlur=6;
+  ctx.fillRect(-s*0.2,-s*0.75,s*0.14,s*0.06);
+  ctx.fillRect(s*0.06,-s*0.75,s*0.14,s*0.06);
+  ctx.shadowBlur=0;
+  // Stunned stars
+  if(en.state==='stunned'){
+    for(let i=0;i<3;i++){
+      const sa=t*2+i*2.09;
+      const sx=Math.cos(sa)*s*0.5,sy=-s*1.1+Math.sin(sa*1.5)*s*0.1;
+      ctx.fillStyle='#ffd700';ctx.font=`${s*0.3}px monospace`;ctx.textAlign='center';
+      ctx.fillText('\u2605',sx,sy);
+    }
+  }
+  // HP bar above head
+  const barW=s*1.2,barH=5,barX=-barW/2,barY=-s*1.2;
+  ctx.fillStyle='#333';ctx.fillRect(barX,barY,barW,barH);
+  ctx.fillStyle=coreCol;ctx.fillRect(barX,barY,barW*hpRatio,barH);
+  ctx.strokeStyle='#fff4';ctx.lineWidth=1;ctx.strokeRect(barX,barY,barW,barH);
+  ctx.globalAlpha=1;
+  ctx.restore();
 }
 
 function addPop(x,y,txt,col){pops.push({x,y,txt,col,life:45,ml:45});}
@@ -946,7 +1156,7 @@ function canvasXY(cx,cy){
 }
 
 // Pause button hit test (top-right corner)
-function hitPauseBtn(px,py){return px>=W-52&&px<=W-8&&py>=8&&py<=44;}
+function hitPauseBtn(px,py){return px>=W-52&&px<=W-8&&py>=42&&py<=78;}
 function hitResumeBtn(px,py){return px>=W/2-80&&px<=W/2+80&&py>=H*0.45&&py<=H*0.45+44;}
 function hitQuitBtn(px,py){return px>=W/2-80&&px<=W/2+80&&py>=H*0.56&&py<=H*0.56+44;}
 
@@ -1455,6 +1665,8 @@ function update(dt){
   // Enemies
   enemies.forEach(en=>{
     if(!en.alive)return;
+    // Boss enemies with custom movement: handled by updateBossPhase
+    if(en.bossType)return;
     en.fr+=0.12;
     // Boss enemies stay on screen (don't scroll off)
     if(en.boss){
@@ -1499,7 +1711,8 @@ function update(dt){
         else{en.vy=(en.vy||0)-GRAVITY;en.y+=en.vy;}
       }
     }
-    // Collision with player
+    // Collision with player (boss enemies handle their own collision)
+    if(en.bossType)return;
     const dx=player.x-en.x,dy=player.y-en.y;
     const d=Math.sqrt(dx*dx+dy*dy);
     if(d<pr+en.sz){
@@ -1787,7 +2000,7 @@ function draw(){
   // Boss phase UI (enemy count)
   if(bossPhase.active&&bossPhase.prepare<=0&&!bossPhase.reward){
     ctx.fillStyle='#ff3860';ctx.font='bold 13px monospace';ctx.textAlign='center';
-    ctx.fillText('\u6575: '+(bossPhase.total-bossPhase.defeated)+' / '+bossPhase.total,W/2,28);
+    ctx.fillText('\u6575: '+(bossPhase.total-bossPhase.defeated)+' / '+bossPhase.total,W/2,96);
   }
   if(state===ST.DEAD)drawDead();
   if(state===ST.PAUSE)drawPause();
@@ -1811,6 +2024,8 @@ function drawItem(it){
 }
 
 function drawEnemy(en){
+  if(en.bossType==='charge'){drawBossCharge(en);return;}
+  if(en.bossType==='bruiser'){drawBossBruiser(en);return;}
   if(en.type===1){drawShooter(en);return;}
   if(en.type===2){drawFlyer(en);return;}
   const s=en.sz,flip=en.gDir;
@@ -2061,35 +2276,35 @@ function drawHeart(cx,cy,sz,filled){
   ctx.restore();
 }
 function drawUI(){
+  // iOS PWA safe offset: push UI below status bar / notch area
+  const uiTop=50;
   if(gameMode==='stage'){
-    // Stage mode UI
     const stg=STAGES[currentStage];
     ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='left';
-    ctx.fillText(stg?stg.name:'',10,22);
-    // Big coin stars
+    ctx.fillText(stg?stg.name:'',10,uiTop);
     ctx.textAlign='left';
     for(let i=0;i<3;i++){
       const collected=i<stageBigCollected;
       ctx.fillStyle=collected?'#ffd700':'#ffffff22';ctx.font='bold 18px monospace';
-      ctx.fillText('\u2605',10+i*22,44);
+      ctx.fillText('\u2605',10+i*22,uiTop+22);
     }
   } else {
     ctx.fillStyle='#fff';ctx.font='bold 34px monospace';ctx.textAlign='center';
-    ctx.shadowColor='#fff3';ctx.shadowBlur=8;ctx.fillText(score,W/2,42);ctx.shadowBlur=0;
+    ctx.shadowColor='#fff3';ctx.shadowBlur=8;ctx.fillText(score,W/2,uiTop+16);ctx.shadowBlur=0;
     ctx.fillStyle='#8899aa';ctx.font='11px monospace';ctx.textAlign='left';
-    ctx.fillText('\u901F\u5EA6 '+speed.toFixed(1),10,22);
-    ctx.fillText('\u25CF '+totalCoins,10,38);
+    ctx.fillText('\u901F\u5EA6 '+speed.toFixed(1),10,uiTop);
+    ctx.fillText('\u25CF '+totalCoins,10,uiTop+16);
   }
 
   // HP Hearts
   for(let i=0;i<HP_MAX;i++){
-    const hx=10+i*26,hy=56;
+    const hx=10+i*26,hy=uiTop+30;
     drawHeart(hx+10,hy,18,i<hp);
   }
 
   if(comboDspT>0&&comboDsp>1){
     const a=comboDspT/55,sc=1+(1-a)*0.25;
-    ctx.globalAlpha=a;ctx.save();ctx.translate(W/2,72);ctx.scale(sc,sc);
+    ctx.globalAlpha=a;ctx.save();ctx.translate(W/2,uiTop+46);ctx.scale(sc,sc);
     ctx.fillStyle='#ff6b35';ctx.font='bold 20px monospace';ctx.textAlign='center';
     ctx.fillText(comboDsp+'x \u30B3\u30F3\u30DC',0,0);ctx.restore();ctx.globalAlpha=1;
   }
@@ -2100,12 +2315,13 @@ function drawUI(){
   if(itemEff.magnet>0)activeItems.push({n:'\u5438\u53CE',c:'#f59e0b',t:itemEff.magnet,m:600});
   if(djumpAvailable&&!djumpUsed)activeItems.push({n:'2\u6BB5\u30B8\u30E3\u30F3\u30D7',c:'#ffaa00',t:1,m:1});
 
-  // Pause button (top-right)
-  ctx.fillStyle='#ffffff18';rr(W-52,8,44,36,8);ctx.fill();
-  ctx.fillStyle='#fff8';ctx.fillRect(W-38,14,5,24);ctx.fillRect(W-28,14,5,24);
+  // Pause button (pushed down for iOS PWA)
+  const pauseY=uiTop-8;
+  ctx.fillStyle='#ffffff18';rr(W-52,pauseY,44,36,8);ctx.fill();
+  ctx.fillStyle='#fff8';ctx.fillRect(W-38,pauseY+6,5,24);ctx.fillRect(W-28,pauseY+6,5,24);
 
   activeItems.forEach((d,i)=>{
-    const y=18+i*18,x=W-8,bw=50,r=d.t/d.m;
+    const y=uiTop+i*18,x=W-8,bw=50,r=d.t/d.m;
     ctx.textAlign='right';ctx.fillStyle=d.c;ctx.font='bold 9px monospace';ctx.fillText(d.n,x-bw-4,y+3);
     ctx.fillStyle='#ffffff12';rr(x-bw,y-3,bw,7,3);ctx.fill();
     ctx.fillStyle=d.c;rr(x-bw,y-3,bw*r,7,3);ctx.fill();
