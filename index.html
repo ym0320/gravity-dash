@@ -79,8 +79,8 @@ const JUMP_POWER=9.5;
 const PLAYER_R=14;
 const GROUND_H=65;
 const SPEED_INIT=2.8;
-const SPEED_INC=0.00035;
-const SPEED_MAX=6.5;
+const SPEED_INC=0.0006;
+const SPEED_MAX=8.5;
 
 // ===== THEMES =====
 const THEMES=[
@@ -196,25 +196,30 @@ function generatePlatform(arr,isCeil){
   const last=arr.length>0?arr[arr.length-1]:null;
   const lastH=last?last.h:GROUND_H;
   const lastRight=last?last.x+last.w:0;
-  // Gap (no gaps early, increasing gaps later)
+  // Gap (floor only; starts at score 10, grows aggressively)
   let gap=0;
-  if(!isCeil&&score>15){
-    const gc=Math.min(0.45,0.08+score*0.003);
-    if(Math.random()<gc) gap=45+Math.random()*Math.min(90,25+score*0.3);
+  if(!isCeil&&score>10){
+    const gc=Math.min(0.55,0.1+(score-10)*0.006);
+    if(Math.random()<gc){
+      const maxGap=Math.min(130,35+score*0.6);
+      gap=35+Math.random()*maxGap;
+    }
   }
-  // Height change (step)
+  // Height change (step) - more frequent and larger with score
   let h=lastH;
-  const sc=Math.min(0.5,0.15+score*0.003);
-  if(Math.random()<sc){
-    const dh=(Math.random()<0.5?1:-1)*(15+Math.random()*20);
+  const stepC=Math.min(0.6,0.08+score*0.006);
+  if(Math.random()<stepC){
+    const maxDh=Math.min(50,12+score*0.25);
+    const dh=(Math.random()<0.5?1:-1)*(10+Math.random()*maxDh);
     h=Math.max(45+safeBot,Math.min(H*0.38,h+dh));
   }
-  // Width
+  // Width (narrower at higher scores)
   let w;
-  if(score<10)w=150+Math.random()*200;
-  else if(score<30)w=100+Math.random()*150;
-  else if(score<60)w=80+Math.random()*120;
-  else w=60+Math.random()*100;
+  if(score<8)w=180+Math.random()*220;
+  else if(score<20)w=120+Math.random()*160;
+  else if(score<40)w=85+Math.random()*120;
+  else if(score<70)w=65+Math.random()*90;
+  else w=50+Math.random()*70;
   arr.push({x:lastRight+gap,w:w,h:h});
 }
 
@@ -255,11 +260,11 @@ function reset(){
   player.rot=0;player.rotTarget=0;player.trail=[];player.alive=true;
   player.grounded=false;player.face='normal';player.canFlip=true;
   platforms=[];ceilPlats=[];
-  // Initial wide flat platform for safe start
-  platforms.push({x:-20,w:W*0.75,h:GROUND_H});
-  ceilPlats.push({x:-20,w:W*0.75,h:GROUND_H});
-  // Generate more platforms ahead
-  for(let i=0;i<10;i++){generatePlatform(platforms,false);generatePlatform(ceilPlats,true);}
+  // Initial safe start platform (shorter so difficulty kicks in sooner)
+  platforms.push({x:-20,w:W*0.5,h:GROUND_H});
+  ceilPlats.push({x:-20,w:W*0.5,h:GROUND_H});
+  // Generate a few platforms ahead
+  for(let i=0;i<5;i++){generatePlatform(platforms,false);generatePlatform(ceilPlats,true);}
   player.y=floorSurfaceY(player.x)-PLAYER_R;
   coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];
   score=0;dist=0;speed=SPEED_INIT;frame=0;deadT=0;newHi=false;
@@ -268,65 +273,75 @@ function reset(){
   mileT=0;mileTxt='';lastMile=0;
   totalCoins=0;totalFlips=0;maxCombo=0;
   itemEff={shield:0,slow:0,magnet:0,double:0,mini:0,spring:0,ghost:0,timestop:0,rocket:0};
-  lastEnemyX=0;flipCount=0;flipTimer=999;
+  coinCD=0;itemCD=0;enemyCD=0;flipCount=0;flipTimer=999;
   if(ct().startShield)itemEff.shield=300;
   prevTheme=curTheme;curTheme=0;themeLerp=1;
 }
 
-// ===== SPAWNING =====
-let lastCoinX=0,lastItemX=0;
+// ===== SPAWNING (cooldown-based for reliable continuous generation) =====
+let coinCD=0,itemCD=0,enemyCD=0;
+
+function findSpawnPlat(){
+  // Find a platform that is ahead of screen (right side)
+  return platforms.find(p=>p.x>W*0.55&&p.x+p.w<W+250)||platforms.find(p=>p.x+p.w>W*0.6&&p.x<W+200);
+}
 function trySpawnCoins(){
-  // Find a platform ahead of screen center
-  const plat=platforms.find(p=>p.x+p.w*0.5>W*0.7&&p.x<W+200);
+  if(coinCD>0){coinCD--;return;}
+  const plat=findSpawnPlat();
   if(!plat)return;
-  const edgeX=plat.x+plat.w*0.5;
-  if(edgeX-lastCoinX<80)return;
-  if(Math.random()<0.35){
+  if(Math.random()<0.4){
+    coinCD=22+Math.floor(Math.random()*18);
+    const cx=plat.x+plat.w*0.3+Math.random()*plat.w*0.4;
     const surfY=H-plat.h;
     if(player.gDir===1||Math.random()<0.5){
       for(let i=0;i<2+Math.floor(Math.random()*3);i++){
-        coins.push({x:edgeX+i*28,y:surfY-40-Math.random()*30,sz:9,col:false,p:Math.random()*6.28});
+        coins.push({x:cx+i*28,y:surfY-35-Math.random()*30,sz:9,col:false,p:Math.random()*6.28});
       }
     } else {
-      const cp=ceilPlats.find(p=>edgeX>=p.x&&edgeX<=p.x+p.w);
+      const cp=ceilPlats.find(p=>cx>=p.x&&cx<=p.x+p.w);
       const csy=cp?cp.h:GROUND_H;
       for(let i=0;i<2+Math.floor(Math.random()*3);i++){
-        coins.push({x:edgeX+i*28,y:csy+40+Math.random()*30,sz:9,col:false,p:Math.random()*6.28});
+        coins.push({x:cx+i*28,y:csy+35+Math.random()*30,sz:9,col:false,p:Math.random()*6.28});
       }
     }
-    lastCoinX=edgeX;
+  } else {
+    coinCD=8+Math.floor(Math.random()*6);
   }
 }
 function trySpawnItem(){
-  const plat=platforms.find(p=>p.x+p.w*0.5>W*0.7&&p.x<W+200);
+  if(itemCD>0){itemCD--;return;}
+  if(score<5)return;
+  const plat=findSpawnPlat();
   if(!plat)return;
-  const ix=plat.x+plat.w*0.5;
-  if(ix-lastItemX<350)return;
-  if(score>=5&&Math.random()<0.12){
+  if(Math.random()<0.14){
+    itemCD=120+Math.floor(Math.random()*80);
+    const ix=plat.x+plat.w*0.5;
     const surfY=H-plat.h;
     const it=Math.floor(Math.random()*ITEMS.length);
     items.push({x:ix,y:surfY-55-Math.random()*25,t:it,sz:14,p:Math.random()*6.28,col:false});
-    lastItemX=ix;
+  } else {
+    itemCD=15+Math.floor(Math.random()*10);
   }
 }
 
 // ===== ENEMIES =====
-let lastEnemyX=0;
 function trySpawnEnemy(){
-  const plat=platforms.find(p=>p.x+p.w*0.3>W*0.8&&p.x<W+200);
-  if(!plat)return;
-  const ex=plat.x+plat.w*0.3;
-  if(ex-lastEnemyX<280)return;
+  if(enemyCD>0){enemyCD--;return;}
   if(score<10)return;
-  const chance=Math.min(0.35,0.15+score*0.001);
+  const plat=findSpawnPlat();
+  if(!plat)return;
+  const chance=Math.min(0.4,0.18+score*0.001);
   if(Math.random()<chance){
+    enemyCD=50+Math.floor(Math.random()*40);
+    const ex=plat.x+plat.w*0.3;
     const onCeil=Math.random()<0.3;
     const gd=onCeil?-1:1;
     const sz=13;
     const surfY=gd===1?H-plat.h:ceilSurfaceY(ex);
     const eType=(score>=25&&Math.random()<0.4)?1:0;
     enemies.push({x:ex,y:gd===1?surfY-sz:surfY+sz,gDir:gd,walkSpd:eType===1?0.15+Math.random()*0.2:0.3+Math.random()*0.4,sz:sz,alive:true,fr:Math.random()*100,type:eType,shootT:eType===1?60+Math.floor(Math.random()*60):999});
-    lastEnemyX=ex;
+  } else {
+    enemyCD=15+Math.floor(Math.random()*10);
   }
 }
 
@@ -546,11 +561,13 @@ function update(dt){
   // Remove off-screen platforms
   platforms=platforms.filter(p=>p.x+p.w>-50);
   ceilPlats=ceilPlats.filter(p=>p.x+p.w>-50);
-  // Generate new platforms ahead
+  // Generate new platforms ahead (always ensure platforms exist)
+  if(platforms.length===0)platforms.push({x:player.x-30,w:200,h:GROUND_H});
+  if(ceilPlats.length===0)ceilPlats.push({x:player.x-30,w:200,h:GROUND_H});
   let lastF=platforms[platforms.length-1];
   let lastC=ceilPlats[ceilPlats.length-1];
-  while(lastF&&lastF.x+lastF.w<W+300){generatePlatform(platforms,false);lastF=platforms[platforms.length-1];}
-  while(lastC&&lastC.x+lastC.w<W+300){generatePlatform(ceilPlats,true);lastC=ceilPlats[ceilPlats.length-1];}
+  while(lastF.x+lastF.w<W+300){generatePlatform(platforms,false);lastF=platforms[platforms.length-1];}
+  while(lastC.x+lastC.w<W+300){generatePlatform(ceilPlats,true);lastC=ceilPlats[ceilPlats.length-1];}
 
   trySpawnCoins();
   trySpawnItem();
