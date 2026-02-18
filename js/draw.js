@@ -723,58 +723,64 @@ function drawHeart(cx,cy,sz,filled){
   ctx.restore();
 }
 function drawUI(){
-  // iOS PWA safe offset: push UI below status bar / notch area
-  const uiTop=50;
+  // === TOP-LEFT: HP hearts (large, prominent) ===
+  const hpY=safeTop+18;
+  for(let i=0;i<maxHp();i++){
+    const hx=10+i*34;
+    drawHeart(hx+14,hpY,28,i<hp);
+  }
+
+  // === TOP: Pack mode stage info (below HP) ===
   if(isPackMode&&currentPackStage){
-    // Pack stage UI: progress bar + stage name
+    const packTop=hpY+22;
     const prog=Math.min(1,dist/currentPackStage.dist);
     ctx.fillStyle='#ffffff15';ctx.fillRect(0,2,W,4);
     ctx.fillStyle=tc('ply');ctx.shadowColor=tc('ply');ctx.shadowBlur=6;ctx.fillRect(0,2,W*prog,4);ctx.shadowBlur=0;
     const pname=STAGE_PACKS[currentPackIdx].name+' '+currentPackStage.name;
     ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='left';
-    ctx.fillText(pname,10,uiTop);
+    ctx.fillText(pname,10,packTop);
     ctx.fillStyle='#fff8';ctx.font='11px monospace';
-    ctx.fillText(Math.floor(dist)+'m / '+currentPackStage.dist+'m',10,uiTop+16);
+    ctx.fillText(Math.floor(dist)+'m / '+currentPackStage.dist+'m',10,packTop+16);
     // Stars collected indicator
     ctx.textAlign='left';
     for(let i=0;i<3;i++){
       const collected=i<stageBigCollected;
       ctx.fillStyle=collected?'#ffd700':'#ffffff22';ctx.font='bold 16px monospace';
-      ctx.fillText('\u2605',10+i*20,uiTop+34);
+      ctx.fillText('\u2605',10+i*20,packTop+34);
     }
-  } else {
-    // Endless mode: score is shown in bottom panel, top just shows speed & coins
-    ctx.fillStyle='#8899aa';ctx.font='11px monospace';ctx.textAlign='left';
-    ctx.fillText('\u901F\u5EA6 '+speed.toFixed(1),10,uiTop);
-    ctx.fillText('\u25CF '+totalCoins,10,uiTop+16);
   }
 
-  // HP Hearts
-  for(let i=0;i<maxHp();i++){
-    const hx=10+i*26,hy=uiTop+30;
-    drawHeart(hx+10,hy,18,i<hp);
-  }
-
+  // Combo display (center area)
   if(comboDspT>0&&comboDsp>1){
     const a=comboDspT/55,sc=1+(1-a)*0.25;
-    ctx.globalAlpha=a;ctx.save();ctx.translate(W/2,uiTop+46);ctx.scale(sc,sc);
+    ctx.globalAlpha=a;ctx.save();ctx.translate(W/2,96);ctx.scale(sc,sc);
     ctx.fillStyle='#ff6b35';ctx.font='bold 20px monospace';ctx.textAlign='center';
     ctx.fillText(comboDsp+'x \u30B3\u30F3\u30DC',0,0);ctx.restore();ctx.globalAlpha=1;
   }
 
-  // Active item bars
+  // Pause button (top right, same position for hit test compatibility)
+  const pauseY=42;
+  ctx.fillStyle='#ffffff18';rr(W-52,pauseY,44,36,8);ctx.fill();
+  ctx.fillStyle='#fff8';ctx.fillRect(W-38,pauseY+6,5,24);ctx.fillRect(W-28,pauseY+6,5,24);
+
+  // === BOTTOM AREA (above action panel) ===
+  const panelTop=H-PANEL_H;
+
+  // Speed and coins (endless mode, bottom-left above panel)
+  if(!isPackMode||!currentPackStage){
+    ctx.fillStyle='#aabbcc';ctx.font='11px monospace';ctx.textAlign='left';
+    ctx.fillText('\u901F\u5EA6 '+speed.toFixed(1),10,panelTop-20);
+    ctx.fillText('\u25CF '+totalCoins,10,panelTop-6);
+  }
+
+  // Active item bars (bottom-right, above action panel)
   const activeItems=[];
   if(itemEff.invincible>0)activeItems.push({n:'\u7121\u6575',c:'#ff00ff',t:itemEff.invincible,m:600});
   if(itemEff.magnet>0)activeItems.push({n:'\u5438\u53CE',c:'#f59e0b',t:itemEff.magnet,m:600});
   if(djumpAvailable&&!djumpUsed&&ct().hasDjump)activeItems.push({n:'2\u6BB5\u30B8\u30E3\u30F3\u30D7',c:'#ffaa00',t:1,m:1});
 
-  // Pause button (pushed down for iOS PWA)
-  const pauseY=uiTop-8;
-  ctx.fillStyle='#ffffff18';rr(W-52,pauseY,44,36,8);ctx.fill();
-  ctx.fillStyle='#fff8';ctx.fillRect(W-38,pauseY+6,5,24);ctx.fillRect(W-28,pauseY+6,5,24);
-
   activeItems.forEach((d,i)=>{
-    const y=uiTop+i*18,x=W-8,bw=50,r=d.t/d.m;
+    const y=panelTop-10-i*18,x=W-8,bw=50,r=d.t/d.m;
     ctx.textAlign='right';ctx.fillStyle=d.c;ctx.font='bold 9px monospace';ctx.fillText(d.n,x-bw-4,y+3);
     ctx.fillStyle='#ffffff12';rr(x-bw,y-3,bw,7,3);ctx.fill();
     ctx.fillStyle=d.c;rr(x-bw,y-3,bw*r,7,3);ctx.fill();
