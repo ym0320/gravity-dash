@@ -209,14 +209,25 @@ function update(dt){
 
   // Ground collision
   player.grounded=false;
+  const isTire=ct().shape==='tire';
   if(player.gDir===1){
-    const surfY=floorSurfaceY(player.x);
-    if(player.y+pr>=surfY){
+    let surfY=floorSurfaceY(player.x);
+    // Tire gap bridging: if over a void, check if tire edges are still on ground
+    if(surfY>H+100&&isTire){
+      const lS=floorSurfaceY(player.x-pr),rS=floorSurfaceY(player.x+pr);
+      if(lS<H+100||rS<H+100) surfY=lS<H+100&&rS<H+100?Math.max(lS,rS):lS<H+100?lS:rS;
+    }
+    if(player.y+pr>=surfY&&surfY<H+100){
       player.y=surfY-pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
     }
   } else {
-    const surfY=ceilSurfaceY(player.x);
-    if(player.y-pr<=surfY){
+    let surfY=ceilSurfaceY(player.x);
+    // Tire gap bridging for ceiling
+    if(surfY<-100&&isTire){
+      const lS=ceilSurfaceY(player.x-pr),rS=ceilSurfaceY(player.x+pr);
+      if(lS>-100||rS>-100) surfY=lS>-100&&rS>-100?Math.min(lS,rS):lS>-100?lS:rS;
+    }
+    if(player.y-pr<=surfY&&surfY>-100){
       player.y=surfY+pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
     }
   }
@@ -541,10 +552,11 @@ function update(dt){
 
   // Wall collision: hitting the side of a higher platform step
   // Small steps (<=STEP_TOLERANCE) are auto-climbed when grounded; larger steps cause damage
-  // Tire character (noStepDmg) ignores step damage and auto-climbs even large steps
+  // Tire character: smoothly climbs steps up to 50% of character height (=radius)
   {
+    const tireStepTol=isTire?pr:0; // tire: 50% of character height = radius
     const STEP_TOLERANCE=ct().stepTol||20;
-    const noStepDmg=ct().noStepDmg||false;
+    const effectiveTol=isTire?Math.max(STEP_TOLERANCE,tireStepTol):STEP_TOLERANCE;
     if(player.gDir===1){
       for(let i=0;i<platforms.length;i++){
         const p=platforms[i];
@@ -552,10 +564,11 @@ function update(dt){
           const surfY=H-p.h;
           if(player.y+pr>surfY+4){
             const stepH=player.y+pr-surfY;
-            if(stepH<=STEP_TOLERANCE&&player.grounded){
+            if(isTire&&stepH<=tireStepTol&&player.grounded){
+              // Tire: smooth roll-over for small steps
+              player.y+=(surfY-pr-player.y)*0.45;
+            } else if(stepH<=STEP_TOLERANCE&&player.grounded){
               player.y=surfY-pr; // auto step up
-            } else if(noStepDmg&&player.grounded){
-              player.y=surfY-pr; // tire: force step up without damage
             } else {
               hurt();return;
             }
@@ -569,10 +582,11 @@ function update(dt){
           const surfY=p.h;
           if(player.y-pr<surfY-4){
             const stepH=surfY-(player.y-pr);
-            if(stepH<=STEP_TOLERANCE&&player.grounded){
+            if(isTire&&stepH<=tireStepTol&&player.grounded){
+              // Tire: smooth roll-over for small steps
+              player.y+=(surfY+pr-player.y)*0.45;
+            } else if(stepH<=STEP_TOLERANCE&&player.grounded){
               player.y=surfY+pr; // auto step down (ceiling)
-            } else if(noStepDmg&&player.grounded){
-              player.y=surfY+pr; // tire: force step without damage
             } else {
               hurt();return;
             }

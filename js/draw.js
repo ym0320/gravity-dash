@@ -843,12 +843,12 @@ function drawTitle(){
   const p=Math.sin(titleT)*0.035+1;
   ctx.save();ctx.translate(W/2,H*0.18);ctx.scale(p,p);
   ctx.shadowColor='#00e5ff44';ctx.shadowBlur=35;ctx.fillStyle='#00e5ff';
-  ctx.font='bold 44px monospace';ctx.textAlign='center';ctx.fillText('\u30B0\u30E9\u30D3\u30C6\u30A3',0,0);
-  ctx.shadowColor='#ff386044';ctx.fillStyle='#ff3860';ctx.fillText('\u30C0\u30C3\u30B7\u30E5',0,48);ctx.shadowBlur=0;
+  ctx.font='bold 44px monospace';ctx.textAlign='center';ctx.fillText('GRAVITY',0,0);
+  ctx.shadowColor='#ff386044';ctx.fillStyle='#ff3860';ctx.fillText('DASH',0,48);ctx.shadowBlur=0;
   ctx.restore();
 
   ctx.fillStyle='#ffffff33';ctx.font='11px monospace';ctx.textAlign='center';
-  ctx.fillText('\u91CD\u529B\u53CD\u8EE2\u30A2\u30AF\u30B7\u30E7\u30F3\u30E9\u30F3\u30CA\u30FC',W/2,H*0.18+72);
+  ctx.fillText('Gravity-Flip Action Runner',W/2,H*0.18+72);
 
   // Wallet display
   ctx.fillStyle='#ffd700';ctx.font='bold 13px monospace';ctx.textAlign='center';
@@ -907,22 +907,23 @@ function drawTitle(){
   ctx.fillStyle='#fff3';ctx.font='9px monospace';ctx.textAlign='center';
   ctx.fillText('\u9577\u62BC\u3057\u3067\u30AD\u30E3\u30E9\u8A73\u7D30',W/2,gridY+rows*(charH+charGap)-4);
 
-  // Stats panel
-  const statsY=gridY+rows*(charH+charGap)+12;
-  if(highScore>0||played>0){
-    const statsPanelTop=statsY-14;
-    const statsPanelH=highScore>0&&played>0?44:26;
-    ctx.fillStyle='rgba(0,0,0,0.4)';rr(W/2-100,statsPanelTop,200,statsPanelH,8);ctx.fill();
-    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;rr(W/2-100,statsPanelTop,200,statsPanelH,8);ctx.stroke();
-  }
-  if(highScore>0){ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='center';ctx.fillText('\u30D9\u30B9\u30C8: '+highScore,W/2,statsY);}
-  if(played>0){ctx.fillStyle='#fff3';ctx.font='11px monospace';ctx.fillText('\u30D7\u30EC\u30A4\u56DE\u6570: '+played,W/2,statsY+(highScore>0?20:0));}
-
   // Mode selection buttons (2 buttons: Endless, Stage)
   const btnW=W*0.35,btnH=38,btnGap=12;
   const totalBtnW=btnW*2+btnGap;
   const btnStartX=W/2-totalBtnW/2;
   const btnY=H*0.78;
+
+  // Stats panel (above mode buttons)
+  const statsY=btnY-8;
+  if(highScore>0||played>0){
+    const statsPanelH=highScore>0&&played>0?44:26;
+    const statsPanelTop=statsY-statsPanelH+4;
+    ctx.fillStyle='rgba(0,0,0,0.4)';rr(W/2-100,statsPanelTop,200,statsPanelH,8);ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;rr(W/2-100,statsPanelTop,200,statsPanelH,8);ctx.stroke();
+  }
+  if(highScore>0){ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='center';ctx.fillText('\u30D9\u30B9\u30C8: '+highScore,W/2,statsY-20);}
+  if(played>0){ctx.fillStyle='#fff3';ctx.font='11px monospace';ctx.fillText('\u30D7\u30EC\u30A4\u56DE\u6570: '+played,W/2,statsY-(highScore>0?0:-20));}
+
   // Endless mode button
   const ebx=btnStartX;
   ctx.fillStyle='#00e5ff22';rr(ebx,btnY,btnW,btnH,8);ctx.fill();
@@ -1069,20 +1070,29 @@ function drawTraitDemo(ch,idx,cx,cy,t){
       ctx.globalAlpha=1;
       break;
     case'tire':
-      // Step climbing demo - show small stairs being climbed over
+      // Step climbing + gap bridging demo
       ctx.strokeStyle='#ffffff22';ctx.lineWidth=2;
       ctx.beginPath();ctx.moveTo(cx-40,cy+30);ctx.lineTo(cx-10,cy+30);
-      ctx.lineTo(cx-10,cy+20);ctx.lineTo(cx+10,cy+20);
-      ctx.lineTo(cx+10,cy+10);ctx.lineTo(cx+40,cy+10);ctx.stroke();
-      // Rolling tire going over stairs
+      ctx.lineTo(cx-10,cy+22);ctx.lineTo(cx+4,cy+22);
+      // Small gap
+      ctx.moveTo(cx+12,cy+22);ctx.lineTo(cx+40,cy+22);ctx.stroke();
+      // Gap indicator
+      ctx.strokeStyle='#ff444466';ctx.lineWidth=1;ctx.setLineDash([2,2]);
+      ctx.beginPath();ctx.moveTo(cx+4,cy+22);ctx.lineTo(cx+4,cy+38);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(cx+12,cy+22);ctx.lineTo(cx+12,cy+38);ctx.stroke();
+      ctx.setLineDash([]);
+      // Rolling tire going over stairs and gap
       const tp=((t*0.03)%1);
       const tx2=cx-40+tp*80;
-      const stairY=tp<0.375?cy+30-8:tp<0.625?cy+20-8:cy+10-8;
+      const stairY=tp<0.375?cy+30-8:cy+22-8;
       ctx.strokeStyle=ch.col+'66';ctx.lineWidth=1.5;
       ctx.beginPath();ctx.arc(tx2,stairY,6,0,6.28);ctx.stroke();
-      // "No stumble" indicator
+      // Rolling animation
+      ctx.strokeStyle=ch.col+'33';ctx.lineWidth=1;
+      const ra=t*0.15;
+      for(let ri=0;ri<3;ri++){const a2=ra+ri*2.09;ctx.beginPath();ctx.moveTo(tx2+Math.cos(a2)*3,stairY+Math.sin(a2)*3);ctx.lineTo(tx2+Math.cos(a2)*5.5,stairY+Math.sin(a2)*5.5);ctx.stroke();}
       ctx.fillStyle='#fff3';ctx.font='8px monospace';ctx.textAlign='center';
-      ctx.fillText('\u6BB5\u5DEE\u3092\u4E57\u308A\u8D8A\u3048\u308B',cx,cy+46);
+      ctx.fillText('\u6BB5\u5DEE\u4E57\u8D8A+\u5C0F\u6E9D\u901A\u904E',cx,cy+46);
       break;
     case'ghost':
       // Size comparison ring
@@ -1286,9 +1296,10 @@ function drawStageSel(){
       const prog=packProgress[stage.id];
       const isClear=prog&&prog.cleared;
       const stageStars=prog?prog.stars:0;
-      // Determine if playable: first stage always, or previous cleared
+      // Determine if playable: first stage always, or previous cleared with enough stars
       const prevProg=si>0?packProgress[pack.stages[si-1].id]:null;
-      const canPlay=si===0||(prevProg&&prevProg.cleared);
+      const reqStars=pack.starsPerStage||2;
+      const canPlay=si===0||(prevProg&&prevProg.cleared&&(prevProg.stars||0)>=reqStars);
       if(isClear){
         // Cleared: gold circle with stars
         ctx.fillStyle='#ffd70033';rr(sx,sbY,sbW,sbH,10);ctx.fill();
@@ -1360,8 +1371,9 @@ function handleStageSelTouch(tx,ty){
       const sx=sbX+si*(sbW+sbGap);
       if(tx>=sx&&tx<=sx+sbW&&ty>=sbY&&ty<=sbY+sbH){
         const prevProg=si>0?packProgress[pack.stages[si-1].id]:null;
-        const canPlay=si===0||(prevProg&&prevProg.cleared);
-        if(!canPlay){sfx('hurt');vibrate(10);addPop(sx+sbW/2,sbY-5,'前をクリアして','#ff8844');return;}
+        const reqStars=pack.starsPerStage||2;
+        const canPlay=si===0||(prevProg&&prevProg.cleared&&(prevProg.stars||0)>=reqStars);
+        if(!canPlay){sfx('hurt');vibrate(10);addPop(sx+sbW/2,sbY-5,'★'+reqStars+'個必要','#ff8844');return;}
         // Start this stage!
         gameMode='pack';isPackMode=true;
         state=ST.PLAY;resetPackStage(pi,si);switchBGM('play');

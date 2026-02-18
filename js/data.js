@@ -62,7 +62,7 @@ const CHARS=[
   {name:'\u30D0\u30A6\u30F3\u30B9',shape:'ball',col:'#ff6b6b',col2:'#e04040',eye:'#fff',pupil:'#2a0a0a',
    trait:'2\u6BB5\u30B8\u30E3\u30F3\u30D7\u578B',desc:'\u5E38\u66422\u6BB5\u30B8\u30E3\u30F3\u30D7',jumpMul:1.0,speedMul:0.95,sizeMul:1.05,gravMul:1,coinMul:1,coinMag:0,maxFlip:2,startShield:false,fastKill:false,hasDjump:true,price:50},
   {name:'\u30BF\u30A4\u30E4',shape:'tire',col:'#555555',col2:'#333333',eye:'#fff',pupil:'#111',
-   trait:'\u8D70\u884C\u578B',desc:'\u6BB5\u5DEE\u306B\u5F37\u3044',jumpMul:0.95,speedMul:1.05,sizeMul:1,gravMul:1,coinMul:1,coinMag:0,maxFlip:2,startShield:false,fastKill:false,stepTol:80,noStepDmg:true,price:80},
+   trait:'\u8D70\u884C\u578B',desc:'\u6BB5\u5DEE\u4E57\u8D8A+\u5C0F\u6E9D\u901A\u904E',jumpMul:0.95,speedMul:1.05,sizeMul:1,gravMul:1,coinMul:1,coinMag:0,maxFlip:2,startShield:false,fastKill:false,price:80},
   {name:'\u30B4\u30FC\u30B9\u30C8',shape:'ghost',col:'#a855f7',col2:'#8b3fe0',eye:'#fff',pupil:'#1a0a30',
    trait:'\u56DE\u907F\u578B',desc:'\u5C0F\u5224\u5B9A+\u900F\u660E\u5316\u56DE\u907F',jumpMul:1,speedMul:1,sizeMul:0.75,gravMul:1,coinMul:1,coinMag:0,maxFlip:2,startShield:true,fastKill:false,price:120},
   {name:'\u30CB\u30F3\u30B8\u30E3',shape:'ninja',col:'#34d399',col2:'#20b878',eye:'#ff4444',pupil:'#000',
@@ -295,35 +295,35 @@ const STAGE_THEMES=[
 ];
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t^=t+Math.imul(t^t>>>7,61|t);return((t^t>>>14)>>>0)/4294967296;};}
 const STAGE_PACKS=[
-  {name:'宇宙',theme:0,unlock:0,stages:[
+  {name:'宇宙',theme:0,unlock:0,starsPerStage:2,stages:[
     {id:'1-1',name:'1-1',dist:120,spdMul:1.0,seed:1001,hillChance:0.04,gapChance:0.05,enemyChance:0.05},
     {id:'1-2',name:'1-2',dist:160,spdMul:1.0,seed:1002,hillChance:0.06,gapChance:0.06,enemyChance:0.08},
     {id:'1-3',name:'1-3',dist:200,spdMul:1.0,seed:1003,hillChance:0.08,gapChance:0.08,enemyChance:0.10},
     {id:'1-4',name:'1-4',dist:250,spdMul:1.0,seed:1004,hillChance:0.10,gapChance:0.10,enemyChance:0.13},
     {id:'1-5',name:'1-5',dist:300,spdMul:1.0,seed:1005,hillChance:0.12,gapChance:0.12,enemyChance:0.16},
   ]},
-  {name:'雪山',theme:1,unlock:3,stages:[
+  {name:'雪山',theme:1,unlock:12,starsPerStage:2,stages:[
     {id:'2-1',name:'2-1',dist:150,spdMul:1.0,seed:2001,hillChance:0.06,gapChance:0.07,enemyChance:0.08},
     {id:'2-2',name:'2-2',dist:200,spdMul:1.0,seed:2002,hillChance:0.08,gapChance:0.09,enemyChance:0.11},
     {id:'2-3',name:'2-3',dist:250,spdMul:1.0,seed:2003,hillChance:0.10,gapChance:0.11,enemyChance:0.14},
     {id:'2-4',name:'2-4',dist:300,spdMul:1.0,seed:2004,hillChance:0.12,gapChance:0.13,enemyChance:0.17},
     {id:'2-5',name:'2-5',dist:350,spdMul:1.0,seed:2005,hillChance:0.14,gapChance:0.15,enemyChance:0.20},
   ]},
-  {name:'マグマ',theme:2,unlock:8,stages:[
+  {name:'マグマ',theme:2,unlock:24,starsPerStage:2,stages:[
     {id:'3-1',name:'3-1',dist:180,spdMul:1.0,seed:3001,hillChance:0.08,gapChance:0.08,enemyChance:0.10},
     {id:'3-2',name:'3-2',dist:230,spdMul:1.0,seed:3002,hillChance:0.10,gapChance:0.10,enemyChance:0.14},
     {id:'3-3',name:'3-3',dist:280,spdMul:1.0,seed:3003,hillChance:0.12,gapChance:0.12,enemyChance:0.17},
     {id:'3-4',name:'3-4',dist:350,spdMul:1.0,seed:3004,hillChance:0.14,gapChance:0.14,enemyChance:0.20},
     {id:'3-5',name:'3-5',dist:400,spdMul:1.0,seed:3005,hillChance:0.16,gapChance:0.16,enemyChance:0.23},
   ]},
-  {name:'海',theme:3,unlock:15,stages:[
+  {name:'海',theme:3,unlock:36,starsPerStage:2,stages:[
     {id:'4-1',name:'4-1',dist:200,spdMul:1.0,seed:4001,hillChance:0.08,gapChance:0.09,enemyChance:0.12},
     {id:'4-2',name:'4-2',dist:260,spdMul:1.0,seed:4002,hillChance:0.10,gapChance:0.11,enemyChance:0.16},
     {id:'4-3',name:'4-3',dist:320,spdMul:1.0,seed:4003,hillChance:0.12,gapChance:0.13,enemyChance:0.19},
     {id:'4-4',name:'4-4',dist:380,spdMul:1.0,seed:4004,hillChance:0.14,gapChance:0.15,enemyChance:0.22},
     {id:'4-5',name:'4-5',dist:440,spdMul:1.0,seed:4005,hillChance:0.16,gapChance:0.17,enemyChance:0.25},
   ]},
-  {name:'桜幻',theme:4,unlock:22,stages:[
+  {name:'桜幻',theme:4,unlock:48,starsPerStage:2,stages:[
     {id:'5-1',name:'5-1',dist:250,spdMul:1.0,seed:5001,hillChance:0.10,gapChance:0.10,enemyChance:0.14},
     {id:'5-2',name:'5-2',dist:320,spdMul:1.0,seed:5002,hillChance:0.12,gapChance:0.13,enemyChance:0.18},
     {id:'5-3',name:'5-3',dist:380,spdMul:1.0,seed:5003,hillChance:0.14,gapChance:0.15,enemyChance:0.22},
