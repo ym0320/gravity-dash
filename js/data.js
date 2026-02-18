@@ -213,95 +213,95 @@ const BGM_TITLE={tempo:155,
   melVol:0.25,harmVol:0.1,bassVol:0.2,chordVol:0.06,
   melWave:'triangle',harmWave:'sine',bassWave:'sine',
   drums:'pop'};
-// Play1 (0-9999): calm, gentle, pastoral C-F-G-C
-const BGM_PLAY1={tempo:150,
-  melody:[523,0,659,0, 587,523,494,0, 523,587,659,587, 523,0,494,0,
-          349,440,523,440, 392,349,330,0, 392,440,494,440, 392,0,349,0],
-  harmony:[392,392,440,440, 349,349,392,392, 392,392,440,440, 349,349,392,392,
-           262,262,330,330, 247,247,262,262, 262,262,330,330, 247,247,262,262],
-  bass:[262,0,0,131, 175,0,0,87, 196,0,0,98, 262,0,0,131,
-        175,0,0,87, 196,0,0,98, 262,0,0,131, 196,0,0,98],
-  chords:[[523,659,784],[349,440,523],[392,494,587],[523,659,784],
-          [349,440,523],[392,494,587],[523,659,784],[392,494,587]],
-  melVol:0.18,harmVol:0.08,bassVol:0.15,chordVol:0.05,
-  melWave:'triangle',harmWave:'sine',bassWave:'sine',
+// Play1 (0-999): Starlight Stroll - dreamy, calm, C pentatonic, slow waltz feel
+const BGM_PLAY1={tempo:90,
+  melody:[523,0,0,659, 0,0,784,0, 0,880,0,784, 0,659,0,0,
+          440,0,0,523, 0,659,0,0, 587,0,523,0, 0,0,0,0],
+  harmony:[392,0,0,0, 440,0,0,0, 330,0,0,0, 349,0,0,0,
+           262,0,0,0, 330,0,0,0, 294,0,0,0, 262,0,0,0],
+  bass:[262,0,0,0, 0,0,0,0, 220,0,0,0, 0,0,0,0,
+        175,0,0,0, 0,0,0,0, 196,0,0,0, 0,0,0,0],
+  chords:[[262,330,392],[220,262,330],[175,220,262],[196,247,294],
+          [262,330,392],[220,262,330],[175,220,262],[196,247,294]],
+  melVol:0.16,harmVol:0.08,bassVol:0.12,chordVol:0.05,
+  melWave:'sine',harmWave:'sine',bassWave:'sine',
   drums:'soft'};
-// Play2 (10000-19999): upbeat pop, Am-F-C-G
-const BGM_PLAY2={tempo:145,
-  melody:[440,0,523,587, 659,523,440,0, 349,440,523,440, 392,440,523,392,
-          440,523,659,784, 659,523,440,523, 587,523,440,349, 440,392,349,392],
-  harmony:[330,330,392,392, 349,349,330,330, 262,262,330,330, 247,247,262,262,
-           330,330,392,392, 349,349,330,330, 262,262,330,330, 247,247,262,262],
-  bass:[220,0,220,110, 175,0,175,87, 262,0,262,131, 196,0,196,98,
-        220,0,220,110, 175,0,175,87, 262,0,262,131, 196,0,196,98],
-  chords:[[440,523,659],[349,440,523],[523,659,784],[392,494,587],
-          [440,523,659],[349,440,523],[523,659,784],[392,494,587]],
-  melVol:0.18,harmVol:0.08,bassVol:0.18,chordVol:0.05,
+// Play2 (1000-1999): Neon Streets - bouncy pop, G major, catchy hook
+const BGM_PLAY2={tempo:140,
+  melody:[784,0,880,784, 659,784,0,659, 523,587,659,0, 587,523,494,523,
+          784,880,988,0, 880,784,659,784, 880,0,784,659, 587,0,523,0],
+  harmony:[494,494,587,587, 440,440,494,494, 392,392,440,440, 370,370,392,392,
+           494,494,587,587, 440,440,494,494, 392,392,440,440, 370,370,392,392],
+  bass:[196,0,392,196, 165,0,330,165, 131,0,262,131, 147,0,294,147,
+        196,0,392,196, 165,0,330,165, 131,0,262,131, 147,0,294,147],
+  chords:[[392,494,587],[330,392,494],[262,330,392],[294,370,440],
+          [392,494,587],[330,392,494],[262,330,392],[294,370,440]],
+  melVol:0.20,harmVol:0.09,bassVol:0.18,chordVol:0.06,
   melWave:'triangle',harmWave:'sine',bassWave:'sine',
   drums:'pop'};
-// Play3 (20000-29999): technical synth-pop, Dm-Gm-Bb-A
-const BGM_PLAY3={tempo:138,
-  melody:[587,659,698,880, 784,698,587,659, 466,523,587,523, 440,523,587,440,
-          587,698,784,880, 784,698,587,698, 880,784,698,587, 523,587,440,523],
-  harmony:[440,440,523,523, 392,392,440,440, 349,349,392,392, 330,330,440,440,
-           440,440,523,523, 392,392,440,440, 349,349,392,392, 330,330,440,440],
-  bass:[294,0,294,147, 196,0,196,98, 233,0,233,117, 220,0,220,110,
-        294,0,294,147, 196,0,196,98, 233,0,233,117, 220,0,220,110],
-  chords:[[294,349,440],[196,247,294],[233,294,349],[220,277,330],
-          [294,349,440],[196,247,294],[233,294,349],[220,277,330]],
-  melVol:0.20,harmVol:0.09,bassVol:0.20,chordVol:0.06,
-  melWave:'triangle',harmWave:'triangle',bassWave:'sine',
+// Play3 (2000-2999): Cyberpunk Funk - Dm syncopated arpeggios, synth-funk
+const BGM_PLAY3={tempo:130,
+  melody:[587,0,698,784, 0,880,0,784, 698,0,587,698, 880,0,1047,0,
+          880,784,0,698, 587,0,698,0, 523,587,659,0, 587,0,523,440],
+  harmony:[440,0,440,523, 0,523,0,440, 392,0,392,440, 0,440,0,392,
+           349,0,349,440, 0,440,0,349, 330,0,330,392, 0,392,0,330],
+  bass:[294,0,147,294, 196,0,98,196, 233,0,117,233, 220,0,110,220,
+        294,147,0,294, 196,98,0,196, 233,117,0,233, 220,110,0,220],
+  chords:[[294,349,440],[196,233,294],[233,294,349],[220,277,330],
+          [294,349,440],[196,233,294],[233,294,349],[220,277,330]],
+  melVol:0.20,harmVol:0.10,bassVol:0.22,chordVol:0.06,
+  melWave:'triangle',harmWave:'triangle',bassWave:'sawtooth',
   drums:'drive'};
-// Play4 (30000-39999): intense rock-ish, Em-C-D-B
-const BGM_PLAY4={tempo:132,
-  melody:[659,784,880,988, 1047,880,784,880, 784,659,587,659, 494,587,659,494,
-          659,880,988,1047, 988,880,784,659, 784,880,784,659, 587,659,494,587],
-  harmony:[494,494,587,587, 523,523,494,494, 440,440,494,494, 392,392,440,440,
-           494,494,587,587, 523,523,494,494, 440,440,494,494, 392,392,440,440],
-  bass:[165,0,165,165, 262,0,262,131, 294,0,294,147, 247,0,247,123,
-        165,0,165,165, 262,0,262,131, 294,0,294,147, 247,0,247,123],
-  chords:[[330,392,494],[262,330,392],[294,370,440],[247,311,370],
-          [330,392,494],[262,330,392],[294,370,440],[247,311,370]],
-  melVol:0.22,harmVol:0.10,bassVol:0.22,chordVol:0.07,
-  melWave:'sawtooth',harmWave:'triangle',bassWave:'triangle',
-  drums:'drive'};
-// Play5 (40000+): frantic chase, Am-Dm-E-Am, fast and urgent
-const BGM_PLAY5={tempo:120,
-  melody:[880,0,1047,1175, 1319,1175,1047,880, 1175,1047,880,784, 880,1047,1175,880,
-          587,698,880,1047, 880,698,587,698, 659,784,880,1047, 880,784,659,880],
-  harmony:[659,659,784,784, 587,587,659,659, 494,494,659,659, 659,659,784,784,
-           440,440,587,587, 440,440,523,523, 494,494,659,659, 659,659,784,784],
-  bass:[220,0,220,220, 294,0,294,147, 330,0,330,165, 220,0,220,110,
-        220,0,220,220, 294,0,294,147, 330,0,330,165, 220,0,220,110],
-  chords:[[440,523,659],[294,349,440],[330,415,494],[440,523,659],
-          [440,523,659],[294,349,440],[330,415,494],[440,523,659]],
+// Play4 (3000-3999): Danger Zone - Em aggressive rock, heavy riffs
+const BGM_PLAY4={tempo:155,
+  melody:[659,0,784,880, 988,880,784,0, 659,784,880,1047, 988,0,880,784,
+          523,587,659,784, 0,880,988,0, 1047,988,880,784, 659,0,784,0],
+  harmony:[494,494,0,587, 523,0,494,494, 440,440,0,523, 494,0,440,440,
+           392,392,0,494, 440,0,392,392, 523,523,0,494, 440,0,392,0],
+  bass:[165,165,330,165, 262,262,523,262, 196,196,392,196, 294,294,587,294,
+        165,165,330,165, 262,262,523,262, 196,196,392,196, 294,294,587,294],
+  chords:[[330,392,494],[262,330,392],[196,247,294],[294,370,440],
+          [330,392,494],[262,330,392],[196,247,294],[294,370,440]],
   melVol:0.22,harmVol:0.10,bassVol:0.24,chordVol:0.07,
   melWave:'sawtooth',harmWave:'triangle',bassWave:'triangle',
-  drums:'edm'};
-// Boss: tense, dramatic, Cm-Ab-Bb-G
-const BGM_BOSS={tempo:125,
-  melody:[523,0,622,659, 784,659,622,0, 466,523,622,523, 392,466,523,392,
-          523,622,784,932, 784,622,523,622, 784,932,784,622, 523,622,466,523],
-  harmony:[392,392,466,466, 415,415,392,392, 349,349,392,392, 311,311,392,392,
-           392,392,466,466, 415,415,392,392, 349,349,392,392, 311,311,392,392],
-  bass:[262,0,262,262, 208,0,208,104, 233,0,233,117, 196,0,196,98,
-        262,0,262,262, 208,0,208,104, 233,0,233,117, 196,0,196,98],
-  chords:[[262,311,392],[208,262,311],[233,294,349],[196,247,311],
-          [262,311,392],[208,262,311],[233,294,349],[196,247,311]],
-  melVol:0.22,harmVol:0.10,bassVol:0.24,chordVol:0.07,
-  melWave:'sawtooth',harmWave:'triangle',bassWave:'triangle',
-  drums:'boss'};
-// Dead: melancholy ballad, Dm-Bb-Gm-A, sparse and slow
-const BGM_DEAD={tempo:320,
-  melody:[294,330,349,294, 262,294,262,220, 247,262,294,262, 220,247,277,220,
-          294,349,330,294, 262,294,220,247, 262,220,196,220, 247,220,196,175],
-  harmony:[220,220,262,262, 233,233,220,220, 196,196,220,220, 175,175,220,220,
-           220,220,262,262, 233,233,220,220, 196,196,220,220, 175,175,220,220],
-  bass:[147,0,0,0, 117,0,0,0, 131,0,0,0, 110,0,0,0,
-        147,0,0,0, 117,0,0,0, 131,0,0,0, 110,0,0,0],
-  chords:[[294,349,440],[233,294,349],[196,247,294],[220,277,330],
-          [294,349,440],[233,294,349],[196,247,294],[220,277,330]],
-  melVol:0.14,harmVol:0.07,bassVol:0.10,chordVol:0.04,
+  drums:'heavy'};
+// Play5 (4000+): Maximum Overdrive - Am frantic arpeggios, breakneck EDM
+const BGM_PLAY5={tempo:170,
+  melody:[880,1047,1319,1568, 1760,1568,1319,1047, 698,880,1047,1319, 1047,880,698,587,
+          1175,1319,1568,1760, 1568,1319,1175,1047, 880,1047,1175,1319, 1175,1047,880,1047],
+  harmony:[659,0,659,784, 0,784,0,659, 523,0,523,659, 0,659,0,523,
+           587,0,587,698, 0,698,0,587, 659,0,659,784, 0,784,0,659],
+  bass:[220,220,440,220, 175,175,349,175, 147,147,294,147, 165,165,330,165,
+        220,220,440,220, 175,175,349,175, 147,147,294,147, 165,165,330,165],
+  chords:[[440,523,659],[349,440,523],[294,349,440],[330,392,494],
+          [440,523,659],[349,440,523],[294,349,440],[330,392,494]],
+  melVol:0.24,harmVol:0.10,bassVol:0.26,chordVol:0.07,
+  melWave:'sawtooth',harmWave:'triangle',bassWave:'sawtooth',
+  drums:'turbo'};
+// Boss: Nightmare Awakens - Cm with tritones, ominous chromatic horror
+const BGM_BOSS={tempo:110,
+  melody:[523,0,622,0, 740,0,622,523, 466,0,523,0, 740,659,0,0,
+          831,0,784,740, 0,622,0,523, 466,523,622,740, 784,0,622,0],
+  harmony:[392,0,0,415, 0,0,370,0, 311,0,0,330, 0,0,392,0,
+           415,0,0,392, 0,0,370,0, 330,0,0,311, 0,0,262,0],
+  bass:[131,0,131,131, 185,0,185,93, 104,0,104,104, 98,0,131,98,
+        131,131,0,131, 185,185,0,93, 104,104,0,104, 98,0,131,131],
+  chords:[[262,311,370],[185,233,277],[208,262,311],[196,262,370],
+          [262,311,370],[185,233,277],[208,262,311],[196,262,370]],
+  melVol:0.20,harmVol:0.08,bassVol:0.28,chordVol:0.08,
+  melWave:'sawtooth',harmWave:'triangle',bassWave:'sawtooth',
+  drums:'horror'};
+// Dead: Last Light - Bm very slow, sparse, melancholy piano-like
+const BGM_DEAD={tempo:60,
+  melody:[740,0,0,0, 659,0,0,0, 587,0,0,659, 0,0,587,0,
+          494,0,0,0, 587,0,0,0, 554,0,0,494, 0,0,0,0],
+  harmony:[370,0,0,0, 0,0,330,0, 0,0,0,0, 294,0,0,0,
+           247,0,0,0, 0,0,294,0, 0,0,0,0, 247,0,0,0],
+  bass:[247,0,0,0, 0,0,0,0, 196,0,0,0, 0,0,0,0,
+        147,0,0,0, 0,0,0,0, 110,0,0,0, 0,0,0,0],
+  chords:[[494,587,740],[392,494,587],[294,370,440],[220,277,330],
+          [494,587,740],[392,494,587],[294,370,440],[220,277,330]],
+  melVol:0.12,harmVol:0.06,bassVol:0.08,chordVol:0.04,
   melWave:'sine',harmWave:'sine',bassWave:'sine',
   drums:'none'};
 
@@ -390,12 +390,22 @@ function switchBGM(type){
         if(mi%8===4)bgmSnare(now);
         bgmNoise(now,0.02,mi%2===0?0.1:0.05);
         if(mi%4===2)bgmKick(now);
-      } else if(def.drums==='boss'){
-        if(mi%4===0||mi%8===6)bgmKick(now);
-        if(mi%8===4)bgmSnare(now);
-        if(mi%8===0)bgmSnare(now); // snare on 1 too for intensity
-        bgmNoise(now,0.02,0.07);
-        if(mi%16===14)bgmSnare(now); // fill before bar end
+      } else if(def.drums==='heavy'){
+        if(mi%4===0)bgmKick(now);if(mi%4===2)bgmKick(now); // double kick
+        if(mi%8===4)bgmSnare(now);if(mi%8===0&&mi>0)bgmSnare(now);
+        bgmNoise(now,0.02,0.08); // constant 16th hi-hats
+        if(mi%16>=14)bgmSnare(now); // fill
+      } else if(def.drums==='turbo'){
+        if(mi%2===0)bgmKick(now); // kick every 8th
+        if(mi%4===2)bgmSnare(now);if(mi%8===4)bgmSnare(now);
+        bgmNoise(now,0.015,0.09);
+        if(mi%16>=14){bgmSnare(now);bgmKick(now);} // crash fill
+      } else if(def.drums==='horror'){
+        // Irregular, unpredictable rhythm
+        if(mi===0||mi===6||mi===11||mi===16||mi===22||mi===27)bgmKick(now);
+        if(mi===4||mi===13||mi===20||mi===29)bgmSnare(now);
+        if(mi%3===0)bgmNoise(now,0.04,0.1); // triplet hi-hats
+        if(mi===15||mi===31){bgmSnare(now);bgmKick(now);} // tension builds
       }
       si++;
     }catch(e){}
@@ -443,20 +453,80 @@ function vibrate(ms){try{if(navigator.vibrate)navigator.vibrate(ms);}catch(e){}}
 function sfxCharVoice(idx){
   if(!audioCtx)return;try{
     const t=audioCtx.currentTime;
-    const bases=[520,440,280,600,700,350];
-    const waves=['sine','triangle','sine','sine','square','triangle'];
-    const f=bases[idx%bases.length];
-    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
-    o.connect(g);g.connect(sfxGain);o.type=waves[idx%waves.length];
-    o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(f*1.4,t+0.08);
-    o.frequency.exponentialRampToValueAtTime(f*0.9,t+0.15);
-    g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.2);
-    o.start(t);o.stop(t+0.22);
-    const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
-    o2.connect(g2);g2.connect(sfxGain);o2.type='sine';
-    o2.frequency.setValueAtTime(f*1.5,t+0.03);o2.frequency.exponentialRampToValueAtTime(f*1.2,t+0.12);
-    g2.gain.setValueAtTime(0.06,t+0.03);g2.gain.exponentialRampToValueAtTime(0.001,t+0.18);
-    o2.start(t+0.03);o2.stop(t+0.2);
+    if(idx===0){
+      // Cube: digital chirp - two quick square beeps
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='square';
+      o.frequency.setValueAtTime(800,t);o.frequency.setValueAtTime(1200,t+0.06);
+      g.gain.setValueAtTime(0.1,t);g.gain.setValueAtTime(0.1,t+0.06);
+      g.gain.exponentialRampToValueAtTime(0.001,t+0.12);
+      o.start(t);o.stop(t+0.14);
+    } else if(idx===1){
+      // Bounce: springy boing - rapid pitch bounce
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='sine';
+      o.frequency.setValueAtTime(300,t);o.frequency.exponentialRampToValueAtTime(900,t+0.05);
+      o.frequency.exponentialRampToValueAtTime(400,t+0.1);o.frequency.exponentialRampToValueAtTime(800,t+0.15);
+      g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.2);
+      o.start(t);o.stop(t+0.22);
+    } else if(idx===2){
+      // Tire: engine rev - low sawtooth rumble with noise
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='sawtooth';
+      o.frequency.setValueAtTime(80,t);o.frequency.exponentialRampToValueAtTime(200,t+0.1);
+      o.frequency.exponentialRampToValueAtTime(120,t+0.2);
+      g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);
+      o.start(t);o.stop(t+0.27);
+      const n=audioCtx.createBufferSource(),buf=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.15)),audioCtx.sampleRate);
+      const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*0.3;
+      n.buffer=buf;const ng=audioCtx.createGain();n.connect(ng);ng.connect(sfxGain);
+      ng.gain.setValueAtTime(0.06,t);ng.gain.exponentialRampToValueAtTime(0.001,t+0.15);
+      n.start(t);n.stop(t+0.15);
+    } else if(idx===3){
+      // Ghost: ethereal whisper - high sine with vibrato
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='sine';
+      o.frequency.setValueAtTime(1200,t);o.frequency.exponentialRampToValueAtTime(800,t+0.3);
+      const lfo=audioCtx.createOscillator(),lfoG=audioCtx.createGain();
+      lfo.connect(lfoG);lfoG.connect(o.frequency);lfo.frequency.value=8;lfoG.gain.value=60;
+      lfo.start(t);lfo.stop(t+0.35);
+      g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.35);
+      o.start(t);o.stop(t+0.37);
+      const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
+      o2.connect(g2);g2.connect(sfxGain);o2.type='sine';
+      o2.frequency.setValueAtTime(1800,t);o2.frequency.exponentialRampToValueAtTime(1200,t+0.3);
+      g2.gain.setValueAtTime(0.04,t);g2.gain.exponentialRampToValueAtTime(0.001,t+0.3);
+      o2.start(t);o2.stop(t+0.32);
+    } else if(idx===4){
+      // Ninja: sharp slash - rapid high sweep with metallic noise
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='sawtooth';
+      o.frequency.setValueAtTime(2000,t);o.frequency.exponentialRampToValueAtTime(400,t+0.08);
+      g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.1);
+      o.start(t);o.stop(t+0.12);
+      const n=audioCtx.createBufferSource(),buf=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.08)),audioCtx.sampleRate);
+      const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);
+      n.buffer=buf;const ng=audioCtx.createGain();n.connect(ng);ng.connect(sfxGain);
+      ng.gain.setValueAtTime(0.1,t);ng.gain.exponentialRampToValueAtTime(0.001,t+0.06);
+      n.start(t);n.stop(t+0.08);
+    } else if(idx===5){
+      // Stone: heavy thud - low triangle with impact noise
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='triangle';
+      o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(60,t+0.15);
+      g.gain.setValueAtTime(0.15,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);
+      o.start(t);o.stop(t+0.27);
+      const n=audioCtx.createBufferSource(),buf=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.1)),audioCtx.sampleRate);
+      const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(audioCtx.sampleRate*0.03));
+      n.buffer=buf;const ng=audioCtx.createGain();n.connect(ng);ng.connect(sfxGain);
+      ng.gain.setValueAtTime(0.12,t);ng.gain.exponentialRampToValueAtTime(0.001,t+0.1);
+      n.start(t);n.stop(t+0.1);
+      const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
+      o2.connect(g2);g2.connect(sfxGain);o2.type='sine';
+      o2.frequency.setValueAtTime(50,t);o2.frequency.exponentialRampToValueAtTime(30,t+0.2);
+      g2.gain.setValueAtTime(0.1,t);g2.gain.exponentialRampToValueAtTime(0.001,t+0.2);
+      o2.start(t);o2.stop(t+0.22);
+    }
   }catch(e){}
 }
 

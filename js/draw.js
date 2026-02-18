@@ -1583,7 +1583,7 @@ function drawStageSel(){
 function handleStageSelTouch(tx,ty){
   // Back button
   if(tx>=10&&tx<=60&&ty>=22+safeTop&&ty<=52+safeTop){
-    state=ST.TITLE;isPackMode=false;switchBGM('title');return;
+    sfx('cancel');titleTouchPos=null;state=ST.TITLE;isPackMode=false;switchBGM('title');return;
   }
   const startY=70+safeTop+stageSelScroll;
   const cardH=130,cardGap=14,cardW=W-30;
