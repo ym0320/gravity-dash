@@ -88,7 +88,7 @@ function update(dt){
   if(isPackMode&&currentPackStage){
     speed=SPEED_INIT*currentPackStage.spdMul*ct().speedMul;
   } else {
-    speed=Math.min(SPEED_MAX,(SPEED_INIT+dist*SPEED_INC))*ct().speedMul;
+    speed=Math.min(SPEED_MAX,(SPEED_INIT+(dist-speedOffset)*SPEED_INC))*ct().speedMul;
   }
 
   // Distance scoring
@@ -624,7 +624,7 @@ function update(dt){
       hurt();
     }
   });
-  bullets=bullets.filter(b=>b.life>0&&b.x>-50&&b.x<W+100&&b.y>-50&&b.y<H+50);
+  bullets=bullets.filter(b=>b.life>0&&(b.wizBullet||(b.x>-50&&b.x<W+100&&b.y>-50&&b.y<H+50)));
 
   // Wall collision: hitting the side of a higher platform step
   // All characters: climb steps up to half their height (pr = radius = half diameter)

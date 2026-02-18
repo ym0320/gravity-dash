@@ -133,7 +133,7 @@ function reset(){
   player.y=floorSurfaceY(player.x)-PLAYER_R;
   coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];floatPlats=[];floatCD=0;
   spikes=[];spikeCD=0;movingHills=[];hillCD=0;gravZones=[];gravZoneCD=0;
-  score=0;dist=0;speed=SPEED_INIT;frame=0;deadT=0;newHi=false;
+  score=0;dist=0;speedOffset=0;speed=SPEED_INIT;frame=0;deadT=0;newHi=false;
   combo=0;comboT=0;comboDsp=0;comboDspT=0;airCombo=0;
   shakeX=0;shakeY=0;shakeI=0;
   mileT=0;mileTxt='';lastMile=0;
@@ -177,7 +177,7 @@ function resetPackStage(pi,si){
   }
   stageBigCollected=0;stageClearT=0;
   ambientParts=[];
-  score=0;dist=0;speed=SPEED_INIT*stage.spdMul;frame=0;deadT=0;newHi=false;
+  score=0;dist=0;speedOffset=0;speed=SPEED_INIT*stage.spdMul;frame=0;deadT=0;newHi=false;
   combo=0;comboT=0;comboDsp=0;comboDspT=0;airCombo=0;
   shakeX=0;shakeY=0;shakeI=0;
   mileT=0;mileTxt='';lastMile=0;

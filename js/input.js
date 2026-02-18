@@ -59,7 +59,7 @@ function continueFromDeath(){
   player.gDir=1;player.vy=0;player.canFlip=true;
   player.rot=0;player.rotTarget=0;player.trail=[];
   hp=HP_MAX+(ct().hpBonus||0);hurtT=0;
-  speed=SPEED_INIT; // reset speed
+  speed=SPEED_INIT;speedOffset=dist; // reset speed to initial by offsetting
   // Rebuild safe platforms around player
   platforms=[];ceilPlats=[];
   platforms.push({x:player.x-W*0.3,w:W*0.9,h:GROUND_H});
