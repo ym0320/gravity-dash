@@ -324,17 +324,17 @@ function playFeverBGM(){
 
 // Score-based play BGM selection
 function getPlayBGM(){
-  if(score>=40000)return BGM_PLAY5;
-  if(score>=30000)return BGM_PLAY4;
-  if(score>=20000)return BGM_PLAY3;
-  if(score>=10000)return BGM_PLAY2;
+  if(score>=4000)return BGM_PLAY5;
+  if(score>=3000)return BGM_PLAY4;
+  if(score>=2000)return BGM_PLAY3;
+  if(score>=1000)return BGM_PLAY2;
   return BGM_PLAY1;
 }
 function getPlayBGMType(){
-  if(score>=40000)return'play5';
-  if(score>=30000)return'play4';
-  if(score>=20000)return'play3';
-  if(score>=10000)return'play2';
+  if(score>=4000)return'play5';
+  if(score>=3000)return'play4';
+  if(score>=2000)return'play3';
+  if(score>=1000)return'play2';
   return'play1';
 }
 

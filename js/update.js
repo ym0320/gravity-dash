@@ -103,7 +103,7 @@ function update(dt){
         addPop(W/2,H*0.55,THEMES[curTheme].n+'!','#00e5ff');
       }
     }
-    // BGM progression every 10000 points (only when not in boss/fever)
+    // BGM progression every 1000 points (max 4 changes up to 5000)
     if(!isPackMode&&!bossPhase.active&&itemEff.invincible<=0&&state===ST.PLAY){
       const newBGM=getPlayBGMType();
       if(bgmCurrent!==newBGM&&bgmCurrent!=='boss'&&bgmCurrent!=='fever'){
