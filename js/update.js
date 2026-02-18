@@ -36,6 +36,7 @@ function update(dt){
     if(charModal.show)charModal.animT++;
     stars.forEach(s=>{s.x-=s.sp*0.5;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
     mtns.forEach(m=>{m.off-=m.sp*0.3;if(m.off<-500)m.off+=500;});
+    updateDemo();
     return;
   }
   if(state===ST.DEAD){
@@ -312,7 +313,7 @@ function update(dt){
       const spTopY=sp.h-sp.spikeH;
       if(player.x+pr>sp.x&&player.x-pr<sp.x+sp.w){
         if(player.y+pr>spTopY&&player.y-pr<sp.h){
-          hurt();
+          hurt(true);
         }
       }
     }
@@ -352,7 +353,7 @@ function update(dt){
   const fSurf=floorSurfaceY(player.x);
   const cSurf=ceilSurfaceY(player.x);
   if(fSurf-cSurf<pr*2+4){
-    hurt();return;
+    hurt(true);return;
   }
   // Boundaries (void fall = instant death, lose all HP)
   if(player.y+pr>H+30||player.y-pr<-30){die();return;}
@@ -626,11 +627,11 @@ function update(dt){
   bullets=bullets.filter(b=>b.life>0&&b.x>-50&&b.x<W+100&&b.y>-50&&b.y<H+50);
 
   // Wall collision: hitting the side of a higher platform step
-  // Small steps (<=STEP_TOLERANCE) are auto-climbed when grounded; larger steps cause damage
-  // Tire character: climbs steps up to its own height (diameter = pr*2) without needing grounded
+  // All characters: climb steps up to half their height (pr = radius = half diameter)
+  // Tire character: climbs steps up to its own height (diameter = pr*2)
   {
     const tireStepTol=isTire?pr*2:0; // tire: full character height = diameter
-    const STEP_TOLERANCE=ct().stepTol||20;
+    const STEP_TOLERANCE=pr; // all characters: half character height
     if(player.gDir===1){
       for(let i=0;i<platforms.length;i++){
         const p=platforms[i];
@@ -639,12 +640,13 @@ function update(dt){
           if(player.y+pr>surfY+4){
             const stepH=player.y+pr-surfY;
             if(isTire&&stepH<=tireStepTol){
-              // Tire: snap directly onto the step (no lerp — lerp causes grounded loss next frame)
+              // Tire: snap directly onto the step
               player.y=surfY-pr;player.vy=0;player.grounded=true;
-            } else if(stepH<=STEP_TOLERANCE&&player.grounded){
-              player.y=surfY-pr; // auto step up
+            } else if(stepH<=STEP_TOLERANCE){
+              // All characters: auto step up (half height or less)
+              player.y=surfY-pr;player.vy=0;player.grounded=true;
             } else {
-              hurt();return;
+              hurt(true);return;
             }
           }
         }
@@ -657,12 +659,13 @@ function update(dt){
           if(player.y-pr<surfY-4){
             const stepH=surfY-(player.y-pr);
             if(isTire&&stepH<=tireStepTol){
-              // Tire: snap directly onto the step (no lerp — lerp causes grounded loss next frame)
+              // Tire: snap directly onto the step
               player.y=surfY+pr;player.vy=0;player.grounded=true;
-            } else if(stepH<=STEP_TOLERANCE&&player.grounded){
-              player.y=surfY+pr; // auto step down (ceiling)
+            } else if(stepH<=STEP_TOLERANCE){
+              // All characters: auto step up (half height or less)
+              player.y=surfY+pr;player.vy=0;player.grounded=true;
             } else {
-              hurt();return;
+              hurt(true);return;
             }
           }
         }
