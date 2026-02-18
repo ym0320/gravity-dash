@@ -3,6 +3,7 @@ let touchStartY=0,touchStartX=0,touchStartT=0,touchMoved=false;
 // Character modal (long-press on title to show details + animated demo)
 let charModal={show:false,idx:0,animT:0};
 let longPressTimer=null,longPressFired=false,titleTouchPos=null;
+let draggingSlider=null; // 'bgm' or 'sfx' when dragging a settings slider
 
 function canvasXY(cx,cy){
   const r=canvas.getBoundingClientRect();
@@ -82,6 +83,36 @@ function startPackStageFromDead(){
   state=ST.PLAY;resetPackStage(currentPackIdx,currentPackStageIdx);switchBGM('play');
 }
 
+// Settings panel input helpers (must match drawTitle layout)
+function settingsLayout(){
+  const pw=Math.min(280,W-30),ph=200,px=W/2-pw/2,py=H/2-ph/2;
+  const slW=pw-50,slX=px+25,barX=slX+42,barW=slW-42;
+  const slY1=py+52,slY2=slY1+44;
+  const barH=10;
+  return{px,py,pw,ph,barX,barW,barY1:slY1-8,barY2:slY2-8,barH,closeY:py+ph-42};
+}
+function hitSettingsGear(tx,ty){return tx>=W-44&&tx<=W-8&&ty>=safeTop+6&&ty<=safeTop+42;}
+function handleSettingsTouch(tx,ty){
+  const s=settingsLayout();
+  // Close button
+  if(tx>=W/2-60&&tx<=W/2+60&&ty>=s.closeY&&ty<=s.closeY+32){sfx('click');settingsOpen=false;return true;}
+  // BGM slider
+  if(ty>=s.barY1-10&&ty<=s.barY1+s.barH+10&&tx>=s.barX-10&&tx<=s.barX+s.barW+10){
+    draggingSlider='bgm';updateSliderDrag(tx);return true;
+  }
+  // SFX slider
+  if(ty>=s.barY2-10&&ty<=s.barY2+s.barH+10&&tx>=s.barX-10&&tx<=s.barX+s.barW+10){
+    draggingSlider='sfx';updateSliderDrag(tx);return true;
+  }
+  return false;
+}
+function updateSliderDrag(tx){
+  const s=settingsLayout();
+  const v=Math.max(0,Math.min(1,(tx-s.barX)/s.barW));
+  if(draggingSlider==='bgm')setBgmVol(v);
+  else if(draggingSlider==='sfx')setSfxVol(v);
+}
+
 // Auto-pause when page loses visibility or focus
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden&&state===ST.PLAY){state=ST.PAUSE;sfx('pause');}
@@ -102,7 +133,11 @@ canvas.addEventListener('touchstart',e=>{
   const t=e.touches[0];
   const p=canvasXY(t.clientX,t.clientY);
   touchStartY=t.clientY;touchStartX=t.clientX;touchStartT=Date.now();touchMoved=false;
+  // Settings panel intercepts all input when open
+  if(settingsOpen){handleSettingsTouch(p.x,p.y);return;}
   if(state===ST.COUNTDOWN)return; // block input during countdown
+  // Settings gear button on title screen
+  if(state===ST.TITLE&&!charModal.show&&hitSettingsGear(p.x,p.y)){sfx('click');settingsOpen=true;return;}
   if(state===ST.STAGE_SEL){stageSelTouchY=t.clientY;stageSelDragging=false;handleStageSelTouch(p.x,p.y);return;}
   if(state===ST.STAGE_CLEAR&&stageClearT>60){
     sfx('click');state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;
@@ -134,6 +169,8 @@ canvas.addEventListener('touchstart',e=>{
 canvas.addEventListener('touchmove',e=>{
   e.preventDefault();
   const t=e.touches[0];
+  // Settings slider drag
+  if(settingsOpen&&draggingSlider){const mp=canvasXY(t.clientX,t.clientY);updateSliderDrag(mp.x);return;}
   const dy=t.clientY-touchStartY;
   const dx=t.clientX-touchStartX;
   if(Math.abs(dy)>20||Math.abs(dx)>20){touchMoved=true;if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}}
@@ -148,6 +185,8 @@ canvas.addEventListener('touchmove',e=>{
 
 canvas.addEventListener('touchend',e=>{
   e.preventDefault();
+  if(draggingSlider){draggingSlider=null;return;}
+  if(settingsOpen)return;
   if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}
   if(state===ST.TITLE&&!longPressFired&&titleTouchPos){handleTitleTouch(titleTouchPos.x,titleTouchPos.y);titleTouchPos=null;return;}
   if(state!==ST.PLAY||state===ST.PAUSE)return;
@@ -197,7 +236,9 @@ canvas.addEventListener('touchend',e=>{
 canvas.addEventListener('mousedown',e=>{
   initAudio();
   const p=canvasXY(e.clientX,e.clientY);
+  if(settingsOpen){handleSettingsTouch(p.x,p.y);return;}
   if(state===ST.COUNTDOWN)return;
+  if(state===ST.TITLE&&!charModal.show&&hitSettingsGear(p.x,p.y)){sfx('click');settingsOpen=true;return;}
   if(state===ST.STAGE_SEL){handleStageSelTouch(p.x,p.y);return;}
   if(state===ST.STAGE_CLEAR&&stageClearT>60){
     sfx('click');state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;
@@ -228,7 +269,12 @@ canvas.addEventListener('mousedown',e=>{
     emitParts(player.x,player.y,8,'#ffaa00',3,2.5);
   }
 });
+canvas.addEventListener('mousemove',e=>{
+  if(draggingSlider){const p=canvasXY(e.clientX,e.clientY);updateSliderDrag(p.x);}
+});
+canvas.addEventListener('mouseup',()=>{draggingSlider=null;});
 document.addEventListener('keydown',e=>{
+  if(settingsOpen){if(e.code==='Escape'){settingsOpen=false;sfx('cancel');}e.preventDefault();return;}
   if(e.code==='Escape'){
     e.preventDefault();
     if(state===ST.STAGE_SEL){sfx('cancel');state=ST.TITLE;isPackMode=false;switchBGM('title');return;}

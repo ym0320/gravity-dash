@@ -998,7 +998,57 @@ function drawTitle(){
   if(ts>0){ctx.fillStyle='#ffd700aa';ctx.font='9px monospace';ctx.fillText('★'+ts,sbx+btnW/2,btnY+36);}
 
   ctx.fillStyle='#667';ctx.font='10px monospace';ctx.textAlign='center';
-  ctx.fillText('タップ=ジャンプ / スワイプ=重力反転',W/2,H*0.93);
+  ctx.fillText('\u30BF\u30C3\u30D7=\u30B8\u30E3\u30F3\u30D7 / \u30B9\u30EF\u30A4\u30D7=\u91CD\u529B\u53CD\u8EE2',W/2,H*0.93);
+
+  // Settings gear button (top right)
+  ctx.fillStyle='#ffffff14';rr(W-44,safeTop+6,36,36,8);ctx.fill();
+  ctx.fillStyle='#fff6';ctx.font='18px monospace';ctx.textAlign='center';
+  ctx.fillText('\u2699',W-26,safeTop+30);
+
+  // Settings panel overlay
+  if(settingsOpen){
+    ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,W,H);
+    const pw=Math.min(280,W-30),ph=200,px=W/2-pw/2,py=H/2-ph/2;
+    const panGr=ctx.createLinearGradient(px,py,px,py+ph);
+    panGr.addColorStop(0,'rgba(15,15,40,0.97)');panGr.addColorStop(1,'rgba(8,8,25,0.97)');
+    ctx.fillStyle=panGr;rr(px,py,pw,ph,14);ctx.fill();
+    ctx.strokeStyle='#00e5ff44';ctx.lineWidth=1.5;rr(px,py,pw,ph,14);ctx.stroke();
+    // Title
+    ctx.fillStyle='#fff';ctx.font='bold 16px monospace';ctx.textAlign='center';
+    ctx.fillText('\u8A2D\u5B9A',W/2,py+28);
+    // BGM volume slider
+    const slW=pw-50,slX=px+25,slY1=py+52;
+    ctx.fillStyle='#fff8';ctx.font='11px monospace';ctx.textAlign='left';
+    ctx.fillText('BGM',slX,slY1);
+    const barX=slX+42,barW=slW-42,barY=slY1-8,barH=10;
+    ctx.fillStyle='#ffffff12';rr(barX,barY,barW,barH,5);ctx.fill();
+    ctx.fillStyle='#00e5ff';rr(barX,barY,barW*bgmVol,barH,5);ctx.fill();
+    // Knob
+    const knobX=barX+barW*bgmVol;
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(knobX,barY+barH/2,7,0,6.28);ctx.fill();
+    ctx.fillStyle='#00e5ff';ctx.beginPath();ctx.arc(knobX,barY+barH/2,5,0,6.28);ctx.fill();
+    // Value
+    ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.textAlign='right';
+    ctx.fillText(Math.round(bgmVol*100)+'%',slX+slW,slY1);
+    // SFX volume slider
+    const slY2=slY1+44;
+    ctx.fillStyle='#fff8';ctx.font='11px monospace';ctx.textAlign='left';
+    ctx.fillText('SE',slX,slY2);
+    const barY2=slY2-8;
+    ctx.fillStyle='#ffffff12';rr(barX,barY2,barW,barH,5);ctx.fill();
+    ctx.fillStyle='#ff8600';rr(barX,barY2,barW*sfxVol,barH,5);ctx.fill();
+    const knobX2=barX+barW*sfxVol;
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(knobX2,barY2+barH/2,7,0,6.28);ctx.fill();
+    ctx.fillStyle='#ff8600';ctx.beginPath();ctx.arc(knobX2,barY2+barH/2,5,0,6.28);ctx.fill();
+    ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.textAlign='right';
+    ctx.fillText(Math.round(sfxVol*100)+'%',slX+slW,slY2);
+    // Close button
+    const closeY=py+ph-42;
+    ctx.fillStyle='#00e5ff22';rr(W/2-60,closeY,120,32,8);ctx.fill();
+    ctx.strokeStyle='#00e5ff';ctx.lineWidth=1;rr(W/2-60,closeY,120,32,8);ctx.stroke();
+    ctx.fillStyle='#00e5ff';ctx.font='bold 13px monospace';ctx.textAlign='center';
+    ctx.fillText('\u9589\u3058\u308B',W/2,closeY+22);
+  }
 
   // Character unlock celebration overlay
   if(unlockCelebT>0&&unlockCelebChar>=0){
