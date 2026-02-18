@@ -469,8 +469,10 @@ function update(dt){
       }
       // Fast kill trait (Flame): destroy on contact at high speed
       const fkill=ct().fastKill&&speed>4;
+      // Tire roll kill: grounded tire destroys ground-based enemies by rolling into them
+      const tireRoll=isTire&&player.grounded&&(en.type===0||en.type===1||en.type===3);
       // Check stomp: player approaching from the "top" of the enemy
-      const stomped=fkill||(en.gDir===1&&player.y<en.y-en.sz*0.2&&player.vy>=0)||(en.gDir===-1&&player.y>en.y+en.sz*0.2&&player.vy<=0);
+      const stomped=fkill||tireRoll||(en.gDir===1&&player.y<en.y-en.sz*0.2&&player.vy>=0)||(en.gDir===-1&&player.y>en.y+en.sz*0.2&&player.vy<=0);
       if(stomped){
         en.alive=false;
         // Bounce player off enemy
@@ -552,11 +554,10 @@ function update(dt){
 
   // Wall collision: hitting the side of a higher platform step
   // Small steps (<=STEP_TOLERANCE) are auto-climbed when grounded; larger steps cause damage
-  // Tire character: smoothly climbs steps up to 50% of character height (=radius)
+  // Tire character: smoothly climbs steps up to its own height (diameter = pr*2)
   {
-    const tireStepTol=isTire?pr:0; // tire: 50% of character height = radius
+    const tireStepTol=isTire?pr*2:0; // tire: full character height = diameter
     const STEP_TOLERANCE=ct().stepTol||20;
-    const effectiveTol=isTire?Math.max(STEP_TOLERANCE,tireStepTol):STEP_TOLERANCE;
     if(player.gDir===1){
       for(let i=0;i<platforms.length;i++){
         const p=platforms[i];
@@ -565,7 +566,7 @@ function update(dt){
           if(player.y+pr>surfY+4){
             const stepH=player.y+pr-surfY;
             if(isTire&&stepH<=tireStepTol&&player.grounded){
-              // Tire: smooth roll-over for small steps
+              // Tire: smooth roll-over for steps up to its own height
               player.y+=(surfY-pr-player.y)*0.45;
             } else if(stepH<=STEP_TOLERANCE&&player.grounded){
               player.y=surfY-pr; // auto step up
@@ -583,7 +584,7 @@ function update(dt){
           if(player.y-pr<surfY-4){
             const stepH=surfY-(player.y-pr);
             if(isTire&&stepH<=tireStepTol&&player.grounded){
-              // Tire: smooth roll-over for small steps
+              // Tire: smooth roll-over for steps up to its own height
               player.y+=(surfY+pr-player.y)*0.45;
             } else if(stepH<=STEP_TOLERANCE&&player.grounded){
               player.y=surfY+pr; // auto step down (ceiling)
