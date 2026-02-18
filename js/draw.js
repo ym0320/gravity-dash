@@ -132,6 +132,61 @@ function drawMovingHills(){
   });
 }
 
+function drawGravZones(){
+  gravZones.forEach(g=>{
+    if(g.x+g.w<-10||g.x>W+10)return;
+    const alpha=g.fadeT>0?Math.max(0,1-g.fadeT/40):1;
+    if(alpha<=0)return;
+    ctx.save();ctx.globalAlpha=alpha;
+    // Waterfall aura: vertical gradient flowing from ceiling to floor
+    const gr=ctx.createLinearGradient(g.x,0,g.x+g.w,0);
+    gr.addColorStop(0,'rgba(0,200,255,0)');
+    gr.addColorStop(0.3,'rgba(0,200,255,0.12)');
+    gr.addColorStop(0.5,'rgba(100,220,255,0.18)');
+    gr.addColorStop(0.7,'rgba(0,200,255,0.12)');
+    gr.addColorStop(1,'rgba(0,200,255,0)');
+    ctx.fillStyle=gr;
+    ctx.fillRect(g.x,0,g.w,H);
+    // Flowing stream lines (animated)
+    const t=frame*0.05;
+    ctx.strokeStyle='rgba(100,230,255,'+0.25*alpha+')';
+    ctx.lineWidth=1.5;
+    for(let i=0;i<4;i++){
+      const lx=g.x+g.w*(0.2+i*0.2)+Math.sin(t+i)*3;
+      ctx.beginPath();
+      for(let y=0;y<H;y+=8){
+        const ox=Math.sin(y*0.03+t+i*1.5)*4;
+        if(y===0)ctx.moveTo(lx+ox,y);
+        else ctx.lineTo(lx+ox,y);
+      }
+      ctx.stroke();
+    }
+    // Particles flowing downward/upward
+    const flowDir=frame%120<60?1:-1;
+    ctx.fillStyle='rgba(150,240,255,'+0.5*alpha+')';
+    for(let i=0;i<6;i++){
+      const px=g.x+((frame*2+i*40)%Math.max(1,Math.floor(g.w)));
+      const py=((frame*3+i*70)*flowDir)%H;
+      const ppy=py<0?py+H:py;
+      ctx.beginPath();ctx.arc(px,ppy,2+Math.sin(frame*0.1+i)*1,0,6.28);ctx.fill();
+    }
+    // Arrow indicators showing gravity direction
+    const arrowAlpha=0.3+Math.sin(frame*0.08)*0.15;
+    ctx.fillStyle='rgba(0,229,255,'+arrowAlpha*alpha+')';
+    const cx=g.x+g.w/2;
+    for(let i=0;i<3;i++){
+      const ay=H*0.25+i*H*0.25+((frame*1.5)%50);
+      ctx.beginPath();
+      ctx.moveTo(cx-8,ay-8);ctx.lineTo(cx,ay+8);ctx.lineTo(cx+8,ay-8);
+      ctx.closePath();ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(cx-8,ay+8);ctx.lineTo(cx,ay-8);ctx.lineTo(cx+8,ay+8);
+      ctx.closePath();ctx.fill();
+    }
+    ctx.globalAlpha=1;ctx.restore();
+  });
+}
+
 function draw(){
   ctx.save();ctx.translate(shakeX,shakeY);
   const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,tc('bg1'));bg.addColorStop(1,tc('bg2'));
@@ -148,6 +203,7 @@ function draw(){
   drawFloatPlats();
   drawSpikes();
   drawMovingHills();
+  drawGravZones();
 
   if(isPackMode)drawAmbient();
   if(state===ST.TITLE){drawTitle();drawCharModal();ctx.restore();return;}
