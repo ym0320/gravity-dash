@@ -43,11 +43,11 @@ function update(dt){
   // Ghost character periodic transparency (immune to enemy attacks while transparent)
   if(ct().shape==='ghost'){
     ghostPhaseT++;
-    if(ghostInvis&&ghostPhaseT>=50){
+    if(ghostInvis&&ghostPhaseT>=90){
       ghostInvis=false;ghostPhaseT=0;
       // Reappear particles
       emitParts(player.x,player.y,6,'#a855f7',2,1);
-    } else if(!ghostInvis&&ghostPhaseT>=120){
+    } else if(!ghostInvis&&ghostPhaseT>=90){
       ghostInvis=true;ghostPhaseT=0;
       // Vanish particles
       emitParts(player.x,player.y,8,'#a855f7',3,2);
@@ -441,8 +441,7 @@ function update(dt){
     }
     // Collision with player (boss enemies handle their own collision)
     if(en.bossType)return;
-    // Phantom: no collision when invisible
-    if(en.type===5&&!en.visible)return;
+    // Phantom: collision active even when invisible
     const dx=player.x-en.x,dy=player.y-en.y;
     const d=Math.sqrt(dx*dx+dy*dy);
     if(d<pr+en.sz){
