@@ -785,6 +785,7 @@ let djumpAvailable=false; // double jump (Bounce trait or item)
 let djumpUsed=false; // track if the double jump was used
 let bombCount=0; // bombs in inventory
 let bombFlashT=0; // bomb explosion flash timer
+let invCount=0; // stockable invincibility items in inventory
 const PANEL_H=56; // bottom action panel height
 // Ghost character periodic transparency
 let ghostPhaseT=0; // timer for ghost transparency cycle

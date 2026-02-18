@@ -4,6 +4,7 @@ function startBossPhase(){
   bossPhase.active=true;
   bossPhase.prepare=120;
   bossPhase.alertT=0;
+  bossPhase.noDamage=true; // track if player takes no damage during boss
   bossPhase.enemies=[];
   bossPhase.defeated=0;
   bossPhase.reward=false;
@@ -174,7 +175,7 @@ function updateBossPhase(){
   }
   if(bossPhase.reward){
     bossPhase.rewardT++;
-    if(bossPhase.rewardT>=180){bossPhase.active=false;bossPhase.reward=false;}
+    if(bossPhase.rewardT>=180){bossPhase.active=false;bossPhase.reward=false;if(itemEff.invincible<=0)switchBGM('play');}
     return;
   }
   const floorY=H-GROUND_H;
@@ -587,7 +588,8 @@ function updateBossPhase(){
     bossPhase.reward=true;bossPhase.rewardT=0;
     sfxFanfare();shakeI=10;vibrate([30,20,30,20,60]);
     addPop(W/2,H*0.3,'BOSS DEFEATED!','#ffd700');
-    itemEff.invincible=600;switchBGM('fever');
+    // No-damage bonus: earn stockable invincibility
+    if(bossPhase.noDamage){invCount++;addPop(W/2,H*0.55,'\u7121\u6575+1! (No Damage!)','#ff00ff');}
     if(hp<maxHp()){hp++;addPop(player.x,player.y-40,'HP +1','#ff3860');}
     const bonus=30+bossPhase.total*5;
     walletCoins+=bonus;localStorage.setItem('gd5wallet',walletCoins.toString());

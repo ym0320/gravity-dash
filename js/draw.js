@@ -68,11 +68,11 @@ function drawSpikes(){
     const spikes_n=Math.floor(sp.w/10);
     ctx.save();
     // Always show base slot (visible from right edge as soon as it spawns)
-    ctx.fillStyle='#661122';
+    ctx.fillStyle=tca('obs',0x44);
     ctx.fillRect(sp.x,baseY-3,sp.w,5);
     // Slot lines to show spike positions even when hidden
     if(spikeShow<=0){
-      ctx.strokeStyle='#882233';ctx.lineWidth=1;
+      ctx.strokeStyle=tca('obs',0x66);ctx.lineWidth=1;
       for(let i=0;i<spikes_n;i++){
         const sx=sp.x+i*(sp.w/spikes_n)+sp.w/spikes_n/2;
         ctx.beginPath();ctx.moveTo(sx,baseY-2);ctx.lineTo(sx,baseY);ctx.stroke();
@@ -81,21 +81,23 @@ function drawSpikes(){
     }
     // Warning glow on ground
     if(sp.state==='warning'){
-      ctx.fillStyle='rgba(255,60,60,'+0.2*Math.abs(Math.sin(sp.timer*0.3))+')';
+      const wa=0.2*Math.abs(Math.sin(sp.timer*0.3));
+      ctx.globalAlpha=wa;ctx.fillStyle=tc('obs');
       ctx.fillRect(sp.x,baseY-5,sp.w,5);
+      ctx.globalAlpha=1;
     }
     // Draw spike triangles
     for(let i=0;i<spikes_n;i++){
       const sx=sp.x+i*(sp.w/spikes_n);
       const sw=sp.w/spikes_n;
-      ctx.fillStyle='#cc3344';
+      ctx.fillStyle=tc('obs');
       ctx.beginPath();
       ctx.moveTo(sx,baseY);
       ctx.lineTo(sx+sw/2,baseY-sH);
       ctx.lineTo(sx+sw,baseY);
       ctx.closePath();ctx.fill();
       // Metallic highlight
-      ctx.fillStyle='rgba(255,150,150,0.3)';
+      ctx.fillStyle='rgba(255,255,255,0.25)';
       ctx.beginPath();
       ctx.moveTo(sx+sw*0.3,baseY);
       ctx.lineTo(sx+sw/2,baseY-sH);
@@ -855,32 +857,37 @@ function drawActionPanel(){
   ctx.fillStyle='rgba(0,0,0,0.55)';ctx.fillRect(0,py,W,PANEL_H);
   ctx.fillStyle='rgba(255,255,255,0.06)';ctx.fillRect(0,py,W,1);
 
-  // Bomb button (right side of panel)
-  const btnSz=44,btnX=W-btnSz-8,btnY=py+6;
-  const hasBomb=bombCount>0;
-  // Button background
-  if(hasBomb){
-    ctx.fillStyle='#ff440033';rr(btnX,btnY,btnSz,btnSz,10);ctx.fill();
-    ctx.strokeStyle='#ff4400';ctx.lineWidth=2;rr(btnX,btnY,btnSz,btnSz,10);ctx.stroke();
-    // Pulse glow when available
-    const pulse=Math.sin(frame*0.1)*0.15+0.85;
-    ctx.shadowColor='#ff4400';ctx.shadowBlur=8*pulse;
-    ctx.strokeStyle=`rgba(255,68,0,${pulse*0.5})`;rr(btnX,btnY,btnSz,btnSz,10);ctx.stroke();
-    ctx.shadowBlur=0;
-  } else {
-    ctx.fillStyle='#ffffff0a';rr(btnX,btnY,btnSz,btnSz,10);ctx.fill();
-    ctx.strokeStyle='#ffffff22';ctx.lineWidth=1;rr(btnX,btnY,btnSz,btnSz,10);ctx.stroke();
+  // Item buttons centered in panel
+  const btnSz=44,btnGap=12;
+  const totalBtnW=btnSz*2+btnGap;
+  const btnStartX=W/2-totalBtnW/2;
+  const btnY=py+6;
+  // Helper to draw an item button
+  function drawItemBtn(bx,has,col,icon,count){
+    if(has){
+      ctx.fillStyle=col+'33';rr(bx,btnY,btnSz,btnSz,10);ctx.fill();
+      ctx.strokeStyle=col;ctx.lineWidth=2;rr(bx,btnY,btnSz,btnSz,10);ctx.stroke();
+      const pulse=Math.sin(frame*0.1)*0.15+0.85;
+      ctx.shadowColor=col;ctx.shadowBlur=8*pulse;
+      ctx.strokeStyle=col.slice(0,7)+(Math.round(pulse*128).toString(16).padStart(2,'0'));
+      rr(bx,btnY,btnSz,btnSz,10);ctx.stroke();ctx.shadowBlur=0;
+    } else {
+      ctx.fillStyle='#ffffff0a';rr(bx,btnY,btnSz,btnSz,10);ctx.fill();
+      ctx.strokeStyle='#ffffff22';ctx.lineWidth=1;rr(bx,btnY,btnSz,btnSz,10);ctx.stroke();
+    }
+    ctx.fillStyle=has?'#fff':'#fff3';ctx.font='bold 20px monospace';ctx.textAlign='center';
+    ctx.fillText(icon,bx+btnSz/2,btnY+btnSz/2+7);
+    if(count>0){
+      const badgeX=bx+btnSz-4,badgeY2=btnY+2;
+      ctx.fillStyle='#ff3860';ctx.beginPath();ctx.arc(badgeX,badgeY2,9,0,6.28);ctx.fill();
+      ctx.fillStyle='#fff';ctx.font='bold 11px monospace';ctx.textAlign='center';
+      ctx.fillText(count,badgeX,badgeY2+4);
+    }
   }
-  // Bomb icon
-  ctx.fillStyle=hasBomb?'#fff':'#fff3';ctx.font='bold 20px monospace';ctx.textAlign='center';
-  ctx.fillText('\uD83D\uDCA3',btnX+btnSz/2,btnY+btnSz/2+7);
-  // Count badge
-  if(bombCount>0){
-    const badgeX=btnX+btnSz-4,badgeY=btnY+2;
-    ctx.fillStyle='#ff3860';ctx.beginPath();ctx.arc(badgeX,badgeY,9,0,6.28);ctx.fill();
-    ctx.fillStyle='#fff';ctx.font='bold 11px monospace';ctx.textAlign='center';
-    ctx.fillText(bombCount,badgeX,badgeY+4);
-  }
+  // Invincible button (left)
+  drawItemBtn(btnStartX,invCount>0,'#ff00ff','\u2605',invCount);
+  // Bomb button (right)
+  drawItemBtn(btnStartX+btnSz+btnGap,bombCount>0,'#ff4400','\uD83D\uDCA3',bombCount);
 
   // Score display in panel (left side)
   ctx.fillStyle='#fff';ctx.font='bold 22px monospace';ctx.textAlign='left';

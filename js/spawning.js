@@ -76,10 +76,10 @@ function trySpawnItem(){
     itemCD=140+Math.floor(Math.random()*80);
     const ix=Math.max(W+14,plat.x); // spawn at right screen edge
     const surfY=H-plat.h;
-    // Pick random item: 0=invincible, 1=magnet, 2=double jump, 3=heart, 4=slow
+    // Pick random item: 0=invincible, 1=magnet, 2=bomb, 3=heart
     let it;
     if(hp<maxHp()&&Math.random()<0.3){it=3;} // higher chance for heart when damaged
-    else{const r=Math.random();if(r<0.05){it=0;}else if(r<0.13){it=2;}else{it=1;}}
+    else{const r=Math.random();if(r<0.03){it=0;}else if(r<0.08){it=2;}else if(r<0.16){it=1;}else{itemCD=60+Math.floor(Math.random()*30);return;}}
     items.push({x:ix,y:surfY-55-Math.random()*25,t:it,sz:14,p:Math.random()*6.28,col:false});
   } else {
     itemCD=20+Math.floor(Math.random()*15);
@@ -200,8 +200,11 @@ function trySpawnSpike(){
   if(!plat)return;
   const chance=Math.min(0.15,0.03+(score-80)*0.001);
   if(Math.random()<chance){
-    spikeCD=80+Math.floor(Math.random()*60);
     const sx=Math.max(W+10,plat.x+Math.random()*plat.w*0.5);
+    // Only place spikes where both floor AND ceiling terrain exist
+    const ceilHere=ceilPlats.find(p=>sx>=p.x&&sx<=p.x+p.w);
+    if(!ceilHere){spikeCD=25+Math.floor(Math.random()*15);return;}
+    spikeCD=80+Math.floor(Math.random()*60);
     const sw=30+Math.random()*30;
     // state: 'hidden','warning','up','retracting'
     spikes.push({x:sx,w:sw,h:H-plat.h,spikeH:22,phase:0,timer:0,state:'hidden',
@@ -231,19 +234,39 @@ function trySpawnMovingHill(){
 }
 
 // ===== GRAVITY REVERSAL ZONES =====
+let gravZoneChain=0; // 0=not chaining, 1-2=chain in progress
 function trySpawnGravZone(){
   if(gravZoneCD>0){gravZoneCD--;return;}
   if(bossPhase.bossCount<1||bossPhase.active)return; // only after 1st boss defeated
   if(score<150)return;
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
-  const chance=Math.min(0.08,0.015+(score-150)*0.0005);
-  if(Math.random()<chance){
-    gravZoneCD=200+Math.floor(Math.random()*120);
-    const gx=Math.max(W+20,plat.x+plat.w*0.3);
-    const gw=60+Math.random()*50; // width of the zone (waterfall)
-    gravZones.push({x:gx,w:gw,triggered:false,fadeT:0});
+  let doSpawn=false;
+  if(gravZoneChain>0&&gravZoneChain<3){
+    // In a chain: always spawn next one
+    doSpawn=true;
   } else {
+    const chance=Math.min(0.08,0.015+(score-150)*0.0005);
+    doSpawn=Math.random()<chance;
+  }
+  if(doSpawn){
+    const gx=Math.max(W+20,plat.x+plat.w*0.3);
+    const gw=60+Math.random()*50;
+    gravZones.push({x:gx,w:gw,triggered:false,fadeT:0});
+    if(gravZoneChain===0){
+      gravZoneChain=1;
+      gravZoneCD=60+Math.floor(Math.random()*30); // medium delay before chain continues
+    } else {
+      gravZoneChain++;
+      if(gravZoneChain>=3){
+        gravZoneChain=0;
+        gravZoneCD=200+Math.floor(Math.random()*120); // long cooldown after chain
+      } else {
+        gravZoneCD=40+Math.floor(Math.random()*20); // short delay for next in chain
+      }
+    }
+  } else {
+    gravZoneChain=0;
     gravZoneCD=40+Math.floor(Math.random()*20);
   }
 }
