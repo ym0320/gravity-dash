@@ -42,6 +42,11 @@ const THEMES=[
   {bg1:'#081e12',bg2:'#12382a',gnd:'#1e5f3a',gnd2:'#154528',line:'#2aaf6a',ply:'#34d399',obs:'#f43f5e',n:'\u30DE\u30C8\u30EA\u30C3\u30AF\u30B9'},
   {bg1:'#2e0a0a',bg2:'#481218',gnd:'#5f1e1e',gnd2:'#451515',line:'#af2a2a',ply:'#fbbf24',obs:'#06b6d4',n:'\u30A4\u30F3\u30D5\u30A7\u30EB\u30CE'},
   {bg1:'#120a20',bg2:'#1e1838',gnd:'#2e2050',gnd2:'#221840',line:'#5a3aaf',ply:'#f472b6',obs:'#4ade80',n:'\u30B5\u30AF\u30E9'},
+  {bg1:'#0a1e2e',bg2:'#123048',gnd:'#1e4a6f',gnd2:'#153858',line:'#2a8abf',ply:'#38bdf8',obs:'#fb923c',n:'\u30A2\u30A4\u30B9\u30D6\u30EB\u30FC'},
+  {bg1:'#2e1a0a',bg2:'#482812',gnd:'#6f3e1e',gnd2:'#583015',line:'#bf6a2a',ply:'#fbbf24',obs:'#a855f7',n:'\u30B5\u30F3\u30BB\u30C3\u30C8'},
+  {bg1:'#0a2e1a',bg2:'#124828',gnd:'#1e6f3e',gnd2:'#155830',line:'#2abf6a',ply:'#4ade80',obs:'#f43f5e',n:'\u30A8\u30E1\u30E9\u30EB\u30C9'},
+  {bg1:'#1e0a2e',bg2:'#301248',gnd:'#4a1e6f',gnd2:'#381558',line:'#8a2abf',ply:'#c084fc',obs:'#22d3ee',n:'\u30C0\u30FC\u30AF\u30CD\u30D3\u30E5\u30E9'},
+  {bg1:'#2e0a1a',bg2:'#481228',gnd:'#6f1e3e',gnd2:'#581530',line:'#bf2a6a',ply:'#fb7185',obs:'#34d399',n:'\u30D6\u30E9\u30C3\u30C9\u30E0\u30FC\u30F3'},
 ];
 let curTheme=0,prevTheme=0,themeLerp=1;
 function lerpColor(a,b,t){
@@ -194,9 +199,8 @@ function bgmSnare(t){
   o.start(t);o.stop(t+0.07);
 }
 
-// --- Rich BGM Definitions ---
-// Each BGM now uses multi-track scheduling per bar (16 steps per bar)
-// Title: bright J-pop feel, C-G-Am-F, catchy melody with chord pads
+// --- Rich BGM Definitions (multi-track, 32-step sequencer) ---
+// Title: bright J-pop, C-G-Am-F
 const BGM_TITLE={tempo:155,
   melody:[523,587,659,784, 784,659,587,659, 880,784,659,523, 659,587,523,494,
           523,659,784,1047, 880,784,659,784, 880,1047,880,784, 659,587,523,587],
@@ -209,8 +213,21 @@ const BGM_TITLE={tempo:155,
   melVol:0.25,harmVol:0.1,bassVol:0.2,chordVol:0.06,
   melWave:'triangle',harmWave:'sine',bassWave:'sine',
   drums:'pop'};
-// Play: driving electro-pop, Am-F-C-G, pulsing energy
-const BGM_PLAY={tempo:140,
+// Play1 (0-9999): calm, gentle, pastoral C-F-G-C
+const BGM_PLAY1={tempo:150,
+  melody:[523,0,659,0, 587,523,494,0, 523,587,659,587, 523,0,494,0,
+          349,440,523,440, 392,349,330,0, 392,440,494,440, 392,0,349,0],
+  harmony:[392,392,440,440, 349,349,392,392, 392,392,440,440, 349,349,392,392,
+           262,262,330,330, 247,247,262,262, 262,262,330,330, 247,247,262,262],
+  bass:[262,0,0,131, 175,0,0,87, 196,0,0,98, 262,0,0,131,
+        175,0,0,87, 196,0,0,98, 262,0,0,131, 196,0,0,98],
+  chords:[[523,659,784],[349,440,523],[392,494,587],[523,659,784],
+          [349,440,523],[392,494,587],[523,659,784],[392,494,587]],
+  melVol:0.18,harmVol:0.08,bassVol:0.15,chordVol:0.05,
+  melWave:'triangle',harmWave:'sine',bassWave:'sine',
+  drums:'soft'};
+// Play2 (10000-19999): upbeat pop, Am-F-C-G
+const BGM_PLAY2={tempo:145,
   melody:[440,0,523,587, 659,523,440,0, 349,440,523,440, 392,440,523,392,
           440,523,659,784, 659,523,440,523, 587,523,440,349, 440,392,349,392],
   harmony:[330,330,392,392, 349,349,330,330, 262,262,330,330, 247,247,262,262,
@@ -221,39 +238,118 @@ const BGM_PLAY={tempo:140,
           [440,523,659],[349,440,523],[523,659,784],[392,494,587]],
   melVol:0.18,harmVol:0.08,bassVol:0.18,chordVol:0.05,
   melWave:'triangle',harmWave:'sine',bassWave:'sine',
+  drums:'pop'};
+// Play3 (20000-29999): technical synth-pop, Dm-Gm-Bb-A
+const BGM_PLAY3={tempo:138,
+  melody:[587,659,698,880, 784,698,587,659, 466,523,587,523, 440,523,587,440,
+          587,698,784,880, 784,698,587,698, 880,784,698,587, 523,587,440,523],
+  harmony:[440,440,523,523, 392,392,440,440, 349,349,392,392, 330,330,440,440,
+           440,440,523,523, 392,392,440,440, 349,349,392,392, 330,330,440,440],
+  bass:[294,0,294,147, 196,0,196,98, 233,0,233,117, 220,0,220,110,
+        294,0,294,147, 196,0,196,98, 233,0,233,117, 220,0,220,110],
+  chords:[[294,349,440],[196,247,294],[233,294,349],[220,277,330],
+          [294,349,440],[196,247,294],[233,294,349],[220,277,330]],
+  melVol:0.20,harmVol:0.09,bassVol:0.20,chordVol:0.06,
+  melWave:'triangle',harmWave:'triangle',bassWave:'sine',
   drums:'drive'};
-// Dead: emotional ballad, Dm-Bb-Gm-A, slow with reverb feel
+// Play4 (30000-39999): intense rock-ish, Em-C-D-B
+const BGM_PLAY4={tempo:132,
+  melody:[659,784,880,988, 1047,880,784,880, 784,659,587,659, 494,587,659,494,
+          659,880,988,1047, 988,880,784,659, 784,880,784,659, 587,659,494,587],
+  harmony:[494,494,587,587, 523,523,494,494, 440,440,494,494, 392,392,440,440,
+           494,494,587,587, 523,523,494,494, 440,440,494,494, 392,392,440,440],
+  bass:[165,0,165,165, 262,0,262,131, 294,0,294,147, 247,0,247,123,
+        165,0,165,165, 262,0,262,131, 294,0,294,147, 247,0,247,123],
+  chords:[[330,392,494],[262,330,392],[294,370,440],[247,311,370],
+          [330,392,494],[262,330,392],[294,370,440],[247,311,370]],
+  melVol:0.22,harmVol:0.10,bassVol:0.22,chordVol:0.07,
+  melWave:'sawtooth',harmWave:'triangle',bassWave:'triangle',
+  drums:'drive'};
+// Play5 (40000+): frantic chase, Am-Dm-E-Am, fast and urgent
+const BGM_PLAY5={tempo:120,
+  melody:[880,0,1047,1175, 1319,1175,1047,880, 1175,1047,880,784, 880,1047,1175,880,
+          587,698,880,1047, 880,698,587,698, 659,784,880,1047, 880,784,659,880],
+  harmony:[659,659,784,784, 587,587,659,659, 494,494,659,659, 659,659,784,784,
+           440,440,587,587, 440,440,523,523, 494,494,659,659, 659,659,784,784],
+  bass:[220,0,220,220, 294,0,294,147, 330,0,330,165, 220,0,220,110,
+        220,0,220,220, 294,0,294,147, 330,0,330,165, 220,0,220,110],
+  chords:[[440,523,659],[294,349,440],[330,415,494],[440,523,659],
+          [440,523,659],[294,349,440],[330,415,494],[440,523,659]],
+  melVol:0.22,harmVol:0.10,bassVol:0.24,chordVol:0.07,
+  melWave:'sawtooth',harmWave:'triangle',bassWave:'triangle',
+  drums:'edm'};
+// Boss: tense, dramatic, Cm-Ab-Bb-G
+const BGM_BOSS={tempo:125,
+  melody:[523,0,622,659, 784,659,622,0, 466,523,622,523, 392,466,523,392,
+          523,622,784,932, 784,622,523,622, 784,932,784,622, 523,622,466,523],
+  harmony:[392,392,466,466, 415,415,392,392, 349,349,392,392, 311,311,392,392,
+           392,392,466,466, 415,415,392,392, 349,349,392,392, 311,311,392,392],
+  bass:[262,0,262,262, 208,0,208,104, 233,0,233,117, 196,0,196,98,
+        262,0,262,262, 208,0,208,104, 233,0,233,117, 196,0,196,98],
+  chords:[[262,311,392],[208,262,311],[233,294,349],[196,247,311],
+          [262,311,392],[208,262,311],[233,294,349],[196,247,311]],
+  melVol:0.22,harmVol:0.10,bassVol:0.24,chordVol:0.07,
+  melWave:'sawtooth',harmWave:'triangle',bassWave:'triangle',
+  drums:'boss'};
+// Dead: melancholy ballad, Dm-Bb-Gm-A, sparse and slow
 const BGM_DEAD={tempo:320,
   melody:[294,330,349,294, 262,294,262,220, 247,262,294,262, 220,247,277,220,
           294,349,330,294, 262,294,220,247, 262,220,196,220, 247,220,196,175],
   harmony:[220,220,262,262, 233,233,220,220, 196,196,220,220, 175,175,220,220,
            220,220,262,262, 233,233,220,220, 196,196,220,220, 175,175,220,220],
-  bass:[147,0,147,73, 117,0,117,58, 131,0,131,65, 110,0,110,55,
-        147,0,147,73, 117,0,117,58, 131,0,131,65, 110,0,110,55],
+  bass:[147,0,0,0, 117,0,0,0, 131,0,0,0, 110,0,0,0,
+        147,0,0,0, 117,0,0,0, 131,0,0,0, 110,0,0,0],
   chords:[[294,349,440],[233,294,349],[196,247,294],[220,277,330],
           [294,349,440],[233,294,349],[196,247,294],[220,277,330]],
-  melVol:0.16,harmVol:0.08,bassVol:0.12,chordVol:0.05,
+  melVol:0.14,harmVol:0.07,bassVol:0.10,chordVol:0.04,
   melWave:'sine',harmWave:'sine',bassWave:'sine',
   drums:'none'};
-// Fever: intense EDM, high energy, sawtooth lead, heavy drums
-const BGM_FEVER={tempo:105,
-  melody:[784,880,1047,1175, 1319,1175,1047,880, 988,1047,1175,1319, 1568,1319,1175,1047,
-          784,988,1175,1319, 1175,1047,880,1047, 1175,1319,1568,1319, 1175,1047,880,784],
-  harmony:[587,587,659,659, 784,784,659,659, 659,659,784,784, 880,880,784,784,
-           587,587,659,659, 784,784,659,659, 659,659,784,784, 880,880,784,784],
-  bass:[196,0,196,196, 196,0,247,247, 220,0,220,220, 220,0,262,262,
-        196,0,196,196, 196,0,247,247, 220,0,220,220, 220,0,196,196],
-  chords:[[784,988,1175],[784,988,1175],[880,1047,1319],[880,1047,1319],
-          [784,988,1175],[784,988,1175],[880,1047,1319],[880,1047,1319]],
-  melVol:0.22,harmVol:0.1,bassVol:0.22,chordVol:0.07,
-  melWave:'sawtooth',harmWave:'triangle',bassWave:'triangle',
-  drums:'edm'};
+
+// Fever: old-style simple oscillator BGM (reverted)
+let feverBI=0,feverTimer=null;
+const FEVER_NOTES=[784,988,1175,1319, 1175,988,784,988, 880,1175,1319,1568, 1319,1175,1047,880];
+const FEVER_BASS=[196,196,247,247, 196,196,247,247, 220,220,262,262, 220,220,196,196];
+function playFeverBGM(){
+  if(bgmCurrent!=='fever')return;
+  try{
+    const now=audioCtx.currentTime,dur=0.11;
+    bgmOsc('sawtooth',FEVER_NOTES[feverBI%16],now,dur*0.9,0.3);
+    if(feverBI%2===0)bgmOsc('triangle',FEVER_BASS[feverBI%16],now,dur*1.2,0.25);
+    bgmNoise(now,0.03,0.18);
+    if(feverBI%2===0)bgmKick(now);
+    feverBI++;
+  }catch(e){}
+  feverTimer=setTimeout(playFeverBGM,110);
+}
+
+// Score-based play BGM selection
+function getPlayBGM(){
+  if(score>=4000)return BGM_PLAY5;
+  if(score>=3000)return BGM_PLAY4;
+  if(score>=2000)return BGM_PLAY3;
+  if(score>=1000)return BGM_PLAY2;
+  return BGM_PLAY1;
+}
+function getPlayBGMType(){
+  if(score>=4000)return'play5';
+  if(score>=3000)return'play4';
+  if(score>=2000)return'play3';
+  if(score>=1000)return'play2';
+  return'play1';
+}
 
 function switchBGM(type){
-  if(!audioCtx||bgmCurrent===type)return;
+  if(!audioCtx)return;
+  // 'play' resolves to score-based play BGM
+  if(type==='play')type=getPlayBGMType();
+  if(bgmCurrent===type)return;
   bgmCurrent=type;
   if(bgmTimer){clearTimeout(bgmTimer);bgmTimer=null;}
-  const def=type==='title'?BGM_TITLE:type==='play'?BGM_PLAY:type==='fever'?BGM_FEVER:BGM_DEAD;
+  if(feverTimer){clearTimeout(feverTimer);feverTimer=null;}
+  // Fever uses old-style simple oscillator
+  if(type==='fever'){feverBI=0;playFeverBGM();return;}
+  const BGM_MAP={title:BGM_TITLE,play1:BGM_PLAY1,play2:BGM_PLAY2,play3:BGM_PLAY3,play4:BGM_PLAY4,play5:BGM_PLAY5,boss:BGM_BOSS,dead:BGM_DEAD};
+  const def=BGM_MAP[type]||BGM_PLAY1;
   const stepMs=60000/(def.tempo*4); // ms per 16th note step
   const stepS=stepMs/1000;
   const totalSteps=def.melody.length;
@@ -286,11 +382,20 @@ function switchBGM(type){
         if(mi%4===0||mi%8===6)bgmKick(now); // kick on 1 and "and of 3"
         if(mi%8===4)bgmSnare(now);
         bgmNoise(now,0.02,0.06); // 16th hi-hats
+      } else if(def.drums==='soft'){
+        if(mi%8===0)bgmKick(now); // kick only on beat 1
+        if(mi%4===0)bgmNoise(now,0.02,0.04); // gentle hi-hat quarters
       } else if(def.drums==='edm'){
         if(mi%4===0)bgmKick(now);
         if(mi%8===4)bgmSnare(now);
-        bgmNoise(now,0.02,mi%2===0?0.1:0.05); // driving 16ths
-        if(mi%4===2)bgmKick(now); // double kick
+        bgmNoise(now,0.02,mi%2===0?0.1:0.05);
+        if(mi%4===2)bgmKick(now);
+      } else if(def.drums==='boss'){
+        if(mi%4===0||mi%8===6)bgmKick(now);
+        if(mi%8===4)bgmSnare(now);
+        if(mi%8===0)bgmSnare(now); // snare on 1 too for intensity
+        bgmNoise(now,0.02,0.07);
+        if(mi%16===14)bgmSnare(now); // fill before bar end
       }
       si++;
     }catch(e){}
