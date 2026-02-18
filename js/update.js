@@ -554,7 +554,7 @@ function update(dt){
 
   // Wall collision: hitting the side of a higher platform step
   // Small steps (<=STEP_TOLERANCE) are auto-climbed when grounded; larger steps cause damage
-  // Tire character: smoothly climbs steps up to its own height (diameter = pr*2)
+  // Tire character: climbs steps up to its own height (diameter = pr*2) without needing grounded
   {
     const tireStepTol=isTire?pr*2:0; // tire: full character height = diameter
     const STEP_TOLERANCE=ct().stepTol||20;
@@ -565,9 +565,9 @@ function update(dt){
           const surfY=H-p.h;
           if(player.y+pr>surfY+4){
             const stepH=player.y+pr-surfY;
-            if(isTire&&stepH<=tireStepTol&&player.grounded){
-              // Tire: smooth roll-over for steps up to its own height
-              player.y+=(surfY-pr-player.y)*0.45;
+            if(isTire&&stepH<=tireStepTol){
+              // Tire: snap directly onto the step (no lerp — lerp causes grounded loss next frame)
+              player.y=surfY-pr;player.vy=0;player.grounded=true;
             } else if(stepH<=STEP_TOLERANCE&&player.grounded){
               player.y=surfY-pr; // auto step up
             } else {
@@ -583,9 +583,9 @@ function update(dt){
           const surfY=p.h;
           if(player.y-pr<surfY-4){
             const stepH=surfY-(player.y-pr);
-            if(isTire&&stepH<=tireStepTol&&player.grounded){
-              // Tire: smooth roll-over for steps up to its own height
-              player.y+=(surfY+pr-player.y)*0.45;
+            if(isTire&&stepH<=tireStepTol){
+              // Tire: snap directly onto the step (no lerp — lerp causes grounded loss next frame)
+              player.y=surfY+pr;player.vy=0;player.grounded=true;
             } else if(stepH<=STEP_TOLERANCE&&player.grounded){
               player.y=surfY+pr; // auto step down (ceiling)
             } else {
