@@ -48,7 +48,7 @@ function handleDeadBtn(btnId){
     if(isPackMode){startPackStageFromDead();return;}
     startCountdown('endless');
   } else if(btnId==='title'){
-    sfx('cancel');
+    sfx('cancel');titleTouchPos=null; // prevent stale touch from triggering title actions
     if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');}
     else{state=ST.TITLE;switchBGM('title');}
   }
@@ -138,6 +138,7 @@ window.addEventListener('blur',()=>{
 function startCountdown(mode){
   gameMode=mode;isPackMode=false;reset();
   state=ST.COUNTDOWN;countdownT=180; // 3 seconds at 60fps
+  titleTouchPos=null; // clear stale touch pos
   sfx('countdown');
 }
 
@@ -167,7 +168,7 @@ canvas.addEventListener('touchstart',e=>{
     longPressFired=false;titleTouchPos=p;
     const cidx=getCharGridIdx(p.x,p.y);
     if(cidx>=0&&isCharUnlocked(cidx)){
-      longPressTimer=setTimeout(()=>{longPressFired=true;charModal={show:true,idx:cidx,animT:0};vibrate(15);sfx('select');},400);
+      longPressTimer=setTimeout(()=>{longPressFired=true;charModal={show:true,idx:cidx,animT:0};vibrate(15);sfxCharVoice(cidx);},400);
     } else if(cidx>=0){
     } else {
       handleTitleTouch(p.x,p.y);
@@ -296,7 +297,7 @@ document.addEventListener('keydown',e=>{
   if(settingsOpen){if(e.code==='Escape'){settingsOpen=false;sfx('cancel');}e.preventDefault();return;}
   if(e.code==='Escape'){
     e.preventDefault();
-    if(state===ST.STAGE_SEL){sfx('cancel');state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
+    if(state===ST.STAGE_SEL){sfx('cancel');titleTouchPos=null;state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     if(state===ST.PLAY){sfx('pause');state=ST.PAUSE;return;}
     if(state===ST.PAUSE){sfx('select');state=ST.PLAY;return;}
   }
@@ -382,6 +383,6 @@ function handleTitleTouch(tx,ty){
   }
   // Stage mode button -> go to stage selection screen
   if(tx>=sbx&&tx<=sbx+btnW&&ty>=btnY&&ty<=btnY+btnH){
-    sfx('select');gameMode='stage';state=ST.STAGE_SEL;stageSelScroll=0;stageSelTarget=0;return;
+    sfx('select');gameMode='stage';state=ST.STAGE_SEL;stageSelScroll=0;stageSelTarget=0;titleTouchPos=null;return;
   }
 }
