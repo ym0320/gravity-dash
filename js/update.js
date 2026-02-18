@@ -14,6 +14,21 @@ function update(dt){
 
   if(state===ST.PAUSE)return; // freeze everything while paused
 
+  if(state===ST.COUNTDOWN){
+    countdownT--;
+    // Play SE at each second mark (3, 2, 1) - 179 because it decremented already
+    if(countdownT===179||countdownT===119||countdownT===59)sfx('countdown');
+    // Play GO sound and transition to play
+    if(countdownT<=0){
+      sfx('countgo');
+      state=ST.PLAY;switchBGM('play');
+    }
+    // Animate background during countdown
+    stars.forEach(s=>{s.x-=s.sp*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
+    mtns.forEach(m=>{m.off-=m.sp*0.2;if(m.off<-500)m.off+=500;});
+    return;
+  }
+
   if(state===ST.STAGE_SEL){frame++;return;}
   if(state===ST.TITLE){
     titleT+=0.03;

@@ -9,40 +9,57 @@ function canvasXY(cx,cy){
   return{x:cx-r.left,y:cy-r.top};
 }
 
-// Pause button hit test (top-right corner)
-function hitPauseBtn(px,py){return px>=W-52&&px<=W-8&&py>=42&&py<=78;}
+// Pause button hit test (moved lower, larger area for reliability)
+function hitPauseBtn(px,py){return px>=W-58&&px<=W-4&&py>=safeTop+8&&py<=safeTop+52;}
 function hitBombBtn(px,py){const btnSz=44,btnX=W-btnSz-8,btnY=H-PANEL_H+6;return px>=btnX&&px<=btnX+btnSz&&py>=btnY&&py<=btnY+btnSz;}
 function hitResumeBtn(px,py){return px>=W/2-80&&px<=W/2+80&&py>=H*0.45&&py<=H*0.45+44;}
 function hitQuitBtn(px,py){return px>=W/2-80&&px<=W/2+80&&py>=H*0.56&&py<=H*0.56+44;}
+
+// Auto-pause when page loses visibility or focus
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden&&state===ST.PLAY){state=ST.PAUSE;sfx('pause');}
+});
+window.addEventListener('blur',()=>{
+  if(state===ST.PLAY){state=ST.PAUSE;sfx('pause');}
+});
+
+// Start countdown instead of immediately playing
+function startCountdown(mode){
+  gameMode=mode;isPackMode=false;reset();
+  state=ST.COUNTDOWN;countdownT=180; // 3 seconds at 60fps
+  sfx('countdown');
+}
 
 canvas.addEventListener('touchstart',e=>{
   e.preventDefault();initAudio();
   const t=e.touches[0];
   const p=canvasXY(t.clientX,t.clientY);
   touchStartY=t.clientY;touchStartX=t.clientX;touchStartT=Date.now();touchMoved=false;
+  if(state===ST.COUNTDOWN)return; // block input during countdown
   if(state===ST.STAGE_SEL){stageSelTouchY=t.clientY;stageSelDragging=false;handleStageSelTouch(p.x,p.y);return;}
   if(state===ST.STAGE_CLEAR&&stageClearT>60){
-    state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;
+    sfx('click');state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;
   }
   if(state===ST.PAUSE){
-    if(hitResumeBtn(p.x,p.y)){state=ST.PLAY;switchBGM('play');return;}
-    if(hitQuitBtn(p.x,p.y)){state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
+    if(hitResumeBtn(p.x,p.y)){sfx('select');state=ST.PLAY;switchBGM('play');return;}
+    if(hitQuitBtn(p.x,p.y)){sfx('cancel');state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     return;
   }
   if(state===ST.PLAY&&hitBombBtn(p.x,p.y)){useBomb();return;}
-  if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){state=ST.PAUSE;return;}
+  if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');state=ST.PAUSE;return;}
   if(state===ST.TITLE){
-    if(charModal.show){charModal.show=false;return;}
+    if(charModal.show){sfx('cancel');charModal.show=false;return;}
     longPressFired=false;titleTouchPos=p;
     const cidx=getCharGridIdx(p.x,p.y);
     if(cidx>=0&&isCharUnlocked(cidx)){
-      longPressTimer=setTimeout(()=>{longPressFired=true;charModal={show:true,idx:cidx,animT:0};vibrate(15);},400);
+      longPressTimer=setTimeout(()=>{longPressFired=true;charModal={show:true,idx:cidx,animT:0};vibrate(15);sfx('select');},400);
     } else if(cidx>=0){
     } else {
       handleTitleTouch(p.x,p.y);
     }
   }
   else if(state===ST.DEAD&&deadT>45){
+    sfx('click');
     if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;}
     state=ST.TITLE;switchBGM('title');
   }
@@ -75,7 +92,6 @@ canvas.addEventListener('touchend',e=>{
   if(touchMoved&&Math.abs(dy)>30){
     // Swipe: flip gravity to the swiped direction (only if canFlip)
     if(player.canFlip&&dy>0&&player.gDir===-1){
-      // Swipe down & currently on ceiling -> flip to floor
       player.gDir=1;player.vy=2;totalFlips++;flipCount++;flipTimer=0;
       player.canFlip=flipCount<ct().maxFlip;
       sfx('flip');vibrate(20);
@@ -83,7 +99,6 @@ canvas.addEventListener('touchend',e=>{
       emitParts(player.x,player.y,10,tc('ply'),3,2.5);
       player.rotTarget+=Math.PI;
     } else if(player.canFlip&&dy<0&&player.gDir===1){
-      // Swipe up & currently on floor -> flip to ceiling
       player.gDir=-1;player.vy=-2;totalFlips++;flipCount++;flipTimer=0;
       player.canFlip=flipCount<ct().maxFlip;
       sfx('flip');vibrate(20);
@@ -102,7 +117,6 @@ canvas.addEventListener('touchend',e=>{
       player.face='flip';setTimeout(()=>{if(player.alive)player.face='normal';},180);
       emitParts(player.x,player.y+PLAYER_R*player.gDir,6,tc('ply'),2.5,2);
     } else if(djumpAvailable&&!djumpUsed){
-      // Double jump from item (one-time use)
       djumpUsed=true;djumpAvailable=false;
       const jp=JUMP_POWER*ct().jumpMul*0.85;
       player.vy=-jp*player.gDir;
@@ -113,23 +127,25 @@ canvas.addEventListener('touchend',e=>{
   }
 },{passive:false});
 
-// Keyboard support
+// Keyboard / Mouse support
 canvas.addEventListener('mousedown',e=>{
   initAudio();
   const p=canvasXY(e.clientX,e.clientY);
+  if(state===ST.COUNTDOWN)return;
   if(state===ST.STAGE_SEL){handleStageSelTouch(p.x,p.y);return;}
   if(state===ST.STAGE_CLEAR&&stageClearT>60){
-    state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;
+    sfx('click');state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;
   }
   if(state===ST.PAUSE){
-    if(hitResumeBtn(p.x,p.y)){state=ST.PLAY;switchBGM('play');return;}
-    if(hitQuitBtn(p.x,p.y)){state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
+    if(hitResumeBtn(p.x,p.y)){sfx('select');state=ST.PLAY;switchBGM('play');return;}
+    if(hitQuitBtn(p.x,p.y)){sfx('cancel');state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     return;
   }
   if(state===ST.PLAY&&hitBombBtn(p.x,p.y)){useBomb();return;}
-  if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){state=ST.PAUSE;return;}
-  if(state===ST.TITLE){if(charModal.show){charModal.show=false;return;}handleTitleTouch(p.x,p.y);}
+  if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');state=ST.PAUSE;return;}
+  if(state===ST.TITLE){if(charModal.show){sfx('cancel');charModal.show=false;return;}handleTitleTouch(p.x,p.y);}
   else if(state===ST.DEAD&&deadT>45){
+    sfx('click');
     if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;}
     state=ST.TITLE;switchBGM('title');
   }
@@ -150,19 +166,21 @@ canvas.addEventListener('mousedown',e=>{
 document.addEventListener('keydown',e=>{
   if(e.code==='Escape'){
     e.preventDefault();
-    if(state===ST.STAGE_SEL){state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
-    if(state===ST.PLAY){state=ST.PAUSE;return;}
-    if(state===ST.PAUSE){state=ST.PLAY;return;}
+    if(state===ST.STAGE_SEL){sfx('cancel');state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
+    if(state===ST.PLAY){sfx('pause');state=ST.PAUSE;return;}
+    if(state===ST.PAUSE){sfx('select');state=ST.PLAY;return;}
   }
   if(e.code==='Space'||e.code==='ArrowUp'){
     e.preventDefault();initAudio();
+    if(state===ST.COUNTDOWN)return;
     if(state===ST.STAGE_SEL)return;
     if(state===ST.STAGE_CLEAR&&stageClearT>60){
-      state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;
+      sfx('click');state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;
     }
-    if(state===ST.PAUSE){state=ST.PLAY;switchBGM('play');return;}
-    if(state===ST.TITLE){gameMode='endless';isPackMode=false;state=ST.PLAY;reset();switchBGM('play');}
+    if(state===ST.PAUSE){sfx('select');state=ST.PLAY;switchBGM('play');return;}
+    if(state===ST.TITLE){startCountdown('endless');}
     else if(state===ST.DEAD&&deadT>45){
+      sfx('click');
       if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;}
       state=ST.TITLE;switchBGM('title');
     }
@@ -217,6 +235,7 @@ function handleTitleTouch(tx,ty){
       if(tx>=cx-5&&tx<=cx+charW+5&&ty>=cy-5&&ty<=cy+charH+5){
         if(isCharUnlocked(idx)){
           selChar=idx;localStorage.setItem('gd5char',selChar.toString());
+          sfxCharVoice(idx);vibrate(10);
         } else {
           buyChar(idx);
         }
@@ -228,15 +247,15 @@ function handleTitleTouch(tx,ty){
   const btnW=W*0.35,btnH=38,btnGap=12;
   const totalBtnW=btnW*2+btnGap;
   const btnStartX=W/2-totalBtnW/2;
-  const btnY=H*0.78;
+  const btnY=H*0.82;
   const ebx=btnStartX;
   const sbx=btnStartX+btnW+btnGap;
-  // Endless mode button
+  // Endless mode button -> start countdown
   if(tx>=ebx&&tx<=ebx+btnW&&ty>=btnY&&ty<=btnY+btnH){
-    gameMode='endless';isPackMode=false;state=ST.PLAY;reset();switchBGM('play');return;
+    startCountdown('endless');return;
   }
   // Stage mode button -> go to stage selection screen
   if(tx>=sbx&&tx<=sbx+btnW&&ty>=btnY&&ty<=btnY+btnH){
-    gameMode='stage';state=ST.STAGE_SEL;stageSelScroll=0;stageSelTarget=0;return;
+    sfx('select');gameMode='stage';state=ST.STAGE_SEL;stageSelScroll=0;stageSelTarget=0;return;
   }
 }

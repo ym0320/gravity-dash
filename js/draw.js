@@ -208,6 +208,7 @@ function draw(){
   if(isPackMode)drawAmbient();
   if(state===ST.TITLE){drawTitle();drawCharModal();ctx.restore();return;}
   if(state===ST.STAGE_SEL){drawStageSel();ctx.restore();return;}
+  if(state===ST.COUNTDOWN){drawCountdown();ctx.restore();return;}
 
   // Pack mode: draw stars (stageBigCoins)
   if(isPackMode){
@@ -814,10 +815,11 @@ function drawUI(){
     ctx.fillText(comboDsp+'x \u30B3\u30F3\u30DC',0,0);ctx.restore();ctx.globalAlpha=1;
   }
 
-  // Pause button (top right, same position for hit test compatibility)
-  const pauseY=42;
-  ctx.fillStyle='#ffffff18';rr(W-52,pauseY,44,36,8);ctx.fill();
-  ctx.fillStyle='#fff8';ctx.fillRect(W-38,pauseY+6,5,24);ctx.fillRect(W-28,pauseY+6,5,24);
+  // Pause button (top right, matching hitPauseBtn area)
+  const pauseX=W-54,pauseY=safeTop+12,pauseBW=48,pauseBH=40;
+  ctx.fillStyle='#ffffff1a';rr(pauseX,pauseY,pauseBW,pauseBH,8);ctx.fill();
+  ctx.strokeStyle='#ffffff18';ctx.lineWidth=1;rr(pauseX,pauseY,pauseBW,pauseBH,8);ctx.stroke();
+  ctx.fillStyle='#fffa';ctx.fillRect(pauseX+14,pauseY+8,6,24);ctx.fillRect(pauseX+28,pauseY+8,6,24);
 
   // === BOTTOM AREA (above action panel) ===
   const panelTop=H-PANEL_H;
@@ -959,26 +961,26 @@ function drawTitle(){
     }
   }
 
-  // Long-press hint
-  ctx.fillStyle='#fff3';ctx.font='9px monospace';ctx.textAlign='center';
-  ctx.fillText('\u9577\u62BC\u3057\u3067\u30AD\u30E3\u30E9\u8A73\u7D30',W/2,gridY+rows*(charH+charGap)-4);
+  // Long-press hint (below character grid, visible and clear)
+  const hintY=gridY+rows*(charH+charGap)+8;
+  ctx.fillStyle='#fff5';ctx.font='10px monospace';ctx.textAlign='center';
+  ctx.fillText('\u9577\u62BC\u3057\u3067\u30AD\u30E3\u30E9\u8A73\u7D30\u8868\u793A',W/2,hintY);
 
   // Mode selection buttons (2 buttons: Endless, Stage)
   const btnW=W*0.35,btnH=38,btnGap=12;
   const totalBtnW=btnW*2+btnGap;
   const btnStartX=W/2-totalBtnW/2;
-  const btnY=H*0.78;
+  const btnY=H*0.82;
 
-  // Stats panel (above mode buttons)
-  const statsY=btnY-8;
+  // Stats panel (between character grid and mode buttons)
+  const statsY=hintY+16;
   if(highScore>0||played>0){
-    const statsPanelH=highScore>0&&played>0?44:26;
-    const statsPanelTop=statsY-statsPanelH+4;
-    ctx.fillStyle='rgba(0,0,0,0.4)';rr(W/2-100,statsPanelTop,200,statsPanelH,8);ctx.fill();
-    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;rr(W/2-100,statsPanelTop,200,statsPanelH,8);ctx.stroke();
+    const statsPanelH=highScore>0&&played>0?36:22;
+    ctx.fillStyle='rgba(0,0,0,0.35)';rr(W/2-100,statsY,200,statsPanelH,8);ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;rr(W/2-100,statsY,200,statsPanelH,8);ctx.stroke();
   }
-  if(highScore>0){ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='center';ctx.fillText('\u30D9\u30B9\u30C8: '+highScore,W/2,statsY-20);}
-  if(played>0){ctx.fillStyle='#fff3';ctx.font='11px monospace';ctx.fillText('\u30D7\u30EC\u30A4\u56DE\u6570: '+played,W/2,statsY-(highScore>0?0:-20));}
+  if(highScore>0){ctx.fillStyle='#ffd700';ctx.font='bold 13px monospace';ctx.textAlign='center';ctx.fillText('\u30D9\u30B9\u30C8: '+highScore,W/2,statsY+16);}
+  if(played>0){ctx.fillStyle='#fff3';ctx.font='11px monospace';ctx.fillText('\u30D7\u30EC\u30A4\u56DE\u6570: '+played,W/2,statsY+(highScore>0?32:16));}
 
   // Endless mode button
   const ebx=btnStartX;
@@ -1215,6 +1217,52 @@ function drawTraitDemo(ch,idx,cx,cy,t){
       ctx.fillText('\u30D0\u30E9\u30F3\u30B9\u578B',cx,cy+46);
       break;
   }
+}
+
+function drawCountdown(){
+  // Semi-dark overlay
+  ctx.fillStyle='rgba(0,0,0,0.45)';ctx.fillRect(-20,-20,W+40,H+40);
+  const sec=Math.ceil(countdownT/60); // 3, 2, 1
+  const frac=(countdownT%60)/60; // 1→0 within each second
+  if(sec>=1&&sec<=3){
+    // Scale: starts big, shrinks to normal
+    const sc=1+frac*0.6;
+    const a=Math.min(1,frac*3); // fade in fast, stay visible
+    ctx.save();
+    ctx.globalAlpha=a;
+    ctx.translate(W/2,H*0.4);
+    ctx.scale(sc,sc);
+    // Pulsing ring behind number
+    const ringR=50+frac*20;
+    const ringA=frac*0.4;
+    ctx.strokeStyle=`rgba(0,229,255,${ringA})`;ctx.lineWidth=4;
+    ctx.beginPath();ctx.arc(0,0,ringR,0,6.28);ctx.stroke();
+    // Outer expanding ring
+    ctx.strokeStyle=`rgba(0,229,255,${ringA*0.4})`;ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(0,0,ringR+20*(1-frac),0,6.28);ctx.stroke();
+    // Number
+    ctx.fillStyle='#fff';ctx.shadowColor='#00e5ff';ctx.shadowBlur=30;
+    ctx.font='bold 72px monospace';ctx.textAlign='center';
+    ctx.fillText(sec,0,26);
+    ctx.shadowBlur=0;
+    ctx.restore();
+  } else if(countdownT<=0){
+    // "GO!" flash (shown briefly via bombFlashT-like mechanism)
+    const goT=Math.max(0,20+countdownT); // countdownT goes negative briefly
+    if(goT>0){
+      const goA=goT/20;
+      const goSc=1.5-goA*0.5;
+      ctx.save();ctx.globalAlpha=goA;ctx.translate(W/2,H*0.4);ctx.scale(goSc,goSc);
+      ctx.fillStyle='#ffd700';ctx.shadowColor='#ffd700';ctx.shadowBlur=25;
+      ctx.font='bold 64px monospace';ctx.textAlign='center';
+      ctx.fillText('GO!',0,22);ctx.shadowBlur=0;ctx.restore();
+    }
+  }
+  // Character preview during countdown
+  const ch=CHARS[selChar];
+  ctx.fillStyle='#fff6';ctx.font='bold 12px monospace';ctx.textAlign='center';
+  ctx.fillText(ch.name,W/2,H*0.58);
+  drawCharacter(W/2,H*0.66,selChar,20,0,1,'normal');
 }
 
 function drawPause(){
