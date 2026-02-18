@@ -133,7 +133,7 @@ function reset(){
   player.y=floorSurfaceY(player.x)-PLAYER_R;
   coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];floatPlats=[];floatCD=0;
   spikes=[];spikeCD=0;movingHills=[];hillCD=0;gravZones=[];gravZoneCD=0;gravZoneChain=0;
-  gravGimmicks=[];gravGimmickCD=0;fallingMtns=[];fallingMtnCD=0;coinSwitches=[];coinSwitchCD=0;
+  fallingMtns=[];fallingMtnCD=0;coinSwitches=[];coinSwitchCD=0;
   score=0;dist=0;speedOffset=0;speed=SPEED_INIT;frame=0;deadT=0;newHi=false;
   combo=0;comboT=0;comboDsp=0;comboDspT=0;airCombo=0;
   shakeX=0;shakeY=0;shakeI=0;
@@ -164,7 +164,7 @@ function resetPackStage(pi,si){
   player.y=floorSurfaceY(player.x)-PLAYER_R;
   coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];floatPlats=[];floatCD=0;
   spikes=[];spikeCD=0;movingHills=[];hillCD=0;gravZones=[];gravZoneCD=0;gravZoneChain=0;
-  gravGimmicks=[];gravGimmickCD=0;fallingMtns=[];fallingMtnCD=0;coinSwitches=[];coinSwitchCD=0;
+  fallingMtns=[];fallingMtnCD=0;coinSwitches=[];coinSwitchCD=0;
   // Place 3 stars at 25%, 50%, 80% of stage distance
   const starRng=mulberry32(stage.seed+777);
   stageBigCoins=[];

@@ -215,46 +215,30 @@ function trySpawnSpike(){
   }
 }
 
-// ===== GRAVITY CHANGE GIMMICK =====
-function trySpawnGravGimmick(){
-  if(gravGimmickCD>0){gravGimmickCD--;return;}
-  if(bossPhase.active)return;
-  if(score<100)return;
-  const plat=findEdgeSpawnPlat();
-  if(!plat)return;
-  const chance=Math.min(0.08,0.02+(score-100)*0.0005);
-  if(Math.random()<chance){
-    gravGimmickCD=200+Math.floor(Math.random()*150);
-    let maxCount=1;
-    if(score>=500)maxCount=2;
-    if(score>=1000)maxCount=3;
-    const count=1+Math.floor(Math.random()*maxCount*Math.min(1,(score-100)/900));
-    const actualCount=Math.min(Math.max(1,count),maxCount);
-    for(let i=0;i<actualCount;i++){
-      const gx=W+15+i*80;
-      const isFloor=Math.random()<0.5;
-      const surfY=isFloor?(H-plat.h):ceilSurfaceY(gx);
-      const gy=isFloor?surfY-40:surfY;
-      gravGimmicks.push({x:gx,y:gy,w:30,h:40,triggered:false,isFloor:isFloor,flashT:0});
-    }
-  } else {
-    gravGimmickCD=30+Math.floor(Math.random()*20);
-  }
-}
-
-// ===== FALLING MOUNTAIN =====
+// ===== FALLING FLOOR (only over abysses) =====
 function trySpawnFallingMtn(){
   if(fallingMtnCD>0){fallingMtnCD--;return;}
   if(bossPhase.active)return;
   if(score<5000)return;
-  const plat=findEdgeSpawnPlat();
-  if(!plat)return;
+  // Find a gap (abyss) in floor platforms to place the falling floor over
   const chance=Math.min(0.06,0.01+(score-5000)*0.0001);
   if(Math.random()<chance){
+    // Look for gaps between platforms in the upcoming area
+    let gapX=-1,gapW=0;
+    for(let i=0;i<platforms.length-1;i++){
+      const p1=platforms[i],p2=platforms[i+1];
+      const gStart=p1.x+p1.w;
+      const gEnd=p2.x;
+      const gap=gEnd-gStart;
+      if(gap>=50&&gStart>W-50&&gStart<W+200){
+        gapX=gStart;gapW=gap;break;
+      }
+    }
+    if(gapX<0){fallingMtnCD=30+Math.floor(Math.random()*20);return;}
     fallingMtnCD=180+Math.floor(Math.random()*120);
-    const fx=Math.max(W+10,plat.x);
-    const fw=50+Math.random()*60;
-    const fh=plat.h+10+Math.random()*20;
+    const fw=Math.min(gapW*0.8,50+Math.random()*60);
+    const fx=gapX+(gapW-fw)/2; // center in gap
+    const fh=GROUND_H+10+Math.random()*20;
     fallingMtns.push({x:fx,w:fw,baseH:fh,curH:fh,vy:0,state:'idle',shakeT:0,shakeAmt:0,triggerDist:80,isFloor:true,alpha:1});
   } else {
     fallingMtnCD=30+Math.floor(Math.random()*20);
@@ -274,13 +258,13 @@ function trySpawnCoinSwitch(){
     const isFloor=Math.random()<0.7;
     let sy;
     if(isFloor){
-      sy=H-plat.h-COIN_SW_H;
+      sy=H-plat.h-COIN_SW_R;
     } else {
       const cp=ceilPlats.find(p=>sx>=p.x&&sx<=p.x+p.w);
       const ch=cp?cp.h:GROUND_H;
-      sy=ch;
+      sy=ch+COIN_SW_R;
     }
-    coinSwitches.push({x:sx,y:sy,w:COIN_SW_W,h:COIN_SW_H,isFloor:isFloor,activated:false,flashT:0});
+    coinSwitches.push({x:sx,y:sy,r:COIN_SW_R,isFloor:isFloor,activated:false,flashT:0});
   } else {
     coinSwitchCD=40+Math.floor(Math.random()*25);
   }
@@ -305,16 +289,16 @@ function trySpawnMovingHill(){
 }
 
 // ===== GRAVITY REVERSAL ZONES =====
-let gravZoneChain=0; // 0=not chaining, 1-2=chain in progress
+let gravZoneChain=0; // tracks how many zones spawned in current chain
+let gravZoneChainTarget=0; // how many to spawn in this chain
 function trySpawnGravZone(){
   if(gravZoneCD>0){gravZoneCD--;return;}
-  if(bossPhase.bossCount<1||bossPhase.active)return; // only after 1st boss defeated
+  if(bossPhase.bossCount<1||bossPhase.active)return;
   if(score<150)return;
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
   let doSpawn=false;
-  if(gravZoneChain>0&&gravZoneChain<3){
-    // In a chain: always spawn next one
+  if(gravZoneChain>0&&gravZoneChain<gravZoneChainTarget){
     doSpawn=true;
   } else {
     const chance=Math.min(0.08,0.015+(score-150)*0.0005);
@@ -325,19 +309,31 @@ function trySpawnGravZone(){
     const gw=60+Math.random()*50;
     gravZones.push({x:gx,w:gw,triggered:false,fadeT:0});
     if(gravZoneChain===0){
+      // Start new chain: determine count based on score
+      let maxCount=1;
+      if(score>=5000)maxCount=3;
+      else if(score>=4000)maxCount=2;
+      gravZoneChainTarget=1+Math.floor(Math.random()*maxCount);
       gravZoneChain=1;
-      gravZoneCD=60+Math.floor(Math.random()*30); // medium delay before chain continues
+      if(gravZoneChainTarget>1){
+        // Random uneven gap before next zone in chain
+        gravZoneCD=30+Math.floor(Math.random()*80); // 30-110 frames gap (uneven)
+      } else {
+        gravZoneChain=0;gravZoneChainTarget=0;
+        gravZoneCD=200+Math.floor(Math.random()*120);
+      }
     } else {
       gravZoneChain++;
-      if(gravZoneChain>=3){
-        gravZoneChain=0;
-        gravZoneCD=200+Math.floor(Math.random()*120); // long cooldown after chain
+      if(gravZoneChain>=gravZoneChainTarget){
+        gravZoneChain=0;gravZoneChainTarget=0;
+        gravZoneCD=200+Math.floor(Math.random()*120);
       } else {
-        gravZoneCD=40+Math.floor(Math.random()*20); // short delay for next in chain
+        // Random uneven spacing: sometimes close, sometimes far apart
+        gravZoneCD=20+Math.floor(Math.random()*100); // 20-120 frames (very uneven)
       }
     }
   } else {
-    gravZoneChain=0;
+    gravZoneChain=0;gravZoneChainTarget=0;
     gravZoneCD=40+Math.floor(Math.random()*20);
   }
 }

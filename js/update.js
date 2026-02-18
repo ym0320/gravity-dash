@@ -225,7 +225,6 @@ function update(dt){
     trySpawnSpike();
     trySpawnMovingHill();
     trySpawnGravZone();
-    trySpawnGravGimmick();
     trySpawnFallingMtn();
     trySpawnCoinSwitch();
     // Boss phase trigger
@@ -352,22 +351,6 @@ function update(dt){
     }
   });
 
-  // Gravity gimmick scrolling and collision
-  gravGimmicks.forEach(gg=>{gg.x-=speed;if(gg.flashT>0)gg.flashT--;});
-  gravGimmicks=gravGimmicks.filter(gg=>gg.x+gg.w>-50);
-  gravGimmicks.forEach(gg=>{
-    if(gg.triggered)return;
-    if(player.x+pr>gg.x&&player.x-pr<gg.x+gg.w&&player.y+pr>gg.y&&player.y-pr<gg.y+gg.h){
-      gg.triggered=true;gg.flashT=30;
-      player.gDir*=-1;player.vy=player.gDir*2;
-      totalFlips++;flipCount=0;player.canFlip=true;flipTimer=0;
-      sfx('flip');vibrate([15,10,20]);
-      emitParts(gg.x+gg.w/2,gg.y+gg.h/2,12,'#ff00ff',4,3);
-      addPop(gg.x+gg.w/2,gg.y-10,'\u91CD\u529B\u53CD\u8EE2!','#ff00ff');
-      player.rotTarget+=Math.PI*player.gDir;
-    }
-  });
-
   // Falling mountain update
   fallingMtns.forEach(fm=>{
     fm.x-=speed;
@@ -405,29 +388,31 @@ function update(dt){
   });
   fallingMtns=fallingMtns.filter(fm=>fm.state!=='gone'&&fm.x+fm.w>-50);
 
-  // Coin switch update
+  // Coin switch update (round button)
   coinSwitches.forEach(cs=>{cs.x-=speed;if(cs.flashT>0)cs.flashT--;});
-  coinSwitches=coinSwitches.filter(cs=>cs.x+cs.w>-50);
+  coinSwitches=coinSwitches.filter(cs=>cs.x+cs.r>-50);
   coinSwitches.forEach(cs=>{
     if(cs.activated)return;
-    if(player.x+pr>cs.x&&player.x-pr<cs.x+cs.w){
-      let touching=false;
-      if(cs.isFloor){touching=player.y+pr>=cs.y&&player.y+pr<=cs.y+cs.h+10;}
-      else{touching=player.y-pr<=cs.y+cs.h&&player.y-pr>=cs.y-10;}
-      if(touching){
-        cs.activated=true;cs.flashT=40;
-        sfx('item');vibrate([15,10,15]);shakeI=4;
-        addPop(cs.x+cs.w/2,cs.y-20,'\u30B3\u30A4\u30F3\u30B9\u30A4\u30C3\u30C1!',COIN_SW_COL);
-        emitParts(cs.x+cs.w/2,cs.y,10,COIN_SW_COL,3,2);
-        const startX2=cs.x+cs.w+30;
-        const rows=3,cols=6+Math.floor(Math.random()*4),spacing=26;
-        const surfY3=cs.isFloor?cs.y:cs.y+cs.h;
-        for(let r2=0;r2<rows;r2++){
-          for(let c2=0;c2<cols;c2++){
-            const cx2=startX2+c2*spacing;
-            const cy2=cs.isFloor?surfY3-20-r2*spacing:surfY3+20+r2*spacing;
-            if(!coinOverlaps(cx2,cy2))coins.push({x:cx2,y:cy2,sz:9,col:false,p:Math.random()*6.28});
-          }
+    const dx3=player.x-cs.x,dy3=player.y-cs.y;
+    const d3=Math.sqrt(dx3*dx3+dy3*dy3);
+    if(d3<pr+cs.r+4){
+      cs.activated=true;cs.flashT=40;
+      sfx('item');vibrate([15,10,15]);shakeI=4;
+      addPop(cs.x,cs.y-20,'\u30B3\u30A4\u30F3\u30B9\u30A4\u30C3\u30C1!',COIN_SW_COL);
+      emitParts(cs.x,cs.y,10,COIN_SW_COL,3,2);
+      // Spawn 30-100 coins in organized grid ahead
+      const totalCoins2=30+Math.floor(Math.random()*71);
+      const cols=Math.ceil(Math.sqrt(totalCoins2*1.5));
+      const rows=Math.ceil(totalCoins2/cols);
+      const spacing=24;
+      const startX2=cs.x+40;
+      const surfY3=cs.isFloor?cs.y:cs.y;
+      let placed=0;
+      for(let r2=0;r2<rows&&placed<totalCoins2;r2++){
+        for(let c2=0;c2<cols&&placed<totalCoins2;c2++){
+          const cx2=startX2+c2*spacing;
+          const cy2=cs.isFloor?surfY3-10-r2*spacing:surfY3+10+r2*spacing;
+          if(!coinOverlaps(cx2,cy2)){coins.push({x:cx2,y:cy2,sz:9,col:false,p:Math.random()*6.28});placed++;}
         }
       }
     }
@@ -507,6 +492,7 @@ function update(dt){
   items=items.filter(it=>it.x>-50&&!it.col);
 
   // Enemies
+  const esm=enemySpeedMul(); // enemy speed multiplier (1.0 to 2.0)
   enemies.forEach(en=>{
     if(!en.alive)return;
     // Boss enemies with custom movement: handled by updateBossPhase
@@ -522,12 +508,12 @@ function update(dt){
 
     if(en.type===2){
       // Flying enemy: sine wave movement, no ground snapping
-      en.flyPhase+=0.04;
+      en.flyPhase+=0.04*esm;
       en.y=en.baseY+Math.sin(en.flyPhase)*en.flyAmp;
       en.baseY-=speed*0.02;
     } else if(en.type===0&&en.patrolDir!==undefined){
       // Walker with left-right patrol
-      en.x+=en.patrolDir*en.walkSpd;
+      en.x+=en.patrolDir*en.walkSpd*esm;
       if(!en.boss) en.patrolOriginX-=speed; // keep origin scrolling with terrain (not for boss)
       if(en.x>en.patrolOriginX+en.patrolRange) en.patrolDir=-1;
       if(en.x<en.patrolOriginX-en.patrolRange) en.patrolDir=1;
@@ -544,7 +530,7 @@ function update(dt){
     } else if(en.type===3){
       // Bomber: small patrol, stays on ground
       if(en.patrolDir!==undefined){
-        en.x+=en.patrolDir*en.walkSpd;
+        en.x+=en.patrolDir*en.walkSpd*esm;
         en.patrolOriginX-=speed;
         if(en.x>en.patrolOriginX+en.patrolRange) en.patrolDir=-1;
         if(en.x<en.patrolOriginX-en.patrolRange) en.patrolDir=1;
@@ -564,7 +550,7 @@ function update(dt){
         }
         // Random speed variation (sinusoidal + noise)
         const spdMod=0.6+Math.sin(en.moveTimer*0.07)*0.4+Math.sin(en.moveTimer*0.17)*0.2;
-        en.y+=en.moveDir*en.moveSpd*spdMod;
+        en.y+=en.moveDir*en.moveSpd*spdMod*esm;
         const floorY=floorSurfaceY(en.x);
         const ceilY2=ceilSurfaceY(en.x);
         if(en.y+en.sz>=floorY){
@@ -580,10 +566,10 @@ function update(dt){
       }
     } else if(en.type===5){
       // Phantom: float with sine, periodically turn invisible
-      en.flyPhase+=0.03;
+      en.flyPhase+=0.03*esm;
       en.y=en.baseY+Math.sin(en.flyPhase)*en.flyAmp;
       en.baseY-=speed*0.01;
-      en.visTimer++;
+      en.visTimer+=esm;
       if(en.visible&&en.visTimer>=en.visCycle){
         en.visible=false;en.visTimer=0;en.fadeT=20; // fade out over 20 frames
       } else if(!en.visible&&en.visTimer>=en.visCycle*0.6){
@@ -592,7 +578,7 @@ function update(dt){
       if(en.fadeT>0)en.fadeT--;
     } else {
       // Default movement (type 1 cannon and legacy)
-      en.x-=en.walkSpd;
+      en.x-=en.walkSpd*esm;
       // Keep on surface or fall off cliff
       if(en.gDir===1){
         const sy=floorSurfaceY(en.x);
@@ -672,10 +658,10 @@ function update(dt){
   // Shooter enemies fire horizontal bullets at player's Y position
   enemies.forEach(en=>{
     if(!en.alive||en.type!==1)return;
-    en.shootT--;
+    en.shootT-=esm;
     if(en.shootT<=0&&en.x>0&&en.x<W+50){
       en.shootT=90+Math.floor(Math.random()*50);
-      const bspd=4+speed*0.3;
+      const bspd=(4+speed*0.3)*esm;
       // Fire horizontally from the enemy's position
       bullets.push({x:en.x-en.sz,y:en.y,vx:-bspd,vy:0,sz:5,life:180});
       sfx('shoot');
@@ -684,7 +670,7 @@ function update(dt){
   // Bomber enemies throw bombs in a parabolic arc toward player
   enemies.forEach(en=>{
     if(!en.alive||en.type!==3)return;
-    en.bombCD--;
+    en.bombCD-=esm;
     if(en.bombCD<=0&&en.x>0&&en.x<W+50){
       en.bombCD=80+Math.floor(Math.random()*40);
       // Lob bomb toward player's approximate X position with arc

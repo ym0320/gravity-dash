@@ -189,29 +189,6 @@ function drawGravZones(){
   });
 }
 
-function drawGravGimmicks(){
-  gravGimmicks.forEach(gg=>{
-    if(gg.x+gg.w<-10||gg.x>W+10)return;
-    const cx=gg.x+gg.w/2,cy=gg.y+gg.h/2;
-    if(gg.triggered){
-      if(gg.flashT>0){
-        ctx.globalAlpha=gg.flashT/30;ctx.fillStyle='#ff00ff';ctx.shadowColor='#ff00ff';ctx.shadowBlur=20;
-        ctx.beginPath();ctx.arc(cx,cy,gg.w,0,6.28);ctx.fill();ctx.shadowBlur=0;ctx.globalAlpha=1;
-      }
-      return;
-    }
-    ctx.save();ctx.translate(cx,cy);
-    const pulse=0.5+Math.sin(frame*0.08)*0.3;
-    ctx.fillStyle='rgba(255,0,255,'+pulse*0.2+')';ctx.beginPath();ctx.arc(0,0,gg.w*0.8,0,6.28);ctx.fill();
-    ctx.fillStyle='#ff00ff';ctx.shadowColor='#ff00ff';ctx.shadowBlur=10;
-    const as=gg.w*0.4;
-    ctx.beginPath();ctx.moveTo(0,-as*1.5);ctx.lineTo(-as,-as*0.5);ctx.lineTo(as,-as*0.5);ctx.closePath();ctx.fill();
-    ctx.beginPath();ctx.moveTo(0,as*1.5);ctx.lineTo(-as,as*0.5);ctx.lineTo(as,as*0.5);ctx.closePath();ctx.fill();
-    ctx.strokeStyle='#ff00ff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,-as*0.3);ctx.lineTo(0,as*0.3);ctx.stroke();
-    ctx.shadowBlur=0;ctx.restore();
-  });
-}
-
 function drawFallingMtns(){
   fallingMtns.forEach(fm=>{
     if(fm.x+fm.w<-10||fm.x>W+10||fm.state==='gone')return;
@@ -239,26 +216,25 @@ function drawFallingMtns(){
 
 function drawCoinSwitches(){
   coinSwitches.forEach(cs=>{
-    if(cs.x+cs.w<-10||cs.x>W+10)return;
+    if(cs.x+cs.r<-10||cs.x-cs.r>W+10)return;
     ctx.save();
     if(cs.activated){
       if(cs.flashT>0){
         ctx.globalAlpha=cs.flashT/40;ctx.fillStyle=COIN_SW_COL;ctx.shadowColor=COIN_SW_COL;ctx.shadowBlur=15;
-        ctx.beginPath();ctx.arc(cs.x+cs.w/2,cs.y+cs.h/2,cs.w*0.6,0,6.28);ctx.fill();ctx.shadowBlur=0;ctx.globalAlpha=1;
+        ctx.beginPath();ctx.arc(cs.x,cs.y,cs.r*1.5,0,6.28);ctx.fill();ctx.shadowBlur=0;ctx.globalAlpha=1;
       }
-      ctx.fillStyle='#224466';ctx.fillRect(cs.x,cs.y+cs.h*0.6,cs.w,cs.h*0.4);
       ctx.restore();return;
     }
     const pulse2=0.7+Math.sin(frame*0.06)*0.3;
-    ctx.fillStyle='#1a3355';ctx.fillRect(cs.x-2,cs.isFloor?cs.y+cs.h-4:cs.y,cs.w+4,6);
-    const gr2=ctx.createLinearGradient(0,cs.y,0,cs.y+cs.h);
-    gr2.addColorStop(0,'#66aaff');gr2.addColorStop(1,'#3366cc');
-    ctx.fillStyle=gr2;rr(cs.x,cs.y,cs.w,cs.h,4);ctx.fill();
-    ctx.shadowColor=COIN_SW_COL;ctx.shadowBlur=8*pulse2;ctx.strokeStyle=COIN_SW_COL;ctx.lineWidth=1.5;
-    rr(cs.x,cs.y,cs.w,cs.h,4);ctx.stroke();ctx.shadowBlur=0;
-    ctx.fillStyle='#fff';ctx.font='bold 10px monospace';ctx.textAlign='center';
-    ctx.fillText('$',cs.x+cs.w/2,cs.y+cs.h/2+4);
-    if(frame%20<10){ctx.fillStyle='rgba(255,215,0,'+pulse2*0.5+')';ctx.beginPath();ctx.arc(cs.x+cs.w/2,cs.y-8,3,0,6.28);ctx.fill();}
+    // Compact round button
+    const gr2=ctx.createRadialGradient(cs.x-2,cs.y-2,0,cs.x,cs.y,cs.r);
+    gr2.addColorStop(0,'#88ccff');gr2.addColorStop(0.6,'#4488ff');gr2.addColorStop(1,'#2255cc');
+    ctx.fillStyle=gr2;ctx.beginPath();ctx.arc(cs.x,cs.y,cs.r,0,6.28);ctx.fill();
+    ctx.shadowColor=COIN_SW_COL;ctx.shadowBlur=8*pulse2;ctx.strokeStyle='#aaddff';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(cs.x,cs.y,cs.r,0,6.28);ctx.stroke();ctx.shadowBlur=0;
+    ctx.fillStyle='#ffd700';ctx.font='bold 10px monospace';ctx.textAlign='center';
+    ctx.fillText('$',cs.x,cs.y+4);
+    if(frame%20<10){ctx.fillStyle='rgba(255,215,0,'+pulse2*0.5+')';ctx.beginPath();ctx.arc(cs.x,cs.y-cs.r-4,2,0,6.28);ctx.fill();}
     ctx.restore();
   });
 }
@@ -280,7 +256,6 @@ function draw(){
   drawSpikes();
   drawMovingHills();
   drawGravZones();
-  drawGravGimmicks();
   drawFallingMtns();
   drawCoinSwitches();
 
@@ -972,7 +947,7 @@ function drawActionPanel(){
   // Speed and coin display (right of score, left of bomb button)
   const infoX=W-btnSz-22;
   ctx.fillStyle='#8899aa';ctx.font='11px monospace';ctx.textAlign='right';
-  ctx.fillText('\u901F\u5EA6 '+speed.toFixed(1),infoX,py+22);
+  ctx.fillText('\u901F\u5EA6 '+(speed/SPEED_INIT).toFixed(1),infoX,py+22);
   ctx.fillStyle='#ffd700aa';
   ctx.fillText('\u25CF '+totalCoins,infoX,py+38);
   ctx.textAlign='left';
