@@ -20,6 +20,7 @@ function startBossPhase(){
   bossPhase.lastBossScore=score;
   bossPhase.nextAt=score+800+bossPhase.bossCount*100;
   shakeI=18;sfxBossAlert();vibrate([50,30,50,30,80,40,100]);
+  switchBGM('boss');
 }
 function spawnBossEnemies(){
   const bc=bossPhase.bossCount; // 1-based count of boss fights
@@ -559,11 +560,6 @@ function updateBossPhase(){
     walletCoins+=bonus;localStorage.setItem('gd5wallet',walletCoins.toString());
     totalCoins+=bonus;
     addPop(W/2,H*0.45,'+'+bonus+' COINS!','#ffd700');
-    // Theme transition after boss clear
-    if(!isPackMode&&bossPhase.bossCount<THEMES.length&&curTheme!==bossPhase.bossCount){
-      prevTheme=curTheme;curTheme=Math.min(bossPhase.bossCount,THEMES.length-1);themeLerp=0;
-      addPop(W/2,H*0.55,THEMES[curTheme].n+'!','#00e5ff');
-    }
     for(let i=0;i<40;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*4,vy:1+Math.random()*4,life:80+Math.random()*40,ml:120,sz:Math.random()*5+3,col:['#ffd700','#ffaa00','#fff4b0'][i%3]});
   }
 }

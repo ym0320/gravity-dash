@@ -80,9 +80,9 @@ function update(dt){
   const wasInvincible=itemEff.invincible>0;
   const prevInvT=itemEff.invincible;
   for(const k in itemEff)if(itemEff[k]>0)itemEff[k]--;
-  if(wasInvincible&&itemEff.invincible<=0&&state===ST.PLAY)switchBGM('play');
-  // Invincibility ending warning: slow down BGM and flash at 90 frames remaining
-  if(wasInvincible&&prevInvT===90&&state===ST.PLAY)switchBGM('play');
+  if(wasInvincible&&itemEff.invincible<=0&&state===ST.PLAY){
+    switchBGM(bossPhase.active?'boss':'play');
+  }
 
   if(isPackMode&&currentPackStage){
     speed=SPEED_INIT*currentPackStage.spdMul*ct().speedMul;
@@ -93,7 +93,24 @@ function update(dt){
   // Distance scoring
   dist+=speed*0.08;
   const ns=Math.floor(dist);
-  if(ns>score){score=ns;checkMile();}
+  if(ns>score){
+    const prevScore=score;score=ns;checkMile();
+    // Theme change every 1000 points (10 themes, wraps after 10000)
+    if(!isPackMode){
+      const newThemeIdx=Math.min(Math.floor(score/1000),THEMES.length-1);
+      if(newThemeIdx!==curTheme){
+        prevTheme=curTheme;curTheme=newThemeIdx;themeLerp=0;
+        addPop(W/2,H*0.55,THEMES[curTheme].n+'!','#00e5ff');
+      }
+    }
+    // BGM progression every 10000 points (only when not in boss/fever)
+    if(!isPackMode&&!bossPhase.active&&itemEff.invincible<=0&&state===ST.PLAY){
+      const newBGM=getPlayBGMType();
+      if(bgmCurrent!==newBGM&&bgmCurrent!=='boss'&&bgmCurrent!=='fever'){
+        switchBGM('play');
+      }
+    }
+  }
 
   // Platform scrolling
   platforms.forEach(p=>p.x-=speed);

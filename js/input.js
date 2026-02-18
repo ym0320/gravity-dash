@@ -114,11 +114,24 @@ function updateSliderDrag(tx){
 }
 
 // Auto-pause when page loses visibility or focus
+// Stop BGM timers when hidden to prevent audio burst on return
+let bgmBeforePause='';
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden&&state===ST.PLAY){state=ST.PAUSE;sfx('pause');}
+  if(document.hidden){
+    if(state===ST.PLAY||state===ST.COUNTDOWN){state=ST.PAUSE;}
+    // Stop BGM to prevent sound pile-up
+    bgmBeforePause=bgmCurrent;
+    if(bgmTimer){clearTimeout(bgmTimer);bgmTimer=null;}
+    if(typeof feverTimer!=='undefined'&&feverTimer){clearTimeout(feverTimer);feverTimer=null;}
+    bgmCurrent=''; // allow restart
+  } else {
+    // Page visible again: restart BGM silently (no sfx)
+    if(bgmBeforePause)switchBGM(bgmBeforePause);
+    bgmBeforePause='';
+  }
 });
 window.addEventListener('blur',()=>{
-  if(state===ST.PLAY){state=ST.PAUSE;sfx('pause');}
+  if(state===ST.PLAY){state=ST.PAUSE;}
 });
 
 // Start countdown instead of immediately playing
@@ -185,7 +198,10 @@ canvas.addEventListener('touchmove',e=>{
 
 canvas.addEventListener('touchend',e=>{
   e.preventDefault();
-  if(draggingSlider){draggingSlider=null;return;}
+  if(draggingSlider){
+    if(draggingSlider==='sfx')sfx('coin'); // preview SE at new volume
+    draggingSlider=null;return;
+  }
   if(settingsOpen)return;
   if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}
   if(state===ST.TITLE&&!longPressFired&&titleTouchPos){handleTitleTouch(titleTouchPos.x,titleTouchPos.y);titleTouchPos=null;return;}
@@ -272,7 +288,10 @@ canvas.addEventListener('mousedown',e=>{
 canvas.addEventListener('mousemove',e=>{
   if(draggingSlider){const p=canvasXY(e.clientX,e.clientY);updateSliderDrag(p.x);}
 });
-canvas.addEventListener('mouseup',()=>{draggingSlider=null;});
+canvas.addEventListener('mouseup',()=>{
+  if(draggingSlider==='sfx')sfx('coin');
+  draggingSlider=null;
+});
 document.addEventListener('keydown',e=>{
   if(settingsOpen){if(e.code==='Escape'){settingsOpen=false;sfx('cancel');}e.preventDefault();return;}
   if(e.code==='Escape'){
