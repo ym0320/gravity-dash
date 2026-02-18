@@ -206,7 +206,7 @@ function draw(){
   drawGravZones();
 
   if(isPackMode)drawAmbient();
-  if(state===ST.TITLE){drawTitle();drawCharModal();ctx.restore();return;}
+  if(state===ST.TITLE){drawDemo();drawTitle();drawCharModal();ctx.restore();return;}
   if(state===ST.STAGE_SEL){drawStageSel();ctx.restore();return;}
   if(state===ST.COUNTDOWN){drawCountdown();ctx.restore();return;}
 
@@ -755,7 +755,9 @@ function drawPlayer(){
   ctx.beginPath();ctx.moveTo(player.x-5,player.y+ay-3*ad);ctx.lineTo(player.x,player.y+ay+3*ad);ctx.lineTo(player.x+5,player.y+ay-3*ad);ctx.stroke();
   ctx.lineCap='butt';
 
-  drawCharacter(player.x,player.y,selChar,pr,player.rot,ghostA,player.face,dmgLv);
+  // Ghost character: always draw upright (don't flip body when gravity reverses)
+  const charRot=ct().shape==='ghost'?0:player.rot;
+  drawCharacter(player.x,player.y,selChar,pr,charRot,ghostA,player.face,dmgLv);
 }
 
 function drawHeart(cx,cy,sz,filled){
@@ -894,6 +896,88 @@ function drawMile(){
   ctx.save();ctx.globalAlpha=a;ctx.translate(W/2,H*0.5);ctx.scale(sc,sc);
   ctx.fillStyle='#ffd700';ctx.shadowColor='#ffd70077';ctx.shadowBlur=22;
   ctx.font='bold 36px monospace';ctx.textAlign='center';ctx.fillText(mileTxt,0,0);ctx.shadowBlur=0;
+  ctx.restore();ctx.globalAlpha=1;
+}
+
+function drawDemo(){
+  if(!demo.active)return;
+  const d=demo,th=THEMES[d.themeIdx],ch=CHARS[d.charIdx];
+  const pr=PLAYER_R*ch.sizeMul;
+  ctx.save();ctx.globalAlpha=0.35;
+  // Floor platforms
+  d.plats.forEach(p=>{
+    if(p.x+p.w<-10||p.x>W+10)return;
+    const sY=H-p.h;
+    const gr=ctx.createLinearGradient(0,sY,0,H);
+    gr.addColorStop(0,th.gnd);gr.addColorStop(1,th.gnd2||th.gnd);
+    ctx.fillStyle=gr;ctx.fillRect(p.x,sY,p.w,p.h);
+    ctx.strokeStyle=th.line;ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(p.x,sY);ctx.lineTo(p.x+p.w,sY);ctx.stroke();
+  });
+  // Ceiling platforms
+  d.ceilPlats.forEach(p=>{
+    if(p.x+p.w<-10||p.x>W+10)return;
+    const sY=p.h;
+    ctx.fillStyle=th.gnd2||th.gnd;ctx.fillRect(p.x,-10,p.w,sY+10);
+    ctx.strokeStyle=th.line;ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(p.x,sY);ctx.lineTo(p.x+p.w,sY);ctx.stroke();
+  });
+  // Coins
+  d.coins.forEach(c=>{
+    if(c.x<-10||c.x>W+10)return;
+    const sc=0.8+Math.sin(c.t)*0.15;
+    ctx.fillStyle='#ffd700';ctx.beginPath();ctx.arc(c.x,c.y,c.sz*sc,0,6.28);ctx.fill();
+    ctx.fillStyle='#fff4';ctx.beginPath();ctx.arc(c.x-1,c.y-1,c.sz*0.4,0,6.28);ctx.fill();
+  });
+  // Enemies
+  d.enemies.forEach(e=>{
+    if(!e.alive||e.x<-20||e.x>W+20)return;
+    ctx.fillStyle=th.obs;
+    if(e.type===0||e.type===1){
+      // Ground walker/cannon: square
+      ctx.fillRect(e.x-e.sz,e.y-e.sz,e.sz*2,e.sz*2);
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(e.x+e.sz*0.2,e.y-e.sz*0.2,e.sz*0.3,0,6.28);ctx.fill();
+    } else if(e.type===2){
+      // Flyer: diamond
+      ctx.beginPath();ctx.moveTo(e.x,e.y-e.sz*1.2);ctx.lineTo(e.x+e.sz,e.y);
+      ctx.lineTo(e.x,e.y+e.sz*0.6);ctx.lineTo(e.x-e.sz,e.y);ctx.closePath();ctx.fill();
+    } else if(e.type===3){
+      // Bomber: circle
+      ctx.beginPath();ctx.arc(e.x,e.y,e.sz,0,6.28);ctx.fill();
+      ctx.fillStyle='#333';ctx.beginPath();ctx.arc(e.x,e.y,e.sz*0.5,0,6.28);ctx.fill();
+    } else {
+      // Vertical/phantom: triangle
+      ctx.beginPath();ctx.moveTo(e.x,e.y-e.sz*1.1);
+      ctx.lineTo(e.x+e.sz,e.y+e.sz*0.5);ctx.lineTo(e.x-e.sz,e.y+e.sz*0.5);
+      ctx.closePath();ctx.fill();
+    }
+  });
+  // Kill particles
+  d.killParts.forEach(p=>{
+    const a=p.life/18;
+    ctx.globalAlpha=0.35*a;ctx.fillStyle=p.col;
+    ctx.beginPath();ctx.arc(p.x,p.y,2+a*2,0,6.28);ctx.fill();
+  });
+  ctx.globalAlpha=0.35;
+  // Trail
+  d.trail.forEach(t=>{
+    const a=t.life/12;
+    ctx.globalAlpha=0.12*a;ctx.fillStyle=ch.col;
+    ctx.beginPath();ctx.arc(t.x,t.y,pr*a*0.6,0,6.28);ctx.fill();
+  });
+  ctx.globalAlpha=0.55;
+  // Player
+  const dRot=ch.shape==='ghost'?0:d.rot;
+  drawCharacter(d.px,d.py,d.charIdx,pr,dRot,0.85,d.face,0);
+  // Combo popup
+  if(d.comboN>=2&&d.comboT>0){
+    ctx.globalAlpha=0.5*(d.comboT/30);
+    ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='center';
+    ctx.fillText(d.comboN+' COMBO!',d.px,d.py-pr-15);
+  }
+  // Demo score display
+  ctx.globalAlpha=0.25;ctx.fillStyle='#fff';ctx.font='bold 16px monospace';ctx.textAlign='right';
+  ctx.fillText(d.score,W-14,safeTop+24);
   ctx.restore();ctx.globalAlpha=1;
 }
 

@@ -789,6 +789,167 @@ const PANEL_H=56; // bottom action panel height
 let ghostPhaseT=0; // timer for ghost transparency cycle
 let ghostInvis=false; // whether ghost is currently transparent
 
+// ===== TITLE SCREEN DEMO =====
+const demo={active:false,charIdx:0,themeIdx:0,px:0,py:0,vy:0,gDir:1,rot:0,
+  grounded:false,plats:[],ceilPlats:[],enemies:[],coins:[],trail:[],
+  speed:2,frame:0,timer:0,score:0,alive:true,jumpCD:0,flipCD:0,face:'normal',
+  killParts:[],comboT:0,comboN:0};
+function initDemo(){
+  const d=demo;d.active=true;d.alive=true;d.frame=0;d.timer=0;d.face='normal';
+  d.charIdx=Math.floor(Math.random()*CHARS.length);
+  d.themeIdx=Math.floor(Math.random()*THEMES.length);
+  d.speed=1.8+Math.random()*1.5;d.gDir=1;d.rot=0;d.vy=0;
+  d.score=Math.floor(Math.random()*5000);d.jumpCD=0;d.flipCD=0;
+  d.comboT=0;d.comboN=0;d.trail=[];d.killParts=[];
+  const pr=PLAYER_R*CHARS[d.charIdx].sizeMul;
+  d.px=W*0.22;
+  // Generate floor and ceiling platforms
+  d.plats=[];d.ceilPlats=[];
+  let px=-40;
+  while(px<W*3){
+    const w=100+Math.random()*180;
+    const h=GROUND_H+(Math.random()-0.5)*30;
+    d.plats.push({x:px,w:w,h:h});
+    d.ceilPlats.push({x:px,w:w,h:GROUND_H+(Math.random()-0.5)*20});
+    const gap=Math.random()<0.12?35+Math.random()*30:0;
+    px+=w+gap;
+  }
+  d.py=H-d.plats[0].h-pr;d.grounded=true;
+  // Spawn enemies and coins
+  d.enemies=[];d.coins=[];
+  for(let i=0;i<6;i++){
+    d.enemies.push({x:W*0.6+i*180+Math.random()*80,y:0,type:Math.floor(Math.random()*6),
+      sz:10+Math.random()*5,alive:true,gDir:1,bob:Math.random()*6.28});
+  }
+  for(let i=0;i<8;i++){
+    d.coins.push({x:W*0.4+i*140+Math.random()*60,y:H*0.3+Math.random()*H*0.3,sz:5,t:Math.random()*6.28});
+  }
+}
+function updateDemo(){
+  const d=demo;if(!d.active){initDemo();return;}
+  d.frame++;d.timer++;
+  if(!d.alive||d.timer>700){initDemo();return;}
+  const ch=CHARS[d.charIdx];
+  const pr=PLAYER_R*ch.sizeMul;
+  // Scroll
+  d.plats.forEach(p=>{p.x-=d.speed;});
+  d.ceilPlats.forEach(p=>{p.x-=d.speed;});
+  d.enemies.forEach(e=>{e.x-=d.speed;});
+  d.coins.forEach(c=>{c.x-=d.speed;});
+  // Remove off-screen, replenish
+  d.plats=d.plats.filter(p=>p.x+p.w>-60);
+  d.ceilPlats=d.ceilPlats.filter(p=>p.x+p.w>-60);
+  if(d.plats.length>0){
+    const last=d.plats[d.plats.length-1];
+    if(last.x+last.w<W*2){
+      const w=100+Math.random()*180,h=GROUND_H+(Math.random()-0.5)*30;
+      const gap=Math.random()<0.12?35+Math.random()*30:0;
+      d.plats.push({x:last.x+last.w+gap,w:w,h:h});
+    }
+  }
+  if(d.ceilPlats.length>0){
+    const last=d.ceilPlats[d.ceilPlats.length-1];
+    if(last.x+last.w<W*2){
+      const w=100+Math.random()*180,h=GROUND_H+(Math.random()-0.5)*20;
+      d.ceilPlats.push({x:last.x+last.w,w:w,h:h});
+    }
+  }
+  // Physics
+  const grav=GRAVITY*(ch.gravMul||1)*d.gDir;
+  d.vy+=grav;d.py+=d.vy;d.grounded=false;
+  if(d.gDir===1){
+    for(const p of d.plats){
+      if(d.px+pr>p.x&&d.px-pr<p.x+p.w){
+        const sY=H-p.h;
+        if(d.py+pr>sY&&d.vy>=0){d.py=sY-pr;d.vy=0;d.grounded=true;break;}
+      }
+    }
+  } else {
+    for(const p of d.ceilPlats){
+      if(d.px+pr>p.x&&d.px-pr<p.x+p.w){
+        const sY=p.h;
+        if(d.py-pr<sY&&d.vy<=0){d.py=sY+pr;d.vy=0;d.grounded=true;break;}
+      }
+    }
+  }
+  if(d.py>H+60||d.py<-60){d.alive=false;return;}
+  // Trail
+  if(d.frame%2===0)d.trail.push({x:d.px,y:d.py,life:12});
+  d.trail=d.trail.filter(t=>{t.life--;return t.life>0;});
+  // Kill particles
+  d.killParts=d.killParts.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.life--;return p.life>0;});
+  if(d.comboT>0)d.comboT--;
+  // AI: jump
+  d.jumpCD--;
+  if(d.grounded&&d.jumpCD<=0){
+    let doJump=false;
+    for(const e of d.enemies){
+      if(e.alive&&e.x>d.px-10&&e.x<d.px+140){doJump=true;break;}
+    }
+    if(!doJump&&Math.random()<0.025)doJump=true;
+    // Jump over gaps
+    if(!doJump){
+      let hasFloor=false;
+      for(const p of d.plats){if(d.px+pr*3>p.x&&d.px+pr<p.x+p.w){hasFloor=true;break;}}
+      if(!hasFloor)doJump=true;
+    }
+    if(doJump){
+      d.vy=-JUMP_POWER*(ch.jumpMul||1)*d.gDir;
+      d.jumpCD=15+Math.floor(Math.random()*10);
+    }
+  }
+  // AI: flip gravity occasionally
+  d.flipCD--;
+  if(d.flipCD<=0&&Math.random()<0.006){
+    d.gDir*=-1;d.vy=-JUMP_POWER*0.6*d.gDir;d.flipCD=90+Math.floor(Math.random()*60);
+  }
+  // Rotation
+  const tr=d.gDir===1?0:Math.PI;
+  d.rot+=(tr-d.rot)*0.12;
+  // Enemy ground position + stomp check
+  d.enemies.forEach(e=>{
+    if(!e.alive)return;
+    e.bob+=0.05;
+    // Place on ground
+    if(e.type===2||e.type===4){
+      // Flyer/vertical: float
+      e.y=H*0.35+Math.sin(e.bob)*40;e.gDir=1;
+    } else {
+      for(const p of d.plats){
+        if(e.x>=p.x&&e.x<=p.x+p.w){e.y=H-p.h-e.sz;e.gDir=1;break;}
+      }
+    }
+    // Stomp check
+    const dx=d.px-e.x,dy=d.py-e.y,dist=Math.sqrt(dx*dx+dy*dy);
+    if(dist<pr+e.sz){
+      const stomped=(e.gDir===1&&d.py<e.y-e.sz*0.2&&d.vy>=0)||(e.gDir===-1&&d.py>e.y+e.sz*0.2&&d.vy<=0);
+      if(stomped){
+        e.alive=false;d.vy=-JUMP_POWER*0.7*d.gDir;d.score+=10;
+        d.face='happy';d.comboT=30;d.comboN++;
+        for(let i=0;i<8;i++){const a=Math.random()*6.28;d.killParts.push({x:e.x,y:e.y,vx:Math.cos(a)*2,vy:Math.sin(a)*2,life:18,col:THEMES[d.themeIdx].obs});}
+      }
+    }
+  });
+  if(d.comboT<=0)d.comboN=0;
+  if(d.comboT<=0&&d.face==='happy')d.face='normal';
+  // Replenish
+  d.enemies=d.enemies.filter(e=>e.x>-60);
+  while(d.enemies.length<4){
+    d.enemies.push({x:W+40+Math.random()*200,y:0,type:Math.floor(Math.random()*6),
+      sz:10+Math.random()*5,alive:true,gDir:1,bob:Math.random()*6.28});
+  }
+  d.coins=d.coins.filter(c=>c.x>-30);
+  while(d.coins.length<5){
+    d.coins.push({x:W+Math.random()*250,y:H*0.25+Math.random()*H*0.35,sz:5,t:Math.random()*6.28});
+  }
+  // Collect coins
+  d.coins.forEach(c=>{
+    c.t+=0.06;
+    const dx=d.px-c.x,dy=d.py-c.y;
+    if(Math.sqrt(dx*dx+dy*dy)<pr+c.sz+8){c.x=-999;d.score++;}
+  });
+}
+
 // ===== PLAYER =====
 // gDir: 1=on floor (gravity down), -1=on ceiling (gravity up)
 let player={x:0,y:0,vy:0,gDir:1,rot:0,rotTarget:0,trail:[],alive:true,grounded:false,face:'normal',canFlip:true};

@@ -1,11 +1,12 @@
 'use strict';
 // ===== COLLISION =====
 // hurt(): take 1 HP damage (walls, enemies, bullets, crush)
-function hurt(){
+// isWall: if true, ghost transparency does NOT block damage (terrain/wall hit)
+function hurt(isWall){
   if(hurtT>0)return; // still invincible from previous hit
   if(itemEff.invincible>0){shakeI=4;emitParts(player.x,player.y,8,'#ff00ff',3,2);return;}
-  // Ghost character: transparent phase evades attacks
-  if(ghostInvis){emitParts(player.x,player.y,6,'#a855f7',2,1);return;}
+  // Ghost character: transparent phase evades enemy attacks only, not walls/terrain
+  if(ghostInvis&&!isWall){emitParts(player.x,player.y,6,'#a855f7',2,1);return;}
   hp--;
   if(hp<=0){die();return;}
   // Survive with damage
