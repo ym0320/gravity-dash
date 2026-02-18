@@ -83,6 +83,8 @@ let spikes=[]; // {x, w, h, phase, timer, state} - ground spikes that emerge/ret
 let spikeCD=0;
 let movingHills=[]; // {x, w, baseH, ampH, phase, spd} - terrain that oscillates vertically
 let hillCD=0;
+let gravZones=[]; // {x, w, triggered} - forced gravity reversal zones (waterfall aura)
+let gravZoneCD=0;
 
 // ===== BOSS PHASE =====
 // Boss appears periodically in endless mode
@@ -130,7 +132,7 @@ function reset(){
   for(let i=0;i<5;i++){generatePlatform(platforms,false);generatePlatform(ceilPlats,true);}
   player.y=floorSurfaceY(player.x)-PLAYER_R;
   coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];floatPlats=[];floatCD=0;
-  spikes=[];spikeCD=0;movingHills=[];hillCD=0;
+  spikes=[];spikeCD=0;movingHills=[];hillCD=0;gravZones=[];gravZoneCD=0;
   score=0;dist=0;speed=SPEED_INIT;frame=0;deadT=0;newHi=false;
   combo=0;comboT=0;comboDsp=0;comboDspT=0;
   shakeX=0;shakeY=0;shakeI=0;
@@ -160,7 +162,7 @@ function resetPackStage(pi,si){
   for(let i=0;i<5;i++){generatePackPlatform(platforms,false,stage);generatePackPlatform(ceilPlats,true,stage);}
   player.y=floorSurfaceY(player.x)-PLAYER_R;
   coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];floatPlats=[];floatCD=0;
-  spikes=[];spikeCD=0;movingHills=[];hillCD=0;
+  spikes=[];spikeCD=0;movingHills=[];hillCD=0;gravZones=[];gravZoneCD=0;
   // Place 3 stars at 25%, 50%, 80% of stage distance
   const starRng=mulberry32(stage.seed+777);
   stageBigCoins=[];

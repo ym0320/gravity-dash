@@ -15,7 +15,7 @@ function startBossPhase(){
   bossPhase.dodgeQueue=[]; // queue of dodge enemies
   bossPhase.dodgeIdx=0;
   bossPhase.dodgeKills=0;
-  enemies=[];bullets=[];floatPlats=[];spikes=[];movingHills=[];
+  enemies=[];bullets=[];floatPlats=[];spikes=[];movingHills=[];gravZones=[];
   bossPhase.bossCount++;
   bossPhase.lastBossScore=score;
   bossPhase.nextAt=score+800+bossPhase.bossCount*100;
@@ -59,8 +59,8 @@ function spawnBossEnemies(){
       // Random direction: 50% from left, 50% from right
       const fromLeft=Math.random()<0.5;
       const spd=baseSpd+Math.random()*(1.5+spdVariance);
-      // From 2nd encounter: some charge diagonally
-      const diagVy=bc>=2&&Math.random()<0.4?(gDir===1?-2-Math.random()*1.5:2+Math.random()*1.5):0;
+      // Always allow diagonal movement (vertical from 1st encounter)
+      const diagVy=Math.random()<0.4?(gDir===1?-2-Math.random()*1.5:2+Math.random()*1.5):0;
       // From 2nd encounter: feint pause
       const hasFeint=bc>=2&&Math.random()<0.3;
       // From 3rd encounter: speed changes
@@ -128,7 +128,7 @@ function spawnBossEnemies(){
     bossPhase.bruiser=bruiser;
     bossPhase.total=1;
   } else {
-    // Wizard type: teleports, shoots patterns, dives to be stompable
+    // Wizard type: teleports, shoots patterns, rushes toward player to be stompable
     const wsz=24+Math.min(bc-1,3)*2;
     const wizard={
       x:W+60,y:H/2,vy:0,gDir:1,sz:wsz,alive:true,fr:0,
@@ -138,7 +138,7 @@ function spawnBossEnemies(){
       castT:0,castType:0, // 0=ring, 1=wave
       teleportT:0,teleportTarget:{x:0,y:0},
       alpha:1,
-      diveTarget:{x:0,y:0},diveReady:false,diveT:0
+      rushDir:1,rushT:0,rushReady:false,rushTargetX:0
     };
     bossPhase.wizard=wizard;
     bossPhase.total=1;
@@ -421,40 +421,53 @@ function updateBossPhase(){
       // Hover in place, preparing next action
       w.y+=Math.sin(w.fr*0.5)*0.5;
       if(w.timer>=50){
-        // 40% chance to dive (stompable), 60% chance to cast (attack)
-        if(Math.random()<0.4){
-          w.state='dive';w.timer=0;w.diveReady=false;w.diveT=0;
-          // Dive target: near player's position, slightly above for stomping
-          const targetY=player.gDir===1?floorSurfaceY(player.x)-PLAYER_R*3:ceilSurfaceY(player.x)+PLAYER_R*3;
-          w.diveTarget={x:player.x+40+Math.random()*40,y:Math.max(ceilY+w.sz,Math.min(floorY-w.sz,targetY))};
+        // 45% chance to rush (charge toward player, stompable), 55% chance to cast (attack)
+        if(Math.random()<0.45){
+          w.state='rush';w.timer=0;w.rushT=0;w.rushReady=false;
+          // Rush direction: toward the surface the player is on
+          w.rushDir=player.gDir; // 1 = charge down to floor, -1 = charge up to ceiling
+          // First move to a position above/below the player horizontally
+          w.rushTargetX=player.x+20+Math.random()*60;
         } else {
           w.state='cast';w.timer=0;w.castType=Math.floor(Math.random()*2);w.castT=0;
         }
       }
-    } else if(w.state==='dive'){
-      // Dive toward player position - becomes stompable briefly
-      w.diveT++;
-      const diveApproachT=40; // frames to reach target
-      const diveStayT=30; // frames staying vulnerable
-      if(w.diveT<=diveApproachT){
-        // Lerp toward target
-        const t=w.diveT/diveApproachT;
-        const et=1-Math.pow(1-t,2); // ease-out
-        w.x+=(w.diveTarget.x-w.x)*0.08;
-        w.y+=(w.diveTarget.y-w.y)*0.08;
-        if(w.diveT>=diveApproachT-5)w.diveReady=true;
-      } else if(w.diveT<=diveApproachT+diveStayT){
-        // Hovering at target - VULNERABLE
-        w.diveReady=true;
-        w.y+=Math.sin(w.fr*2)*0.5; // slight wobble
+    } else if(w.state==='rush'){
+      // Rush toward player's surface - becomes stompable during charge
+      w.rushT++;
+      const alignT=25; // frames to align horizontally
+      const chargeT=20; // frames charging toward surface
+      const stayT=35; // frames staying vulnerable near surface
+      if(w.rushT<=alignT){
+        // Phase 1: align horizontally with player, hover at mid-height
+        w.x+=(w.rushTargetX-w.x)*0.1;
+        const midY=w.rushDir===1?ceilY+60:floorY-60;
+        w.y+=(midY-w.y)*0.06;
+      } else if(w.rushT<=alignT+chargeT){
+        // Phase 2: fast vertical charge toward player's surface
+        w.rushReady=true;
+        const targetY=w.rushDir===1?floorY-w.sz*1.5:ceilY+w.sz*1.5;
+        w.y+=(targetY-w.y)*0.18;
+        // Also track player X slightly
+        w.x+=(player.x+30-w.x)*0.03;
+        // Charge particles
+        if(frame%2===0){
+          const pc=w.rushDir===1?'#ff8844':'#4488ff';
+          parts.push({x:w.x+(Math.random()-0.5)*w.sz,y:w.y-w.rushDir*w.sz,
+            vx:(Math.random()-0.5)*2,vy:-w.rushDir*3,life:15,ml:15,sz:Math.random()*4+2,col:pc});
+        }
+      } else if(w.rushT<=alignT+chargeT+stayT){
+        // Phase 3: hovering near surface - VULNERABLE to stomping
+        w.rushReady=true;
+        w.y+=Math.sin(w.fr*2)*0.4; // slight wobble
       } else {
         // Escape: teleport away
-        w.diveReady=false;
+        w.rushReady=false;
         w.state='teleport';w.timer=0;w.teleportT=0;
         w.teleportTarget={x:W*0.3+Math.random()*W*0.5,y:GROUND_H+40+Math.random()*(H-GROUND_H*2-80)};
       }
     } else if(w.state==='cast'){
-      // Casting animation - NOT stompable (only dive is)
+      // Casting animation - NOT stompable (only rush is)
       w.castT++;
       w.y+=Math.sin(w.fr)*0.3;
       if(w.castT===30){
@@ -502,15 +515,18 @@ function updateBossPhase(){
           else{w.invT=60;w.state='teleport';w.timer=0;w.teleportT=0;
             w.teleportTarget={x:W*0.3+Math.random()*W*0.5,y:GROUND_H+40+Math.random()*(H-GROUND_H*2-80)};}
         } else {
-          // Stomp: only during dive state when diveReady, player above
-          const stomped=w.state==='dive'&&w.diveReady&&player.y+pr<w.y-w.sz*0.2&&player.vy>=0;
+          // Stomp: only during rush state when rushReady, player on correct side
+          const stomped=w.state==='rush'&&w.rushReady&&(
+            (w.rushDir===1&&player.y+pr<w.y-w.sz*0.2&&player.vy>=0)||
+            (w.rushDir===-1&&player.y-pr>w.y+w.sz*0.2&&player.vy<=0)
+          );
           if(stomped){
             w.hp--;w.hurtFlash=20;
-            player.vy=-JUMP_POWER*0.8;player.grounded=false;
+            player.vy=w.rushDir===1?-JUMP_POWER*0.8:JUMP_POWER*0.8;player.grounded=false;
             flipCount=0;player.canFlip=true;djumpUsed=false;djumpAvailable=true;
             shakeI=12;sfx('gstomp');vibrate([20,10,30]);
-            addPop(w.x,w.y-w.sz-10,'撃破!','#ffd700');
-            emitParts(w.x,w.y-w.sz,12,'#aa44ff',5,3);
+            addPop(w.x,w.y-w.sz*w.rushDir-10,'撃破!','#ffd700');
+            emitParts(w.x,w.y-w.sz*w.rushDir,12,'#aa44ff',5,3);
             if(w.hp<=0){bossWizardDefeat(w);}
             else{w.invT=60;w.state='teleport';w.timer=0;w.teleportT=0;
               w.teleportTarget={x:W*0.3+Math.random()*W*0.5,y:GROUND_H+40+Math.random()*(H-GROUND_H*2-80)};}
@@ -603,19 +619,20 @@ function drawBossWizard(en){
   ctx.globalAlpha=en.alpha||1;
   if(en.invT>0&&en.invT%6<3)ctx.globalAlpha*=0.25;
   if(en.hurtFlash>0&&en.hurtFlash%4<2)ctx.globalAlpha*=0.5;
-  // Dive state: light pillar effect behind wizard
-  if(en.state==='dive'&&en.diveReady){
-    ctx.fillStyle='rgba(255,180,60,'+(.2+Math.sin(t*3)*.1)+')';
+  // Rush state: light pillar effect behind wizard
+  if(en.state==='rush'){
+    const rushAlpha=en.rushReady?(.3+Math.sin(t*3)*.15):(.1+Math.sin(t*3)*.05);
+    ctx.fillStyle='rgba(255,140,40,'+rushAlpha+')';
     ctx.fillRect(-s*0.15,-H,s*0.3,H*2);
-    ctx.fillStyle='rgba(255,220,100,'+(.12+Math.sin(t*5)*.08)+')';
+    ctx.fillStyle='rgba(255,200,80,'+rushAlpha*0.5+')';
     ctx.fillRect(-s*0.3,-H,s*0.6,H*2);
   }
   // Floating shadow
   ctx.fillStyle='rgba(0,0,0,0.2)';
   ctx.beginPath();ctx.ellipse(0,s*1.2,s*0.6,s*0.12,0,0,6.28);ctx.fill();
-  // Robe body (dark purple with flowing bottom, orange during dive)
+  // Robe body (dark purple with flowing bottom, orange during rush)
   const robeGr=ctx.createLinearGradient(0,-s,0,s);
-  if(en.state==='dive'){
+  if(en.state==='rush'){
     robeGr.addColorStop(0,'#8a4a1a');robeGr.addColorStop(1,'#5a2a0a');
   } else {
     robeGr.addColorStop(0,dmg>=2?'#2a0a3a':'#4a1a6a');
@@ -652,17 +669,23 @@ function drawBossWizard(en){
   const orbGlow=en.state==='cast'?0.8+Math.sin(t*2)*0.2:0.3;
   ctx.fillStyle=`rgba(170,68,255,${orbGlow})`;ctx.shadowColor='#aa44ff';ctx.shadowBlur=en.state==='cast'?15:5;
   ctx.beginPath();ctx.arc(s*0.5,-s*0.25,s*0.12,0,6.28);ctx.fill();ctx.shadowBlur=0;
-  // Dive indicator: "!" mark and orange glow ring
-  if(en.state==='dive'){
+  // Rush indicator: "!" mark and orange glow ring when vulnerable
+  if(en.state==='rush'){
     const pulse=0.6+Math.sin(t*4)*0.4;
     ctx.strokeStyle='rgba(255,180,60,'+pulse*0.6+')';ctx.lineWidth=2;
     ctx.beginPath();ctx.arc(0,0,s*1.3+Math.sin(t*3)*s*0.15,0,6.28);ctx.stroke();
-    if(en.diveReady){
+    if(en.rushReady){
       ctx.fillStyle='#ffd700';ctx.shadowColor='#ffd700';ctx.shadowBlur=12;
       ctx.font='bold '+(s*0.8)+'px monospace';ctx.textAlign='center';
       ctx.fillText('!',0,-s*1.6-Math.sin(t*4)*3);
       ctx.shadowBlur=0;
     }
+    // Arrow showing charge direction
+    const arrowDir=en.rushDir||1;
+    ctx.fillStyle='rgba(255,140,40,'+pulse+')';
+    ctx.beginPath();
+    ctx.moveTo(-s*0.3,arrowDir*s*0.8);ctx.lineTo(0,arrowDir*s*1.4);ctx.lineTo(s*0.3,arrowDir*s*0.8);
+    ctx.closePath();ctx.fill();
   }
   // Casting circle (only during cast state)
   if(en.state==='cast'){

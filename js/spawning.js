@@ -229,3 +229,21 @@ function trySpawnMovingHill(){
     hillCD=30+Math.floor(Math.random()*15);
   }
 }
+
+// ===== GRAVITY REVERSAL ZONES =====
+function trySpawnGravZone(){
+  if(gravZoneCD>0){gravZoneCD--;return;}
+  if(bossPhase.bossCount<1||bossPhase.active)return; // only after 1st boss defeated
+  if(score<150)return;
+  const plat=findEdgeSpawnPlat();
+  if(!plat)return;
+  const chance=Math.min(0.08,0.015+(score-150)*0.0005);
+  if(Math.random()<chance){
+    gravZoneCD=200+Math.floor(Math.random()*120);
+    const gx=Math.max(W+20,plat.x+plat.w*0.3);
+    const gw=60+Math.random()*50; // width of the zone (waterfall)
+    gravZones.push({x:gx,w:gw,triggered:false,fadeT:0});
+  } else {
+    gravZoneCD=40+Math.floor(Math.random()*20);
+  }
+}

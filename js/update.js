@@ -86,12 +86,14 @@ function update(dt){
   floatPlats.forEach(p=>p.x-=speed);
   spikes.forEach(s=>s.x-=speed);
   movingHills.forEach(h=>{h.x-=speed;h.phase+=h.spd;});
+  gravZones.forEach(g=>g.x-=speed);
   // Remove off-screen platforms
   platforms=platforms.filter(p=>p.x+p.w>-50);
   ceilPlats=ceilPlats.filter(p=>p.x+p.w>-50);
   floatPlats=floatPlats.filter(p=>p.x+p.w>-50);
   spikes=spikes.filter(s=>s.x+s.w>-50);
   movingHills=movingHills.filter(h=>h.x+h.w>-50);
+  gravZones=gravZones.filter(g=>g.x+g.w>-50&&g.fadeT<60);
   // Generate new platforms ahead (pack mode: seeded terrain)
   if(isPackMode&&currentPackStage){
     if(platforms.length===0)platforms.push({x:player.x-30,w:200,h:GROUND_H});
@@ -189,6 +191,7 @@ function update(dt){
     trySpawnFloatPlat();
     trySpawnSpike();
     trySpawnMovingHill();
+    trySpawnGravZone();
     // Boss phase trigger
     if(!bossPhase.active&&score>=bossPhase.nextAt){
       startBossPhase();
@@ -254,22 +257,24 @@ function update(dt){
     }
   }
 
-  // Spike gimmick update & collision
+  // Spike gimmick update & collision (proximity-triggered: activates when player approaches)
   spikes.forEach(sp=>{
     sp.timer++;
-    if(sp.state==='hidden'&&sp.timer>=sp.cycle){
-      sp.state='warning';sp.timer=0;
-    } else if(sp.state==='warning'&&sp.timer>=30){
+    const playerNear=player.x+pr>sp.x-100&&player.x-pr<sp.x+sp.w+30;
+    if(sp.state==='hidden'){
+      if(playerNear){sp.state='warning';sp.timer=0;}
+    } else if(sp.state==='warning'&&sp.timer>=20){
       sp.state='up';sp.timer=0;
-    } else if(sp.state==='up'&&sp.timer>=sp.upTime){
-      sp.state='retracting';sp.timer=0;
+    } else if(sp.state==='up'){
+      sp.timer++;
+      if(sp.timer>=sp.upTime||(!playerNear&&sp.timer>30)){sp.state='retracting';sp.timer=0;}
     } else if(sp.state==='retracting'&&sp.timer>=15){
       sp.state='hidden';sp.timer=0;
     }
     // Collision when spikes are up
     if(sp.state==='up'&&itemEff.invincible<=0&&hurtT<=0){
-      const spY=sp.h; // floor surface Y = H - sp.h... actually sp.h is stored as H-plat.h
-      const spTopY=sp.h-sp.spikeH; // top of spike
+      const spY=sp.h;
+      const spTopY=sp.h-sp.spikeH;
       if(player.x+pr>sp.x&&player.x-pr<sp.x+sp.w){
         if(player.y+pr>spTopY&&player.y-pr<sp.h){
           hurt();
@@ -289,6 +294,22 @@ function update(dt){
         // Push player up with the hill
         player.y=surfY-pr;
       }
+    }
+  });
+
+  // Gravity reversal zones: waterfall aura that forces gravity flip
+  gravZones.forEach(g=>{
+    if(g.fadeT>0){g.fadeT++;return;} // already triggered, fading out
+    if(g.triggered)return;
+    // Check if player center enters the zone
+    if(player.x>=g.x&&player.x<=g.x+g.w){
+      g.triggered=true;g.fadeT=1;
+      // Force gravity reversal
+      player.gDir*=-1;player.vy=0;
+      player.canFlip=true;flipCount=0;totalFlips++;flipTimer=0;
+      sfx('milestone');vibrate([20,10,30]);shakeI=8;
+      emitParts(player.x,player.y,15,'#00e5ff',4,3);
+      addPop(player.x,player.y-20*player.gDir,'GRAVITY!','#00e5ff');
     }
   });
 
@@ -410,18 +431,29 @@ function update(dt){
       if(sy<H+100){en.y=sy-en.sz;en.vy=0;}
       else{en.vy=(en.vy||0)+GRAVITY;en.y+=en.vy;}
     } else if(en.type===4){
-      // Vertical mover: bounces between floor and ceiling
+      // Vertical mover: irregular movement, tracks player
+      en.moveTimer=(en.moveTimer||0)+1;
       if(en.pauseT>0){
         en.pauseT--;
       } else {
-        en.y+=en.moveDir*en.moveSpd;
+        // Occasionally change direction toward player Y
+        if(en.moveTimer%25===0&&Math.random()<0.5){
+          en.moveDir=player.y>en.y?1:-1;
+        }
+        // Random speed variation (sinusoidal + noise)
+        const spdMod=0.6+Math.sin(en.moveTimer*0.07)*0.4+Math.sin(en.moveTimer*0.17)*0.2;
+        en.y+=en.moveDir*en.moveSpd*spdMod;
         const floorY=floorSurfaceY(en.x);
         const ceilY2=ceilSurfaceY(en.x);
         if(en.y+en.sz>=floorY){
-          en.y=floorY-en.sz;en.moveDir=-1;en.pauseT=20+Math.floor(Math.random()*15);en.gDir=1;
+          en.y=floorY-en.sz;en.moveDir=-1;en.pauseT=5+Math.floor(Math.random()*15);en.gDir=1;
         }
         if(en.y-en.sz<=ceilY2){
-          en.y=ceilY2+en.sz;en.moveDir=1;en.pauseT=20+Math.floor(Math.random()*15);en.gDir=-1;
+          en.y=ceilY2+en.sz;en.moveDir=1;en.pauseT=5+Math.floor(Math.random()*15);en.gDir=-1;
+        }
+        // Random mid-air pause
+        if(en.moveTimer%40===0&&Math.random()<0.15){
+          en.pauseT=8+Math.floor(Math.random()*12);
         }
       }
     } else if(en.type===5){
@@ -475,9 +507,13 @@ function update(dt){
       const stomped=fkill||tireRoll||(en.gDir===1&&player.y<en.y-en.sz*0.2&&player.vy>=0)||(en.gDir===-1&&player.y>en.y+en.sz*0.2&&player.vy<=0);
       if(stomped){
         en.alive=false;
-        // Bounce player off enemy
-        player.vy=-JUMP_POWER*0.7*player.gDir;
-        player.grounded=false;
+        // Tire: crush without bouncing; others: bounce off enemy
+        if(isTire&&(tireRoll||player.grounded)){
+          player.vy=0;
+        } else {
+          player.vy=-JUMP_POWER*0.7*player.gDir;
+          player.grounded=false;
+        }
         flipCount=0;player.canFlip=true;djumpUsed=false;djumpAvailable=true;
         // Gravity stomp bonus: 3x if flipped recently
         const gstomp=flipTimer<40;
