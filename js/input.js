@@ -72,7 +72,7 @@ function continueFromDeath(){
   bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:score+800,lastBossScore:score,bossCount:bossPhase.bossCount||0};
   itemEff={invincible:0,magnet:0};bombCount=0;bombFlashT=0;
   djumpAvailable=!!ct().hasDjump;djumpUsed=false;ghostPhaseT=0;ghostInvis=false;
-  deadT=0;newHi=false;combo=0;comboT=0;comboDsp=0;comboDspT=0;
+  deadT=0;newHi=false;combo=0;comboT=0;comboDsp=0;comboDspT=0;airCombo=0;
   shakeX=0;shakeY=0;shakeI=0;flipCount=0;flipTimer=999;
   coinCD=0;itemCD=0;enemyCD=0;spikeCD=0;hillCD=0;floatCD=0;gravZoneCD=0;
   flipZone={active:false,type:0,len:0,cd:0,lastType:-1};

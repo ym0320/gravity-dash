@@ -214,7 +214,7 @@ const BGM_TITLE={tempo:155,
   melWave:'triangle',harmWave:'sine',bassWave:'sine',
   drums:'pop'};
 // Play1 (0-999): Starlight Stroll - dreamy, calm, C pentatonic, slow waltz feel
-const BGM_PLAY1={tempo:90,
+const BGM_PLAY1={tempo:100,
   melody:[523,0,0,659, 0,0,784,0, 0,880,0,784, 0,659,0,0,
           440,0,0,523, 0,659,0,0, 587,0,523,0, 0,0,0,0],
   harmony:[392,0,0,0, 440,0,0,0, 330,0,0,0, 349,0,0,0,
@@ -227,7 +227,7 @@ const BGM_PLAY1={tempo:90,
   melWave:'sine',harmWave:'sine',bassWave:'sine',
   drums:'soft'};
 // Play2 (1000-1999): Neon Streets - bouncy pop, G major, catchy hook
-const BGM_PLAY2={tempo:140,
+const BGM_PLAY2={tempo:115,
   melody:[784,0,880,784, 659,784,0,659, 523,587,659,0, 587,523,494,523,
           784,880,988,0, 880,784,659,784, 880,0,784,659, 587,0,523,0],
   harmony:[494,494,587,587, 440,440,494,494, 392,392,440,440, 370,370,392,392,
@@ -253,7 +253,7 @@ const BGM_PLAY3={tempo:130,
   melWave:'triangle',harmWave:'triangle',bassWave:'sawtooth',
   drums:'drive'};
 // Play4 (3000-3999): Danger Zone - Em aggressive rock, heavy riffs
-const BGM_PLAY4={tempo:155,
+const BGM_PLAY4={tempo:145,
   melody:[659,0,784,880, 988,880,784,0, 659,784,880,1047, 988,0,880,784,
           523,587,659,784, 0,880,988,0, 1047,988,880,784, 659,0,784,0],
   harmony:[494,494,0,587, 523,0,494,494, 440,440,0,523, 494,0,440,440,
@@ -266,7 +266,7 @@ const BGM_PLAY4={tempo:155,
   melWave:'sawtooth',harmWave:'triangle',bassWave:'triangle',
   drums:'heavy'};
 // Play5 (4000+): Maximum Overdrive - Am frantic arpeggios, breakneck EDM
-const BGM_PLAY5={tempo:170,
+const BGM_PLAY5={tempo:160,
   melody:[880,1047,1319,1568, 1760,1568,1319,1047, 698,880,1047,1319, 1047,880,698,587,
           1175,1319,1568,1760, 1568,1319,1175,1047, 880,1047,1175,1319, 1175,1047,880,1047],
   harmony:[659,0,659,784, 0,784,0,659, 523,0,523,659, 0,659,0,523,
@@ -446,6 +446,164 @@ function sfx(type){
         [1319,1568].forEach((f,i)=>{const x=audioCtx.createOscillator(),y=audioCtx.createGain();x.connect(y);y.connect(sfxGain);x.type='triangle';x.frequency.setValueAtTime(f,t+0.05*(i+1));y.gain.setValueAtTime(0.1,t+0.05*(i+1));y.gain.exponentialRampToValueAtTime(0.001,t+0.05*(i+1)+0.3);x.start(t+0.05*(i+1));x.stop(t+0.05*(i+1)+0.35);});
         break;
       case'pause':o.type='triangle';o.frequency.setValueAtTime(440,t);o.frequency.exponentialRampToValueAtTime(330,t+0.1);g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.12);o.start(t);o.stop(t+0.12);break;
+      case'bossHit':o.type='square';o.frequency.setValueAtTime(200,t);o.frequency.exponentialRampToValueAtTime(80,t+0.15);g.gain.setValueAtTime(0.18,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.2);o.start(t);o.stop(t+0.22);
+        {const n2=audioCtx.createBufferSource(),b2=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.1)),audioCtx.sampleRate),d2=b2.getChannelData(0);for(let i=0;i<d2.length;i++)d2[i]=(Math.random()*2-1)*Math.exp(-i/(audioCtx.sampleRate*0.03));n2.buffer=b2;const g2=audioCtx.createGain();n2.connect(g2);g2.connect(sfxGain);g2.gain.setValueAtTime(0.15,t);g2.gain.exponentialRampToValueAtTime(0.001,t+0.1);n2.start(t);n2.stop(t+0.1);}
+        break;
+      case'gstompHeavy':o.type='sine';o.frequency.setValueAtTime(180,t);o.frequency.exponentialRampToValueAtTime(40,t+0.2);g.gain.setValueAtTime(0.2,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.35);o.start(t);o.stop(t+0.37);
+        {const h1=audioCtx.createOscillator(),hg1=audioCtx.createGain();h1.connect(hg1);hg1.connect(sfxGain);h1.type='sawtooth';h1.frequency.setValueAtTime(120,t);h1.frequency.exponentialRampToValueAtTime(30,t+0.3);hg1.gain.setValueAtTime(0.12,t);hg1.gain.exponentialRampToValueAtTime(0.001,t+0.3);h1.start(t);h1.stop(t+0.32);}
+        {const n3=audioCtx.createBufferSource(),b3=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.15)),audioCtx.sampleRate),d3=b3.getChannelData(0);for(let i=0;i<d3.length;i++)d3[i]=(Math.random()*2-1)*Math.exp(-i/(audioCtx.sampleRate*0.05));n3.buffer=b3;const g3=audioCtx.createGain();n3.connect(g3);g3.connect(sfxGain);g3.gain.setValueAtTime(0.18,t);g3.gain.exponentialRampToValueAtTime(0.001,t+0.15);n3.start(t);n3.stop(t+0.15);}
+        break;
+    }
+  }catch(e){}
+}
+// Aerial combo SE - pitch rises with combo count
+function sfxAirCombo(count){
+  if(!audioCtx)return;try{
+    const t=audioCtx.currentTime;
+    const base=400+Math.min(count,10)*80; // 400→1200Hz as combo grows
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.connect(g);g.connect(sfxGain);o.type='triangle';
+    o.frequency.setValueAtTime(base,t);o.frequency.exponentialRampToValueAtTime(base*1.5,t+0.06);
+    g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.1);
+    o.start(t);o.stop(t+0.12);
+    // Harmonic sparkle at high combos
+    if(count>=3){
+      const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
+      o2.connect(g2);g2.connect(sfxGain);o2.type='sine';
+      o2.frequency.setValueAtTime(base*2,t+0.03);
+      g2.gain.setValueAtTime(0.06,t+0.03);g2.gain.exponentialRampToValueAtTime(0.001,t+0.1);
+      o2.start(t+0.03);o2.stop(t+0.12);
+    }
+  }catch(e){}
+}
+// Per-enemy-type death SE
+function sfxEnemyDeath(type){
+  if(!audioCtx)return;try{
+    const t=audioCtx.currentTime;
+    if(type===0){
+      // Walker: splat
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='square';
+      o.frequency.setValueAtTime(250,t);o.frequency.exponentialRampToValueAtTime(80,t+0.1);
+      g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.13);
+      o.start(t);o.stop(t+0.15);
+    } else if(type===1){
+      // Cannon: metallic clang
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='square';
+      o.frequency.setValueAtTime(600,t);o.frequency.exponentialRampToValueAtTime(200,t+0.08);
+      g.gain.setValueAtTime(0.1,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.12);
+      o.start(t);o.stop(t+0.14);
+      const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
+      o2.connect(g2);g2.connect(sfxGain);o2.type='sine';
+      o2.frequency.setValueAtTime(1200,t);o2.frequency.exponentialRampToValueAtTime(400,t+0.1);
+      g2.gain.setValueAtTime(0.06,t);g2.gain.exponentialRampToValueAtTime(0.001,t+0.12);
+      o2.start(t);o2.stop(t+0.14);
+    } else if(type===2){
+      // Flyer: pop burst
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='sine';
+      o.frequency.setValueAtTime(800,t);o.frequency.exponentialRampToValueAtTime(1600,t+0.04);
+      o.frequency.exponentialRampToValueAtTime(200,t+0.1);
+      g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.12);
+      o.start(t);o.stop(t+0.14);
+    } else if(type===3){
+      // Bomber: explosion
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='sawtooth';
+      o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(40,t+0.2);
+      g.gain.setValueAtTime(0.15,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);
+      o.start(t);o.stop(t+0.27);
+      const n=audioCtx.createBufferSource(),buf=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.12)),audioCtx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*0.4;
+      n.buffer=buf;const ng=audioCtx.createGain();n.connect(ng);ng.connect(sfxGain);ng.gain.setValueAtTime(0.12,t);ng.gain.exponentialRampToValueAtTime(0.001,t+0.12);n.start(t);n.stop(t+0.12);
+    } else if(type===4){
+      // Vertical mover: zap
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='sawtooth';
+      o.frequency.setValueAtTime(400,t);o.frequency.exponentialRampToValueAtTime(1200,t+0.05);
+      o.frequency.exponentialRampToValueAtTime(100,t+0.12);
+      g.gain.setValueAtTime(0.1,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.15);
+      o.start(t);o.stop(t+0.17);
+    } else if(type===5){
+      // Phantom: eerie vanish
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='sine';
+      o.frequency.setValueAtTime(1000,t);o.frequency.exponentialRampToValueAtTime(300,t+0.2);
+      g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);
+      o.start(t);o.stop(t+0.27);
+      const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
+      o2.connect(g2);g2.connect(sfxGain);o2.type='sine';
+      o2.frequency.setValueAtTime(1500,t);o2.frequency.exponentialRampToValueAtTime(500,t+0.2);
+      g2.gain.setValueAtTime(0.04,t+0.05);g2.gain.exponentialRampToValueAtTime(0.001,t+0.25);
+      o2.start(t+0.05);o2.stop(t+0.27);
+    } else {
+      // Default stomp
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='square';
+      o.frequency.setValueAtTime(200,t);o.frequency.exponentialRampToValueAtTime(80,t+0.12);
+      g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.15);
+      o.start(t);o.stop(t+0.15);
+    }
+  }catch(e){}
+}
+// Boss roar - unique terrifying sounds per boss type
+function sfxBossRoar(bossType){
+  if(!audioCtx)return;try{
+    const t=audioCtx.currentTime;
+    if(bossType==='charge'){
+      // Metallic charge horn
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='sawtooth';
+      o.frequency.setValueAtTime(60,t);o.frequency.exponentialRampToValueAtTime(120,t+0.3);
+      o.frequency.exponentialRampToValueAtTime(50,t+0.8);
+      g.gain.setValueAtTime(0.2,t);g.gain.linearRampToValueAtTime(0.25,t+0.3);g.gain.exponentialRampToValueAtTime(0.001,t+0.9);
+      o.start(t);o.stop(t+1.0);
+      const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
+      o2.connect(g2);g2.connect(sfxGain);o2.type='square';
+      o2.frequency.setValueAtTime(90,t+0.1);o2.frequency.exponentialRampToValueAtTime(45,t+0.7);
+      g2.gain.setValueAtTime(0.1,t+0.1);g2.gain.exponentialRampToValueAtTime(0.001,t+0.7);
+      o2.start(t+0.1);o2.stop(t+0.8);
+    } else if(bossType==='bruiser'){
+      // Deep rumbling growl
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='sawtooth';
+      o.frequency.setValueAtTime(45,t);o.frequency.linearRampToValueAtTime(55,t+0.2);
+      o.frequency.linearRampToValueAtTime(35,t+0.6);o.frequency.exponentialRampToValueAtTime(25,t+1.2);
+      g.gain.setValueAtTime(0.22,t);g.gain.linearRampToValueAtTime(0.28,t+0.3);g.gain.exponentialRampToValueAtTime(0.001,t+1.3);
+      o.start(t);o.stop(t+1.4);
+      // Sub rumble
+      const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
+      o2.connect(g2);g2.connect(sfxGain);o2.type='sine';
+      o2.frequency.setValueAtTime(30,t);o2.frequency.exponentialRampToValueAtTime(20,t+1.0);
+      g2.gain.setValueAtTime(0.15,t);g2.gain.exponentialRampToValueAtTime(0.001,t+1.0);
+      o2.start(t);o2.stop(t+1.1);
+    } else if(bossType==='wizard'){
+      // Eerie magical shriek
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='sawtooth';
+      o.frequency.setValueAtTime(200,t);o.frequency.exponentialRampToValueAtTime(600,t+0.3);
+      o.frequency.exponentialRampToValueAtTime(150,t+0.8);
+      g.gain.setValueAtTime(0.15,t);g.gain.linearRampToValueAtTime(0.2,t+0.2);g.gain.exponentialRampToValueAtTime(0.001,t+0.9);
+      o.start(t);o.stop(t+1.0);
+      // Ghostly harmonics
+      const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
+      o2.connect(g2);g2.connect(sfxGain);o2.type='sine';
+      o2.frequency.setValueAtTime(500,t);o2.frequency.exponentialRampToValueAtTime(900,t+0.4);o2.frequency.exponentialRampToValueAtTime(300,t+0.8);
+      g2.gain.setValueAtTime(0.08,t);g2.gain.exponentialRampToValueAtTime(0.001,t+0.8);
+      o2.start(t);o2.stop(t+0.9);
+    } else if(bossType==='dodge'){
+      // Aggressive bark
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='square';
+      o.frequency.setValueAtTime(100,t);o.frequency.exponentialRampToValueAtTime(180,t+0.1);
+      o.frequency.exponentialRampToValueAtTime(60,t+0.5);
+      g.gain.setValueAtTime(0.2,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.6);
+      o.start(t);o.stop(t+0.7);
+      const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
+      o2.connect(g2);g2.connect(sfxGain);o2.type='sawtooth';
+      o2.frequency.setValueAtTime(70,t+0.15);o2.frequency.exponentialRampToValueAtTime(40,t+0.5);
+      g2.gain.setValueAtTime(0.12,t+0.15);g2.gain.exponentialRampToValueAtTime(0.001,t+0.55);
+      o2.start(t+0.15);o2.stop(t+0.6);
     }
   }catch(e){}
 }
@@ -612,6 +770,7 @@ let countdownT=0; // countdown timer (frames, counts down from 180 = 3 seconds)
 let score=0,highScore=parseInt(localStorage.getItem('gd5hi')||'0');
 let newHi=false,speed=SPEED_INIT,frame=0,deadT=0,titleT=0;
 let combo=0,comboT=0,comboDsp=0,comboDspT=0;
+let airCombo=0; // aerial enemy kill combo (resets on grounded)
 let shakeX=0,shakeY=0,shakeI=0;
 let mileT=0,mileTxt='',lastMile=0;
 let pops=[],totalCoins=0,totalFlips=0,maxCombo=0,flipCount=0,flipTimer=999;
