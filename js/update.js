@@ -289,6 +289,9 @@ function update(dt){
     }
   }
 
+  // Reset air combo when grounded
+  if(player.grounded)airCombo=0;
+
   // Spike gimmick update & collision (proximity-triggered: activates when player approaches)
   spikes.forEach(sp=>{
     sp.timer++;
@@ -523,7 +526,7 @@ function update(dt){
       // Invincible: destroy enemy on contact
       if(itemEff.invincible>0){
         en.alive=false;
-        sfx('stomp');vibrate(15);shakeI=4;
+        sfxEnemyDeath(en.type);vibrate(15);shakeI=4;
         const bon=Math.floor(10+Math.min(score*0.1,20));
         dist+=bon;
         addPop(en.x,en.y-en.sz*en.gDir,'+'+bon,'#ff00ff');
@@ -552,10 +555,12 @@ function update(dt){
         const gsMul=gstomp?3:1;
         const bon=Math.floor((10+Math.min(score*0.1,20))*gsMul);
         dist+=bon;
-        if(gstomp){sfx('gstomp');vibrate([20,10,30]);shakeI=8;}else{sfx('stomp');vibrate(15);}
+        if(gstomp){sfx('gstompHeavy');sfxEnemyDeath(en.type);vibrate([20,10,30]);shakeI=8;}else{sfxEnemyDeath(en.type);vibrate(15);}
         addPop(en.x,en.y-en.sz*en.gDir,'+'+bon,gstomp?'#ffd700':'#ff3860');
         if(gstomp){addPop(en.x,en.y-en.sz*en.gDir-22,'\u91CD\u529B\u30B9\u30C8\u30F3\u30D7!','#ffd700');emitParts(en.x,en.y,20,'#ffd700',5,4);}
         else{emitParts(en.x,en.y,12,'#ff3860',4,3);}
+        // Aerial combo: consecutive kills without touching ground
+        if(!player.grounded){airCombo++;sfxAirCombo(airCombo);const acb=airCombo*5;dist+=acb;addPop(en.x,en.y-en.sz*en.gDir-36,airCombo+' AIR COMBO!','#00e5ff');emitParts(en.x,en.y,8,'#00e5ff',3,2);}
         player.face='happy';setTimeout(()=>{if(player.alive)player.face='normal';},300);
       }else{
         hurt();return;

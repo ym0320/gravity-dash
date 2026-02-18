@@ -156,7 +156,11 @@ function updateBossPhase(){
         parts.push({x:side,y:Math.random()*H,vx:side<0?3:-3,vy:(Math.random()-0.5)*2,life:40,ml:40,sz:Math.random()*4+2,col:['#ff3860','#ff0040','#cc0030'][i%3]});
       }
     }
-    if(bossPhase.prepare===0) spawnBossEnemies();
+    if(bossPhase.prepare===0){spawnBossEnemies();
+      // Boss roar after spawning
+      const bt=bossPhase.bruiser?'bruiser':bossPhase.wizard?'wizard':bossPhase.dodgeQueue.length>0?'dodge':'charge';
+      sfxBossRoar(bt);
+    }
     return;
   }
   if(bossPhase.reward){
@@ -232,7 +236,7 @@ function updateBossPhase(){
             en.alive=false;
             player.vy=en.gDir===1?-JUMP_POWER*0.8:JUMP_POWER*0.8;
             player.grounded=false;flipCount=0;player.canFlip=true;djumpUsed=false;djumpAvailable=true;
-            shakeI=8;sfx('gstomp');vibrate([15,10,20]);
+            shakeI=8;sfx('bossHit');sfx('gstomp');vibrate([15,10,20]);
             addPop(en.x,en.y-en.sz*en.gDir,'撃破!','#ffd700');
             emitParts(en.x,en.y,15,'#ffd700',6,3);
           } else {
@@ -304,7 +308,7 @@ function updateBossPhase(){
             en.alive=false;bossPhase.dodgeKills++;
             player.vy=en.gDir===1?-JUMP_POWER*0.8:JUMP_POWER*0.8;
             player.grounded=false;flipCount=0;player.canFlip=true;djumpUsed=false;djumpAvailable=true;
-            shakeI=8;sfx('gstomp');vibrate([15,10,20]);
+            shakeI=8;sfx('bossHit');sfx('gstomp');vibrate([15,10,20]);
             addPop(en.x,en.y-en.sz*en.gDir,'撃破!','#ffd700');
             emitParts(en.x,en.y,15,'#ffd700',6,3);
           } else {
@@ -373,7 +377,7 @@ function updateBossPhase(){
       if(d<pr+b.sz){
         if(itemEff.invincible>0){
           b.hp--;b.hurtFlash=20;b.invT=60;b.state='invincible';b.timer=0;
-          shakeI=8;sfx('stomp');
+          shakeI=8;sfx('bossHit');
           emitParts(b.x,b.y,15,'#ff00ff',4,3);
           if(b.hp<=0){bossBruiserDefeat(b);}
         } else {
@@ -386,7 +390,7 @@ function updateBossPhase(){
             b.state='invincible';b.invT=60;b.timer=0;
             player.vy=b.gDir===1?-JUMP_POWER*0.8:JUMP_POWER*0.8;player.grounded=false;
             flipCount=0;player.canFlip=true;djumpUsed=false;djumpAvailable=true;
-            shakeI=12;sfx('gstomp');vibrate([20,10,30]);
+            shakeI=12;sfx('bossHit');sfx('gstompHeavy');vibrate([20,10,30]);
             addPop(b.x,b.y-b.sz*b.gDir-10,'HP '+b.hp+'/'+b.maxHp,'#ff3860');
             emitParts(b.x,b.y-b.sz*b.gDir,12,'#ff3860',5,3);
             if(b.hp<=0){bossBruiserDefeat(b);}
@@ -421,14 +425,14 @@ function updateBossPhase(){
     } else if(w.state==='idle'){
       // Hover in place, preparing next action
       w.y+=Math.sin(w.fr*0.5)*0.5;
-      if(w.timer>=50){
-        // 45% chance to rush (charge toward player, stompable), 55% chance to cast (attack)
-        if(Math.random()<0.45){
+      if(w.timer>=70){
+        // 55% chance to rush (charge toward player, stompable), 45% chance to cast (attack)
+        if(Math.random()<0.55){
           w.state='rush';w.timer=0;w.rushT=0;w.rushReady=false;
           // Rush direction: toward the surface the player is on
           w.rushDir=player.gDir; // 1 = charge down to floor, -1 = charge up to ceiling
-          // First move to a position above/below the player horizontally
-          w.rushTargetX=player.x+20+Math.random()*60;
+          // Align X with player for stompability
+          w.rushTargetX=player.x;
         } else {
           w.state='cast';w.timer=0;w.castType=Math.floor(Math.random()*2);w.castT=0;
         }
@@ -449,8 +453,8 @@ function updateBossPhase(){
         w.rushReady=true;
         const targetY=w.rushDir===1?floorY-w.sz*1.5:ceilY+w.sz*1.5;
         w.y+=(targetY-w.y)*0.18;
-        // Also track player X slightly
-        w.x+=(player.x+30-w.x)*0.03;
+        // Track player X position for stompability
+        w.x+=(player.x-w.x)*0.08;
         // Charge particles
         if(frame%2===0){
           const pc=w.rushDir===1?'#ff8844':'#4488ff';
@@ -511,7 +515,7 @@ function updateBossPhase(){
       if(d<pr+w.sz){
         if(itemEff.invincible>0){
           w.hp--;w.hurtFlash=20;
-          shakeI=8;sfx('stomp');emitParts(w.x,w.y,15,'#ff00ff',4,3);
+          shakeI=8;sfx('bossHit');emitParts(w.x,w.y,15,'#ff00ff',4,3);
           if(w.hp<=0){bossWizardDefeat(w);}
           else{w.invT=60;w.state='teleport';w.timer=0;w.teleportT=0;
             w.teleportTarget={x:W*0.3+Math.random()*W*0.5,y:GROUND_H+40+Math.random()*(H-GROUND_H*2-80)};}
