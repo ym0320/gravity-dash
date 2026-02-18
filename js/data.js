@@ -776,6 +776,7 @@ let mileT=0,mileTxt='',lastMile=0;
 let pops=[],totalCoins=0,totalFlips=0,maxCombo=0,flipCount=0,flipTimer=999;
 let played=parseInt(localStorage.getItem('gd5plays')||'0');
 let dist=0;
+let speedOffset=0; // distance offset for speed calculation (reset on continue)
 let hp=HP_MAX,hurtT=0; // hit points and hurt invincibility timer
 
 // Active item effects
@@ -784,6 +785,7 @@ let djumpAvailable=false; // double jump (Bounce trait or item)
 let djumpUsed=false; // track if the double jump was used
 let bombCount=0; // bombs in inventory
 let bombFlashT=0; // bomb explosion flash timer
+let invCount=0; // stockable invincibility items in inventory
 const PANEL_H=56; // bottom action panel height
 // Ghost character periodic transparency
 let ghostPhaseT=0; // timer for ghost transparency cycle

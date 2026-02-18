@@ -12,7 +12,9 @@ function canvasXY(cx,cy){
 
 // Pause button hit test (moved lower, larger area for reliability)
 function hitPauseBtn(px,py){return px>=W-58&&px<=W-4&&py>=safeTop+8&&py<=safeTop+52;}
-function hitBombBtn(px,py){const btnSz=44,btnX=W-btnSz-8,btnY=H-PANEL_H+6;return px>=btnX&&px<=btnX+btnSz&&py>=btnY&&py<=btnY+btnSz;}
+function itemBtnLayout(){const btnSz=44,btnGap=12,totalW=btnSz*2+btnGap,sx=W/2-totalW/2,by=H-PANEL_H+6;return{invX:sx,bombX:sx+btnSz+btnGap,y:by,sz:btnSz};}
+function hitInvBtn(px,py){const b=itemBtnLayout();return px>=b.invX&&px<=b.invX+b.sz&&py>=b.y&&py<=b.y+b.sz;}
+function hitBombBtn(px,py){const b=itemBtnLayout();return px>=b.bombX&&px<=b.bombX+b.sz&&py>=b.y&&py<=b.y+b.sz;}
 function hitResumeBtn(px,py){return px>=W/2-80&&px<=W/2+80&&py>=H*0.45&&py<=H*0.45+44;}
 function hitQuitBtn(px,py){return px>=W/2-80&&px<=W/2+80&&py>=H*0.56&&py<=H*0.56+44;}
 // Game over screen buttons (must match drawDead layout exactly)
@@ -59,7 +61,7 @@ function continueFromDeath(){
   player.gDir=1;player.vy=0;player.canFlip=true;
   player.rot=0;player.rotTarget=0;player.trail=[];
   hp=HP_MAX+(ct().hpBonus||0);hurtT=0;
-  speed=SPEED_INIT; // reset speed
+  speed=SPEED_INIT;speedOffset=dist; // reset speed to initial by offsetting
   // Rebuild safe platforms around player
   platforms=[];ceilPlats=[];
   platforms.push({x:player.x-W*0.3,w:W*0.9,h:GROUND_H});
@@ -70,7 +72,7 @@ function continueFromDeath(){
   // Clear hazards
   enemies=[];bullets=[];spikes=[];items=[];floatPlats=[];movingHills=[];gravZones=[];
   bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:score+800,lastBossScore:score,bossCount:bossPhase.bossCount||0};
-  itemEff={invincible:0,magnet:0};bombCount=0;bombFlashT=0;
+  itemEff={invincible:0,magnet:0};bombCount=0;bombFlashT=0;invCount=0;
   djumpAvailable=!!ct().hasDjump;djumpUsed=false;ghostPhaseT=0;ghostInvis=false;
   deadT=0;newHi=false;combo=0;comboT=0;comboDsp=0;comboDspT=0;airCombo=0;
   shakeX=0;shakeY=0;shakeI=0;flipCount=0;flipTimer=999;
@@ -161,6 +163,7 @@ canvas.addEventListener('touchstart',e=>{
     if(hitQuitBtn(p.x,p.y)){sfx('cancel');state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     return;
   }
+  if(state===ST.PLAY&&hitInvBtn(p.x,p.y)){useInvincible();return;}
   if(state===ST.PLAY&&hitBombBtn(p.x,p.y)){useBomb();return;}
   if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');state=ST.PAUSE;return;}
   if(state===ST.TITLE){
@@ -265,6 +268,7 @@ canvas.addEventListener('mousedown',e=>{
     if(hitQuitBtn(p.x,p.y)){sfx('cancel');state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     return;
   }
+  if(state===ST.PLAY&&hitInvBtn(p.x,p.y)){useInvincible();return;}
   if(state===ST.PLAY&&hitBombBtn(p.x,p.y)){useBomb();return;}
   if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');state=ST.PAUSE;return;}
   if(state===ST.TITLE){if(charModal.show){sfx('cancel');charModal.show=false;return;}handleTitleTouch(p.x,p.y);}
@@ -332,6 +336,7 @@ document.addEventListener('keydown',e=>{
     else{player.gDir=1;player.vy=2;totalFlips++;player.canFlip=flipCount<ct().maxFlip;sfx('flip');vibrate(20);player.rotTarget+=Math.PI;emitParts(player.x,player.y,10,tc('ply'),3,2.5);}
   }
   if((e.code==='KeyB'||e.code==='KeyX')&&state===ST.PLAY){e.preventDefault();useBomb();}
+  if((e.code==='KeyV'||e.code==='KeyZ')&&state===ST.PLAY){e.preventDefault();useInvincible();}
 });
 
 function getCharGridIdx(tx,ty){

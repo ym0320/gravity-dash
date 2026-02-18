@@ -7,6 +7,7 @@ function hurt(isWall){
   if(itemEff.invincible>0){shakeI=4;emitParts(player.x,player.y,8,'#ff00ff',3,2);return;}
   // Ghost character: transparent phase evades enemy attacks only, not walls/terrain
   if(ghostInvis&&!isWall){emitParts(player.x,player.y,6,'#a855f7',2,1);return;}
+  if(bossPhase.active)bossPhase.noDamage=false;
   hp--;
   if(hp<=0){die();return;}
   // Survive with damage
@@ -72,10 +73,17 @@ function useBomb(){
   // Explosion ring particles
   for(let i=0;i<30;i++){const a=(6.28/30)*i;parts.push({x:player.x+Math.cos(a)*40,y:player.y+Math.sin(a)*40,vx:Math.cos(a)*5,vy:Math.sin(a)*5,life:30,ml:30,sz:4+Math.random()*3,col:['#ff4400','#ff6600','#ffaa00'][i%3]});}
 }
+function useInvincible(){
+  if(invCount<=0||state!==ST.PLAY)return;
+  invCount--;sfx('item');vibrate([20,10,30]);
+  itemEff.invincible=600;switchBGM('fever');
+  emitParts(player.x,player.y,15,'#ff00ff',4,3);
+  addPop(player.x,player.y-30,'\u7121\u6575\u767A\u52D5!','#ff00ff');
+}
 function applyItem(type){
   vibrate(25);
   switch(type){
-    case 0:sfx('item');itemEff.invincible=600;switchBGM('fever');break; // 10 seconds invincible
+    case 0:sfx('item');invCount++;addPop(player.x,player.y-25,'\u7121\u6575+1','#ff00ff');emitParts(player.x,player.y,8,'#ff00ff',3,2);break; // stockable invincible
     case 1:sfx('item');itemEff.magnet=600;break; // 10 seconds coin magnet
     case 2:sfx('item');bombCount++;break; // bomb: store for manual use
     case 3: // Heart: recover 1 HP
