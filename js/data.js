@@ -786,6 +786,8 @@ let djumpUsed=false; // track if the double jump was used
 let bombCount=0; // bombs in inventory
 let bombFlashT=0; // bomb explosion flash timer
 let invCount=0; // stockable invincibility items in inventory
+let bossRetry=null; // {score,bossCount} saved when quitting during boss
+let isRetryGame=false; // true if current game is a boss retry (only 1 retry allowed)
 const PANEL_H=56; // bottom action panel height
 // Ghost character periodic transparency
 let ghostPhaseT=0; // timer for ghost transparency cycle

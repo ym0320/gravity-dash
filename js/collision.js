@@ -22,6 +22,7 @@ function die(){
   hp=0;
   player.alive=false;state=ST.DEAD;deadT=0;shakeI=14;switchBGM('dead');
   player.face='dead';sfx('death');vibrate([30,20,50]);
+  bossRetry=null; // clear boss retry on death
   if(gameMode==='endless'){
     if(score>highScore){highScore=score;newHi=true;localStorage.setItem('gd5hi',highScore.toString());}
     played++;localStorage.setItem('gd5plays',played.toString());

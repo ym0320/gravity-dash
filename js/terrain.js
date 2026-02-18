@@ -143,7 +143,7 @@ function reset(){
   djumpAvailable=!!ct().hasDjump;djumpUsed=false;ghostPhaseT=0;ghostInvis=false;
   coinCD=0;itemCD=0;enemyCD=0;flipCount=0;flipTimer=999;lastCoinCourse='';
   flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
-  bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:800,lastBossScore:0,bossCount:0};
+  bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:800,lastBossScore:0,bossCount:0,bossType:'',noDamage:true};
   hp=HP_MAX+(ct().hpBonus||0);hurtT=0;
   curTheme=0;prevTheme=0;themeLerp=1;
 }

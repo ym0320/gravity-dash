@@ -91,25 +91,27 @@ function update(dt){
     speed=Math.min(SPEED_MAX,(SPEED_INIT+(dist-speedOffset)*SPEED_INC))*ct().speedMul;
   }
 
-  // Distance scoring
+  // Distance scoring (score freezes during boss, catches up on victory)
   dist+=speed*0.08;
-  const ns=Math.floor(dist);
-  if(ns>score){
-    const prevScore=score;score=ns;checkMile();
-    // Theme change every 1000 points (10 themes, wraps after 10000)
-    if(!isPackMode){
-      const newThemeIdx=Math.min(Math.floor(score/1000),THEMES.length-1);
-      if(newThemeIdx!==curTheme){
-        prevTheme=curTheme;curTheme=newThemeIdx;themeLerp=0;
-        addPop(W/2,H*0.55,THEMES[curTheme].n+'!','#00e5ff');
-      }
+  if(!bossPhase.active){
+    const ns=Math.floor(dist);
+    if(ns>score){
+      score=ns;checkMile();
     }
-    // BGM progression every 1000 points (max 4 changes up to 5000)
-    if(!isPackMode&&!bossPhase.active&&itemEff.invincible<=0&&state===ST.PLAY){
-      const newBGM=getPlayBGMType();
-      if(bgmCurrent!==newBGM&&bgmCurrent!=='boss'&&bgmCurrent!=='fever'){
-        switchBGM('play');
-      }
+  }
+  // Theme change every 1000 dist (fixed interval, independent of score/coins)
+  if(!isPackMode){
+    const newThemeIdx=Math.min(Math.floor(dist/1000),THEMES.length-1);
+    if(newThemeIdx!==curTheme){
+      prevTheme=curTheme;curTheme=newThemeIdx;themeLerp=0;
+      addPop(W/2,H*0.55,THEMES[curTheme].n+'!','#00e5ff');
+    }
+  }
+  // BGM progression
+  if(!isPackMode&&!bossPhase.active&&itemEff.invincible<=0&&state===ST.PLAY){
+    const newBGM=getPlayBGMType();
+    if(bgmCurrent!==newBGM&&bgmCurrent!=='boss'&&bgmCurrent!=='fever'){
+      switchBGM('play');
     }
   }
 
