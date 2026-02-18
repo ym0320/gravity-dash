@@ -5,6 +5,7 @@ function startBossPhase(){
   bossPhase.prepare=120;
   bossPhase.alertT=0;
   bossPhase.noDamage=true; // track if player takes no damage during boss
+  bossPhase.bossType=''; // track boss type for victory check
   bossPhase.enemies=[];
   bossPhase.defeated=0;
   bossPhase.reward=false;
@@ -34,19 +35,14 @@ function spawnBossEnemies(){
   bossPhase.dodgeQueue=[];
   bossPhase.dodgeIdx=0;
   bossPhase.dodgeKills=0;
-  // Randomly choose boss type: charge, bruiser, wizard, or dodge (4 types from bc>=2)
+  // Randomly choose boss type: all 4 types equally likely (25% each)
   const roll=Math.random();
   let bossType;
-  if(bc>=2){
-    if(roll<0.25) bossType='wizard';
-    else if(roll<0.50) bossType='bruiser';
-    else if(roll<0.75) bossType='charge';
-    else bossType='dodge';
-  } else {
-    if(roll<0.33) bossType='bruiser';
-    else if(roll<0.66) bossType='charge';
-    else bossType='dodge';
-  }
+  if(roll<0.25) bossType='wizard';
+  else if(roll<0.50) bossType='bruiser';
+  else if(roll<0.75) bossType='charge';
+  else bossType='dodge';
+  bossPhase.bossType=bossType;
   if(bossType==='charge'){
     // Charge type: vertical movement from 1st encounter, progressive mechanics
     const chargeCount=5;
@@ -580,12 +576,14 @@ function updateBossPhase(){
   }
   const bruiserDone=!bossPhase.bruiser||!bossPhase.bruiser.alive;
   const wizardDone=!bossPhase.wizard||!bossPhase.wizard.alive;
-  // Dodge done: all 5 killed (dodgeKills>=total) AND no more in queue/active
-  const dodgeDone=bossPhase.dodgeQueue.length===0||(bossPhase.dodgeKills>=bossPhase.total&&
+  // Dodge done: all enemies must be KILLED (dodgeKills>=total), not just dodged
+  const dodgeDone=bossPhase.bossType!=='dodge'||(bossPhase.dodgeKills>=bossPhase.total&&
     enemies.filter(e=>e.bossType==='dodge'&&e.alive).length===0);
   const allDone=chargesCleared&&dodgeDone&&bruiserDone&&wizardDone;
   if(allDone&&bossPhase.enemies.length>0&&!bossPhase.reward){
     bossPhase.reward=true;bossPhase.rewardT=0;
+    // Catch up score that accumulated during boss
+    score=Math.floor(dist);lastMile=Math.floor(score/1000)*1000;
     sfxFanfare();shakeI=10;vibrate([30,20,30,20,60]);
     addPop(W/2,H*0.3,'BOSS DEFEATED!','#ffd700');
     // No-damage bonus: earn stockable invincibility
