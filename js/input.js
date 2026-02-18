@@ -14,6 +14,73 @@ function hitPauseBtn(px,py){return px>=W-58&&px<=W-4&&py>=safeTop+8&&py<=safeTop
 function hitBombBtn(px,py){const btnSz=44,btnX=W-btnSz-8,btnY=H-PANEL_H+6;return px>=btnX&&px<=btnX+btnSz&&py>=btnY&&py<=btnY+btnSz;}
 function hitResumeBtn(px,py){return px>=W/2-80&&px<=W/2+80&&py>=H*0.45&&py<=H*0.45+44;}
 function hitQuitBtn(px,py){return px>=W/2-80&&px<=W/2+80&&py>=H*0.56&&py<=H*0.56+44;}
+// Game over screen buttons (must match drawDead layout exactly)
+function deadBtnLayout(){
+  const btnW2=Math.min(220,W-40),btnH2=38,btnX2=W/2-btnW2/2;
+  const cardY=H*0.24,cardH=210;
+  let btnTop=cardY+cardH+12;
+  const btns=[];
+  if(!isPackMode){
+    btns.push({id:'continue',x:btnX2,y:btnTop,w:btnW2,h:btnH2});
+    btnTop+=btnH2+8;
+  }
+  btns.push({id:'restart',x:btnX2,y:btnTop,w:btnW2,h:btnH2});
+  btnTop+=btnH2+8;
+  btns.push({id:'title',x:btnX2,y:btnTop,w:btnW2,h:btnH2});
+  return btns;
+}
+function hitDeadBtn(px,py){
+  const btns=deadBtnLayout();
+  for(const b of btns){
+    if(px>=b.x&&px<=b.x+b.w&&py>=b.y&&py<=b.y+b.h)return b.id;
+  }
+  return null;
+}
+function handleDeadBtn(btnId){
+  if(btnId==='continue'){
+    if(walletCoins>=100){
+      walletCoins-=100;localStorage.setItem('gd5wallet',walletCoins.toString());
+      sfx('select');continueFromDeath();
+    } else {sfx('hurt');vibrate(15);}
+  } else if(btnId==='restart'){
+    sfx('click');
+    if(isPackMode){startPackStageFromDead();return;}
+    startCountdown('endless');
+  } else if(btnId==='title'){
+    sfx('cancel');
+    if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');}
+    else{state=ST.TITLE;switchBGM('title');}
+  }
+}
+function continueFromDeath(){
+  // Keep score, reset speed, revive player, start with countdown
+  player.alive=true;player.face='normal';
+  player.gDir=1;player.vy=0;player.canFlip=true;
+  player.rot=0;player.rotTarget=0;player.trail=[];
+  hp=HP_MAX+(ct().hpBonus||0);hurtT=0;
+  speed=SPEED_INIT; // reset speed
+  // Rebuild safe platforms around player
+  platforms=[];ceilPlats=[];
+  platforms.push({x:player.x-W*0.3,w:W*0.9,h:GROUND_H});
+  ceilPlats.push({x:player.x-W*0.3,w:W*0.9,h:GROUND_H});
+  for(let i=0;i<5;i++){generatePlatform(platforms,false);generatePlatform(ceilPlats,true);}
+  player.x=W*0.2;
+  player.y=floorSurfaceY(player.x)-PLAYER_R;player.grounded=false;
+  // Clear hazards
+  enemies=[];bullets=[];spikes=[];items=[];floatPlats=[];movingHills=[];gravZones=[];
+  bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:score+800,lastBossScore:score,bossCount:bossPhase.bossCount||0};
+  itemEff={invincible:0,magnet:0};bombCount=0;bombFlashT=0;
+  djumpAvailable=!!ct().hasDjump;djumpUsed=false;ghostPhaseT=0;ghostInvis=false;
+  deadT=0;newHi=false;combo=0;comboT=0;comboDsp=0;comboDspT=0;
+  shakeX=0;shakeY=0;shakeI=0;flipCount=0;flipTimer=999;
+  coinCD=0;itemCD=0;enemyCD=0;spikeCD=0;hillCD=0;floatCD=0;gravZoneCD=0;
+  flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
+  state=ST.COUNTDOWN;countdownT=180;
+  sfx('countdown');
+}
+function startPackStageFromDead(){
+  state=ST.PLAY;resetPackStage(currentPackIdx,currentPackStageIdx);switchBGM('play');
+}
 
 // Auto-pause when page loses visibility or focus
 document.addEventListener('visibilitychange',()=>{
@@ -59,9 +126,8 @@ canvas.addEventListener('touchstart',e=>{
     }
   }
   else if(state===ST.DEAD&&deadT>45){
-    sfx('click');
-    if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;}
-    state=ST.TITLE;switchBGM('title');
+    const btnId=hitDeadBtn(p.x,p.y);
+    if(btnId)handleDeadBtn(btnId);
   }
 },{passive:false});
 
@@ -145,9 +211,8 @@ canvas.addEventListener('mousedown',e=>{
   if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');state=ST.PAUSE;return;}
   if(state===ST.TITLE){if(charModal.show){sfx('cancel');charModal.show=false;return;}handleTitleTouch(p.x,p.y);}
   else if(state===ST.DEAD&&deadT>45){
-    sfx('click');
-    if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;}
-    state=ST.TITLE;switchBGM('title');
+    const btnId=hitDeadBtn(p.x,p.y);
+    if(btnId)handleDeadBtn(btnId);
   }
   else if(state===ST.PLAY&&player.grounded){
     const jp=JUMP_POWER*ct().jumpMul;
@@ -179,11 +244,7 @@ document.addEventListener('keydown',e=>{
     }
     if(state===ST.PAUSE){sfx('select');state=ST.PLAY;switchBGM('play');return;}
     if(state===ST.TITLE){startCountdown('endless');}
-    else if(state===ST.DEAD&&deadT>45){
-      sfx('click');
-      if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;}
-      state=ST.TITLE;switchBGM('title');
-    }
+    else if(state===ST.DEAD&&deadT>45){handleDeadBtn('restart');}
     else if(state===ST.PLAY&&player.grounded){
       const jp=JUMP_POWER*ct().jumpMul;
       player.vy=-jp*player.gDir;player.grounded=false;djumpUsed=false;

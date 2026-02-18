@@ -1288,44 +1288,121 @@ function drawPause(){
 }
 
 function drawDead(){
-  const oa=Math.min(deadT/40,0.65);
+  const oa=Math.min(deadT/40,0.7);
   ctx.fillStyle=`rgba(0,0,0,${oa})`;ctx.fillRect(-20,-20,W+40,H+40);
   if(deadT<15)return;
   const si=Math.min((deadT-15)/20,1),e=1-Math.pow(1-si,3);
-  ctx.save();ctx.translate(0,-55*(1-e));ctx.globalAlpha=e;
+  ctx.save();ctx.translate(0,-50*(1-e));ctx.globalAlpha=e;
 
-  ctx.fillStyle=tc('obs');ctx.font='bold 40px monospace';ctx.textAlign='center';
-  ctx.shadowColor=tca('obs',0x55);ctx.shadowBlur=22;
-  ctx.fillText('\u30B2\u30FC\u30E0\u30AA\u30FC\u30D0\u30FC',W/2,H*0.22);ctx.shadowBlur=0;
+  // "GAME OVER" title with glow
+  ctx.fillStyle=tc('obs');ctx.font='bold 36px monospace';ctx.textAlign='center';
+  ctx.shadowColor=tca('obs',0x66);ctx.shadowBlur=25;
+  ctx.fillText('\u30B2\u30FC\u30E0\u30AA\u30FC\u30D0\u30FC',W/2,H*0.16);ctx.shadowBlur=0;
 
-  const cardY=H*0.27,cardH=200;
-  ctx.fillStyle='#0008';rr(W/2-125,cardY,250,cardH,14);ctx.fill();
-  ctx.strokeStyle='#fff1';ctx.lineWidth=1;rr(W/2-125,cardY,250,cardH,14);ctx.stroke();
+  // Rating comment with color (based on score, 5000 = legendary)
+  let rating='',ratingCol='#fff6';
+  if(score>=5000){rating='\u4F1D\u8AAC\u7D1A\uFF01 \u2605';ratingCol='#ffd700';}
+  else if(score>=3000){rating='\u795E\u696D\uFF01';ratingCol='#ff44ff';}
+  else if(score>=2000){rating='\u8D85\u4EBA\u7D1A\uFF01';ratingCol='#00e5ff';}
+  else if(score>=1000){rating='\u5320\u306E\u6280\uFF01';ratingCol='#34d399';}
+  else if(score>=500){rating='\u7D20\u6674\u3089\u3057\u3044\uFF01';ratingCol='#ff6b35';}
+  else if(score>=200){rating='\u306A\u304B\u306A\u304B\uFF01';ratingCol='#a0d0ff';}
+  else if(score>=100){rating='\u3044\u3044\u611F\u3058\uFF01';ratingCol='#fff8';}
+  else if(score>=50){rating='\u307E\u305A\u307E\u305A';ratingCol='#fff5';}
+  else if(score>=10){rating='\u304C\u3093\u3070\u308D\u3046\uFF01';ratingCol='#fff4';}
+  if(rating){
+    const rp=Math.sin(deadT*0.08)*0.15+0.85;
+    ctx.globalAlpha=rp*e;ctx.fillStyle=ratingCol;ctx.font='bold 15px monospace';
+    ctx.shadowColor=ratingCol+'66';ctx.shadowBlur=10;
+    ctx.fillText(rating,W/2,H*0.21);ctx.shadowBlur=0;ctx.globalAlpha=e;
+  }
+
+  // Main result card
+  const cardW=Math.min(270,W-30),cardX=W/2-cardW/2;
+  const cardY=H*0.24,cardH=210;
+  const cardGr=ctx.createLinearGradient(cardX,cardY,cardX,cardY+cardH);
+  cardGr.addColorStop(0,'rgba(10,10,30,0.92)');cardGr.addColorStop(1,'rgba(5,5,20,0.92)');
+  ctx.fillStyle=cardGr;rr(cardX,cardY,cardW,cardH,14);ctx.fill();
+  ctx.strokeStyle='#ffffff12';ctx.lineWidth=1;rr(cardX,cardY,cardW,cardH,14);ctx.stroke();
+  // Accent top border
+  const accentCol=score>=5000?'#ffd700':score>=1000?'#00e5ff':tc('obs');
+  ctx.strokeStyle=accentCol+'66';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(cardX+14,cardY);ctx.lineTo(cardX+cardW-14,cardY);ctx.stroke();
+
+  // New record badge
+  if(newHi){const np=Math.sin(deadT*0.12)*0.3+0.7;ctx.globalAlpha=np*e;ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.shadowColor='#ffd70066';ctx.shadowBlur=12;ctx.fillText('\u2605 NEW RECORD \u2605',W/2,cardY+18);ctx.shadowBlur=0;ctx.globalAlpha=e;}
 
   // Character (show fully damaged)
-  drawCharacter(W/2,cardY+35,selChar,18,0,1,'dead',maxHp());
+  drawCharacter(W/2,cardY+(newHi?46:38),selChar,16,0,1,'dead',maxHp());
 
-  ctx.fillStyle='#fff7';ctx.font='13px monospace';ctx.textAlign='center';ctx.fillText('\u30B9\u30B3\u30A2',W/2,cardY+65);
-  ctx.fillStyle='#fff';ctx.font='bold 44px monospace';
-  ctx.shadowColor='#fff3';ctx.shadowBlur=12;ctx.fillText(score,W/2,cardY+108);ctx.shadowBlur=0;
+  // Score section
+  const scoreY=cardY+(newHi?68:60);
+  ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.fillText('\u30B9\u30B3\u30A2',W/2,scoreY);
+  ctx.fillStyle='#fff';ctx.font='bold 38px monospace';
+  ctx.shadowColor='#fff2';ctx.shadowBlur=8;ctx.fillText(score,W/2,scoreY+38);ctx.shadowBlur=0;
 
-  if(newHi){const np=Math.sin(deadT*0.12)*0.3+0.7;ctx.globalAlpha=np*e;ctx.fillStyle='#ffd700';ctx.font='bold 16px monospace';ctx.shadowColor='#ffd70055';ctx.shadowBlur=10;ctx.fillText('\u65B0\u8A18\u9332\uFF01',W/2,cardY-6);ctx.shadowBlur=0;ctx.globalAlpha=e;}
+  // Best score
+  ctx.fillStyle='#fff4';ctx.font='11px monospace';
+  ctx.fillText('\u30D9\u30B9\u30C8: '+highScore,W/2,scoreY+56);
 
+  // Combo
+  if(maxCombo>1){
+    ctx.fillStyle='#ff6b3599';ctx.font='10px monospace';
+    ctx.fillText('\u6700\u5927\u30B3\u30F3\u30DC: '+maxCombo+'x',W/2,scoreY+72);
+  }
+
+  // Divider line
+  const divY=scoreY+(maxCombo>1?82:70);
+  ctx.strokeStyle='#ffffff0a';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(cardX+20,divY);ctx.lineTo(cardX+cardW-20,divY);ctx.stroke();
+
+  // Coin section: earned coins and wallet
+  const coinY=divY+18;
+  ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';
+  ctx.fillText('\u25CF '+totalCoins+' \u7372\u5F97',W/2-40,coinY);
   ctx.fillStyle='#fff5';ctx.font='11px monospace';
-  ctx.fillText('\u30D9\u30B9\u30C8: '+highScore,W/2,cardY+130);
-  if(maxCombo>1){ctx.fillStyle='#ff6b35aa';ctx.fillText('\u6700\u5927\u30B3\u30F3\u30DC: '+maxCombo+'x',W/2,cardY+146);}
-  ctx.fillStyle='#fff4';ctx.fillText('\u30B3\u30A4\u30F3: '+totalCoins+'  \u53CD\u8EE2: '+totalFlips,W/2,cardY+162);
-  ctx.fillStyle='#ffd700aa';ctx.font='bold 11px monospace';ctx.fillText('\u25CF '+totalCoins+' \u7372\u5F97 \u2192 \u6240\u6301: '+walletCoins,W/2,cardY+178);
+  ctx.fillText('\u6240\u6301: '+walletCoins,W/2+50,coinY);
 
-  let rating='';
-  if(score>=500)rating='\u4F1D\u8AAC\u7D1A\uFF01 \u2605';
-  else if(score>=200)rating='\u7D20\u6674\u3089\u3057\u3044\uFF01';
-  else if(score>=100)rating='\u3059\u3054\u3044\uFF01';
-  else if(score>=50)rating='\u3044\u3044\u611F\u3058\uFF01';
-  else if(score>=25)rating='\u307E\u305A\u307E\u305A';
-  if(rating){ctx.fillStyle='#fff6';ctx.font='bold 13px monospace';ctx.fillText(rating,W/2,cardY+182);}
+  // --- Action buttons (below card) ---
+  if(deadT>45){
+    const btnW2=Math.min(220,W-40),btnH2=38,btnX2=W/2-btnW2/2;
+    let btnTop=cardY+cardH+12;
 
-  if(deadT>45){const ta=Math.sin(deadT*0.07)*0.3+0.7;ctx.globalAlpha=ta*e;ctx.fillStyle='#fff';ctx.font='bold 15px monospace';ctx.fillText(isPackMode?'タップでステージ選択へ':'タップで続ける',W/2,H*0.82);}
+    // Continue button (costs 100 coins) - only in endless mode
+    if(!isPackMode){
+      const canContinue=walletCoins>=100;
+      if(canContinue){
+        const pulse=Math.sin(deadT*0.08)*0.08+0.92;
+        ctx.globalAlpha=pulse*e;
+        ctx.fillStyle='#00e5ff18';rr(btnX2,btnTop,btnW2,btnH2,8);ctx.fill();
+        ctx.strokeStyle='#00e5ff';ctx.lineWidth=1.5;rr(btnX2,btnTop,btnW2,btnH2,8);ctx.stroke();
+        ctx.fillStyle='#00e5ff';ctx.font='bold 13px monospace';
+        ctx.fillText('\u25B6 \u7D9A\u304D\u304B\u3089\u518D\u958B  \u25CF100',W/2,btnTop+24);
+        ctx.globalAlpha=e;
+      } else {
+        ctx.fillStyle='#ffffff06';rr(btnX2,btnTop,btnW2,btnH2,8);ctx.fill();
+        ctx.strokeStyle='#ffffff22';ctx.lineWidth=1;rr(btnX2,btnTop,btnW2,btnH2,8);ctx.stroke();
+        ctx.fillStyle='#fff3';ctx.font='bold 13px monospace';
+        ctx.fillText('\u25B6 \u7D9A\u304D\u304B\u3089\u518D\u958B  \u25CF100',W/2,btnTop+24);
+        ctx.fillStyle='#ff444488';ctx.font='9px monospace';
+        ctx.fillText('\u30B3\u30A4\u30F3\u4E0D\u8DB3',W/2,btnTop+36);
+      }
+      btnTop+=btnH2+8;
+    }
+
+    // Restart button
+    ctx.fillStyle='#ff860018';rr(btnX2,btnTop,btnW2,btnH2,8);ctx.fill();
+    ctx.strokeStyle='#ff8600';ctx.lineWidth=1.5;rr(btnX2,btnTop,btnW2,btnH2,8);ctx.stroke();
+    ctx.fillStyle='#ff8600';ctx.font='bold 13px monospace';
+    ctx.fillText(isPackMode?'\u21BB \u3082\u3046\u4E00\u5EA6':'\u21BB \u306F\u3058\u3081\u304B\u3089',W/2,btnTop+24);
+    btnTop+=btnH2+8;
+
+    // Title button
+    ctx.fillStyle='#ff386018';rr(btnX2,btnTop,btnW2,btnH2,8);ctx.fill();
+    ctx.strokeStyle='#ff3860';ctx.lineWidth=1.5;rr(btnX2,btnTop,btnW2,btnH2,8);ctx.stroke();
+    ctx.fillStyle='#ff3860';ctx.font='bold 13px monospace';
+    ctx.fillText(isPackMode?'\u2190 \u30B9\u30C6\u30FC\u30B8\u9078\u629E':'\u2190 \u30BF\u30A4\u30C8\u30EB\u3078',W/2,btnTop+24);
+  }
 
   ctx.restore();ctx.globalAlpha=1;
 }
