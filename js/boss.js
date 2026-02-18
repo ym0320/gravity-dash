@@ -171,6 +171,35 @@ function updateBossPhase(){
   }
   if(bossPhase.reward){
     bossPhase.rewardT++;
+    // Update chest fall physics
+    if(chestFall.active&&chestFall.gotT===0){
+      chestFall.vy+=0.15;
+      chestFall.y+=chestFall.vy;
+      chestFall.sparkT++;
+      // Sparkle trail while falling
+      if(chestFall.sparkT%3===0){
+        parts.push({x:chestFall.x+(Math.random()-0.5)*30,y:chestFall.y+(Math.random()-0.5)*10,
+          vx:(Math.random()-0.5)*2,vy:-1-Math.random()*2,life:20+Math.random()*15,ml:35,
+          sz:Math.random()*4+2,col:['#ffd700','#ffaa00','#fff4b0','#ffffff'][Math.floor(Math.random()*4)]});
+      }
+      // Land on player
+      if(chestFall.y>=player.y-20){
+        chestFall.y=player.y-20;chestFall.vy=0;chestFall.gotT=1;
+        sfxChestGet();shakeI=12;vibrate([20,10,40,20,60]);
+        // Big burst of sparkles
+        for(let i=0;i<30;i++){
+          const a=(6.28/30)*i,s=2+Math.random()*5;
+          parts.push({x:chestFall.x,y:chestFall.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-2,
+            life:40+Math.random()*30,ml:70,sz:Math.random()*6+2,
+            col:['#ffd700','#ffaa00','#ff88cc','#88ffff','#ffffff'][i%5]});
+        }
+        addPop(chestFall.x,chestFall.y-30,'宝箱 GET!','#ffd700');
+      }
+    } else if(chestFall.gotT>0){
+      chestFall.gotT++;
+      // Chest shrinks into player after collection
+      if(chestFall.gotT>40)chestFall.active=false;
+    }
     if(bossPhase.rewardT>=180){bossPhase.active=false;bossPhase.reward=false;if(itemEff.invincible<=0)switchBGM('play');}
     return;
   }
@@ -292,8 +321,8 @@ function updateBossPhase(){
         const tc2='#ff8844';
         parts.push({x:en.x+en.sz,y:en.y,vx:1+Math.random(),vy:(Math.random()-0.5)*2,life:12,ml:12,sz:Math.random()*4+2,col:tc2});
       }
-      // Off-screen: NOT defeated, loop back from right
-      if(en.x<-en.sz*2){
+      // Off-screen: NOT defeated, loop back from right (both sides)
+      if(en.x<-en.sz*2||en.x>W+en.sz*2){
         en.chargeState='wait';
         en.x=W+80;
         en.rushDelay=30+Math.floor(Math.random()*60);
@@ -594,6 +623,9 @@ function updateBossPhase(){
     totalCoins+=bonus;
     addPop(W/2,H*0.45,'+'+bonus+' COINS!','#ffd700');
     for(let i=0;i<40;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*4,vy:1+Math.random()*4,life:80+Math.random()*40,ml:120,sz:Math.random()*5+3,col:['#ffd700','#ffaa00','#fff4b0'][i%3]});
+    // Spawn treasure chest falling from above
+    bossChests++;
+    chestFall={active:true,x:player.x,y:-40,vy:0,sparkT:0,gotT:0};
   }
 }
 // Rich bruiser defeat animation

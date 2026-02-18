@@ -43,6 +43,25 @@ function update(dt){
     deadT++;
     parts=parts.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.07;p.vx*=0.99;p.life--;return p.life>0;});
     stars.forEach(s=>{s.x-=s.sp*0.15;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
+    // Chest opening state machine
+    if(chestOpen.phase!=='none'){
+      chestOpen.t++;
+      if(chestOpen.phase==='wobble'&&chestOpen.t>=50){
+        chestOpen.phase='burst';chestOpen.t=0;sfxChestOpen();shakeI=15;vibrate([30,20,40,20,80]);
+      }
+      else if(chestOpen.phase==='burst'&&chestOpen.t>=40){
+        chestOpen.phase='reveal';chestOpen.t=0;
+      }
+      else if(chestOpen.phase==='reveal'&&chestOpen.t>=90){
+        chestOpen.phase='done';chestOpen.t=0;
+      }
+    }
+    // Auto-start chest opening when dead screen fully visible and chests earned
+    if(bossChests>0&&chestOpen.phase==='none'&&deadT===46){
+      chestOpen.phase='waiting';chestOpen.t=0;
+      chestOpen.charIdx=Math.floor(Math.random()*CHARS.length);
+      chestOpen.parts=[];
+    }
     return;
   }
   if(state===ST.STAGE_CLEAR){

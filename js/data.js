@@ -688,6 +688,55 @@ function sfxCharVoice(idx){
   }catch(e){}
 }
 
+// Chest GET jingle - magical ascending arpeggio with shimmer
+function sfxChestGet(){
+  if(!audioCtx)return;try{
+    const t=audioCtx.currentTime;
+    // Rising sparkle arpeggio
+    [523,659,784,1047,1319,1568].forEach((f,i)=>{
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='sine';
+      o.frequency.setValueAtTime(f,t+i*0.06);
+      g.gain.setValueAtTime(0.12,t+i*0.06);g.gain.exponentialRampToValueAtTime(0.001,t+i*0.06+0.4);
+      o.start(t+i*0.06);o.stop(t+i*0.06+0.45);
+    });
+    // Shimmery high tone
+    const s=audioCtx.createOscillator(),sg2=audioCtx.createGain();
+    s.connect(sg2);sg2.connect(sfxGain);s.type='triangle';
+    s.frequency.setValueAtTime(2093,t+0.3);s.frequency.exponentialRampToValueAtTime(1568,t+0.8);
+    sg2.gain.setValueAtTime(0.06,t+0.3);sg2.gain.exponentialRampToValueAtTime(0.001,t+0.9);
+    s.start(t+0.3);s.stop(t+0.95);
+  }catch(e){}
+}
+// Chest open jingle - dramatic reveal with bass impact + fanfare
+function sfxChestOpen(){
+  if(!audioCtx)return;try{
+    const t=audioCtx.currentTime;
+    // Bass impact
+    const b=audioCtx.createOscillator(),bg2=audioCtx.createGain();
+    b.connect(bg2);bg2.connect(sfxGain);b.type='sine';
+    b.frequency.setValueAtTime(80,t);b.frequency.exponentialRampToValueAtTime(30,t+0.3);
+    bg2.gain.setValueAtTime(0.25,t);bg2.gain.exponentialRampToValueAtTime(0.001,t+0.4);
+    b.start(t);b.stop(t+0.45);
+    // Dramatic ascending chord
+    [523,659,784].forEach((f,i)=>{
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='triangle';
+      o.frequency.setValueAtTime(f,t+0.15+i*0.08);
+      g.gain.setValueAtTime(0.15,t+0.15+i*0.08);g.gain.exponentialRampToValueAtTime(0.001,t+0.15+i*0.08+0.6);
+      o.start(t+0.15+i*0.08);o.stop(t+0.15+i*0.08+0.65);
+    });
+    // Final triumphant notes
+    [1047,1319,1568,2093].forEach((f,i)=>{
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='sine';
+      o.frequency.setValueAtTime(f,t+0.5+i*0.1);
+      g.gain.setValueAtTime(0.1,t+0.5+i*0.1);g.gain.exponentialRampToValueAtTime(0.001,t+0.5+i*0.1+0.5);
+      o.start(t+0.5+i*0.1);o.stop(t+0.5+i*0.1+0.55);
+    });
+  }catch(e){}
+}
+
 // ===== ITEMS (5 types) =====
 const ITEMS=[
   {name:'\u7121\u6575',desc:'10\u79D2\u9593\u7121\u6575',col:'#ff00ff',icon:'\u2731',dur:600},
@@ -788,6 +837,10 @@ let bombFlashT=0; // bomb explosion flash timer
 let invCount=0; // stockable invincibility items in inventory
 let bossRetry=null; // {score,bossCount} saved when quitting during boss
 let isRetryGame=false; // true if current game is a boss retry (only 1 retry allowed)
+// Treasure chest system
+let bossChests=0; // number of chests earned this run
+let chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0}; // falling chest during boss reward
+let chestOpen={phase:'none',t:0,charIdx:-1,parts:[]}; // chest opening on death screen
 const PANEL_H=56; // bottom action panel height
 // Ghost character periodic transparency
 let ghostPhaseT=0; // timer for ghost transparency cycle
