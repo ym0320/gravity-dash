@@ -215,6 +215,77 @@ function trySpawnSpike(){
   }
 }
 
+// ===== GRAVITY CHANGE GIMMICK =====
+function trySpawnGravGimmick(){
+  if(gravGimmickCD>0){gravGimmickCD--;return;}
+  if(bossPhase.active)return;
+  if(score<100)return;
+  const plat=findEdgeSpawnPlat();
+  if(!plat)return;
+  const chance=Math.min(0.08,0.02+(score-100)*0.0005);
+  if(Math.random()<chance){
+    gravGimmickCD=200+Math.floor(Math.random()*150);
+    let maxCount=1;
+    if(score>=500)maxCount=2;
+    if(score>=1000)maxCount=3;
+    const count=1+Math.floor(Math.random()*maxCount*Math.min(1,(score-100)/900));
+    const actualCount=Math.min(Math.max(1,count),maxCount);
+    for(let i=0;i<actualCount;i++){
+      const gx=W+15+i*80;
+      const isFloor=Math.random()<0.5;
+      const surfY=isFloor?(H-plat.h):ceilSurfaceY(gx);
+      const gy=isFloor?surfY-40:surfY;
+      gravGimmicks.push({x:gx,y:gy,w:30,h:40,triggered:false,isFloor:isFloor,flashT:0});
+    }
+  } else {
+    gravGimmickCD=30+Math.floor(Math.random()*20);
+  }
+}
+
+// ===== FALLING MOUNTAIN =====
+function trySpawnFallingMtn(){
+  if(fallingMtnCD>0){fallingMtnCD--;return;}
+  if(bossPhase.active)return;
+  if(score<5000)return;
+  const plat=findEdgeSpawnPlat();
+  if(!plat)return;
+  const chance=Math.min(0.06,0.01+(score-5000)*0.0001);
+  if(Math.random()<chance){
+    fallingMtnCD=180+Math.floor(Math.random()*120);
+    const fx=Math.max(W+10,plat.x);
+    const fw=50+Math.random()*60;
+    const fh=plat.h+10+Math.random()*20;
+    fallingMtns.push({x:fx,w:fw,baseH:fh,curH:fh,vy:0,state:'idle',shakeT:0,shakeAmt:0,triggerDist:80,isFloor:true,alpha:1});
+  } else {
+    fallingMtnCD=30+Math.floor(Math.random()*20);
+  }
+}
+
+// ===== COIN SWITCH =====
+function trySpawnCoinSwitch(){
+  if(coinSwitchCD>0){coinSwitchCD--;return;}
+  if(bossPhase.active)return;
+  if(score<60)return;
+  const plat=findEdgeSpawnPlat();
+  if(!plat)return;
+  if(Math.random()<0.05){
+    coinSwitchCD=250+Math.floor(Math.random()*150);
+    const sx=Math.max(W+10,plat.x+Math.random()*plat.w*0.5);
+    const isFloor=Math.random()<0.7;
+    let sy;
+    if(isFloor){
+      sy=H-plat.h-COIN_SW_H;
+    } else {
+      const cp=ceilPlats.find(p=>sx>=p.x&&sx<=p.x+p.w);
+      const ch=cp?cp.h:GROUND_H;
+      sy=ch;
+    }
+    coinSwitches.push({x:sx,y:sy,w:COIN_SW_W,h:COIN_SW_H,isFloor:isFloor,activated:false,flashT:0});
+  } else {
+    coinSwitchCD=40+Math.floor(Math.random()*25);
+  }
+}
+
 function trySpawnMovingHill(){
   if(hillCD>0){hillCD--;return;}
   if(bossPhase.bossCount<2||bossPhase.active)return; // only after 2nd boss defeated

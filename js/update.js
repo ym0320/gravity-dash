@@ -34,8 +34,8 @@ function update(dt){
     titleT+=0.03;
     if(unlockCelebT>0)unlockCelebT--;
     if(charModal.show)charModal.animT++;
-    stars.forEach(s=>{s.x-=s.sp*0.5;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
-    mtns.forEach(m=>{m.off-=m.sp*0.3;if(m.off<-500)m.off+=500;});
+    stars.forEach(s=>{s.x-=s.sp*SPEED_INIT*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
+    mtns.forEach(m=>{m.off-=m.sp*SPEED_INIT*0.15;if(m.off<-500)m.off+=500;});
     updateDemo();
     return;
   }
@@ -225,6 +225,9 @@ function update(dt){
     trySpawnSpike();
     trySpawnMovingHill();
     trySpawnGravZone();
+    trySpawnGravGimmick();
+    trySpawnFallingMtn();
+    trySpawnCoinSwitch();
     // Boss phase trigger
     if(!bossPhase.active&&score>=bossPhase.nextAt){
       startBossPhase();
@@ -349,6 +352,87 @@ function update(dt){
     }
   });
 
+  // Gravity gimmick scrolling and collision
+  gravGimmicks.forEach(gg=>{gg.x-=speed;if(gg.flashT>0)gg.flashT--;});
+  gravGimmicks=gravGimmicks.filter(gg=>gg.x+gg.w>-50);
+  gravGimmicks.forEach(gg=>{
+    if(gg.triggered)return;
+    if(player.x+pr>gg.x&&player.x-pr<gg.x+gg.w&&player.y+pr>gg.y&&player.y-pr<gg.y+gg.h){
+      gg.triggered=true;gg.flashT=30;
+      player.gDir*=-1;player.vy=player.gDir*2;
+      totalFlips++;flipCount=0;player.canFlip=true;flipTimer=0;
+      sfx('flip');vibrate([15,10,20]);
+      emitParts(gg.x+gg.w/2,gg.y+gg.h/2,12,'#ff00ff',4,3);
+      addPop(gg.x+gg.w/2,gg.y-10,'\u91CD\u529B\u53CD\u8EE2!','#ff00ff');
+      player.rotTarget+=Math.PI*player.gDir;
+    }
+  });
+
+  // Falling mountain update
+  fallingMtns.forEach(fm=>{
+    fm.x-=speed;
+    if(fm.state==='idle'){
+      const surfY2=H-fm.curH;
+      const onMtn=player.x+pr>fm.x&&player.x-pr<fm.x+fm.w&&player.y+pr>=surfY2-5&&player.y+pr<=surfY2+15&&player.vy>=0;
+      const nearMtn=Math.abs(player.x-(fm.x+fm.w/2))<fm.triggerDist+fm.w/2&&player.y>surfY2-60;
+      if(onMtn||nearMtn){fm.state='shaking';fm.shakeT=60;}
+      if(player.gDir===1&&player.x+pr>fm.x&&player.x-pr<fm.x+fm.w){
+        if(player.y+pr>=surfY2&&player.y+pr<surfY2+12&&player.vy>=0){
+          player.y=surfY2-pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;djumpAvailable=true;
+        }
+      }
+    } else if(fm.state==='shaking'){
+      fm.shakeT--;
+      fm.shakeAmt=Math.sin(fm.shakeT*0.8)*(2+(60-fm.shakeT)*0.05);
+      const surfY2=H-fm.curH;
+      if(player.gDir===1&&player.x+pr>fm.x&&player.x-pr<fm.x+fm.w){
+        if(player.y+pr>=surfY2&&player.y+pr<surfY2+12&&player.vy>=0){
+          player.y=surfY2-pr;player.vy=0;player.grounded=true;
+        }
+      }
+      if(fm.shakeT<=0){fm.state='falling';fm.vy=0.5;sfx('death');vibrate([10,5,10]);}
+    } else if(fm.state==='falling'){
+      fm.vy+=0.3;fm.curH-=fm.vy;fm.alpha=Math.max(0,fm.curH/fm.baseH);
+      const surfY2=H-fm.curH;
+      if(fm.curH>0&&player.gDir===1&&player.x+pr>fm.x&&player.x-pr<fm.x+fm.w){
+        if(player.y+pr>=surfY2&&player.y+pr<surfY2+12&&player.vy>=0){
+          player.y=surfY2-pr;player.vy=fm.vy*-0.3;player.grounded=true;
+        }
+      }
+      if(fm.curH<=-50)fm.state='gone';
+      if(frame%3===0)emitParts(fm.x+Math.random()*fm.w,H-Math.max(0,fm.curH),2,tc('gnd'),2,1);
+    }
+  });
+  fallingMtns=fallingMtns.filter(fm=>fm.state!=='gone'&&fm.x+fm.w>-50);
+
+  // Coin switch update
+  coinSwitches.forEach(cs=>{cs.x-=speed;if(cs.flashT>0)cs.flashT--;});
+  coinSwitches=coinSwitches.filter(cs=>cs.x+cs.w>-50);
+  coinSwitches.forEach(cs=>{
+    if(cs.activated)return;
+    if(player.x+pr>cs.x&&player.x-pr<cs.x+cs.w){
+      let touching=false;
+      if(cs.isFloor){touching=player.y+pr>=cs.y&&player.y+pr<=cs.y+cs.h+10;}
+      else{touching=player.y-pr<=cs.y+cs.h&&player.y-pr>=cs.y-10;}
+      if(touching){
+        cs.activated=true;cs.flashT=40;
+        sfx('item');vibrate([15,10,15]);shakeI=4;
+        addPop(cs.x+cs.w/2,cs.y-20,'\u30B3\u30A4\u30F3\u30B9\u30A4\u30C3\u30C1!',COIN_SW_COL);
+        emitParts(cs.x+cs.w/2,cs.y,10,COIN_SW_COL,3,2);
+        const startX2=cs.x+cs.w+30;
+        const rows=3,cols=6+Math.floor(Math.random()*4),spacing=26;
+        const surfY3=cs.isFloor?cs.y:cs.y+cs.h;
+        for(let r2=0;r2<rows;r2++){
+          for(let c2=0;c2<cols;c2++){
+            const cx2=startX2+c2*spacing;
+            const cy2=cs.isFloor?surfY3-20-r2*spacing:surfY3+20+r2*spacing;
+            if(!coinOverlaps(cx2,cy2))coins.push({x:cx2,y:cy2,sz:9,col:false,p:Math.random()*6.28});
+          }
+        }
+      }
+    }
+  });
+
   // Crush detection (terrain pinch)
   const fSurf=floorSurfaceY(player.x);
   const cSurf=ceilSurfaceY(player.x);
@@ -385,9 +469,11 @@ function update(dt){
       if(Math.sqrt(dx*dx+dy*dy)<cd){
         c.col=true;totalCoins++;combo++;comboDsp=combo;comboDspT=55;
         if(combo>maxCombo)maxCombo=combo;
-        const bon=Math.ceil((3+Math.min(combo-1,8))*ct().coinMul);
+        const pinkMul=score>=PINK_COIN_SCORE?PINK_COIN_MUL:1;
+        const bon=Math.ceil((3+Math.min(combo-1,8))*ct().coinMul*pinkMul);
         dist+=bon;sfx(combo>1?'combo':'coin');
-        addPop(c.x,c.y-14,'+'+bon,'#ffd700');vibrate(10);
+        const popCol=score>=PINK_COIN_SCORE?PINK_COIN_COLOR:'#ffd700';
+        addPop(c.x,c.y-14,'+'+bon,popCol);vibrate(10);
         if(combo>1)addPop(c.x,c.y-34,combo+'x','#ff6b35');
         emitParts(c.x,c.y,6,'#ffd700',3,2);
         player.face='happy';setTimeout(()=>{if(player.alive)player.face='normal';},250);
@@ -520,7 +606,20 @@ function update(dt){
     }
     // Collision with player (boss enemies handle their own collision)
     if(en.bossType)return;
-    // Phantom: collision active even when invisible
+    // Phantom: when invisible, can still damage player but cannot be stomped
+    if(en.type===5&&!en.visible){
+      const dx2=player.x-en.x,dy2=player.y-en.y;
+      const d2=Math.sqrt(dx2*dx2+dy2*dy2);
+      if(d2<pr+en.sz){
+        if(itemEff.invincible>0){
+          en.alive=false;sfx('stomp');vibrate(15);shakeI=4;
+          const bon2=Math.floor(10+Math.min(score*0.1,20));dist+=bon2;
+          addPop(en.x,en.y-en.sz*en.gDir,'+'+bon2,'#ff00ff');
+          emitParts(en.x,en.y,15,'#ff00ff',4,3);
+        } else { hurt(); }
+      }
+      return;
+    }
     const dx=player.x-en.x,dy=player.y-en.y;
     const d=Math.sqrt(dx*dx+dy*dy);
     if(d<pr+en.sz){

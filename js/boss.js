@@ -242,7 +242,7 @@ function updateBossPhase(){
       }
       // Collision with player
       const dx=player.x-en.x,dy=player.y-en.y;
-      if(Math.sqrt(dx*dx+dy*dy)<pr+en.sz){
+      if(Math.sqrt(dx*dx+dy*dy)<pr+en.sz*BOSS_HITBOX_SCALE){
         if(itemEff.invincible>0){
           en.alive=false;
           emitParts(en.x,en.y,15,'#ff00ff',4,3);sfx('stomp');shakeI=4;
@@ -314,7 +314,7 @@ function updateBossPhase(){
       }
       // Collision with player
       const dx=player.x-en.x,dy=player.y-en.y;
-      if(Math.sqrt(dx*dx+dy*dy)<pr+en.sz){
+      if(Math.sqrt(dx*dx+dy*dy)<pr+en.sz*BOSS_HITBOX_SCALE){
         if(itemEff.invincible>0){
           en.alive=false;bossPhase.dodgeKills++;
           emitParts(en.x,en.y,15,'#ff00ff',4,3);sfx('stomp');shakeI=4;
@@ -392,7 +392,7 @@ function updateBossPhase(){
     if(b.invT<=0){
       const dx=player.x-b.x,dy=player.y-b.y;
       const d=Math.sqrt(dx*dx+dy*dy);
-      if(d<pr+b.sz){
+      if(d<pr+b.sz*BOSS_HITBOX_SCALE){
         if(itemEff.invincible>0){
           b.hp--;b.hurtFlash=20;b.invT=60;b.state='invincible';b.timer=0;
           shakeI=8;sfx('bossHit');
@@ -540,7 +540,7 @@ function updateBossPhase(){
     if(w.invT<=0&&w.alpha>0.5){
       const dx=player.x-w.x,dy=player.y-w.y;
       const d=Math.sqrt(dx*dx+dy*dy);
-      if(d<pr+w.sz){
+      if(d<pr+w.sz*BOSS_HITBOX_SCALE){
         if(itemEff.invincible>0){
           w.hp--;w.hurtFlash=20;
           shakeI=8;sfx('bossHit');emitParts(w.x,w.y,15,'#ff00ff',4,3);

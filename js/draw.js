@@ -189,6 +189,80 @@ function drawGravZones(){
   });
 }
 
+function drawGravGimmicks(){
+  gravGimmicks.forEach(gg=>{
+    if(gg.x+gg.w<-10||gg.x>W+10)return;
+    const cx=gg.x+gg.w/2,cy=gg.y+gg.h/2;
+    if(gg.triggered){
+      if(gg.flashT>0){
+        ctx.globalAlpha=gg.flashT/30;ctx.fillStyle='#ff00ff';ctx.shadowColor='#ff00ff';ctx.shadowBlur=20;
+        ctx.beginPath();ctx.arc(cx,cy,gg.w,0,6.28);ctx.fill();ctx.shadowBlur=0;ctx.globalAlpha=1;
+      }
+      return;
+    }
+    ctx.save();ctx.translate(cx,cy);
+    const pulse=0.5+Math.sin(frame*0.08)*0.3;
+    ctx.fillStyle='rgba(255,0,255,'+pulse*0.2+')';ctx.beginPath();ctx.arc(0,0,gg.w*0.8,0,6.28);ctx.fill();
+    ctx.fillStyle='#ff00ff';ctx.shadowColor='#ff00ff';ctx.shadowBlur=10;
+    const as=gg.w*0.4;
+    ctx.beginPath();ctx.moveTo(0,-as*1.5);ctx.lineTo(-as,-as*0.5);ctx.lineTo(as,-as*0.5);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(0,as*1.5);ctx.lineTo(-as,as*0.5);ctx.lineTo(as,as*0.5);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#ff00ff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,-as*0.3);ctx.lineTo(0,as*0.3);ctx.stroke();
+    ctx.shadowBlur=0;ctx.restore();
+  });
+}
+
+function drawFallingMtns(){
+  fallingMtns.forEach(fm=>{
+    if(fm.x+fm.w<-10||fm.x>W+10||fm.state==='gone')return;
+    const surfY=H-Math.max(0,fm.curH);
+    const shakeOff=fm.state==='shaking'?fm.shakeAmt:0;
+    ctx.save();ctx.globalAlpha=fm.alpha;ctx.translate(shakeOff,0);
+    const gr=ctx.createLinearGradient(0,surfY,0,H);
+    gr.addColorStop(0,tc('gnd'));gr.addColorStop(1,tc('gnd2'));
+    ctx.fillStyle=gr;ctx.fillRect(fm.x,surfY,fm.w,H-surfY+10);
+    ctx.strokeStyle=tc('line');ctx.lineWidth=2;ctx.shadowColor=tc('line');ctx.shadowBlur=8;
+    ctx.beginPath();ctx.moveTo(fm.x,surfY);ctx.lineTo(fm.x+fm.w,surfY);ctx.stroke();ctx.shadowBlur=0;
+    if(fm.state==='shaking'){
+      const wa=Math.abs(Math.sin(fm.shakeT*0.3));
+      ctx.fillStyle='rgba(255,60,60,'+wa*0.3+')';ctx.fillRect(fm.x,surfY,fm.w,6);
+      ctx.fillStyle='rgba(255,100,100,'+wa+')';ctx.font='bold 16px monospace';ctx.textAlign='center';
+      ctx.fillText('!',fm.x+fm.w/2,surfY-10);
+      if(fm.shakeT<30){
+        ctx.strokeStyle='rgba(255,100,100,0.5)';ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.moveTo(fm.x+fm.w*0.3,surfY);ctx.lineTo(fm.x+fm.w*0.5,surfY+15);ctx.lineTo(fm.x+fm.w*0.4,surfY+30);ctx.stroke();
+      }
+    }
+    ctx.restore();
+  });
+}
+
+function drawCoinSwitches(){
+  coinSwitches.forEach(cs=>{
+    if(cs.x+cs.w<-10||cs.x>W+10)return;
+    ctx.save();
+    if(cs.activated){
+      if(cs.flashT>0){
+        ctx.globalAlpha=cs.flashT/40;ctx.fillStyle=COIN_SW_COL;ctx.shadowColor=COIN_SW_COL;ctx.shadowBlur=15;
+        ctx.beginPath();ctx.arc(cs.x+cs.w/2,cs.y+cs.h/2,cs.w*0.6,0,6.28);ctx.fill();ctx.shadowBlur=0;ctx.globalAlpha=1;
+      }
+      ctx.fillStyle='#224466';ctx.fillRect(cs.x,cs.y+cs.h*0.6,cs.w,cs.h*0.4);
+      ctx.restore();return;
+    }
+    const pulse2=0.7+Math.sin(frame*0.06)*0.3;
+    ctx.fillStyle='#1a3355';ctx.fillRect(cs.x-2,cs.isFloor?cs.y+cs.h-4:cs.y,cs.w+4,6);
+    const gr2=ctx.createLinearGradient(0,cs.y,0,cs.y+cs.h);
+    gr2.addColorStop(0,'#66aaff');gr2.addColorStop(1,'#3366cc');
+    ctx.fillStyle=gr2;rr(cs.x,cs.y,cs.w,cs.h,4);ctx.fill();
+    ctx.shadowColor=COIN_SW_COL;ctx.shadowBlur=8*pulse2;ctx.strokeStyle=COIN_SW_COL;ctx.lineWidth=1.5;
+    rr(cs.x,cs.y,cs.w,cs.h,4);ctx.stroke();ctx.shadowBlur=0;
+    ctx.fillStyle='#fff';ctx.font='bold 10px monospace';ctx.textAlign='center';
+    ctx.fillText('$',cs.x+cs.w/2,cs.y+cs.h/2+4);
+    if(frame%20<10){ctx.fillStyle='rgba(255,215,0,'+pulse2*0.5+')';ctx.beginPath();ctx.arc(cs.x+cs.w/2,cs.y-8,3,0,6.28);ctx.fill();}
+    ctx.restore();
+  });
+}
+
 function draw(){
   ctx.save();ctx.translate(shakeX,shakeY);
   const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,tc('bg1'));bg.addColorStop(1,tc('bg2'));
@@ -206,6 +280,9 @@ function draw(){
   drawSpikes();
   drawMovingHills();
   drawGravZones();
+  drawGravGimmicks();
+  drawFallingMtns();
+  drawCoinSwitches();
 
   if(isPackMode)drawAmbient();
   if(state===ST.TITLE){drawDemo();drawTitle();drawCharModal();ctx.restore();return;}
@@ -365,8 +442,11 @@ function draw(){
 
 function drawCoin(c){
   const p=Math.sin(c.p)*0.2+1,sz=c.sz*p;
-  ctx.shadowColor='#ffd70055';ctx.shadowBlur=10;ctx.fillStyle='#ffd700';ctx.beginPath();ctx.arc(c.x,c.y,sz,0,6.28);ctx.fill();ctx.shadowBlur=0;
+  const isPink=score>=PINK_COIN_SCORE;
+  const coinCol=isPink?PINK_COIN_COLOR:'#ffd700';
+  ctx.shadowColor=isPink?'#ff69b455':'#ffd70055';ctx.shadowBlur=10;ctx.fillStyle=coinCol;ctx.beginPath();ctx.arc(c.x,c.y,sz,0,6.28);ctx.fill();ctx.shadowBlur=0;
   ctx.fillStyle='rgba(255,255,255,0.4)';ctx.beginPath();ctx.arc(c.x-sz*0.2,c.y-sz*0.2,sz*0.3,0,6.28);ctx.fill();
+  if(isPink&&frame%4===0){ctx.fillStyle='#ff69b466';ctx.beginPath();ctx.arc(c.x+(Math.random()-0.5)*sz*2,c.y+(Math.random()-0.5)*sz*2,1+Math.random(),0,6.28);ctx.fill();}
 }
 function drawItem(it){
   const pl=Math.sin(it.p)*0.15+1,sz=it.sz*pl,col=ITEMS[it.t].col;
@@ -828,12 +908,7 @@ function drawUI(){
   // === BOTTOM AREA (above action panel) ===
   const panelTop=H-PANEL_H;
 
-  // Speed and coins (endless mode, bottom-left above panel)
-  if(!isPackMode||!currentPackStage){
-    ctx.fillStyle='#aabbcc';ctx.font='11px monospace';ctx.textAlign='left';
-    ctx.fillText('\u901F\u5EA6 '+speed.toFixed(1),10,panelTop-20);
-    ctx.fillText('\u25CF '+totalCoins,10,panelTop-6);
-  }
+  // Speed and coins are shown in drawActionPanel (right side of panel)
 
   // Active item bars (bottom-right, above action panel)
   const activeItems=[];
@@ -894,6 +969,13 @@ function drawActionPanel(){
   ctx.fillText(score,12,py+30);
   ctx.fillStyle='#ffd70088';ctx.font='10px monospace';
   ctx.fillText('HI: '+highScore,12,py+44);
+  // Speed and coin display (right of score, left of bomb button)
+  const infoX=W-btnSz-22;
+  ctx.fillStyle='#8899aa';ctx.font='11px monospace';ctx.textAlign='right';
+  ctx.fillText('\u901F\u5EA6 '+speed.toFixed(1),infoX,py+22);
+  ctx.fillStyle='#ffd700aa';
+  ctx.fillText('\u25CF '+totalCoins,infoX,py+38);
+  ctx.textAlign='left';
 }
 
 function drawMile(){

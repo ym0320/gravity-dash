@@ -955,3 +955,11 @@ function updateDemo(){
 // ===== PLAYER =====
 // gDir: 1=on floor (gravity down), -1=on ceiling (gravity up)
 let player={x:0,y:0,vy:0,gDir:1,rot:0,rotTarget:0,trail:[],alive:true,grounded:false,face:'normal',canFlip:true};
+
+// ===== NEW GIMMICK CONSTANTS =====
+const BOSS_HITBOX_SCALE=0.65;
+let gravGimmicks=[],gravGimmickCD=0;
+let fallingMtns=[],fallingMtnCD=0;
+const PINK_COIN_SCORE=5000,PINK_COIN_COLOR='#ff69b4',PINK_COIN_MUL=2;
+let coinSwitches=[],coinSwitchCD=0;
+const COIN_SW_W=36,COIN_SW_H=16,COIN_SW_COL='#4488ff';
