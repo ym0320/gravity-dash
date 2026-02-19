@@ -908,6 +908,18 @@ function drawPlayer(){
   ctx.beginPath();ctx.moveTo(player.x-5,player.y+ay-3*ad);ctx.lineTo(player.x,player.y+ay+3*ad);ctx.lineTo(player.x+5,player.y+ay-3*ad);ctx.stroke();
   ctx.lineCap='butt';
 
+  // Quake stun indicator (stars spinning around player)
+  if(player._quakeStunned){
+    ghostA*=0.6+Math.sin(frame*0.3)*0.15;
+    for(let i=0;i<3;i++){
+      const sa=frame*0.08+i*2.09;
+      const sx=player.x+Math.cos(sa)*pr*1.5,sy=player.y+Math.sin(sa*1.3)*pr*0.6-pr;
+      ctx.fillStyle='#ffdd00';ctx.font='bold 10px monospace';ctx.textAlign='center';
+      ctx.fillText('\u2605',sx,sy);
+    }
+    ctx.fillStyle='rgba(255,100,0,0.3)';
+    ctx.beginPath();ctx.arc(player.x,player.y,pr*1.2,0,6.28);ctx.fill();
+  }
   // Ghost character: always draw upright (don't flip body when gravity reverses)
   const charRot=ct().shape==='ghost'?0:player.rot;
   drawCharacter(player.x,player.y,selChar,pr,charRot,ghostA,player.face,dmgLv);

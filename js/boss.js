@@ -96,30 +96,27 @@ function spawnBossEnemies(){
     }
     bossPhase.total=chargeCount;
   } else if(bossType==='dodge'){
-    // Dodge type: 10 enemies rush from RIGHT to left, player dodges/stomps
-    // Phase 1: straight only, Phase 2+: diagonal added, Phase 3+: speed increase
+    // Dodge type: 10 enemies rush from RIGHT, player dodges/stomps
+    // Each enemy has spikes on top or bottom - must stomp the safe side
     const dodgeCount=10;
     const phase=bc;
     const baseSpd=3.5+(phase>=3?Math.min(phase-2,4)*0.6:0);
     for(let i=0;i<dodgeCount;i++){
       const spd=baseSpd+Math.random()*2;
-      let diagVy=0;
       const onFloor=Math.random()<0.5;
-      const startY=onFloor?floorY-PLAYER_R*5:ceilY+PLAYER_R*5;
       const gDir=onFloor?1:-1;
-      if(phase>=2&&Math.random()<0.4+Math.min(phase-2,3)*0.1){
-        const targetY=onFloor?ceilY+PLAYER_R*5:floorY-PLAYER_R*5;
-        const travelFrames=(W+160)/(spd);
-        diagVy=(targetY-startY)/travelFrames;
-      }
+      // Diagonal: always home toward player Y (no safe "stay on floor" cheese)
+      const diagStrength=phase>=2?(1.5+Math.min(phase-2,4)*0.4):0;
+      const spikeOnTop=Math.random()<0.5; // spike on top=true means stomp from below is safe
       const sz=PLAYER_R*5;
       bossPhase.dodgeQueue.push({
-        x:W+80+i*10,y:startY,vy:0,gDir:gDir,sz:sz,alive:true,fr:Math.random()*100,
+        x:W+80+i*10,y:onFloor?floorY-sz:ceilY+sz,vy:0,gDir:gDir,sz:sz,alive:true,fr:Math.random()*100,
         type:10,shootT:999,boss:true,bossType:'dodge',
         chargeVx:-spd,
-        diagVy:diagVy,
+        diagStrength:diagStrength,
+        spikeOnTop:spikeOnTop, // true = spikes on top, stomp from bottom; false = spikes on bottom
         chargeState:'wait',
-        rushDelay:30+i*20+Math.floor(Math.random()*15), // tighter spacing for 10 enemies
+        rushDelay:15+i*12+Math.floor(Math.random()*8), // much faster intervals, tighter spacing
         timer:0,
         missCount:0
       });
@@ -142,24 +139,37 @@ function spawnBossEnemies(){
     bossPhase.bruiser=bruiser;
     bossPhase.total=1;
   } else if(bossType==='guardian'){
-    // Guardian type: armored knight - fires sword flame, then shield-charges at player
+    // Guardian type: armored knight - jump → earthquake → charge → sword attack
+    // Player avoids earthquake by jumping, stomps guardian during charge phase
     const gsz=(28+Math.min(bc-1,3)*3)*2;
     const guardian={
       x:W+90,y:floorY-gsz,vy:0,gDir:1,sz:gsz,alive:true,fr:0,
       type:13,shootT:999,boss:true,bossType:'guardian',
-      hp:4,maxHp:4,
+      hp:3,maxHp:3,
       chargeSpd:3.5+Math.min(bc-1,5)*0.4,
       retreatSpd:4+Math.min(bc-1,3)*0.5,
       state:'enter',
       timer:0,stunT:0,hurtFlash:0,invT:0,
-      fireT:0,
-      shieldUp:false,
-      targetY:floorY-gsz, // vertical target for movement
-      vertSpd:1.5+Math.min(bc-1,4)*0.3, // vertical movement speed
-      jumpChargeEnabled:bc>=2, // phase 2+: irregular jumping during charge
-      jumpVy:0, // vertical velocity during jump-charge
-      stunDuration:Math.max(30,55-Math.min(bc-1,4)*5),
-      doubleWave:bc>=2
+      jumpVy:0,
+      // Jump parameters
+      bigJumpPower:-(12+Math.min(bc-1,4)*1.0), // big jump velocity
+      smallJumpPower:-(5+Math.min(bc-1,3)*0.5), // feint small jump
+      onCeiling:false, // whether currently on ceiling
+      // Earthquake parameters
+      quakeStunDuration:60+Math.min(bc-1,3)*10, // how long player is stunned by earthquake
+      quakeDuration:30, // visual earthquake frames
+      quakeT:0,
+      // Feint parameters (higher bc = more feints before real jump)
+      feintEnabled:bc>=2,
+      feintCount:bc>=3?1+Math.floor(Math.random()*Math.min(bc-2,3)):bc>=2?1:0,
+      feintsDone:0,
+      feintCooldown:0, // frames between feints
+      // Sword attack
+      swordSwingT:0,
+      swordDuration:25+Math.min(bc-1,3)*3,
+      swordReach:gsz*1.2,
+      // Stunned (after being stomped)
+      stunDuration:Math.max(35,55-Math.min(bc-1,4)*5)
     };
     bossPhase.guardian=guardian;
     bossPhase.total=1;
@@ -320,8 +330,8 @@ function updateBossPhase(){
       }
     }
   });
-  // Spawn and update dodge enemies
-  if(bossPhase.dodgeIdx<bossPhase.dodgeQueue.length){
+  // Spawn dodge enemies (allow multiple per frame for tight intervals)
+  while(bossPhase.dodgeIdx<bossPhase.dodgeQueue.length){
     const next=bossPhase.dodgeQueue[bossPhase.dodgeIdx];
     next.rushDelay--;
     if(next.rushDelay<=0){
@@ -329,19 +339,22 @@ function updateBossPhase(){
       enemies.push(next);
       bossPhase.enemies.push(next);
       bossPhase.dodgeIdx++;
-      sfx('shoot');shakeI=4;
-    }
+      sfx('dodgeWhoosh');shakeI=4;
+    } else break;
   }
   enemies.forEach(en=>{
     if(!en.alive||en.bossType!=='dodge')return;
     if(en.chargeState==='rush'){
       en.x+=en.chargeVx;
       en.timer++;
-      if(en.diagVy){
-        en.y+=en.diagVy;
+      // Homing: diagStrength pulls toward player Y (no safe "stay on floor" cheese)
+      if(en.diagStrength){
+        const targetY=player.y;
+        const dy2=targetY-en.y;
+        en.y+=Math.sign(dy2)*Math.min(Math.abs(dy2)*0.08,en.diagStrength);
         // Clamp to playfield
-        if(en.y-en.sz<ceilY){en.y=ceilY+en.sz;en.diagVy=Math.abs(en.diagVy);}
-        if(en.y+en.sz>floorY){en.y=floorY-en.sz;en.diagVy=-Math.abs(en.diagVy);}
+        if(en.y-en.sz<ceilY){en.y=ceilY+en.sz;}
+        if(en.y+en.sz>floorY){en.y=floorY-en.sz;}
       }
       en.fr+=0.2;
       if(frame%2===0){
@@ -360,17 +373,28 @@ function updateBossPhase(){
           en.alive=false;bossPhase.dodgeKills++;
           emitParts(en.x,en.y,15,'#ff00ff',4,3);sfx('stomp');shakeI=4;
         } else {
-          const stomped=en.gDir===1
-            ?(player.y+pr<en.y-en.sz*0.15&&player.vy>=0)
-            :(player.y-pr>en.y+en.sz*0.15&&player.vy<=0);
-          if(stomped){
+          // Stomp check: player above (floor enemy) or below (ceiling enemy)
+          const stompFromTop=(player.y+pr<en.y-en.sz*0.15&&player.vy>=0);
+          const stompFromBot=(player.y-pr>en.y+en.sz*0.15&&player.vy<=0);
+          // Spike check: spikeOnTop=true means top is dangerous, stomp from bottom safe
+          // spikeOnTop=false means bottom is dangerous, stomp from top safe
+          const hitSpike=(en.spikeOnTop&&stompFromTop)||(!en.spikeOnTop&&stompFromBot);
+          const safeStomp=(en.spikeOnTop&&stompFromBot)||(!en.spikeOnTop&&stompFromTop);
+          if(safeStomp){
             en.alive=false;bossPhase.dodgeKills++;
-            player.vy=en.gDir===1?-JUMP_POWER*0.8:JUMP_POWER*0.8;
+            player.vy=stompFromTop?-JUMP_POWER*0.8:JUMP_POWER*0.8;
             player.grounded=false;flipCount=0;player.canFlip=true;djumpUsed=false;djumpAvailable=true;
             shakeI=8;sfx('bossHit');sfx('gstomp');vibrate([15,10,20]);
             addPop(en.x,en.y-en.sz*en.gDir,'撃破!','#ffd700');
             emitParts(en.x,en.y,15,'#ffd700',6,3);
+          } else if(hitSpike){
+            // Stomped on spike side - take damage but enemy also dies
+            sfx('spikeHit');shakeI=6;vibrate([20,10,20]);
+            hurt();
+            en.alive=false;bossPhase.dodgeKills++;
+            emitParts(en.x,en.y,10,'#ff4444',4,2);
           } else {
+            // Side collision - just take damage
             hurt();
           }
         }
@@ -461,7 +485,7 @@ function updateBossPhase(){
       if(sy>-100)b.y=sy+b.sz;
     }
   }
-  // Phase C: guardian boss logic (sword fire → shield charge → retreat)
+  // Phase C: guardian boss logic (jump → earthquake → charge → sword → retreat)
   const guardianActive=bossPhase.guardian&&bossPhase.guardian.alive;
   if(chargesCleared&&guardianActive){
     const g=bossPhase.guardian;
@@ -475,95 +499,165 @@ function updateBossPhase(){
     const floorY2=H-GROUND_H;
     const ceilY2=GROUND_H;
     if(g.state==='enter'){
+      // Walk in from right
       g.x-=2;
-      if(g.x<=W*0.7){g.state='fireAttack';g.timer=0;g.fireT=40;g.shieldUp=false;}
-    } else if(g.state==='fireAttack'){
-      // Sword fire attack: telegraph then shoot flame projectile(s)
-      g.fireT--;
-      g.x+=(Math.random()-0.5)*1.5; // shake during windup
-      // Track player vertically
-      const dy=player.y-(g.y+g.sz*0.5);
-      g.y+=Math.sign(dy)*Math.min(Math.abs(dy)*0.05,g.vertSpd*0.5);
-      if(g.fireT===10){
-        // Fire flame projectile(s) toward player
-        const fx=g.x-g.sz*0.5,fy=g.y+g.sz*0.3;
-        const dx2=player.x-fx,dy2=player.y-fy;
-        const d2=Math.sqrt(dx2*dx2+dy2*dy2)||1;
-        const fspd=5+Math.min(bc-1,4)*0.5;
-        bullets.push({x:fx,y:fy,vx:dx2/d2*fspd,vy:dy2/d2*fspd,sz:8,life:80,flameBullet:true});
-        if(g.doubleWave){
-          // Spread shot at phase 2+
-          const ang=Math.atan2(dy2,dx2);
-          bullets.push({x:fx,y:fy,vx:Math.cos(ang+0.25)*fspd,vy:Math.sin(ang+0.25)*fspd,sz:6,life:60,flameBullet:true});
-          bullets.push({x:fx,y:fy,vx:Math.cos(ang-0.25)*fspd,vy:Math.sin(ang-0.25)*fspd,sz:6,life:60,flameBullet:true});
+      const sy=floorSurfaceY(g.x);
+      if(sy<H+100)g.y=sy-g.sz;
+      if(g.x<=W*0.65){
+        g.state='jumpPrep';g.timer=0;g.feintsDone=0;
+        g.feintCount=g.feintEnabled?(bc>=3?1+Math.floor(Math.random()*Math.min(bc-2,3)):1):0;
+      }
+    } else if(g.state==='jumpPrep'){
+      // Brief crouch before jumping (telegraph)
+      const sy=floorSurfaceY(g.x);
+      if(sy<H+100)g.y=sy-g.sz;
+      g.x+=(Math.random()-0.5)*0.5; // subtle shake
+      if(g.timer>=15){
+        // Decide: feint or real jump?
+        if(g.feintsDone<g.feintCount&&Math.random()<0.6){
+          // Feint: small jump, no earthquake
+          g.state='feintJump';g.timer=0;
+          g.jumpVy=g.smallJumpPower;
+          sfx('jump');
+        } else {
+          // Real big jump!
+          g.state='bigJump';g.timer=0;
+          g.jumpVy=g.bigJumpPower;
+          sfx('guardianJump');shakeI=4;vibrate(10);
+          emitParts(g.x,g.y+g.sz,8,'#8a7060',4,2);
         }
-        sfx('shoot');shakeI=6;vibrate(15);
-        emitParts(fx,fy,8,'#ff4400',4,2);
       }
-      if(g.fireT<=0){
-        // Raise shield and charge!
-        g.state='shieldCharge';g.timer=0;g.shieldUp=true;g.jumpVy=0;
-        sfx('death');
+    } else if(g.state==='feintJump'){
+      // Small jump - lands without earthquake
+      g.jumpVy+=GRAVITY;
+      g.y+=g.jumpVy;
+      const sy=floorSurfaceY(g.x);
+      if(g.jumpVy>0&&g.y+g.sz>=sy){
+        g.y=sy-g.sz;g.jumpVy=0;
+        g.feintsDone++;
+        // Small landing thud, no earthquake
+        shakeI=3;sfx('stomp');
+        emitParts(g.x,sy,4,'#8a7060',2,1);
+        // Brief pause then prep another jump
+        g.state='jumpPrep';g.timer=0;
+        g.feintCooldown=15+Math.floor(Math.random()*10);
       }
-    } else if(g.state==='shieldCharge'){
-      // Charge toward player with shield up (blocks stomps from front)
+      // Clamp to ceiling
+      if(g.y<ceilY2){g.y=ceilY2;g.jumpVy=Math.abs(g.jumpVy)*0.3;}
+    } else if(g.state==='bigJump'){
+      // Big jump - reaches near ceiling, then falls down for earthquake
+      g.jumpVy+=GRAVITY;
+      g.y+=g.jumpVy;
+      // At apex, hang briefly
+      if(g.jumpVy>0&&!g._falling){
+        g._falling=true; // mark start of descent
+      }
+      // Clamp to ceiling (bounce slightly)
+      if(g.y<ceilY2+g.sz*0.5){g.y=ceilY2+g.sz*0.5;if(g.jumpVy<0)g.jumpVy=2;}
+      // Land on floor → earthquake!
+      const sy=floorSurfaceY(g.x);
+      if(g.jumpVy>0&&g.y+g.sz>=sy){
+        g.y=sy-g.sz;g.jumpVy=0;g._falling=false;
+        g.state='earthquake';g.timer=0;g.quakeT=g.quakeDuration;
+        sfx('earthquake');shakeI=20;vibrate([40,20,60,30,40]);
+        // Big landing particles
+        for(let i=0;i<15;i++){
+          const a=Math.PI+Math.random()*Math.PI; // upward fan
+          const s2=2+Math.random()*5;
+          parts.push({x:g.x+(Math.random()-0.5)*g.sz,y:sy,vx:Math.cos(a)*s2,vy:Math.sin(a)*s2,
+            life:25+Math.random()*20,ml:45,sz:Math.random()*5+2,col:['#8a7060','#a0906a','#c0b080'][i%3]});
+        }
+        // Shockwave both directions (visual)
+        const waveSpd=5+Math.min(bc-1,4)*0.5;
+        bullets.push({x:g.x,y:sy-6,vx:-waveSpd,vy:0,sz:12,life:80,shockwave:true,baseY:sy-6});
+        bullets.push({x:g.x,y:sy-6,vx:waveSpd,vy:0,sz:12,life:80,shockwave:true,baseY:sy-6});
+        // Also shockwave on ceiling (earthquake affects both surfaces)
+        bullets.push({x:g.x,y:ceilY2+6,vx:-waveSpd,vy:0,sz:12,life:80,shockwave:true,baseY:ceilY2+6});
+        bullets.push({x:g.x,y:ceilY2+6,vx:waveSpd,vy:0,sz:12,life:80,shockwave:true,baseY:ceilY2+6});
+      }
+    } else if(g.state==='earthquake'){
+      // Earthquake stuns grounded player (both floor AND ceiling)
+      g.quakeT--;
+      // Screen shake during earthquake
+      if(g.quakeT>10)shakeI=Math.max(shakeI,5);
+      // Stun check: if player is grounded (on floor or ceiling), stun them
+      if(g.quakeT>5&&g.quakeT<g.quakeDuration-5&&player.grounded){
+        // Player is grounded during earthquake = stunned!
+        if(!player._quakeStunned){
+          player._quakeStunned=true;
+          player._quakeStunT=g.quakeStunDuration;
+          sfx('hurt');vibrate([20,10,30]);shakeI=8;
+          addPop(player.x,player.y-30,'スタン!','#ff6600');
+          emitParts(player.x,player.y,8,'#ff6600',3,2);
+        }
+      }
+      // Ground crack particles
+      if(g.quakeT%3===0){
+        const sx=g.x+(Math.random()-0.5)*W*0.5;
+        parts.push({x:sx,y:floorY2,vx:(Math.random()-0.5)*2,vy:-1-Math.random()*3,
+          life:15,ml:15,sz:Math.random()*3+1,col:'#8a7060'});
+        parts.push({x:sx+(Math.random()-0.5)*W*0.3,y:ceilY2,vx:(Math.random()-0.5)*2,vy:1+Math.random()*3,
+          life:15,ml:15,sz:Math.random()*3+1,col:'#8a7060'});
+      }
+      if(g.quakeT<=0){
+        // Earthquake done, charge toward player!
+        g.state='charge';g.timer=0;
+      }
+    } else if(g.state==='charge'){
+      // Charge toward player's X position (VULNERABLE to stomping!)
       const dx=player.x-g.x;
       g.x+=Math.sign(dx)*g.chargeSpd;
       g.fr+=0.15;
-      // Vertical tracking: move toward player's Y position
-      const dy=player.y-(g.y+g.sz*0.5);
-      if(g.jumpChargeEnabled){
-        // Phase 2+: irregular jumping during charge
-        if(g.jumpVy===0&&g.timer>8&&Math.random()<0.03*bc){
-          g.jumpVy=-5-Math.random()*3;
-          sfx('click');
-        }
-        if(g.jumpVy!==0){
-          g.jumpVy+=GRAVITY;
-          g.y+=g.jumpVy;
-          // Land on floor or ceiling
-          if(g.y+g.sz>=floorY2&&g.jumpVy>0){g.y=floorY2-g.sz;g.jumpVy=0;}
-          if(g.y<=ceilY2&&g.jumpVy<0){g.y=ceilY2;g.jumpVy=0;}
-        } else {
-          g.y+=Math.sign(dy)*Math.min(Math.abs(dy)*0.06,g.vertSpd);
-        }
-      } else {
-        // Phase 1: smooth vertical tracking
-        g.y+=Math.sign(dy)*Math.min(Math.abs(dy)*0.06,g.vertSpd);
-      }
-      // Clamp to playfield
-      if(g.y+g.sz>floorY2)g.y=floorY2-g.sz;
-      if(g.y<ceilY2)g.y=ceilY2;
+      // Stay on floor during charge
+      const sy=floorSurfaceY(g.x);
+      if(sy<H+100)g.y=sy-g.sz;
       // Trail particles
       if(frame%2===0){
-        parts.push({x:g.x+g.sz*0.5,y:g.y+g.sz*0.5,vx:2+Math.random(),vy:(Math.random()-0.5)*2,
+        parts.push({x:g.x+(g.x>player.x?g.sz*0.5:-g.sz*0.5),y:g.y+g.sz*0.5,vx:(g.x>player.x?2:-2)+Math.random(),vy:(Math.random()-0.5)*2,
           life:12,ml:12,sz:Math.random()*4+2,col:'#4488cc'});
       }
-      // Reached player's X position → immediately retreat
-      if(Math.abs(dx)<g.sz*0.5||g.x<player.x-g.sz){
-        g.state='retreat';g.timer=0;g.shieldUp=true;g.jumpVy=0;
-        // Shockwave on arrival
-        const sy=g.y+g.sz;
-        if(sy>=floorY2-5){
-          shakeI=10;vibrate([15,10,20]);
-          emitParts(g.x,floorY2,8,'#ffaa00',3,2);
-          const waveSpd=4+Math.min(bc-1,4)*0.5;
-          bullets.push({x:g.x,y:floorY2-6,vx:-waveSpd,vy:0,sz:10,life:80,shockwave:true,baseY:floorY2-6});
-          if(g.doubleWave) bullets.push({x:g.x,y:floorY2-6,vx:waveSpd,vy:0,sz:10,life:80,shockwave:true,baseY:floorY2-6});
+      // Reached player's X position → sword attack!
+      if(Math.abs(dx)<g.sz*0.6||g.timer>120){
+        g.state='swordAttack';g.timer=0;g.swordSwingT=g.swordDuration;
+        sfx('swordSlash');shakeI=6;vibrate([10,5,15]);
+      }
+    } else if(g.state==='swordAttack'){
+      // Sword slash at player position
+      g.swordSwingT--;
+      // Stay on floor
+      const sy=floorSurfaceY(g.x);
+      if(sy<H+100)g.y=sy-g.sz;
+      // Sword hitbox active during swing
+      if(g.swordSwingT>g.swordDuration*0.3&&g.swordSwingT<g.swordDuration*0.8){
+        // Check if player is within sword reach
+        const sdx=player.x-g.x,sdy=player.y-(g.y+g.sz*0.3);
+        const sd=Math.sqrt(sdx*sdx+sdy*sdy);
+        if(sd<g.swordReach&&!player._swordHitThisSwing){
+          player._swordHitThisSwing=true;
+          hurt();
+          sfx('hurt');shakeI=8;vibrate([15,10,20]);
         }
       }
+      // Swing end particles
+      if(g.swordSwingT===Math.floor(g.swordDuration*0.5)){
+        const sx=g.x-g.sz*0.3;
+        emitParts(sx,g.y+g.sz*0.3,6,'#c0d0e0',3,2);
+      }
+      if(g.swordSwingT<=0){
+        player._swordHitThisSwing=false;
+        g.state='retreat';g.timer=0;
+      }
     } else if(g.state==='retreat'){
-      // Quickly back away to right side, shield still up
+      // Back away to right side
       g.x+=g.retreatSpd;
       g.fr+=0.08;
-      // Return to floor level during retreat
+      // Stay on floor during retreat
       const sy=floorSurfaceY(g.x);
-      if(sy<H+100){
-        const floorTarget=sy-g.sz;
-        g.y+=(floorTarget-g.y)*0.1;
-      }
-      if(g.timer>=30||g.x>=W*0.72){
-        g.state='fireAttack';g.timer=0;g.fireT=40+Math.floor(Math.random()*20);g.shieldUp=false;
+      if(sy<H+100){const ft=sy-g.sz;g.y+=(ft-g.y)*0.1;}
+      if(g.timer>=35||g.x>=W*0.65){
+        // Start next attack cycle
+        g.state='jumpPrep';g.timer=0;g.feintsDone=0;
+        g.feintCount=g.feintEnabled?(bc>=3?1+Math.floor(Math.random()*Math.min(bc-2,3)):1):0;
       }
     } else if(g.state==='stunned'){
       g.stunT--;
@@ -571,7 +665,7 @@ function updateBossPhase(){
       const sy=floorSurfaceY(g.x);
       if(sy<H+100)g.y=sy-g.sz;
       if(g.stunT<=0){
-        g.state='retreat';g.timer=0;g.shieldUp=true;
+        g.state='retreat';g.timer=0;
       }
     } else if(g.state==='invincible'){
       g.invT--;
@@ -579,9 +673,14 @@ function updateBossPhase(){
       // Return to floor
       const sy=floorSurfaceY(g.x);
       if(sy<H+100){const ft=sy-g.sz;g.y+=(ft-g.y)*0.15;}
-      if(g.invT<=0){g.state='retreat';g.timer=0;g.shieldUp=true;}
+      if(g.invT<=0){g.state='retreat';g.timer=0;}
     }
-    // Collision check
+    // Player quake stun countdown (freezes player movement handled in update.js)
+    if(player._quakeStunT>0){
+      player._quakeStunT--;
+      if(player._quakeStunT<=0){player._quakeStunned=false;}
+    }
+    // Collision check (skip during invincible)
     if(g.invT<=0){
       const dx=player.x-g.x,dy=player.y-(g.y+g.sz*0.5);
       const d=Math.sqrt(dx*dx+dy*dy);
@@ -594,19 +693,18 @@ function updateBossPhase(){
         } else {
           // Stomp check: player above guardian and falling down
           const stomped=(player.y+pr<g.y-g.sz*0.15&&player.vy>=0&&player.gDir===1);
-          // Shield block: if shield is up, stomp fails
-          const shieldBlock=g.shieldUp&&stomped;
-          if(stomped&&!shieldBlock){
+          // Can only stomp during charge state (vulnerable phase)
+          if(stomped&&g.state==='charge'){
             g.hp--;g.hurtFlash=20;
-            g.state='stunned';g.stunT=g.stunDuration;g.timer=0;g.shieldUp=false;g.jumpVy=0;
+            g.state='stunned';g.stunT=g.stunDuration;g.timer=0;g.jumpVy=0;
             player.vy=-JUMP_POWER*0.8;player.grounded=false;
             flipCount=0;player.canFlip=true;djumpUsed=false;djumpAvailable=true;
             shakeI=12;sfx('bossHit');sfx('gstompHeavy');vibrate([20,10,30]);
             addPop(g.x,g.y-g.sz-10,'HP '+g.hp+'/'+g.maxHp,'#ffaa00');
             emitParts(g.x,g.y-g.sz,12,'#ffaa00',5,3);
             if(g.hp<=0){bossGuardianDefeat(g);}
-          } else if(shieldBlock){
-            // Shield deflects: player bounces off, takes damage
+          } else if(stomped&&g.state!=='charge'){
+            // Stomp outside charge phase = bounce off armor, take damage
             player.vy=-JUMP_POWER*0.5;player.grounded=false;
             sfx('hurt');vibrate(15);shakeI=6;
             addPop(g.x,g.y-g.sz-10,'BLOCKED!','#88ccff');
@@ -987,7 +1085,7 @@ function drawBossGuardian(en){
   // Shadow
   ctx.fillStyle='rgba(0,0,0,0.3)';ctx.beginPath();ctx.ellipse(0,s*0.85,s*0.7,s*0.12,0,0,6.28);ctx.fill();
   // Legs (animated walk)
-  const legSpd=en.state==='shieldCharge'?1.5:en.state==='stunned'?0:en.state==='retreat'?1.0:0.6;
+  const legSpd=en.state==='charge'?1.5:en.state==='stunned'?0:en.state==='retreat'?1.0:en.state==='jumpPrep'?0.3:0.6;
   const legPhase=Math.sin(t*legSpd)*s*0.1;
   ctx.fillStyle=dmg>=3?'#1a2030':'#2a3040';
   ctx.fillRect(-s*0.4+legPhase,s*0.25,s*0.22,s*0.55);
@@ -1034,26 +1132,13 @@ function drawBossGuardian(en){
     ctx.lineTo(s*0.3,s*0.1);ctx.lineTo(0,s*0.2);ctx.lineTo(-s*0.3,s*0.1);
     ctx.closePath();ctx.fill();
   }
-  // Shield (left side - blue steel, glows when blocking)
-  if(en.shieldUp){
-    const shieldGlow=en.state==='shieldCharge'?0.8+Math.sin(t*0.8)*0.2:0.6;
-    ctx.globalAlpha=(en.invT>0&&en.invT%6<3?0.25:en.hurtFlash>0&&en.hurtFlash%4<2?0.5:1)*shieldGlow;
-    ctx.fillStyle='#4488cc';ctx.shadowColor='#4488cc';ctx.shadowBlur=10;
-    ctx.beginPath();
-    ctx.moveTo(-s*0.65,-s*0.6);ctx.quadraticCurveTo(-s*1.1,-s*0.35,-s*1.05,0);
-    ctx.quadraticCurveTo(-s*1.1,s*0.35,-s*0.65,s*0.4);
-    ctx.lineTo(-s*0.55,s*0.3);ctx.quadraticCurveTo(-s*0.85,0,-s*0.55,-s*0.5);
-    ctx.closePath();ctx.fill();
-    ctx.shadowBlur=0;
-    // Shield emblem (cross)
-    ctx.strokeStyle='#88bbee';ctx.lineWidth=2;
-    ctx.beginPath();ctx.moveTo(-s*0.8,-s*0.25);ctx.lineTo(-s*0.8,s*0.15);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(-s*0.95,-s*0.05);ctx.lineTo(-s*0.65,-s*0.05);ctx.stroke();
-    ctx.globalAlpha=en.invT>0&&en.invT%6<3?0.25:en.hurtFlash>0&&en.hurtFlash%4<2?0.5:1;
-  }
+  // Left arm (armored gauntlet)
+  ctx.fillStyle=dmg>=2?'#3a4a55':'#5a6a75';
+  ctx.fillRect(-s*0.7,-s*0.3,s*0.2,s*0.5);
   // Sword arm (right side)
-  const swordAngle=en.state==='fireAttack'?-0.5-Math.sin(en.fireT*0.2)*0.3:
-    en.state==='shieldCharge'?0.3:en.state==='stunned'?0.3:0;
+  const swordAngle=en.state==='swordAttack'?-1.2+Math.sin(en.swordSwingT*0.3)*0.8:
+    en.state==='charge'?0.3:en.state==='stunned'?0.5:
+    en.state==='jumpPrep'?-0.3:en.state==='bigJump'||en.state==='feintJump'?-0.8:0;
   ctx.save();ctx.translate(s*0.5,-s*0.2);ctx.rotate(swordAngle);
   ctx.fillStyle='#c0d0e0';
   ctx.fillRect(-s*0.04,-s*0.8,s*0.08,s*0.9); // blade
@@ -1072,7 +1157,7 @@ function drawBossGuardian(en){
   ctx.fillStyle=dmg>=2?'#3a4050':'#6a7a8a';
   ctx.beginPath();ctx.moveTo(0,-s*0.95);ctx.lineTo(-s*0.06,-s*0.7);ctx.lineTo(s*0.06,-s*0.7);ctx.closePath();ctx.fill();
   // Visor slit (glowing eyes behind)
-  const eyeCol=en.state==='fireAttack'||en.state==='shieldCharge'?'#ff4400':'#ffaa00';
+  const eyeCol=en.state==='earthquake'||en.state==='swordAttack'?'#ff0000':en.state==='charge'?'#ff4400':en.state==='bigJump'?'#ff6600':'#ffaa00';
   ctx.fillStyle=eyeCol;ctx.shadowColor=eyeCol;ctx.shadowBlur=6;
   ctx.fillRect(-s*0.18,-s*0.7,s*0.36,s*0.06);ctx.shadowBlur=0;
   // HP bar
@@ -1093,17 +1178,41 @@ function drawBossGuardian(en){
       ctx.fillText('\u2605',sx,sy2);
     }
   }
-  // Fire attack telegraph (! above head)
-  if(en.state==='fireAttack'){
-    const wa=Math.sin(en.fireT*0.4)*0.3+0.7;
-    ctx.globalAlpha=wa;ctx.fillStyle='#ff4400';ctx.font='bold 16px monospace';ctx.textAlign='center';
+  // Jump prep telegraph (crouch + "!" above head)
+  if(en.state==='jumpPrep'){
+    const wa=0.5+Math.sin(t*3)*0.3;
+    ctx.globalAlpha=wa;ctx.fillStyle='#ff6600';ctx.font='bold 16px monospace';ctx.textAlign='center';
     ctx.fillText('!',0,-s*1.15);ctx.globalAlpha=1;
   }
-  // Shield charge indicator
-  if(en.state==='shieldCharge'){
-    const ca=0.5+Math.sin(t*3)*0.3;
-    ctx.globalAlpha=ca;ctx.strokeStyle='#4488cc';ctx.lineWidth=2;
+  // Big jump indicator (upward arrow)
+  if(en.state==='bigJump'||en.state==='feintJump'){
+    const ja=0.6+Math.sin(t*4)*0.4;
+    ctx.globalAlpha=ja;ctx.fillStyle='#ff4400';ctx.font='bold 14px monospace';ctx.textAlign='center';
+    ctx.fillText('\u25B2',0,-s*1.2);ctx.globalAlpha=1;
+  }
+  // Earthquake indicator (ground ripples)
+  if(en.state==='earthquake'){
+    const qa=0.4+Math.sin(t*6)*0.4;
+    ctx.globalAlpha=qa;ctx.strokeStyle='#ff6600';ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(0,s*0.8,s*1.0+Math.sin(t*3)*s*0.2,0,Math.PI);ctx.stroke();
+    ctx.beginPath();ctx.arc(0,s*0.8,s*1.5+Math.sin(t*3+1)*s*0.2,0,Math.PI);ctx.stroke();
+    ctx.globalAlpha=1;
+  }
+  // Charge indicator (vulnerable - green ring)
+  if(en.state==='charge'){
+    const ca=0.4+Math.sin(t*3)*0.3;
+    ctx.globalAlpha=ca;ctx.strokeStyle='#44cc44';ctx.lineWidth=2;
     ctx.beginPath();ctx.arc(0,-s*0.3,s*0.9+Math.sin(t*2)*s*0.1,0,6.28);ctx.stroke();
+    ctx.fillStyle='#44cc44';ctx.font='bold 12px monospace';ctx.textAlign='center';
+    ctx.fillText('\u8E0F\u3081!',0,-s*1.2);
+    ctx.globalAlpha=1;
+  }
+  // Sword attack indicator (slash arc)
+  if(en.state==='swordAttack'){
+    const sa=0.5+Math.sin(t*5)*0.3;
+    ctx.globalAlpha=sa;ctx.strokeStyle='#ff3333';ctx.lineWidth=3;
+    const slashAng=-1.5+Math.sin(en.swordSwingT*0.3)*1.2;
+    ctx.beginPath();ctx.arc(s*0.3,-s*0.2,s*1.0,slashAng-0.5,slashAng+0.5);ctx.stroke();
     ctx.globalAlpha=1;
   }
   ctx.restore();
@@ -1163,6 +1272,33 @@ function drawBossCharge(en){
   for(let i=0;i<exhaustCount;i++){
     const px=s*0.7+Math.random()*s*0.4,py=(Math.random()-0.5)*s*0.5;
     ctx.beginPath();ctx.arc(px,py,s*0.1+Math.random()*s*0.1,0,6.28);ctx.fill();
+  }
+  // Spikes for dodge enemies (spikeOnTop property)
+  if(isDodge&&en.spikeOnTop!==undefined){
+    const spikeCount=5;
+    const spikeH=s*0.35;
+    const spikeW=s*0.22;
+    // Draw spikes on the dangerous side
+    ctx.fillStyle='#ff3333';ctx.strokeStyle='#cc0000';ctx.lineWidth=1;
+    if(en.spikeOnTop){
+      // Spikes on top
+      for(let i=0;i<spikeCount;i++){
+        const sx=-s*0.6+i*(s*1.2/(spikeCount-1));
+        ctx.beginPath();ctx.moveTo(sx-spikeW/2,-s*0.5);ctx.lineTo(sx,-s*0.5-spikeH);ctx.lineTo(sx+spikeW/2,-s*0.5);ctx.closePath();ctx.fill();ctx.stroke();
+      }
+      // Glowing warning on spike side
+      ctx.fillStyle='rgba(255,50,50,'+(.2+Math.sin(en.fr*2)*.15)+')';
+      ctx.fillRect(-s*0.7,-s*0.55,s*1.4,s*0.15);
+    } else {
+      // Spikes on bottom
+      for(let i=0;i<spikeCount;i++){
+        const sx=-s*0.6+i*(s*1.2/(spikeCount-1));
+        ctx.beginPath();ctx.moveTo(sx-spikeW/2,s*0.5);ctx.lineTo(sx,s*0.5+spikeH);ctx.lineTo(sx+spikeW/2,s*0.5);ctx.closePath();ctx.fill();ctx.stroke();
+      }
+      // Glowing warning on spike side
+      ctx.fillStyle='rgba(255,50,50,'+(.2+Math.sin(en.fr*2)*.15)+')';
+      ctx.fillRect(-s*0.7,s*0.4,s*1.4,s*0.15);
+    }
   }
   ctx.restore();
 }
