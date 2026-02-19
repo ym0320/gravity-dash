@@ -124,6 +124,7 @@ function reset(){
   player.x=W*0.2;player.gDir=1;player.vy=0;
   player.rot=0;player.rotTarget=0;player.trail=[];player.alive=true;
   player.grounded=false;player.face='normal';player.canFlip=true;
+  player._quakeStunned=false;player._quakeStunT=0;player._swordHitThisSwing=false;
   platforms=[];ceilPlats=[];
   // Initial safe start platform (shorter so difficulty kicks in sooner)
   platforms.push({x:-20,w:W*0.9,h:GROUND_H});
@@ -158,6 +159,7 @@ function resetPackStage(pi,si){
   player.x=W*0.2;player.gDir=1;player.vy=0;
   player.rot=0;player.rotTarget=0;player.trail=[];player.alive=true;
   player.grounded=false;player.face='normal';player.canFlip=true;
+  player._quakeStunned=false;player._quakeStunT=0;player._swordHitThisSwing=false;
   // Generate deterministic terrain from seed
   platforms=[];ceilPlats=[];
   platforms.push({x:-20,w:W*0.9,h:GROUND_H});

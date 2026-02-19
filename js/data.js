@@ -526,6 +526,61 @@ function sfx(type){
         {const h1=audioCtx.createOscillator(),hg1=audioCtx.createGain();h1.connect(hg1);hg1.connect(sfxGain);h1.type='sawtooth';h1.frequency.setValueAtTime(120,t);h1.frequency.exponentialRampToValueAtTime(30,t+0.3);hg1.gain.setValueAtTime(0.12,t);hg1.gain.exponentialRampToValueAtTime(0.001,t+0.3);h1.start(t);h1.stop(t+0.32);}
         {const n3=audioCtx.createBufferSource(),b3=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.15)),audioCtx.sampleRate),d3=b3.getChannelData(0);for(let i=0;i<d3.length;i++)d3[i]=(Math.random()*2-1)*Math.exp(-i/(audioCtx.sampleRate*0.05));n3.buffer=b3;const g3=audioCtx.createGain();n3.connect(g3);g3.connect(sfxGain);g3.gain.setValueAtTime(0.18,t);g3.gain.exponentialRampToValueAtTime(0.001,t+0.15);n3.start(t);n3.stop(t+0.15);}
         break;
+      case'earthquake':
+        // Deep rumble: low sine + noise + sub-bass wobble
+        o.type='sine';o.frequency.setValueAtTime(45,t);o.frequency.exponentialRampToValueAtTime(25,t+0.6);
+        g.gain.setValueAtTime(0.2,t);g.gain.linearRampToValueAtTime(0.15,t+0.3);g.gain.exponentialRampToValueAtTime(0.001,t+0.7);
+        o.start(t);o.stop(t+0.7);
+        {const eq1=audioCtx.createOscillator(),eq1g=audioCtx.createGain();eq1.connect(eq1g);eq1g.connect(sfxGain);
+        eq1.type='sawtooth';eq1.frequency.setValueAtTime(60,t);eq1.frequency.exponentialRampToValueAtTime(20,t+0.5);
+        eq1g.gain.setValueAtTime(0.12,t);eq1g.gain.exponentialRampToValueAtTime(0.001,t+0.5);eq1.start(t);eq1.stop(t+0.55);}
+        {const eqn=audioCtx.createBufferSource(),eqb=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.5)),audioCtx.sampleRate),eqd=eqb.getChannelData(0);
+        for(let i=0;i<eqd.length;i++)eqd[i]=(Math.random()*2-1)*0.5*Math.exp(-i/(audioCtx.sampleRate*0.15));
+        eqn.buffer=eqb;const eqng=audioCtx.createGain();eqn.connect(eqng);eqng.connect(sfxGain);
+        eqng.gain.setValueAtTime(0.18,t);eqng.gain.exponentialRampToValueAtTime(0.001,t+0.5);eqn.start(t);eqn.stop(t+0.55);}
+        break;
+      case'swordSlash':
+        // Sharp metallic swoosh: high-pitched sine sweep + noise burst
+        o.type='sawtooth';o.frequency.setValueAtTime(800,t);o.frequency.exponentialRampToValueAtTime(200,t+0.12);
+        g.gain.setValueAtTime(0.15,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+        o.start(t);o.stop(t+0.2);
+        {const sw1=audioCtx.createOscillator(),sw1g=audioCtx.createGain();sw1.connect(sw1g);sw1g.connect(sfxGain);
+        sw1.type='sine';sw1.frequency.setValueAtTime(2000,t);sw1.frequency.exponentialRampToValueAtTime(600,t+0.08);
+        sw1g.gain.setValueAtTime(0.08,t);sw1g.gain.exponentialRampToValueAtTime(0.001,t+0.1);sw1.start(t);sw1.stop(t+0.12);}
+        {const swn=audioCtx.createBufferSource(),swb=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.08)),audioCtx.sampleRate),swd=swb.getChannelData(0);
+        for(let i=0;i<swd.length;i++)swd[i]=(Math.random()*2-1)*Math.exp(-i/(audioCtx.sampleRate*0.02));
+        swn.buffer=swb;const swng=audioCtx.createGain();swn.connect(swng);swng.connect(sfxGain);
+        swng.gain.setValueAtTime(0.1,t);swng.gain.exponentialRampToValueAtTime(0.001,t+0.08);swn.start(t);swn.stop(t+0.1);}
+        break;
+      case'dodgeWhoosh':
+        // Fast whoosh: filtered noise + sine sweep
+        o.type='sine';o.frequency.setValueAtTime(400,t);o.frequency.exponentialRampToValueAtTime(150,t+0.15);
+        g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+        o.start(t);o.stop(t+0.2);
+        {const dwn=audioCtx.createBufferSource(),dwb=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.12)),audioCtx.sampleRate),dwd=dwb.getChannelData(0);
+        for(let i=0;i<dwd.length;i++){const env=Math.sin(Math.PI*i/dwd.length);dwd[i]=(Math.random()*2-1)*0.3*env;}
+        dwn.buffer=dwb;const dwng=audioCtx.createGain();dwn.connect(dwng);dwng.connect(sfxGain);
+        dwng.gain.setValueAtTime(0.12,t);dwng.gain.exponentialRampToValueAtTime(0.001,t+0.12);dwn.start(t);dwn.stop(t+0.14);}
+        break;
+      case'spikeHit':
+        // Harsh metallic impact: square wave + noise
+        o.type='square';o.frequency.setValueAtTime(300,t);o.frequency.exponentialRampToValueAtTime(100,t+0.1);
+        g.gain.setValueAtTime(0.18,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.15);
+        o.start(t);o.stop(t+0.17);
+        {const spn=audioCtx.createBufferSource(),spb=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.1)),audioCtx.sampleRate),spd=spb.getChannelData(0);
+        for(let i=0;i<spd.length;i++)spd[i]=(Math.random()*2-1)*Math.exp(-i/(audioCtx.sampleRate*0.03));
+        spn.buffer=spb;const spng=audioCtx.createGain();spn.connect(spng);spng.connect(sfxGain);
+        spng.gain.setValueAtTime(0.15,t);spng.gain.exponentialRampToValueAtTime(0.001,t+0.1);spn.start(t);spn.stop(t+0.12);}
+        break;
+      case'guardianJump':
+        // Heavy launch: deep thud + rising tone
+        o.type='sine';o.frequency.setValueAtTime(100,t);o.frequency.exponentialRampToValueAtTime(300,t+0.15);
+        g.gain.setValueAtTime(0.15,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);
+        o.start(t);o.stop(t+0.27);
+        {const gj1=audioCtx.createOscillator(),gj1g=audioCtx.createGain();gj1.connect(gj1g);gj1g.connect(sfxGain);
+        gj1.type='square';gj1.frequency.setValueAtTime(60,t);gj1.frequency.exponentialRampToValueAtTime(40,t+0.1);
+        gj1g.gain.setValueAtTime(0.12,t);gj1g.gain.exponentialRampToValueAtTime(0.001,t+0.12);gj1.start(t);gj1.stop(t+0.15);}
+        break;
     }
   }catch(e){}
 }

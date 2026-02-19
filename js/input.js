@@ -315,7 +315,7 @@ canvas.addEventListener('touchend',e=>{
   const t=e.changedTouches[0];
   const dy=t.clientY-touchStartY;
 
-  if(touchMoved&&Math.abs(dy)>30){
+  if(touchMoved&&Math.abs(dy)>30&&!player._quakeStunned){
     // Swipe: flip gravity to the swiped direction (only if canFlip)
     if(player.canFlip&&dy>0&&player.gDir===-1){
       player.gDir=1;player.vy=2;totalFlips++;flipCount++;flipTimer=0;
@@ -379,13 +379,13 @@ canvas.addEventListener('mousedown',e=>{
     const btnId=hitDeadBtn(p.x,p.y);
     if(btnId)handleDeadBtn(btnId);
   }
-  else if(state===ST.PLAY&&player.grounded){
+  else if(state===ST.PLAY&&player.grounded&&!player._quakeStunned){
     const jp=JUMP_POWER*ct().jumpMul;
     player.vy=-jp*player.gDir;player.grounded=false;djumpUsed=false;
     sfx('jump');vibrate(10);
     emitParts(player.x,player.y+PLAYER_R*player.gDir,6,tc('ply'),2.5,2);
   }
-  else if(state===ST.PLAY&&djumpAvailable&&!djumpUsed){
+  else if(state===ST.PLAY&&djumpAvailable&&!djumpUsed&&!player._quakeStunned){
     djumpUsed=true;djumpAvailable=false;
     const jp=JUMP_POWER*ct().jumpMul*0.85;
     player.vy=-jp*player.gDir;
@@ -420,13 +420,13 @@ document.addEventListener('keydown',e=>{
     if(state===ST.PAUSE){sfx('select');state=ST.PLAY;switchBGM('play');return;}
     if(state===ST.TITLE){startCountdown('endless');}
     else if(state===ST.DEAD&&deadT>45){handleDeadBtn('restart');}
-    else if(state===ST.PLAY&&player.grounded){
+    else if(state===ST.PLAY&&player.grounded&&!player._quakeStunned){
       const jp=JUMP_POWER*ct().jumpMul;
       player.vy=-jp*player.gDir;player.grounded=false;djumpUsed=false;
       sfx('jump');vibrate(10);
       emitParts(player.x,player.y+PLAYER_R*player.gDir,6,tc('ply'),2.5,2);
     }
-    else if(state===ST.PLAY&&djumpAvailable&&!djumpUsed){
+    else if(state===ST.PLAY&&djumpAvailable&&!djumpUsed&&!player._quakeStunned){
       djumpUsed=true;djumpAvailable=false;
       const jp=JUMP_POWER*ct().jumpMul*0.85;
       player.vy=-jp*player.gDir;
@@ -434,7 +434,7 @@ document.addEventListener('keydown',e=>{
       emitParts(player.x,player.y,8,'#ffaa00',3,2.5);
     }
   }
-  if(e.code==='ArrowDown'&&state===ST.PLAY&&player.canFlip){
+  if(e.code==='ArrowDown'&&state===ST.PLAY&&player.canFlip&&!player._quakeStunned){
     e.preventDefault();
     flipCount++;flipTimer=0;
     if(player.gDir===1){player.gDir=-1;player.vy=-2;totalFlips++;player.canFlip=flipCount<ct().maxFlip;sfx('flip');vibrate(20);player.rotTarget-=Math.PI;emitParts(player.x,player.y,10,tc('ply'),3,2.5);}
