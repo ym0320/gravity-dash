@@ -148,6 +148,8 @@ let audioCtx=null,bgmGain=null,sfxGain=null,bgmCurrent='',bgmTimer=null;
 let bgmVol=parseFloat(localStorage.getItem('gd5bgmVol')||'0.7');
 let sfxVol=parseFloat(localStorage.getItem('gd5sfxVol')||'0.7');
 let settingsOpen=false;
+let debugMenuOpen=false;
+let debugBossBc=1;
 function initAudio(){
   if(audioCtx){
     if(audioCtx.state==='suspended')audioCtx.resume();
