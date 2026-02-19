@@ -443,12 +443,14 @@ function drawItem(it){
 function drawEnemy(en){
   if(en.bossType==='charge'||en.bossType==='dodge'){drawBossCharge(en);return;}
   if(en.bossType==='bruiser'){drawBossBruiser(en);return;}
+  if(en.bossType==='guardian'){drawBossGuardian(en);return;}
   if(en.bossType==='wizard'){drawBossWizard(en);return;}
   if(en.type===1){drawShooter(en);return;}
   if(en.type===2){drawFlyer(en);return;}
   if(en.type===3){drawBomber(en);return;}
   if(en.type===4){drawVertMover(en);return;}
   if(en.type===5){drawPhantom(en);return;}
+  if(en.type===6){drawDasher(en);return;}
   const s=en.sz,flip=en.gDir;
   ctx.save();ctx.translate(en.x,en.y);
   if(flip===-1)ctx.scale(1,-1);
@@ -637,8 +639,82 @@ function drawPhantom(en){
   ctx.globalAlpha=1;
   ctx.restore();
 }
+function drawDasher(en){
+  const s=en.sz,ds=en.dashState;
+  ctx.save();ctx.translate(en.x,en.y);
+  // Shake during warning
+  if(ds==='warn'){
+    const shake=Math.sin(en.warnT*1.5)*(3-en.warnT*0.05);
+    ctx.translate(shake,0);
+  }
+  // Body (red-orange aggressive wolf-like)
+  const stretch=ds==='dash'?1.3:1;
+  ctx.scale(stretch,1/stretch);
+  const gr=ctx.createRadialGradient(0,0,0,0,0,s);
+  gr.addColorStop(0,ds==='dash'?'#ff2222':'#e63946');gr.addColorStop(1,ds==='dash'?'#aa0000':'#9d0208');
+  ctx.fillStyle=gr;
+  ctx.beginPath();ctx.arc(0,-s*0.1,s*0.85,0,6.28);ctx.fill();
+  // Speed lines during dash
+  if(ds==='dash'){
+    ctx.strokeStyle='#ff444466';ctx.lineWidth=2;
+    for(let i=0;i<3;i++){
+      const ly=-s*0.5+i*s*0.4;
+      ctx.beginPath();ctx.moveTo(en.dashDir*s*1.2,ly);ctx.lineTo(en.dashDir*s*2.5,ly);ctx.stroke();
+    }
+  }
+  // Ears (pointed)
+  ctx.fillStyle=ds==='warn'||ds==='dash'?'#ff4444':'#c1121f';
+  ctx.beginPath();ctx.moveTo(-s*0.55,-s*0.5);ctx.lineTo(-s*0.35,-s*1.1);ctx.lineTo(-s*0.1,-s*0.5);ctx.closePath();ctx.fill();
+  ctx.beginPath();ctx.moveTo(s*0.55,-s*0.5);ctx.lineTo(s*0.35,-s*1.1);ctx.lineTo(s*0.1,-s*0.5);ctx.closePath();ctx.fill();
+  // Eyes (glow red during warn/dash)
+  const eyeCol=ds==='warn'||ds==='dash'?'#ff0':'#fff';
+  ctx.fillStyle=eyeCol;
+  ctx.beginPath();ctx.arc(-s*0.25,-s*0.2,s*0.2,0,6.28);ctx.fill();
+  ctx.beginPath();ctx.arc(s*0.25,-s*0.2,s*0.2,0,6.28);ctx.fill();
+  if(ds==='warn'||ds==='dash'){
+    ctx.shadowColor='#ff0';ctx.shadowBlur=8;
+    ctx.fillStyle='#ff0000';
+  } else {
+    ctx.fillStyle='#1a0a00';
+  }
+  ctx.beginPath();ctx.arc(-s*0.2,-s*0.22,s*0.1,0,6.28);ctx.fill();
+  ctx.beginPath();ctx.arc(s*0.3,-s*0.22,s*0.1,0,6.28);ctx.fill();
+  ctx.shadowBlur=0;
+  // Angry mouth
+  ctx.strokeStyle=ds==='dash'?'#ffaa00':'#780000';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(-s*0.3,s*0.15);ctx.lineTo(-s*0.15,s*0.25);ctx.lineTo(0,s*0.15);
+  ctx.lineTo(s*0.15,s*0.25);ctx.lineTo(s*0.3,s*0.15);ctx.stroke();
+  // Feet (fast animation during dash)
+  const stepSpd=ds==='dash'?6:2;
+  const step=Math.sin(en.fr*stepSpd)*s*0.2;
+  ctx.fillStyle='#780000';
+  ctx.fillRect(-s*0.5+step,s*0.4,s*0.28,s*0.2);
+  ctx.fillRect(s*0.22-step,s*0.4,s*0.28,s*0.2);
+  // Warning indicator (! above head)
+  if(ds==='warn'){
+    const wa=Math.sin(en.warnT*0.3)*0.3+0.7;
+    ctx.globalAlpha=wa;ctx.fillStyle='#ff0';ctx.font='bold 14px monospace';ctx.textAlign='center';
+    ctx.fillText('!',0,-s*1.4);ctx.globalAlpha=1;
+  }
+  ctx.restore();
+}
 function drawBullet(b){
   ctx.save();ctx.translate(b.x,b.y);
+  if(b.shockwave){
+    // Shockwave: vertical energy wave traveling along floor
+    const alpha=Math.min(1,b.life/20);
+    ctx.globalAlpha=alpha;
+    const waveH=30+Math.sin(b.life*0.3)*5;
+    const gr=ctx.createLinearGradient(0,0,0,-waveH);
+    gr.addColorStop(0,'#ffaa00');gr.addColorStop(0.5,'#ff660088');gr.addColorStop(1,'#ff660000');
+    ctx.fillStyle=gr;
+    ctx.beginPath();ctx.moveTo(-b.sz*0.6,0);ctx.lineTo(-b.sz*0.2,-waveH);
+    ctx.lineTo(b.sz*0.2,-waveH);ctx.lineTo(b.sz*0.6,0);ctx.closePath();ctx.fill();
+    // Bright core
+    ctx.fillStyle='#ffdd44';ctx.beginPath();
+    ctx.moveTo(-b.sz*0.3,0);ctx.lineTo(0,-waveH*0.7);ctx.lineTo(b.sz*0.3,0);ctx.closePath();ctx.fill();
+    ctx.globalAlpha=1;ctx.restore();return;
+  }
   if(b.bomb){
     // Bomb projectile
     ctx.fillStyle='#333';ctx.beginPath();ctx.arc(0,0,b.sz,0,6.28);ctx.fill();
@@ -2049,10 +2125,17 @@ function drawDead(){
     const btnW2=Math.min(220,W-40),btnH2=38,btnX2=W/2-btnW2/2;
     let btnTop=cardY+cardH+12;
 
-    // Continue button (costs 100 coins) - only in endless mode
+    // Continue button (costs 100 coins, 1 time only) - only in endless mode
     if(!isPackMode){
-      const canContinue=walletCoins>=100;
-      if(canContinue){
+      const canContinue=walletCoins>=100&&!usedContinue;
+      if(usedContinue){
+        ctx.fillStyle='#ffffff06';rr(btnX2,btnTop,btnW2,btnH2,8);ctx.fill();
+        ctx.strokeStyle='#ffffff22';ctx.lineWidth=1;rr(btnX2,btnTop,btnW2,btnH2,8);ctx.stroke();
+        ctx.fillStyle='#fff3';ctx.font='bold 13px monospace';
+        ctx.fillText('\u25B6 \u7D9A\u304D\u304B\u3089\u518D\u958B  \u25CF100',W/2,btnTop+24);
+        ctx.fillStyle='#ff444488';ctx.font='9px monospace';
+        ctx.fillText('\u4F7F\u7528\u6E08\u307F',W/2,btnTop+36);
+      } else if(canContinue){
         const pulse=Math.sin(deadT*0.08)*0.08+0.92;
         ctx.globalAlpha=pulse*e;
         ctx.fillStyle='#00e5ff18';rr(btnX2,btnTop,btnW2,btnH2,8);ctx.fill();

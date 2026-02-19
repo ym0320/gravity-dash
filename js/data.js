@@ -861,6 +861,7 @@ let bombFlashT=0; // bomb explosion flash timer
 let invCount=0; // stockable invincibility items in inventory
 let bossRetry=null; // {score,bossCount} saved when quitting during boss
 let isRetryGame=false; // true if current game is a boss retry (only 1 retry allowed)
+let usedContinue=false; // true after using coin continue (only 1 allowed per run)
 // Treasure chest system
 let bossChests=0; // number of chests earned this run
 let chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0}; // falling chest during boss reward
