@@ -38,13 +38,17 @@ function spawnBossEnemies(){
   bossPhase.dodgeIdx=0;
   bossPhase.dodgeKills=0;
   // Randomly choose boss type: all 5 types equally likely (20% each)
-  const roll=Math.random();
   let bossType;
-  if(roll<0.20) bossType='wizard';
-  else if(roll<0.40) bossType='bruiser';
-  else if(roll<0.60) bossType='guardian';
-  else if(roll<0.80) bossType='charge';
-  else bossType='dodge';
+  if(bossPhase._forceType){
+    bossType=bossPhase._forceType;bossPhase._forceType=null;
+  } else {
+    const roll=Math.random();
+    if(roll<0.20) bossType='wizard';
+    else if(roll<0.40) bossType='bruiser';
+    else if(roll<0.60) bossType='guardian';
+    else if(roll<0.80) bossType='charge';
+    else bossType='dodge';
+  }
   bossPhase.bossType=bossType;
   if(bossType==='charge'){
     // Charge type: vertical movement from 1st encounter, progressive mechanics
@@ -1275,3 +1279,24 @@ function drawBossBruiser(en){
 }
 
 function addPop(x,y,txt,col){pops.push({x,y,txt,col,life:45,ml:45});}
+
+// Debug: force-start a specific boss from browser console
+// Usage: testBoss('guardian')  testBoss('bruiser')  testBoss('wizard')  testBoss('charge')  testBoss('dodge')
+// Optional 2nd arg = bossCount difficulty (default 1)
+window.testBoss=function(type,bc){
+  if(!['charge','dodge','bruiser','wizard','guardian'].includes(type)){
+    console.log('Usage: testBoss("guardian") / "bruiser" / "wizard" / "charge" / "dodge"');return;
+  }
+  // Start a game if not playing
+  if(state!==ST.PLAY){
+    gameMode='endless';isPackMode=false;reset();
+    state=ST.PLAY;switchBGM('play');
+  }
+  // Set boss count for difficulty scaling
+  if(bc!==undefined) bossPhase.bossCount=Math.max(0,bc-1);
+  // Force the boss type via flag (read by spawnBossEnemies)
+  bossPhase._forceType=type;
+  startBossPhase();
+  bossPhase.prepare=1; // skip prepare countdown (spawns next frame)
+  console.log('Boss "'+type+'" starting! (bc='+bossPhase.bossCount+')');
+};

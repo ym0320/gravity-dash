@@ -1242,6 +1242,12 @@ function drawTitle(){
     ctx.restore();
   }
 
+  // Debug button (top right, left of settings)
+  ctx.fillStyle='#ff386014';rr(W-84,safeTop+6,36,36,8);ctx.fill();
+  ctx.strokeStyle='#ff386044';ctx.lineWidth=1;rr(W-84,safeTop+6,36,36,8);ctx.stroke();
+  ctx.fillStyle='#ff3860aa';ctx.font='bold 9px monospace';ctx.textAlign='center';
+  ctx.fillText('DEBUG',W-66,safeTop+28);
+
   // Settings gear button (top right)
   ctx.fillStyle='#ffffff14';rr(W-44,safeTop+6,36,36,8);ctx.fill();
   ctx.fillStyle='#fff6';ctx.font='18px monospace';ctx.textAlign='center';
@@ -1290,6 +1296,50 @@ function drawTitle(){
     ctx.strokeStyle='#00e5ff';ctx.lineWidth=1;rr(W/2-60,closeY,120,32,8);ctx.stroke();
     ctx.fillStyle='#00e5ff';ctx.font='bold 13px monospace';ctx.textAlign='center';
     ctx.fillText('\u9589\u3058\u308B',W/2,closeY+22);
+  }
+
+  // Debug boss test panel
+  if(debugMenuOpen){
+    ctx.fillStyle='rgba(0,0,0,0.85)';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#ff3860';ctx.font='bold 18px monospace';ctx.textAlign='center';
+    ctx.fillText('BOSS TEST',W/2,safeTop+40);
+    // Difficulty selector
+    ctx.fillStyle='#fff8';ctx.font='12px monospace';
+    ctx.fillText('\u96E3\u6613\u5EA6 (bossCount): '+debugBossBc,W/2,safeTop+62);
+    const bcBtnW=36,bcBtnH=30;
+    const bcY=safeTop+70;
+    // - button
+    ctx.fillStyle='#ffffff18';rr(W/2-60,bcY,bcBtnW,bcBtnH,6);ctx.fill();
+    ctx.strokeStyle='#fff4';ctx.lineWidth=1;rr(W/2-60,bcY,bcBtnW,bcBtnH,6);ctx.stroke();
+    ctx.fillStyle='#fff';ctx.font='bold 16px monospace';ctx.fillText('-',W/2-42,bcY+22);
+    // + button
+    ctx.fillStyle='#ffffff18';rr(W/2+24,bcY,bcBtnW,bcBtnH,6);ctx.fill();
+    ctx.strokeStyle='#fff4';ctx.lineWidth=1;rr(W/2+24,bcY,bcBtnW,bcBtnH,6);ctx.stroke();
+    ctx.fillStyle='#fff';ctx.fillText('+',W/2+42,bcY+22);
+    // Boss buttons
+    const bosses=[
+      {id:'guardian',name:'\u30AC\u30FC\u30C7\u30A3\u30A2\u30F3',col:'#4488cc'},
+      {id:'bruiser',name:'\u30D6\u30EB\u30FC\u30B6\u30FC',col:'#9333ea'},
+      {id:'wizard',name:'\u30A6\u30A3\u30B6\u30FC\u30C9',col:'#aa44ff'},
+      {id:'charge',name:'\u30C1\u30E3\u30FC\u30B8',col:'#6a7a8a'},
+      {id:'dodge',name:'\u30C9\u30C3\u30B8',col:'#8a6a4a'}
+    ];
+    const bbW=Math.min(200,W-40),bbH=40,bbGap=8;
+    const bbX=W/2-bbW/2;
+    let bbY=bcY+bcBtnH+16;
+    bosses.forEach(b=>{
+      ctx.fillStyle=b.col+'22';rr(bbX,bbY,bbW,bbH,8);ctx.fill();
+      ctx.strokeStyle=b.col;ctx.lineWidth=1.5;rr(bbX,bbY,bbW,bbH,8);ctx.stroke();
+      ctx.fillStyle=b.col;ctx.font='bold 14px monospace';ctx.textAlign='center';
+      ctx.fillText(b.name,W/2,bbY+26);
+      bbY+=bbH+bbGap;
+    });
+    // Close button
+    const clY=bbY+8;
+    ctx.fillStyle='#ffffff12';rr(W/2-50,clY,100,34,8);ctx.fill();
+    ctx.strokeStyle='#fff4';ctx.lineWidth=1;rr(W/2-50,clY,100,34,8);ctx.stroke();
+    ctx.fillStyle='#fff8';ctx.font='bold 12px monospace';
+    ctx.fillText('\u9589\u3058\u308B',W/2,clY+22);
   }
 
   // Character unlock celebration overlay

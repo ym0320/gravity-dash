@@ -207,6 +207,8 @@ canvas.addEventListener('touchstart',e=>{
   const t=e.touches[0];
   const p=canvasXY(t.clientX,t.clientY);
   touchStartY=t.clientY;touchStartX=t.clientX;touchStartT=Date.now();touchMoved=false;
+  // Debug menu intercepts all input when open
+  if(debugMenuOpen){handleDebugTouch(p.x,p.y);return;}
   // Settings panel intercepts all input when open
   if(settingsOpen){handleSettingsTouch(p.x,p.y);return;}
   if(state===ST.COUNTDOWN)return; // block input during countdown
@@ -325,6 +327,7 @@ canvas.addEventListener('touchend',e=>{
 canvas.addEventListener('mousedown',e=>{
   initAudio();
   const p=canvasXY(e.clientX,e.clientY);
+  if(debugMenuOpen){handleDebugTouch(p.x,p.y);return;}
   if(settingsOpen){handleSettingsTouch(p.x,p.y);return;}
   if(state===ST.COUNTDOWN)return;
   if(state===ST.TITLE&&!charModal.show&&hitSettingsGear(p.x,p.y)){sfx('click');settingsOpen=true;return;}
@@ -367,6 +370,7 @@ canvas.addEventListener('mouseup',()=>{
   draggingSlider=null;
 });
 document.addEventListener('keydown',e=>{
+  if(debugMenuOpen){if(e.code==='Escape'){debugMenuOpen=false;sfx('cancel');}e.preventDefault();return;}
   if(settingsOpen){if(e.code==='Escape'){settingsOpen=false;sfx('cancel');}e.preventDefault();return;}
   if(e.code==='Escape'){
     e.preventDefault();
@@ -422,6 +426,10 @@ function getCharGridIdx(tx,ty){
   return -1;
 }
 function handleTitleTouch(tx,ty){
+  // Debug button (top right, left of settings gear)
+  if(tx>=W-84&&tx<=W-48&&ty>=safeTop+6&&ty<=safeTop+42){
+    debugMenuOpen=true;sfx('select');return;
+  }
   // Inventory button (top-left, next to settings gear)
   if(tx>=8&&tx<=48&&ty>=safeTop+6&&ty<=safeTop+42){
     inventoryOpen=true;chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null};
@@ -465,5 +473,36 @@ function handleTitleTouch(tx,ty){
   // Stage mode button -> go to stage selection screen
   if(tx>=sbx&&tx<=sbx+btnW&&ty>=btnY&&ty<=btnY+btnH){
     sfx('select');gameMode='stage';state=ST.STAGE_SEL;stageSelScroll=0;stageSelTarget=0;titleTouchPos=null;return;
+  }
+}
+function handleDebugTouch(tx,ty){
+  const bcBtnW=36,bcBtnH=30;
+  const bcY=safeTop+70;
+  // - button
+  if(tx>=W/2-60&&tx<=W/2-60+bcBtnW&&ty>=bcY&&ty<=bcY+bcBtnH){
+    debugBossBc=Math.max(1,debugBossBc-1);sfx('click');return;
+  }
+  // + button
+  if(tx>=W/2+24&&tx<=W/2+24+bcBtnW&&ty>=bcY&&ty<=bcY+bcBtnH){
+    debugBossBc=Math.min(10,debugBossBc+1);sfx('click');return;
+  }
+  // Boss buttons
+  const bosses=['guardian','bruiser','wizard','charge','dodge'];
+  const bbW=Math.min(200,W-40),bbH=40,bbGap=8;
+  const bbX=W/2-bbW/2;
+  let bbY=bcY+bcBtnH+16;
+  for(let i=0;i<bosses.length;i++){
+    if(tx>=bbX&&tx<=bbX+bbW&&ty>=bbY&&ty<=bbY+bbH){
+      debugMenuOpen=false;
+      sfx('select');
+      window.testBoss(bosses[i],debugBossBc);
+      return;
+    }
+    bbY+=bbH+bbGap;
+  }
+  // Close button
+  const clY=bbY+8;
+  if(tx>=W/2-50&&tx<=W/2+50&&ty>=clY&&ty<=clY+34){
+    debugMenuOpen=false;sfx('cancel');return;
   }
 }
