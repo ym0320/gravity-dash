@@ -357,11 +357,15 @@ function update(dt){
     }
     // Collision when spikes are up
     if(sp.state==='up'&&itemEff.invincible<=0&&hurtT<=0){
-      const spY=sp.h;
-      const spTopY=sp.h-sp.spikeH;
       if(player.x+pr>sp.x&&player.x-pr<sp.x+sp.w){
-        if(player.y+pr>spTopY&&player.y-pr<sp.h){
-          hurt(true);
+        if(sp.isFloor){
+          // Floor spike: points up from baseY
+          const spTopY=sp.h-sp.spikeH;
+          if(player.y+pr>spTopY&&player.y-pr<sp.h) hurt(true);
+        } else {
+          // Ceiling spike: points down from baseY
+          const spBotY=sp.h+sp.spikeH;
+          if(player.y+pr>sp.h&&player.y-pr<spBotY) hurt(true);
         }
       }
     }
@@ -381,19 +385,22 @@ function update(dt){
     }
   });
 
-  // Gravity reversal zones: waterfall aura that forces gravity flip
+  // Gravity zones: blue=force down (dir=1), pink=force up (dir=-1)
   gravZones.forEach(g=>{
-    if(g.fadeT>0){g.fadeT++;return;} // already triggered, fading out
+    if(g.fadeT>0){g.fadeT++;return;}
     if(g.triggered)return;
-    // Check if player center enters the zone
     if(player.x>=g.x&&player.x<=g.x+g.w){
       g.triggered=true;g.fadeT=1;
-      // Force gravity reversal
-      player.gDir*=-1;player.vy=0;
-      player.canFlip=true;flipCount=0;totalFlips++;flipTimer=0;
+      const forceDir=g.dir||1;
+      // Only flip if player isn't already in the target direction
+      if(player.gDir!==forceDir){
+        player.gDir=forceDir;player.vy=0;
+        player.canFlip=true;flipCount=0;totalFlips++;flipTimer=0;
+      }
+      const col=forceDir===1?'#4488ff':'#ff66aa';
       sfx('milestone');vibrate([20,10,30]);shakeI=8;
-      emitParts(player.x,player.y,15,'#00e5ff',4,3);
-      addPop(player.x,player.y-20*player.gDir,'GRAVITY!','#00e5ff');
+      emitParts(player.x,player.y,15,col,4,3);
+      addPop(player.x,player.y-20*player.gDir,forceDir===1?'DOWN!':'UP!',col);
     }
   });
 

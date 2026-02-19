@@ -113,6 +113,7 @@ function continueFromDeath(){
   flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
   bossChests=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null};
   state=ST.COUNTDOWN;countdownT=180;
+  bgmCurrent='';switchBGM('play'); // reset BGM from beginning
   sfx('countdown');
 }
 function startPackStageFromDead(){

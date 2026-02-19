@@ -89,23 +89,20 @@ function spawnBossEnemies(){
     }
     bossPhase.total=chargeCount;
   } else if(bossType==='dodge'){
-    // Dodge type: 5 enemies rush from right to left, player dodges/stomps
+    // Dodge type: 10 enemies rush from RIGHT to left, player dodges/stomps
     // Phase 1: straight only, Phase 2+: diagonal added, Phase 3+: speed increase
-    const dodgeCount=5;
-    const phase=bc; // bc=1 is phase 1, bc=2 is phase 2, etc.
-    const baseSpd=3.5+(phase>=3?Math.min(phase-2,4)*0.6:0); // phase 3+ speed boost
+    const dodgeCount=10;
+    const phase=bc;
+    const baseSpd=3.5+(phase>=3?Math.min(phase-2,4)*0.6:0);
     for(let i=0;i<dodgeCount;i++){
-      // Random speed per enemy
       const spd=baseSpd+Math.random()*2;
-      // Determine diagonal: phase 2+ adds random diagonal rushes
       let diagVy=0;
       const onFloor=Math.random()<0.5;
       const startY=onFloor?floorY-PLAYER_R*5:ceilY+PLAYER_R*5;
       const gDir=onFloor?1:-1;
       if(phase>=2&&Math.random()<0.4+Math.min(phase-2,3)*0.1){
-        // Diagonal: aim toward opposite surface (floor→ceiling or ceiling→floor)
         const targetY=onFloor?ceilY+PLAYER_R*5:floorY-PLAYER_R*5;
-        const travelFrames=(W+160)/(spd); // approx frames to cross screen
+        const travelFrames=(W+160)/(spd);
         diagVy=(targetY-startY)/travelFrames;
       }
       const sz=PLAYER_R*5;
@@ -115,7 +112,7 @@ function spawnBossEnemies(){
         chargeVx:-spd,
         diagVy:diagVy,
         chargeState:'wait',
-        rushDelay:40+i*30+Math.floor(Math.random()*20), // sequential spacing
+        rushDelay:30+i*20+Math.floor(Math.random()*15), // tighter spacing for 10 enemies
         timer:0,
         missCount:0
       });
@@ -606,11 +603,9 @@ function updateBossPhase(){
     totalCoins+=bonus;
     addPop(W/2,H*0.45,'+'+bonus+' COINS!','#ffd700');
     for(let i=0;i<40;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*4,vy:1+Math.random()*4,life:80+Math.random()*40,ml:120,sz:Math.random()*5+3,col:['#ffd700','#ffaa00','#fff4b0'][i%3]});
-    // Spawn treasure chest falling from above (30% chance)
-    if(Math.random()<0.3){
-      bossChests++;
-      chestFall={active:true,x:player.x,y:-40,vy:0,sparkT:0,gotT:0};
-    }
+    // Spawn treasure chest falling from above (100%)
+    bossChests++;
+    chestFall={active:true,x:player.x,y:-40,vy:0,sparkT:0,gotT:0};
   }
 }
 // Rich bruiser defeat animation

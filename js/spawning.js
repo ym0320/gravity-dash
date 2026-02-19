@@ -206,10 +206,17 @@ function trySpawnSpike(){
     if(!ceilHere){spikeCD=25+Math.floor(Math.random()*15);return;}
     spikeCD=80+Math.floor(Math.random()*60);
     const sw=30+Math.random()*30;
-    // state: 'hidden','warning','up','retracting'
-    spikes.push({x:sx,w:sw,h:H-plat.h,spikeH:22,phase:0,timer:0,state:'hidden',
-      cycle:120+Math.floor(Math.random()*80),upTime:60+Math.floor(Math.random()*30),
-      isFloor:true});
+    // Randomly choose floor or ceiling spike
+    const isFloor=Math.random()<0.5;
+    if(isFloor){
+      spikes.push({x:sx,w:sw,h:H-plat.h,spikeH:22,phase:0,timer:0,state:'hidden',
+        cycle:120+Math.floor(Math.random()*80),upTime:60+Math.floor(Math.random()*30),
+        isFloor:true});
+    } else {
+      spikes.push({x:sx,w:sw,h:ceilHere.h,spikeH:22,phase:0,timer:0,state:'hidden',
+        cycle:120+Math.floor(Math.random()*80),upTime:60+Math.floor(Math.random()*30),
+        isFloor:false});
+    }
   } else {
     spikeCD=25+Math.floor(Math.random()*15);
   }
@@ -307,7 +314,9 @@ function trySpawnGravZone(){
   if(doSpawn){
     const gx=Math.max(W+20,plat.x+plat.w*0.3);
     const gw=60+Math.random()*50;
-    gravZones.push({x:gx,w:gw,triggered:false,fadeT:0});
+    // dir: 1=force down (blue), -1=force up (pink)
+    const gdir=Math.random()<0.5?1:-1;
+    gravZones.push({x:gx,w:gw,triggered:false,fadeT:0,dir:gdir});
     if(gravZoneChain===0){
       // Start new chain: determine count based on score
       let maxCount=1;
