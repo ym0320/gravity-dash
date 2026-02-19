@@ -84,21 +84,13 @@ function isCharUnlocked(idx){return unlockedChars.includes(idx);}
 // Character unlock celebration state
 let unlockCelebT=0,unlockCelebChar=-1;
 
-function buyChar(idx){
-  const ch=CHARS[idx];
-  if(walletCoins>=ch.price&&!isCharUnlocked(idx)){
-    walletCoins-=ch.price;
-    unlockedChars.push(idx);
-    localStorage.setItem('gd5wallet',walletCoins.toString());
-    localStorage.setItem('gd5unlocked',JSON.stringify(unlockedChars));
-    selChar=idx;localStorage.setItem('gd5char',selChar.toString());
-    // Celebration!
-    unlockCelebT=120;unlockCelebChar=idx;
-    sfxFanfare();
-    vibrate([30,20,30,20,60]);
-    return true;
-  }
-  return false;
+// Characters are unlocked exclusively via treasure chests
+function unlockCharFromChest(idx){
+  if(isCharUnlocked(idx))return false;
+  unlockedChars.push(idx);
+  localStorage.setItem('gd5unlocked',JSON.stringify(unlockedChars));
+  unlockCelebT=120;unlockCelebChar=idx;
+  return true;
 }
 
 function sfxFanfare(){
@@ -157,7 +149,10 @@ let bgmVol=parseFloat(localStorage.getItem('gd5bgmVol')||'0.7');
 let sfxVol=parseFloat(localStorage.getItem('gd5sfxVol')||'0.7');
 let settingsOpen=false;
 function initAudio(){
-  if(audioCtx)return;
+  if(audioCtx){
+    if(audioCtx.state==='suspended')audioCtx.resume();
+    return;
+  }
   try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();
     bgmGain=audioCtx.createGain();bgmGain.gain.value=0.07*bgmVol;bgmGain.connect(audioCtx.destination);
     sfxGain=audioCtx.createGain();sfxGain.gain.value=sfxVol;sfxGain.connect(audioCtx.destination);
@@ -201,7 +196,7 @@ function bgmSnare(t){
 
 // --- Rich BGM Definitions (multi-track, 32-step sequencer) ---
 // Title: catchy pop earworm, C-Am-F-G bouncy hook
-const BGM_TITLE={tempo:138,
+const BGM_TITLE={tempo:108,
   melody:[659,784,659,523, 587,659,0,0, 659,784,659,880, 784,659,0,0,
           880,1047,880,784, 880,988,1047,0, 880,784,659,784, 659,587,523,0],
   harmony:[392,0,392,0, 440,0,440,0, 392,0,392,0, 523,0,440,0,
@@ -883,7 +878,7 @@ const demo={active:false,charIdx:0,themeIdx:0,px:0,py:0,vy:0,gDir:1,rot:0,
   killParts:[],comboT:0,comboN:0};
 function initDemo(){
   const d=demo;d.active=true;d.alive=true;d.frame=0;d.timer=0;d.face='normal';
-  d.charIdx=Math.floor(Math.random()*CHARS.length);
+  d.charIdx=selChar;
   d.themeIdx=Math.floor(Math.random()*THEMES.length);
   d.speed=1.8+Math.random()*1.5;d.gDir=1;d.rot=0;d.vy=0;
   d.score=Math.floor(Math.random()*5000);d.jumpCD=0;d.flipCD=0;
@@ -914,6 +909,8 @@ function initDemo(){
 }
 function updateDemo(){
   const d=demo;if(!d.active){initDemo();return;}
+  // Reinit when selected character changes
+  if(d.charIdx!==selChar){initDemo();return;}
   d.frame++;d.timer++;
   if(!d.alive||d.timer>700){initDemo();return;}
   const ch=CHARS[d.charIdx];

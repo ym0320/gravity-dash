@@ -1087,16 +1087,13 @@ function drawTitle(){
       rr(cx,cy,charW,charH,6);ctx.fill();
 
       if(locked){
-        // Locked: show silhouette and price
-        ctx.globalAlpha=0.25;
-        drawCharacter(cx+charW/2,cy+charH/2-8,idx,14,0,1,'normal');
-        ctx.globalAlpha=1;
-        // Lock icon
-        ctx.fillStyle='#fff5';ctx.font='bold 16px monospace';ctx.textAlign='center';
-        ctx.fillText('\uD83D\uDD12',cx+charW/2,cy+charH/2-4);
-        // Price
-        ctx.fillStyle='#ffd700';ctx.font='bold 8px monospace';
-        ctx.fillText('\u25CF'+ch.price,cx+charW/2,cy+charH-4);
+        // Secret: hidden character, no silhouette shown
+        ctx.fillStyle='#ffffff15';
+        ctx.beginPath();ctx.arc(cx+charW/2,cy+charH/2-6,16,0,6.28);ctx.fill();
+        ctx.fillStyle='#fff4';ctx.font='bold 22px monospace';ctx.textAlign='center';
+        ctx.fillText('?',cx+charW/2,cy+charH/2+2);
+        ctx.fillStyle='#fff3';ctx.font='8px monospace';
+        ctx.fillText('SECRET',cx+charW/2,cy+charH-4);
       } else {
         // Unlocked: draw character preview
         drawCharacter(cx+charW/2,cy+charH/2-8,idx,14,0,1,'normal');
