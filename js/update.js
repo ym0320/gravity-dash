@@ -51,16 +51,42 @@ function update(dt){
       }
       else if(chestOpen.phase==='burst'&&chestOpen.t>=40){
         chestOpen.phase='reveal';chestOpen.t=0;
+        // Apply coin reward immediately on reveal
+        if(chestOpen.reward&&chestOpen.reward.type==='coin'){
+          walletCoins+=chestOpen.reward.amount;localStorage.setItem('gd5wallet',walletCoins.toString());
+        }
+        // Apply character unlock on reveal
+        if(chestOpen.reward&&chestOpen.reward.type==='char'){
+          sfxSuperRare();shakeI=25;vibrate([40,20,60,30,80,40,100]);
+          if(chestOpen.reward.isNew){
+            unlockedChars.push(chestOpen.reward.charIdx);
+            localStorage.setItem('gd5unlocked',JSON.stringify(unlockedChars));
+          } else {
+            // Already owned: bonus 50 coins
+            chestOpen.reward.bonusCoins=50;
+            walletCoins+=50;localStorage.setItem('gd5wallet',walletCoins.toString());
+          }
+        }
       }
-      else if(chestOpen.phase==='reveal'&&chestOpen.t>=90){
-        chestOpen.phase='done';chestOpen.t=0;
+      else if(chestOpen.phase==='reveal'){
+        const revealLen=chestOpen.reward&&chestOpen.reward.type==='char'?140:90;
+        if(chestOpen.t>=revealLen){chestOpen.phase='done';chestOpen.t=0;}
       }
     }
     // Auto-start chest opening when dead screen fully visible and chests earned
     if(bossChests>0&&chestOpen.phase==='none'&&deadT===46){
+      // Determine reward: 10% character, 10% 100coins, 25% 50coins, 55% 30coins
+      const roll=Math.random();
+      let reward;
+      if(roll<0.10){
+        const ci=Math.floor(Math.random()*CHARS.length);
+        reward={type:'char',charIdx:ci,isNew:!isCharUnlocked(ci),bonusCoins:0};
+      } else if(roll<0.20){reward={type:'coin',amount:100};}
+      else if(roll<0.45){reward={type:'coin',amount:50};}
+      else{reward={type:'coin',amount:30};}
       chestOpen.phase='waiting';chestOpen.t=0;
-      chestOpen.charIdx=Math.floor(Math.random()*CHARS.length);
-      chestOpen.parts=[];
+      chestOpen.charIdx=reward.type==='char'?reward.charIdx:-1;
+      chestOpen.parts=[];chestOpen.reward=reward;
     }
     return;
   }

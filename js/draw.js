@@ -1562,11 +1562,39 @@ function drawChestFall(){
 function drawChestOpen(){
   if(chestOpen.phase==='none'||bossChests<=0)return;
   const p=chestOpen.phase,t=chestOpen.t;
+  const rw=chestOpen.reward;
+  const isChar=rw&&rw.type==='char';
   ctx.save();
-  const cx=W/2,cy=H*0.45;
-  const chSz=52;
 
-  // Update and draw chest particles
+  // === SOLID MODAL BACKGROUND (covers game over screen) ===
+  ctx.fillStyle='rgba(0,0,0,0.92)';ctx.fillRect(0,0,W,H);
+  const mW=Math.min(300,W-24),mH=Math.min(400,H-40);
+  const mX=(W-mW)/2,mY=(H-mH)/2;
+  // Modal panel
+  const mgr=ctx.createLinearGradient(mX,mY,mX,mY+mH);
+  mgr.addColorStop(0,'#1a1a2e');mgr.addColorStop(0.5,'#16213e');mgr.addColorStop(1,'#0f0f23');
+  ctx.fillStyle=mgr;rr(mX,mY,mW,mH,16);ctx.fill();
+  // Border
+  ctx.strokeStyle='#ffd70044';ctx.lineWidth=2;rr(mX,mY,mW,mH,16);ctx.stroke();
+  // Gold accent top
+  ctx.strokeStyle='#ffd700';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(mX+16,mY);ctx.lineTo(mX+mW-16,mY);ctx.stroke();
+
+  const cx=W/2,cy=mY+mH*0.42;
+  const chSz=48;
+
+  // Header: chest count
+  ctx.textAlign='center';ctx.fillStyle='#ffd700';ctx.font='bold 16px monospace';
+  ctx.fillText('宝箱開封',cx,mY+30);
+  ctx.fillStyle='#fff8';ctx.font='11px monospace';
+  ctx.fillText('通算 '+totalChestsOpened+' 個開封',cx,mY+48);
+  // Remaining chests this run
+  if(bossChests>1){
+    ctx.fillStyle='#ffaa00';ctx.font='10px monospace';
+    ctx.fillText('残り '+(bossChests-1)+' 個',cx,mY+62);
+  }
+
+  // Update and draw chest particles (clipped to modal)
   chestOpen.parts=chestOpen.parts.filter(pp=>{
     pp.x+=pp.vx;pp.y+=pp.vy;pp.vy+=pp.g||0;pp.vx*=0.99;pp.life--;
     if(pp.life<=0)return false;
@@ -1578,12 +1606,11 @@ function drawChestOpen(){
   ctx.globalAlpha=1;
 
   if(p==='waiting'){
-    // Pulsing chest with "tap to open" prompt
+    // Pulsing chest
     const pulse=1+Math.sin(t*0.08)*0.05;
     ctx.save();ctx.translate(cx,cy);ctx.scale(pulse,pulse);
-    // Golden aura
     const aura=ctx.createRadialGradient(0,0,chSz*0.5,0,0,chSz*1.5);
-    aura.addColorStop(0,'rgba(255,215,0,0.2)');aura.addColorStop(1,'rgba(255,215,0,0)');
+    aura.addColorStop(0,'rgba(255,215,0,0.25)');aura.addColorStop(1,'rgba(255,215,0,0)');
     ctx.fillStyle=aura;ctx.fillRect(-chSz*1.5,-chSz*1.5,chSz*3,chSz*3);
     drawChestIcon(0,0,chSz,false);
     ctx.restore();
@@ -1592,24 +1619,20 @@ function drawChestOpen(){
       const a=Math.random()*6.28,r=chSz*0.8+Math.random()*20;
       chestOpen.parts.push({x:cx+Math.cos(a)*r,y:cy+Math.sin(a)*r,vx:(Math.random()-0.5)*0.5,vy:-0.5-Math.random(),life:25,ml:25,sz:Math.random()*3+1,col:['#ffd700','#ffffff','#ffaa00'][Math.floor(Math.random()*3)],g:0});
     }
-    // "Tap to open" text
     const ta=0.5+Math.sin(t*0.1)*0.3;
-    ctx.globalAlpha=ta;ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='center';
-    ctx.fillText('タップして開封!',cx,cy+chSz*0.8);
+    ctx.globalAlpha=ta;ctx.fillStyle='#ffd700';ctx.font='bold 15px monospace';ctx.textAlign='center';
+    ctx.fillText('タップして開封!',cx,mY+mH-30);
     ctx.globalAlpha=1;
   }
   else if(p==='wobble'){
-    // Chest shakes intensely
     const wobble=Math.sin(t*0.8)*Math.min(t*0.3,8);
     ctx.save();ctx.translate(cx+wobble,cy);
-    // Increasing glow
     const glowA=Math.min(t/40,0.6);
     const aura=ctx.createRadialGradient(0,0,chSz*0.3,0,0,chSz*2);
     aura.addColorStop(0,`rgba(255,215,0,${glowA})`);aura.addColorStop(1,'rgba(255,215,0,0)');
     ctx.fillStyle=aura;ctx.fillRect(-chSz*2,-chSz*2,chSz*4,chSz*4);
     drawChestIcon(0,0,chSz,false);
     ctx.restore();
-    // Sparks flying off
     if(t%3===0){
       chestOpen.parts.push({x:cx+(Math.random()-0.5)*chSz,y:cy+(Math.random()-0.5)*chSz*0.5,
         vx:(Math.random()-0.5)*4,vy:-2-Math.random()*3,life:20,ml:20,sz:Math.random()*3+1,
@@ -1617,118 +1640,234 @@ function drawChestOpen(){
     }
   }
   else if(p==='burst'){
-    // Light beam + lid opens
     const burstT=Math.min(t/30,1);
-    // Full screen light beam from chest
-    const beamA=burstT*0.7;
-    const beamGr=ctx.createRadialGradient(cx,cy,0,cx,cy,H);
-    beamGr.addColorStop(0,`rgba(255,230,150,${beamA})`);beamGr.addColorStop(0.3,`rgba(255,215,0,${beamA*0.4})`);beamGr.addColorStop(1,'rgba(255,215,0,0)');
-    ctx.fillStyle=beamGr;ctx.fillRect(0,0,W,H);
+    // Light beam
+    const beamA=burstT*0.6;
+    const beamGr=ctx.createRadialGradient(cx,cy,0,cx,cy,mH*0.8);
+    beamGr.addColorStop(0,`rgba(255,230,150,${beamA})`);beamGr.addColorStop(0.4,`rgba(255,215,0,${beamA*0.3})`);beamGr.addColorStop(1,'rgba(255,215,0,0)');
+    ctx.fillStyle=beamGr;ctx.fillRect(mX,mY,mW,mH);
     // Light rays
     ctx.save();ctx.translate(cx,cy);
     for(let i=0;i<12;i++){
       const ra=i*Math.PI/6+t*0.02;
-      const rayLen=80+burstT*200;
+      const rayLen=60+burstT*120;
       ctx.save();ctx.rotate(ra);
-      ctx.fillStyle=`rgba(255,230,180,${0.15*burstT})`;
-      ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-8,rayLen);ctx.lineTo(8,rayLen);ctx.closePath();ctx.fill();
+      ctx.fillStyle=`rgba(255,230,180,${0.12*burstT})`;
+      ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-6,rayLen);ctx.lineTo(6,rayLen);ctx.closePath();ctx.fill();
       ctx.restore();
     }
     ctx.restore();
-    // Open chest
     ctx.save();ctx.translate(cx,cy);
-    const lidAngle=-0.3-burstT*0.5;
     drawChestIcon(0,0,chSz,true);
     ctx.restore();
-    // Burst of particles
     if(t===1){
       for(let i=0;i<40;i++){
-        const a=(6.28/40)*i,s=3+Math.random()*6;
-        chestOpen.parts.push({x:cx,y:cy,vx:Math.cos(a)*s,vy:Math.sin(a)*s-2,
-          life:50+Math.random()*30,ml:80,sz:Math.random()*6+2,
-          col:['#ffd700','#ffaa00','#ff88cc','#88ffff','#ffffff','#ff44ff'][i%6],g:0.05});
+        const a=(6.28/40)*i,s=2+Math.random()*5;
+        chestOpen.parts.push({x:cx,y:cy,vx:Math.cos(a)*s,vy:Math.sin(a)*s-1.5,
+          life:45+Math.random()*25,ml:70,sz:Math.random()*5+2,
+          col:['#ffd700','#ffaa00','#ff88cc','#88ffff','#ffffff','#ff44ff'][i%6],g:0.04});
       }
     }
   }
   else if(p==='reveal'){
-    // Character silhouette → full reveal
-    const revealT=Math.min(t/60,1);
-    // Fading light background
-    const bgA=0.5*(1-revealT*0.5);
-    const bgGr=ctx.createRadialGradient(cx,cy-20,0,cx,cy-20,H*0.6);
-    bgGr.addColorStop(0,`rgba(255,230,150,${bgA})`);bgGr.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=bgGr;ctx.fillRect(0,0,W,H);
-    // Open chest below
-    ctx.save();ctx.translate(cx,cy+40);ctx.scale(0.7,0.7);
-    drawChestIcon(0,0,chSz,true);
-    ctx.restore();
-    // Character rising from chest
-    const charY=cy-10-revealT*40;
-    const charScale=0.5+revealT*0.5;
-    const charR=22*charScale;
-    if(revealT<0.4){
-      // Silhouette phase
-      ctx.save();ctx.translate(cx,charY);ctx.scale(charScale,charScale);
-      ctx.fillStyle='#000';
-      ctx.shadowColor='#ffd700';ctx.shadowBlur=20;
-      ctx.beginPath();ctx.arc(0,0,22,0,6.28);ctx.fill();
-      ctx.shadowBlur=0;ctx.restore();
+    if(isChar){
+      // === SUPER RARE CHARACTER REVEAL ===
+      const revealT=Math.min(t/100,1);
+      // Rainbow pulsing background
+      const hue=(t*3)%360;
+      const rbgA=0.15+Math.sin(t*0.05)*0.05;
+      ctx.fillStyle=`hsla(${hue},80%,50%,${rbgA})`;ctx.fillRect(mX,mY,mW,mH);
+      // Rotating light rays (rainbow)
+      ctx.save();ctx.translate(cx,cy-20);
+      for(let i=0;i<16;i++){
+        const ra=i*Math.PI/8+t*0.03;
+        const rayLen=40+revealT*140;
+        const rHue=(hue+i*22)%360;
+        ctx.save();ctx.rotate(ra);
+        ctx.fillStyle=`hsla(${rHue},90%,70%,${0.1*revealT})`;
+        ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-5,rayLen);ctx.lineTo(5,rayLen);ctx.closePath();ctx.fill();
+        ctx.restore();
+      }
+      ctx.restore();
+      // Open chest small below
+      ctx.save();ctx.translate(cx,cy+50);ctx.scale(0.5,0.5);
+      drawChestIcon(0,0,chSz,true);
+      ctx.restore();
+      // Character rising
+      const charY=cy-10-revealT*50;
+      const charScale=0.4+revealT*0.6;
+      const charR=24*charScale;
+      if(revealT<0.3){
+        // Silhouette with rainbow glow
+        ctx.save();ctx.translate(cx,charY);ctx.scale(charScale,charScale);
+        ctx.fillStyle='#000';
+        ctx.shadowColor=`hsl(${hue},90%,60%)`;ctx.shadowBlur=30;
+        ctx.beginPath();ctx.arc(0,0,24,0,6.28);ctx.fill();
+        ctx.shadowBlur=0;ctx.restore();
+      } else {
+        const colorT=Math.min((revealT-0.3)/0.35,1);
+        ctx.save();
+        ctx.shadowColor=`hsl(${hue},90%,60%)`;ctx.shadowBlur=25+colorT*30;
+        drawCharacter(cx,charY,rw.charIdx,charR,0,colorT,'happy',0);
+        ctx.shadowBlur=0;ctx.restore();
+        if(colorT>=1){
+          // "SUPER RARE!" banner
+          const bannerA=Math.min((revealT-0.65)/0.15,1);
+          const bannerPulse=1+Math.sin(t*0.15)*0.08;
+          ctx.globalAlpha=bannerA;
+          ctx.save();ctx.translate(cx,charY-charR-20);ctx.scale(bannerPulse,bannerPulse);
+          ctx.font='bold 20px monospace';ctx.textAlign='center';
+          // Rainbow text
+          const tHue=(t*5)%360;
+          ctx.fillStyle=`hsl(${tHue},100%,65%)`;
+          ctx.shadowColor=`hsl(${tHue},100%,50%)`;ctx.shadowBlur=15;
+          ctx.fillText(rw.isNew?'★ SUPER RARE! ★':'★ RARE! ★',0,0);
+          ctx.shadowBlur=0;ctx.restore();
+          ctx.globalAlpha=1;
+          // Name & trait
+          const nameA=Math.min((revealT-0.75)/0.15,1);
+          ctx.globalAlpha=nameA;
+          ctx.fillStyle='#ffd700';ctx.font='bold 18px monospace';ctx.textAlign='center';
+          ctx.shadowColor='#ffd70088';ctx.shadowBlur=12;
+          ctx.fillText(CHARS[rw.charIdx].name,cx,charY+charR+24);
+          ctx.shadowBlur=0;
+          ctx.fillStyle='#fff8';ctx.font='12px monospace';
+          ctx.fillText(CHARS[rw.charIdx].trait,cx,charY+charR+42);
+          if(rw.isNew){
+            ctx.fillStyle='#34d399';ctx.font='bold 13px monospace';
+            ctx.fillText('NEW! アンロック!',cx,charY+charR+60);
+          } else {
+            ctx.fillStyle='#ffaa00';ctx.font='12px monospace';
+            ctx.fillText('所持済み +50コイン',cx,charY+charR+60);
+          }
+          ctx.globalAlpha=1;
+        }
+      }
+      // Intense rainbow sparkles
+      if(t%2===0){
+        const a=Math.random()*6.28,r=20+Math.random()*80;
+        const sHue=Math.floor(Math.random()*360);
+        chestOpen.parts.push({x:cx+Math.cos(a)*r,y:(charY||cy)+Math.sin(a)*r,vx:(Math.random()-0.5)*2.5,vy:-1.5-Math.random()*1.5,life:35,ml:35,sz:Math.random()*4+2,col:`hsl(${sHue},90%,70%)`,g:-0.02});
+      }
+      // Glitter falling from top
+      if(t%4===0){
+        chestOpen.parts.push({x:mX+Math.random()*mW,y:mY,vx:(Math.random()-0.5)*0.5,vy:0.5+Math.random(),life:60,ml:60,sz:Math.random()*3+1,col:['#ffd700','#ff88cc','#88ffff','#ff44ff','#ffffff'][Math.floor(Math.random()*5)],g:0.02});
+      }
     } else {
-      // Reveal phase - color fades in
-      const colorT=Math.min((revealT-0.4)/0.4,1);
-      ctx.save();
-      // Glow behind character
-      ctx.shadowColor=CHARS[chestOpen.charIdx].col;ctx.shadowBlur=15+colorT*20;
-      drawCharacter(cx,charY,chestOpen.charIdx,charR,0,colorT,'happy',0);
+      // === COIN REVEAL ===
+      const revealT=Math.min(t/60,1);
+      // Golden glow bg
+      const bgA=0.3*(1-revealT*0.3);
+      const bgGr=ctx.createRadialGradient(cx,cy,0,cx,cy,mH*0.5);
+      bgGr.addColorStop(0,`rgba(255,215,0,${bgA})`);bgGr.addColorStop(1,'rgba(255,215,0,0)');
+      ctx.fillStyle=bgGr;ctx.fillRect(mX,mY,mW,mH);
+      // Open chest
+      ctx.save();ctx.translate(cx,cy+30);ctx.scale(0.6,0.6);
+      drawChestIcon(0,0,chSz,true);
+      ctx.restore();
+      // Coins flying up from chest
+      const coinY=cy-20-revealT*50;
+      const coinScale=0.6+revealT*0.4;
+      // Draw coin icon (big golden circle)
+      ctx.save();ctx.translate(cx,coinY);
+      const coinR=20*coinScale;
+      ctx.shadowColor='#ffd700';ctx.shadowBlur=15+revealT*10;
+      ctx.fillStyle='#ffd700';
+      ctx.beginPath();ctx.arc(0,0,coinR,0,6.28);ctx.fill();
+      ctx.fillStyle='#ffaa00';
+      ctx.beginPath();ctx.arc(0,0,coinR*0.7,0,6.28);ctx.fill();
+      ctx.fillStyle='#ffd700';ctx.font='bold '+(coinR*0.9|0)+'px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('¥',0,1);
       ctx.shadowBlur=0;ctx.restore();
-      if(colorT>=1){
-        // Name reveal
-        const nameA=Math.min((revealT-0.8)/0.2,1);
-        ctx.globalAlpha=nameA;
-        ctx.fillStyle='#ffd700';ctx.font='bold 18px monospace';ctx.textAlign='center';
-        ctx.shadowColor='#ffd70066';ctx.shadowBlur=12;
-        ctx.fillText(CHARS[chestOpen.charIdx].name,cx,charY+charR+24);
+      ctx.textBaseline='alphabetic';
+      // Amount text
+      if(revealT>0.4){
+        const amtA=Math.min((revealT-0.4)/0.3,1);
+        ctx.globalAlpha=amtA;
+        ctx.fillStyle='#ffd700';ctx.font='bold 28px monospace';ctx.textAlign='center';
+        ctx.shadowColor='#ffd70088';ctx.shadowBlur=12;
+        ctx.fillText('+'+rw.amount,cx,coinY+coinR+30);
         ctx.shadowBlur=0;
-        ctx.fillStyle='#fff8';ctx.font='12px monospace';
-        ctx.fillText(CHARS[chestOpen.charIdx].trait,cx,charY+charR+42);
+        ctx.fillStyle='#fff8';ctx.font='13px monospace';
+        ctx.fillText('コイン獲得!',cx,coinY+coinR+50);
         ctx.globalAlpha=1;
       }
-    }
-    // Continuous sparkles
-    if(t%5===0){
-      const a=Math.random()*6.28,r=30+Math.random()*50;
-      chestOpen.parts.push({x:cx+Math.cos(a)*r,y:charY+Math.sin(a)*r,vx:(Math.random()-0.5)*1.5,vy:-1-Math.random(),life:30,ml:30,sz:Math.random()*3+1,col:['#ffd700','#ffffff','#ff88cc'][Math.floor(Math.random()*3)],g:0});
+      // Coin sparkles
+      if(t%4===0){
+        const a=Math.random()*6.28,r=25+Math.random()*40;
+        chestOpen.parts.push({x:cx+Math.cos(a)*r,y:coinY+Math.sin(a)*r,vx:(Math.random()-0.5)*1.5,vy:-1-Math.random(),life:25,ml:25,sz:Math.random()*3+1,col:['#ffd700','#ffffff','#ffaa00'][Math.floor(Math.random()*3)],g:0});
+      }
     }
   }
   else if(p==='done'){
-    // Final display with sparkle border
-    const charY=cy-50;
-    const charR=24;
-    // Subtle glow bg
-    const bgGr=ctx.createRadialGradient(cx,charY,0,cx,charY,120);
-    bgGr.addColorStop(0,'rgba(255,215,0,0.1)');bgGr.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=bgGr;ctx.fillRect(cx-120,charY-80,240,200);
-    // Character display
-    const bounce=Math.sin(t*0.06)*3;
-    ctx.save();
-    ctx.shadowColor=CHARS[chestOpen.charIdx].col;ctx.shadowBlur=20;
-    drawCharacter(cx,charY+bounce,chestOpen.charIdx,charR,0,1,'happy',0);
-    ctx.shadowBlur=0;ctx.restore();
-    // Name and trait
-    ctx.fillStyle='#ffd700';ctx.font='bold 18px monospace';ctx.textAlign='center';
-    ctx.fillText(CHARS[chestOpen.charIdx].name,cx,charY+charR+22);
-    ctx.fillStyle='#fff8';ctx.font='12px monospace';
-    ctx.fillText(CHARS[chestOpen.charIdx].trait,cx,charY+charR+40);
-    // "Tap to continue"
-    const ta=0.4+Math.sin(t*0.1)*0.3;
-    ctx.globalAlpha=ta;ctx.fillStyle='#fff6';ctx.font='12px monospace';
-    ctx.fillText('タップで閉じる',cx,cy+80);
-    ctx.globalAlpha=1;
-    // Sparkle ring
-    if(t%6===0){
-      const a=Math.random()*6.28,r=50+Math.random()*30;
-      chestOpen.parts.push({x:cx+Math.cos(a)*r,y:charY+Math.sin(a)*r,vx:(Math.random()-0.5),vy:-0.5-Math.random()*0.5,life:25,ml:25,sz:Math.random()*2+1,col:['#ffd700','#ffffff'][Math.floor(Math.random()*2)],g:0});
+    if(isChar){
+      // === SUPER RARE DONE DISPLAY ===
+      const charY=cy-40;
+      const charR=26;
+      const hue=(t*3)%360;
+      // Subtle rainbow bg
+      ctx.fillStyle=`hsla(${hue},60%,50%,0.05)`;ctx.fillRect(mX,mY,mW,mH);
+      // Character display with rainbow glow
+      const bounce=Math.sin(t*0.06)*3;
+      ctx.save();
+      ctx.shadowColor=`hsl(${hue},90%,60%)`;ctx.shadowBlur=25;
+      drawCharacter(cx,charY+bounce,rw.charIdx,charR,0,1,'happy',0);
+      ctx.shadowBlur=0;ctx.restore();
+      // Rainbow "SUPER RARE" text
+      const tHue=(t*5)%360;
+      ctx.fillStyle=`hsl(${tHue},100%,65%)`;ctx.font='bold 14px monospace';ctx.textAlign='center';
+      ctx.fillText(rw.isNew?'★ SUPER RARE! ★':'★ RARE! ★',cx,charY-charR-12);
+      // Name and trait
+      ctx.fillStyle='#ffd700';ctx.font='bold 18px monospace';
+      ctx.fillText(CHARS[rw.charIdx].name,cx,charY+charR+22);
+      ctx.fillStyle='#fff8';ctx.font='12px monospace';
+      ctx.fillText(CHARS[rw.charIdx].trait,cx,charY+charR+40);
+      if(rw.isNew){
+        ctx.fillStyle='#34d399';ctx.font='bold 13px monospace';
+        ctx.fillText('NEW! アンロック!',cx,charY+charR+58);
+      } else {
+        ctx.fillStyle='#ffaa00';ctx.font='12px monospace';
+        ctx.fillText('所持済み +50コイン',cx,charY+charR+58);
+      }
+      // Continuous rainbow sparkles
+      if(t%4===0){
+        const a=Math.random()*6.28,r=40+Math.random()*40;
+        const sHue=Math.floor(Math.random()*360);
+        chestOpen.parts.push({x:cx+Math.cos(a)*r,y:charY+Math.sin(a)*r,vx:(Math.random()-0.5),vy:-0.5-Math.random()*0.5,life:30,ml:30,sz:Math.random()*3+1,col:`hsl(${sHue},90%,70%)`,g:0});
+      }
+      if(t%6===0){
+        chestOpen.parts.push({x:mX+Math.random()*mW,y:mY,vx:0,vy:0.3+Math.random()*0.5,life:50,ml:50,sz:Math.random()*2+1,col:['#ffd700','#ff88cc','#88ffff'][Math.floor(Math.random()*3)],g:0.01});
+      }
+    } else {
+      // === COIN DONE DISPLAY ===
+      const coinY=cy-30;
+      const coinR=22;
+      // Coin display
+      const bounce=Math.sin(t*0.06)*2;
+      ctx.save();ctx.translate(cx,coinY+bounce);
+      ctx.shadowColor='#ffd700';ctx.shadowBlur=15;
+      ctx.fillStyle='#ffd700';ctx.beginPath();ctx.arc(0,0,coinR,0,6.28);ctx.fill();
+      ctx.fillStyle='#ffaa00';ctx.beginPath();ctx.arc(0,0,coinR*0.7,0,6.28);ctx.fill();
+      ctx.fillStyle='#ffd700';ctx.font='bold 18px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('¥',0,1);
+      ctx.shadowBlur=0;ctx.restore();
+      ctx.textBaseline='alphabetic';
+      // Amount
+      ctx.fillStyle='#ffd700';ctx.font='bold 26px monospace';ctx.textAlign='center';
+      ctx.fillText('+'+rw.amount,cx,coinY+coinR+28);
+      ctx.fillStyle='#fff8';ctx.font='13px monospace';
+      ctx.fillText('コイン獲得!',cx,coinY+coinR+48);
+      // Sparkle
+      if(t%6===0){
+        const a=Math.random()*6.28,r=30+Math.random()*25;
+        chestOpen.parts.push({x:cx+Math.cos(a)*r,y:coinY+Math.sin(a)*r,vx:(Math.random()-0.5),vy:-0.5-Math.random()*0.5,life:25,ml:25,sz:Math.random()*2+1,col:['#ffd700','#ffffff'][Math.floor(Math.random()*2)],g:0});
+      }
     }
+    // "Tap to close" at bottom
+    const ta=0.4+Math.sin(t*0.1)*0.3;
+    ctx.globalAlpha=ta;ctx.fillStyle='#fff6';ctx.font='13px monospace';ctx.textAlign='center';
+    ctx.fillText('タップで閉じる',cx,mY+mH-20);
+    ctx.globalAlpha=1;
   }
   ctx.restore();
 }

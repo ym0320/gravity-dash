@@ -321,31 +321,11 @@ function updateBossPhase(){
       if(frame%2===0){
         parts.push({x:en.x+en.sz,y:en.y,vx:1+Math.random(),vy:(Math.random()-0.5)*2,life:12,ml:12,sz:Math.random()*4+2,col:'#ff8844'});
       }
-      // Off-screen: NOT defeated, fully reset behavior and re-queue
+      // Off-screen left: rush complete (dodged)
       if(en.x<-en.sz*2){
-        const bc2=bossPhase.bossCount;
-        const baseSpd2=3+Math.min(bc2-1,4)*0.3;
-        const spdRange2=bc2>=2?2.5:0.5;
-        // Full behavior reset with new random pattern
-        const fromCeil2=Math.random()<0.5;
-        const gDir2=fromCeil2?-1:1;
-        const floorY2=H-GROUND_H,ceilY2=GROUND_H;
-        en.gDir=gDir2;
-        en.y=gDir2===1?floorY2-en.sz:ceilY2+en.sz;
-        en.chargeState='wait';
-        en.x=W+80;
-        en.chargeVx=-(baseSpd2-spdRange2/2+Math.random()*spdRange2);
-        en.diagVy=bc2>=2&&Math.random()<0.5?(gDir2===1?-1.5-Math.random()*1.5:1.5+Math.random()*1.5):0;
-        en.feintDiag=bc2>=3&&Math.random()<0.4;
-        en.feintTriggered=false;
-        en.rushDelay=30+Math.floor(Math.random()*60);
-        en.timer=0;
-        en.missCount++;
-        en.alive=true;
-        bossPhase.dodgeQueue.push(en);
-        addPop(40,en.y,'逃した!','#ff8844');
-        emitParts(10,en.y,6,'#ff8844',3,2);
-        en._requeued=true;
+        en.alive=false;
+        addPop(40,en.y,'回避!','#34d399');
+        emitParts(10,en.y,6,'#34d399',3,2);
       }
       // Collision with player
       const dx=player.x-en.x,dy=player.y-en.y;
@@ -626,9 +606,11 @@ function updateBossPhase(){
     totalCoins+=bonus;
     addPop(W/2,H*0.45,'+'+bonus+' COINS!','#ffd700');
     for(let i=0;i<40;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*4,vy:1+Math.random()*4,life:80+Math.random()*40,ml:120,sz:Math.random()*5+3,col:['#ffd700','#ffaa00','#fff4b0'][i%3]});
-    // Spawn treasure chest falling from above
-    bossChests++;
-    chestFall={active:true,x:player.x,y:-40,vy:0,sparkT:0,gotT:0};
+    // Spawn treasure chest falling from above (30% chance)
+    if(Math.random()<0.3){
+      bossChests++;
+      chestFall={active:true,x:player.x,y:-40,vy:0,sparkT:0,gotT:0};
+    }
   }
 }
 // Rich bruiser defeat animation
