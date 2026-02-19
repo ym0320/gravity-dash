@@ -58,20 +58,29 @@ function handleDeadBtn(btnId){
 function handleChestTap(){
   if(bossChests<=0||chestOpen.phase==='none')return false;
   if(chestOpen.phase==='waiting'){
-    // Start opening animation
+    // Start opening animation, increment total opened count
     chestOpen.phase='wobble';chestOpen.t=0;sfx('select');vibrate(15);
+    totalChestsOpened++;localStorage.setItem('gd5chestTotal',totalChestsOpened.toString());
     return true;
   }
   if(chestOpen.phase==='done'){
     // Close chest display, decrement chests
     bossChests--;
     if(bossChests>0){
-      // More chests to open
+      // Determine next reward
+      const roll=Math.random();
+      let reward;
+      if(roll<0.10){
+        const ci=Math.floor(Math.random()*CHARS.length);
+        reward={type:'char',charIdx:ci,isNew:!isCharUnlocked(ci),bonusCoins:0};
+      } else if(roll<0.20){reward={type:'coin',amount:100};}
+      else if(roll<0.45){reward={type:'coin',amount:50};}
+      else{reward={type:'coin',amount:30};}
       chestOpen.phase='waiting';chestOpen.t=0;
-      chestOpen.charIdx=Math.floor(Math.random()*CHARS.length);
-      chestOpen.parts=[];
+      chestOpen.charIdx=reward.type==='char'?reward.charIdx:-1;
+      chestOpen.parts=[];chestOpen.reward=reward;
     } else {
-      chestOpen.phase='none';chestOpen.t=0;chestOpen.parts=[];
+      chestOpen.phase='none';chestOpen.t=0;chestOpen.parts=[];chestOpen.reward=null;
     }
     sfx('click');
     return true;
@@ -102,7 +111,7 @@ function continueFromDeath(){
   shakeX=0;shakeY=0;shakeI=0;flipCount=0;flipTimer=999;
   coinCD=0;itemCD=0;enemyCD=0;spikeCD=0;hillCD=0;floatCD=0;gravZoneCD=0;
   flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
-  bossChests=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[]};
+  bossChests=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null};
   state=ST.COUNTDOWN;countdownT=180;
   sfx('countdown');
 }

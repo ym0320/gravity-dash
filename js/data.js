@@ -737,6 +737,35 @@ function sfxChestOpen(){
   }catch(e){}
 }
 
+function sfxSuperRare(){
+  if(!audioCtx)return;try{
+    const t=audioCtx.currentTime;
+    // Dramatic bass drop
+    const b=audioCtx.createOscillator(),bg2=audioCtx.createGain();
+    b.connect(bg2);bg2.connect(sfxGain);b.type='sine';
+    b.frequency.setValueAtTime(100,t);b.frequency.exponentialRampToValueAtTime(25,t+0.5);
+    bg2.gain.setValueAtTime(0.3,t);bg2.gain.exponentialRampToValueAtTime(0.001,t+0.6);
+    b.start(t);b.stop(t+0.65);
+    // Rising rainbow arpeggio
+    [262,330,392,523,659,784,1047,1319,1568,2093].forEach((f,i)=>{
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type=i<5?'triangle':'sine';
+      o.frequency.setValueAtTime(f,t+0.2+i*0.07);
+      g.gain.setValueAtTime(0.13,t+0.2+i*0.07);g.gain.exponentialRampToValueAtTime(0.001,t+0.2+i*0.07+0.5);
+      o.start(t+0.2+i*0.07);o.stop(t+0.2+i*0.07+0.55);
+    });
+    // Sustained shimmer chord
+    [1047,1319,1568].forEach((f,i)=>{
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='sine';
+      o.frequency.setValueAtTime(f,t+1.0);
+      o.frequency.setValueAtTime(f*1.003,t+1.2); // slight detune for shimmer
+      g.gain.setValueAtTime(0.08,t+1.0);g.gain.exponentialRampToValueAtTime(0.001,t+2.0);
+      o.start(t+1.0);o.stop(t+2.1);
+    });
+  }catch(e){}
+}
+
 // ===== ITEMS (5 types) =====
 const ITEMS=[
   {name:'\u7121\u6575',desc:'10\u79D2\u9593\u7121\u6575',col:'#ff00ff',icon:'\u2731',dur:600},
@@ -840,7 +869,8 @@ let isRetryGame=false; // true if current game is a boss retry (only 1 retry all
 // Treasure chest system
 let bossChests=0; // number of chests earned this run
 let chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0}; // falling chest during boss reward
-let chestOpen={phase:'none',t:0,charIdx:-1,parts:[]}; // chest opening on death screen
+let chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null}; // chest opening on death screen
+let totalChestsOpened=parseInt(localStorage.getItem('gd5chestTotal')||'0'); // lifetime chest count
 const PANEL_H=56; // bottom action panel height
 // Ghost character periodic transparency
 let ghostPhaseT=0; // timer for ghost transparency cycle
