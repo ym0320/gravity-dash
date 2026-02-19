@@ -864,8 +864,10 @@ let isRetryGame=false; // true if current game is a boss retry (only 1 retry all
 // Treasure chest system
 let bossChests=0; // number of chests earned this run
 let chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0}; // falling chest during boss reward
-let chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null}; // chest opening on death screen
+let chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null}; // chest opening modal
 let totalChestsOpened=parseInt(localStorage.getItem('gd5chestTotal')||'0'); // lifetime chest count
+let storedChests=parseInt(localStorage.getItem('gd5storedChests')||'0'); // inventory chest count
+let inventoryOpen=false; // inventory modal on title screen
 const PANEL_H=56; // bottom action panel height
 // Ghost character periodic transparency
 let ghostPhaseT=0; // timer for ghost transparency cycle

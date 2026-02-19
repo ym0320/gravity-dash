@@ -37,31 +37,22 @@ function update(dt){
     stars.forEach(s=>{s.x-=s.sp*SPEED_INIT*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
     mtns.forEach(m=>{m.off-=m.sp*SPEED_INIT*0.15;if(m.off<-500)m.off+=500;});
     updateDemo();
-    return;
-  }
-  if(state===ST.DEAD){
-    deadT++;
-    parts=parts.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.07;p.vx*=0.99;p.life--;return p.life>0;});
-    stars.forEach(s=>{s.x-=s.sp*0.15;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
-    // Chest opening state machine
-    if(chestOpen.phase!=='none'){
+    // Inventory chest opening state machine
+    if(inventoryOpen&&chestOpen.phase!=='none'){
       chestOpen.t++;
       if(chestOpen.phase==='wobble'&&chestOpen.t>=50){
         chestOpen.phase='burst';chestOpen.t=0;sfxChestOpen();shakeI=15;vibrate([30,20,40,20,80]);
       }
       else if(chestOpen.phase==='burst'&&chestOpen.t>=40){
         chestOpen.phase='reveal';chestOpen.t=0;
-        // Apply coin reward immediately on reveal
         if(chestOpen.reward&&chestOpen.reward.type==='coin'){
           walletCoins+=chestOpen.reward.amount;localStorage.setItem('gd5wallet',walletCoins.toString());
         }
-        // Apply character unlock on reveal
         if(chestOpen.reward&&chestOpen.reward.type==='char'){
           sfxSuperRare();shakeI=25;vibrate([40,20,60,30,80,40,100]);
           if(chestOpen.reward.isNew){
             unlockCharFromChest(chestOpen.reward.charIdx);
           } else {
-            // Already owned: bonus 50 coins
             chestOpen.reward.bonusCoins=50;
             walletCoins+=50;localStorage.setItem('gd5wallet',walletCoins.toString());
           }
@@ -72,21 +63,13 @@ function update(dt){
         if(chestOpen.t>=revealLen){chestOpen.phase='done';chestOpen.t=0;}
       }
     }
-    // Auto-start chest opening when dead screen fully visible and chests earned
-    if(bossChests>0&&chestOpen.phase==='none'&&deadT===46){
-      // Determine reward: 10% character, 10% 100coins, 25% 50coins, 55% 30coins
-      const roll=Math.random();
-      let reward;
-      if(roll<0.10){
-        const ci=Math.floor(Math.random()*CHARS.length);
-        reward={type:'char',charIdx:ci,isNew:!isCharUnlocked(ci),bonusCoins:0};
-      } else if(roll<0.20){reward={type:'coin',amount:100};}
-      else if(roll<0.45){reward={type:'coin',amount:50};}
-      else{reward={type:'coin',amount:30};}
-      chestOpen.phase='waiting';chestOpen.t=0;
-      chestOpen.charIdx=reward.type==='char'?reward.charIdx:-1;
-      chestOpen.parts=[];chestOpen.reward=reward;
-    }
+    return;
+  }
+  if(state===ST.DEAD){
+    deadT++;
+    parts=parts.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.07;p.vx*=0.99;p.life--;return p.life>0;});
+    stars.forEach(s=>{s.x-=s.sp*0.15;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
+    // No chest opening on death screen - chests are stored in inventory
     return;
   }
   if(state===ST.STAGE_CLEAR){
@@ -392,10 +375,10 @@ function update(dt){
     if(player.x>=g.x&&player.x<=g.x+g.w){
       g.triggered=true;g.fadeT=1;
       const forceDir=g.dir||1;
-      // Only flip if player isn't already in the target direction
+      // Only change direction if player isn't already in the target direction
+      // Do NOT reset flip count, jump, or canFlip (preserve current movement state)
       if(player.gDir!==forceDir){
         player.gDir=forceDir;player.vy=0;
-        player.canFlip=true;flipCount=0;totalFlips++;flipTimer=0;
       }
       const col=forceDir===1?'#4488ff':'#ff66aa';
       sfx('milestone');vibrate([20,10,30]);shakeI=8;

@@ -23,6 +23,14 @@ function die(){
   player.alive=false;state=ST.DEAD;deadT=0;shakeI=14;switchBGM('dead');
   player.face='dead';sfx('death');vibrate([30,20,50]);
   bossRetry=null; // clear boss retry on death
+  // Transfer earned chests to inventory storage
+  if(bossChests>0){
+    localStorage.setItem('gd5lastRunChests',bossChests.toString());
+    storedChests+=bossChests;localStorage.setItem('gd5storedChests',storedChests.toString());
+    bossChests=0;
+  } else {
+    localStorage.setItem('gd5lastRunChests','0');
+  }
   if(gameMode==='endless'){
     if(score>highScore){highScore=score;newHi=true;localStorage.setItem('gd5hi',highScore.toString());}
     played++;localStorage.setItem('gd5plays',played.toString());
