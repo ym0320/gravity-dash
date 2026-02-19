@@ -50,9 +50,26 @@ function handleDeadBtn(btnId){
   } else if(btnId==='restart'){
     sfx('click');
     if(isPackMode){startPackStageFromDead();return;}
+    if(debugBossRetry&&debugLastBossType){
+      // Debug: restart boss fight directly
+      gameMode='endless';isPackMode=false;reset();
+      state=ST.PLAY;switchBGM('play');
+      bossPhase.bossCount=Math.max(0,debugBossBc-1);
+      bossPhase._forceType=debugLastBossType;
+      startBossPhase();bossPhase.prepare=1;
+      return;
+    }
+    if(debugEnemyMode&&debugEnemyType>=0){
+      // Debug: restart enemy test directly
+      gameMode='endless';isPackMode=false;reset();
+      state=ST.PLAY;switchBGM('play');
+      debugEnemyCD=0;
+      return;
+    }
     startCountdown('endless');
   } else if(btnId==='title'){
     sfx('cancel');titleTouchPos=null; // prevent stale touch from triggering title actions
+    debugBossRetry=false;debugEnemyMode=false;debugEnemyType=-1;
     if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');}
     else{state=ST.TITLE;switchBGM('title');}
   }
@@ -476,8 +493,8 @@ function handleTitleTouch(tx,ty){
   }
 }
 function handleDebugTouch(tx,ty){
-  const bcBtnW=36,bcBtnH=30;
-  const bcY=safeTop+70;
+  const bcBtnW=36,bcBtnH=26;
+  const bcY=safeTop+60;
   // - button
   if(tx>=W/2-60&&tx<=W/2-60+bcBtnW&&ty>=bcY&&ty<=bcY+bcBtnH){
     debugBossBc=Math.max(1,debugBossBc-1);sfx('click');return;
@@ -488,21 +505,34 @@ function handleDebugTouch(tx,ty){
   }
   // Boss buttons
   const bosses=['guardian','bruiser','wizard','charge','dodge'];
-  const bbW=Math.min(200,W-40),bbH=40,bbGap=8;
+  const bbW=Math.min(180,W-40),bbH=32,bbGap=5;
   const bbX=W/2-bbW/2;
-  let bbY=bcY+bcBtnH+16;
+  let bbY=bcY+bcBtnH+22;
   for(let i=0;i<bosses.length;i++){
     if(tx>=bbX&&tx<=bbX+bbW&&ty>=bbY&&ty<=bbY+bbH){
-      debugMenuOpen=false;
+      debugMenuOpen=false;debugEnemyMode=false;debugEnemyType=-1;
+      debugBossRetry=true;debugLastBossType=bosses[i];
       sfx('select');
       window.testBoss(bosses[i],debugBossBc);
       return;
     }
     bbY+=bbH+bbGap;
   }
+  // Enemy buttons
+  bbY+=14;
+  for(let i=0;i<7;i++){
+    if(tx>=bbX&&tx<=bbX+bbW&&ty>=bbY&&ty<=bbY+bbH){
+      debugMenuOpen=false;debugBossRetry=false;
+      debugEnemyMode=true;debugEnemyType=i;debugEnemyCD=0;
+      sfx('select');
+      window.testEnemy(i);
+      return;
+    }
+    bbY+=bbH+bbGap;
+  }
   // Close button
-  const clY=bbY+8;
-  if(tx>=W/2-50&&tx<=W/2+50&&ty>=clY&&ty<=clY+34){
+  const clY=bbY+6;
+  if(tx>=W/2-50&&tx<=W/2+50&&ty>=clY&&ty<=clY+30){
     debugMenuOpen=false;sfx('cancel');return;
   }
 }

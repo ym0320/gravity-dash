@@ -249,7 +249,7 @@ function update(dt){
     }
     trySpawnCoins();
     trySpawnItem();
-    trySpawnEnemy();
+    if(debugEnemyMode){debugSpawnEnemy();}else{trySpawnEnemy();}
     trySpawnFloatPlat();
     trySpawnSpike();
     trySpawnMovingHill();
@@ -257,7 +257,7 @@ function update(dt){
     trySpawnFallingMtn();
     trySpawnCoinSwitch();
     // Boss phase trigger
-    if(!bossPhase.active&&dist>=bossPhase.nextAt){
+    if(!bossPhase.active&&dist>=bossPhase.nextAt&&!debugEnemyMode){
       startBossPhase();
     }
     updateBossPhase();
@@ -624,7 +624,7 @@ function update(dt){
         if(en.x>en.patrolOriginX+en.patrolRange) en.patrolDir=-1;
         if(en.x<en.patrolOriginX-en.patrolRange) en.patrolDir=1;
         // Detect player within range
-        if(Math.abs(dxP)<160&&Math.abs(player.y-en.y)<60){
+        if(Math.abs(dxP)<300&&Math.abs(player.y-en.y)<100){
           en.dashState='warn';en.warnT=40;
           en.dashDir=dxP<0?-1:1;
         }
