@@ -95,7 +95,7 @@ function continueFromDeath(){
   player.y=floorSurfaceY(player.x)-PLAYER_R;player.grounded=false;
   // Clear hazards
   enemies=[];bullets=[];spikes=[];items=[];floatPlats=[];movingHills=[];gravZones=[];
-  bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:score+800,lastBossScore:score,bossCount:bossPhase.bossCount||0,bossType:'',noDamage:true};
+  bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:(Math.floor(dist/1000)+1)*1000,lastBossScore:score,bossCount:bossPhase.bossCount||0,bossType:'',noDamage:true};
   itemEff={invincible:0,magnet:0};bombCount=0;bombFlashT=0;invCount=0;
   djumpAvailable=!!ct().hasDjump;djumpUsed=false;ghostPhaseT=0;ghostInvis=false;
   deadT=0;newHi=false;combo=0;comboT=0;comboDsp=0;comboDspT=0;airCombo=0;
@@ -172,7 +172,7 @@ function startCountdown(mode){
     bossRetry=null;
     score=retry.score;dist=retry.score;
     bossPhase.bossCount=retry.bossCount;
-    bossPhase.nextAt=score; // will trigger boss on first play frame
+    bossPhase.nextAt=dist; // will trigger boss on first play frame
     bossPhase.lastBossScore=score;
     lastMile=Math.floor(score/1000)*1000;
     // Set correct theme for this score

@@ -247,7 +247,7 @@ function update(dt){
     trySpawnMovingHill();
     trySpawnGravZone();
     // Boss phase trigger
-    if(!bossPhase.active&&score>=bossPhase.nextAt){
+    if(!bossPhase.active&&dist>=bossPhase.nextAt){
       startBossPhase();
     }
     updateBossPhase();

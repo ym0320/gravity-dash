@@ -30,7 +30,7 @@ const JUMP_POWER=8.0;
 const PLAYER_R=14;
 const GROUND_H=85;
 const SPEED_INIT=1.5;
-const SPEED_INC=0.0005;
+const SPEED_INC=0.00025;
 const SPEED_MAX=5.0;
 const HP_MAX=3;
 const HURT_INVINCIBLE=90; // frames of invincibility after taking damage
@@ -200,17 +200,17 @@ function bgmSnare(t){
 }
 
 // --- Rich BGM Definitions (multi-track, 32-step sequencer) ---
-// Title: bright J-pop, C-G-Am-F
-const BGM_TITLE={tempo:155,
-  melody:[523,587,659,784, 784,659,587,659, 880,784,659,523, 659,587,523,494,
-          523,659,784,1047, 880,784,659,784, 880,1047,880,784, 659,587,523,587],
-  harmony:[392,392,494,494, 523,523,494,494, 440,440,523,523, 440,440,392,392,
-           392,392,494,494, 523,523,494,494, 440,440,523,523, 440,440,392,392],
-  bass:[262,0,262,131, 196,0,196,98, 220,0,220,110, 175,0,175,87,
-        262,0,262,131, 196,0,196,98, 220,0,220,110, 175,0,262,131],
-  chords:[[523,659,784],[494,587,784],[440,523,659],[349,440,523],
-          [523,659,784],[494,587,784],[440,523,659],[349,440,523]],
-  melVol:0.25,harmVol:0.1,bassVol:0.2,chordVol:0.06,
+// Title: catchy pop earworm, C-Am-F-G bouncy hook
+const BGM_TITLE={tempo:138,
+  melody:[659,784,659,523, 587,659,0,0, 659,784,659,880, 784,659,0,0,
+          880,1047,880,784, 880,988,1047,0, 880,784,659,784, 659,587,523,0],
+  harmony:[392,0,392,0, 440,0,440,0, 392,0,392,0, 523,0,440,0,
+           523,0,523,0, 587,0,659,0, 523,0,440,0, 392,0,330,0],
+  bass:[262,0,262,131, 220,0,220,110, 175,0,175,87, 196,0,196,98,
+        262,0,262,131, 220,0,220,110, 175,0,175,87, 196,0,262,131],
+  chords:[[523,659,784],[440,523,659],[349,440,523],[392,494,587],
+          [523,659,784],[440,523,659],[349,440,523],[392,494,587]],
+  melVol:0.28,harmVol:0.08,bassVol:0.18,chordVol:0.06,
   melWave:'triangle',harmWave:'sine',bassWave:'sine',
   drums:'pop'};
 // Play1 (0-999): Starlight Stroll - dreamy, calm, C pentatonic, slow waltz feel
@@ -227,7 +227,7 @@ const BGM_PLAY1={tempo:100,
   melWave:'sine',harmWave:'sine',bassWave:'sine',
   drums:'soft'};
 // Play2 (1000-1999): Neon Streets - bouncy pop, G major, catchy hook
-const BGM_PLAY2={tempo:115,
+const BGM_PLAY2={tempo:108,
   melody:[784,0,880,784, 659,784,0,659, 523,587,659,0, 587,523,494,523,
           784,880,988,0, 880,784,659,784, 880,0,784,659, 587,0,523,0],
   harmony:[494,494,587,587, 440,440,494,494, 392,392,440,440, 370,370,392,392,
@@ -240,7 +240,7 @@ const BGM_PLAY2={tempo:115,
   melWave:'triangle',harmWave:'sine',bassWave:'sine',
   drums:'pop'};
 // Play3 (2000-2999): Cyberpunk Funk - Dm syncopated arpeggios, synth-funk
-const BGM_PLAY3={tempo:130,
+const BGM_PLAY3={tempo:116,
   melody:[587,0,698,784, 0,880,0,784, 698,0,587,698, 880,0,1047,0,
           880,784,0,698, 587,0,698,0, 523,587,659,0, 587,0,523,440],
   harmony:[440,0,440,523, 0,523,0,440, 392,0,392,440, 0,440,0,392,
@@ -253,7 +253,7 @@ const BGM_PLAY3={tempo:130,
   melWave:'triangle',harmWave:'triangle',bassWave:'sawtooth',
   drums:'drive'};
 // Play4 (3000-3999): Danger Zone - Em aggressive rock, heavy riffs
-const BGM_PLAY4={tempo:145,
+const BGM_PLAY4={tempo:125,
   melody:[659,0,784,880, 988,880,784,0, 659,784,880,1047, 988,0,880,784,
           523,587,659,784, 0,880,988,0, 1047,988,880,784, 659,0,784,0],
   harmony:[494,494,0,587, 523,0,494,494, 440,440,0,523, 494,0,440,440,
@@ -266,7 +266,7 @@ const BGM_PLAY4={tempo:145,
   melWave:'sawtooth',harmWave:'triangle',bassWave:'triangle',
   drums:'heavy'};
 // Play5 (4000+): Maximum Overdrive - Am frantic arpeggios, breakneck EDM
-const BGM_PLAY5={tempo:160,
+const BGM_PLAY5={tempo:134,
   melody:[880,1047,1319,1568, 1760,1568,1319,1047, 698,880,1047,1319, 1047,880,698,587,
           1175,1319,1568,1760, 1568,1319,1175,1047, 880,1047,1175,1319, 1175,1047,880,1047],
   harmony:[659,0,659,784, 0,784,0,659, 523,0,523,659, 0,659,0,523,

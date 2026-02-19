@@ -20,7 +20,7 @@ function startBossPhase(){
   enemies=[];bullets=[];floatPlats=[];spikes=[];movingHills=[];gravZones=[];
   bossPhase.bossCount++;
   bossPhase.lastBossScore=score;
-  bossPhase.nextAt=score+800+bossPhase.bossCount*100;
+  bossPhase.nextAt=(Math.floor(dist/1000)+1)*1000;
   shakeI=18;sfxBossAlert();vibrate([50,30,50,30,80,40,100]);
   switchBGM('boss');
 }
