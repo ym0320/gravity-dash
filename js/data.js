@@ -155,6 +155,34 @@ let debugEnemyType=-1;
 let debugEnemyCD=0;
 let debugLastBossType='';
 let debugBossRetry=false;
+let rankingOpen=false;
+let rankingScroll=0;
+let rankingScrollTarget=0;
+// Generate 100 sample ranking entries
+const SAMPLE_NAMES=[
+  'TaKuMi','YuKi_Gamer','SoRa_Run','HaRuKa','KaZuMa','AoI_Pro','ReN_X','MiYu','ShOtA','AkIrA',
+  'NoA_Speed','RiKu_JP','SaKuRa','KoTaRo','HiNaTa','YuMa','MeI_Chan','TaIgA','IcHiKa','RyU_King',
+  'MoMo_Dash','SoTa','AiRi','YuItO','MaO_Star','KaNaTa','HiMaRi','RuI_Fast','CoCoRo','TaIcHi',
+  'NaNaMi','YuSeI','SeNa_Go','HaYaTo','TsUkAsA','MiSaKi','RyOmA','KoKoNa','SoRaX2','IbUkI',
+  'AkAnE_FF','ToMa','NiKo_Run','ShIoN','YuZuKi','KeNtO','HoNoKa','AsAhI','EmI_Chan','YuGa',
+  'DaIkI_99','MaHiRo','SuZu','RaN_MVP','ItSuKi','AkArI','TaKeTo','YuMe_Go','HaRuTo','MiU_JP',
+  'KaEdE_X','SoMa','ChIhIrO','KeI_Fast','RiHo','DaIcHi','NaNa_Pro','YuKiTo','SaRa_GG','KoSeI',
+  'MiZuKi','TaKuYa','RiSa_Top','SoRa_Ace','KaHo','ReN_Pro2','AyUmI','YuTa','MaI_Star','RuKa',
+  'KoUkI','SaToMi','YuKi_777','ToMoYa','MiKu_Ace','KeNsHiN','NaNaKo','SeIjI','AkI_Rush','YuI_JP',
+  'TaKaSe','RiNtArO','MoE_Chan','SoUtA','HaRuNa','DaN_King','ChIsAtO','YuRi','ToShI_X','HaYaMi'
+];
+const RANKING_DATA=(function(){
+  const data=[];
+  for(let i=0;i<100;i++){
+    const rank=i+1;
+    const sc=Math.max(100,Math.floor(12800*(1-i*0.009)-Math.random()*200));
+    data.push({rank,name:SAMPLE_NAMES[i],charIdx:Math.floor(Math.random()*CHARS.length),score:sc});
+  }
+  // Sort by score descending
+  data.sort((a,b)=>b.score-a.score);
+  data.forEach((d,i)=>d.rank=i+1);
+  return data;
+})();
 function initAudio(){
   if(audioCtx){
     if(audioCtx.state==='suspended')audioCtx.resume();
@@ -281,18 +309,38 @@ const BGM_PLAY5={tempo:134,
   melWave:'sawtooth',harmWave:'triangle',bassWave:'sawtooth',
   drums:'turbo'};
 // Boss: Nightmare Awakens - Cm with tritones, ominous chromatic horror
-const BGM_BOSS={tempo:110,
-  melody:[523,0,622,0, 740,0,622,523, 466,0,523,0, 740,659,0,0,
-          831,0,784,740, 0,622,0,523, 466,523,622,740, 784,0,622,0],
-  harmony:[392,0,0,415, 0,0,370,0, 311,0,0,330, 0,0,392,0,
-           415,0,0,392, 0,0,370,0, 330,0,0,311, 0,0,262,0],
-  bass:[131,0,131,131, 185,0,185,93, 104,0,104,104, 98,0,131,98,
-        131,131,0,131, 185,185,0,93, 104,104,0,104, 98,0,131,131],
-  chords:[[262,311,370],[185,233,277],[208,262,311],[196,262,370],
-          [262,311,370],[185,233,277],[208,262,311],[196,262,370]],
-  melVol:0.20,harmVol:0.08,bassVol:0.28,chordVol:0.08,
-  melWave:'sawtooth',harmWave:'triangle',bassWave:'sawtooth',
-  drums:'horror'};
+const BGM_BOSS={tempo:105,
+  melody:[131,0,0,156, 0,175,0,0, 131,0,156,0, 185,0,0,0,
+          208,0,0,233, 0,208,0,175, 156,0,175,185, 208,233,0,0,
+          262,0,0,247, 0,233,0,262, 311,0,262,0, 233,0,208,0,
+          175,0,0,156, 131,0,156,175, 185,208,175,156, 131,0,0,0,
+          349,0,0,330, 0,311,0,0, 349,0,370,0, 392,0,0,0,
+          415,0,0,392, 0,370,0,349, 330,0,311,294, 262,0,0,0,
+          466,0,0,494, 0,523,0,466, 415,0,392,0, 370,0,349,0,
+          311,0,0,262, 233,0,208,175, 156,185,208,233, 262,0,131,0],
+  harmony:[0,0,104,0, 0,0,110,0, 0,0,0,104, 0,117,0,0,
+           0,0,131,0, 0,0,139,0, 0,0,0,117, 0,131,0,0,
+           0,0,156,0, 0,0,147,0, 0,0,0,156, 0,139,0,0,
+           0,0,110,0, 0,0,104,0, 0,0,0,98, 0,104,0,0,
+           0,0,175,0, 0,0,165,0, 0,0,0,185, 0,196,0,0,
+           0,0,208,0, 0,0,196,0, 0,0,0,185, 0,175,0,0,
+           0,0,233,0, 0,0,247,0, 0,0,0,233, 0,208,0,0,
+           0,0,156,0, 0,0,147,0, 0,0,0,139, 0,131,0,0],
+  bass:[65,65,0,65, 0,0,65,0, 65,0,65,65, 0,65,0,0,
+        69,69,0,69, 0,0,69,0, 69,0,69,69, 0,69,0,0,
+        78,78,0,78, 0,0,78,0, 78,0,78,78, 0,78,0,0,
+        65,65,0,65, 0,0,65,0, 65,0,65,65, 0,65,0,0,
+        87,87,0,87, 0,0,87,0, 87,0,87,87, 0,87,0,0,
+        93,93,0,93, 0,0,93,0, 93,0,93,93, 0,93,0,0,
+        104,104,0,104, 0,0,104,0, 104,0,104,104, 0,104,0,0,
+        78,78,0,78, 65,0,65,0, 65,0,65,65, 65,65,65,65],
+  chords:[[131,156,185,233],[139,175,208,262],[156,185,233,311],[131,175,208,262],
+          [175,208,262,311],[185,233,277,349],[208,262,311,370],[156,196,233,311],
+          [131,156,185,233],[139,175,208,262],[156,185,233,311],[131,175,208,262],
+          [175,208,262,311],[185,233,277,349],[208,262,311,370],[156,196,233,311]],
+  melVol:0.18,harmVol:0.10,bassVol:0.32,chordVol:0.06,
+  melWave:'sawtooth',harmWave:'sawtooth',bassWave:'sawtooth',
+  drums:'nightmare'};
 // Dead: Last Light - Bm very slow, sparse, melancholy piano-like
 const BGM_DEAD={tempo:60,
   melody:[740,0,0,0, 659,0,0,0, 587,0,0,659, 0,0,587,0,
@@ -408,6 +456,29 @@ function switchBGM(type){
         if(mi===4||mi===13||mi===20||mi===29)bgmSnare(now);
         if(mi%3===0)bgmNoise(now,0.04,0.1); // triplet hi-hats
         if(mi===15||mi===31){bgmSnare(now);bgmKick(now);} // tension builds
+      } else if(def.drums==='nightmare'){
+        // Complex polyrhythmic horror: heavy bass hits, irregular snares, metallic scrapes
+        const bar=Math.floor(mi/16)%4;
+        // Deep kick with sub-bass rumble pattern (3+3+2 grouping for unease)
+        if(mi%8<6&&mi%3===0)bgmKick(now);
+        if(mi%8===6||mi%8===7)bgmKick(now); // double kick accent
+        // Irregular snare hits: displaced and syncopated
+        if(mi%16===3||mi%16===7||mi%16===10||mi%16===14)bgmSnare(now);
+        // Triplet hi-hats for disorienting pulse
+        if(mi%3===0)bgmNoise(now,0.05,0.12);
+        // Ghost notes between main hits
+        if(mi%6===1||mi%6===4)bgmNoise(now,0.02,0.04);
+        // Tension ramp: fill at end of every 16-step bar
+        if(mi%16>=13){bgmSnare(now);if(mi%2===0)bgmKick(now);}
+        // Every other bar: double-time section for chaos
+        if(bar===1||bar===3){
+          if(mi%2===0)bgmKick(now);
+          bgmNoise(now,0.015,0.06);
+        }
+        // Metallic scrape effect (low noise burst) at phrase boundaries
+        if(mi%32===0||mi%32===24)bgmNoise(now,0.12,0.15);
+        // Sub-bass drone (very low oscillator)
+        bgmOsc('sine',32+Math.sin(si*0.1)*4,now,stepS*0.9,0.15);
       }
       si++;
     }catch(e){}
