@@ -59,8 +59,7 @@ function update(dt){
         if(chestOpen.reward&&chestOpen.reward.type==='char'){
           sfxSuperRare();shakeI=25;vibrate([40,20,60,30,80,40,100]);
           if(chestOpen.reward.isNew){
-            unlockedChars.push(chestOpen.reward.charIdx);
-            localStorage.setItem('gd5unlocked',JSON.stringify(unlockedChars));
+            unlockCharFromChest(chestOpen.reward.charIdx);
           } else {
             // Already owned: bonus 50 coins
             chestOpen.reward.bonusCoins=50;

@@ -422,7 +422,9 @@ function handleTitleTouch(tx,ty){
           selChar=idx;localStorage.setItem('gd5char',selChar.toString());
           sfxCharVoice(idx);vibrate(10);
         } else {
-          buyChar(idx);
+          // Locked: show hint to get from chest
+          sfx('hurt');vibrate(15);
+          addPop(cx+charW/2,cy,'宝箱で入手!','#ffd700');
         }
         return;
       }
