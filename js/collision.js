@@ -20,7 +20,7 @@ function hurt(isWall){
 // die(): instant death (void fall = lose all HP, even when invincible)
 function die(){
   hp=0;
-  player.alive=false;state=ST.DEAD;deadT=0;shakeI=14;
+  player.alive=false;state=ST.DEAD;deadT=0;shakeI=14;switchBGM('dead');
   player.face='dead';sfx('death');vibrate([30,20,50]);
   bossRetry=null; // clear boss retry on death
   // Transfer earned chests to inventory storage

@@ -224,6 +224,8 @@ canvas.addEventListener('touchstart',e=>{
   const t=e.touches[0];
   const p=canvasXY(t.clientX,t.clientY);
   touchStartY=t.clientY;touchStartX=t.clientX;touchStartT=Date.now();touchMoved=false;
+  // Ranking modal intercepts all input when open
+  if(rankingOpen){handleRankingTouch(p.x,p.y);return;}
   // Debug menu intercepts all input when open
   if(debugMenuOpen){handleDebugTouch(p.x,p.y);return;}
   // Settings panel intercepts all input when open
@@ -274,6 +276,17 @@ canvas.addEventListener('touchstart',e=>{
 canvas.addEventListener('touchmove',e=>{
   e.preventDefault();
   const t=e.touches[0];
+  // Ranking scroll
+  if(rankingOpen){
+    const dy2=t.clientY-touchStartY;
+    touchStartY=t.clientY;
+    const rowH=36;
+    const mH=H-20,hdrH=52,listH=mH-hdrH-50;
+    const totalH=RANKING_DATA.length*rowH;
+    const maxScroll=Math.max(0,totalH-listH);
+    rankingScrollTarget=Math.max(0,Math.min(maxScroll,rankingScrollTarget-dy2));
+    return;
+  }
   // Settings slider drag
   if(settingsOpen&&draggingSlider){const mp=canvasXY(t.clientX,t.clientY);updateSliderDrag(mp.x);return;}
   const dy=t.clientY-touchStartY;
@@ -344,6 +357,7 @@ canvas.addEventListener('touchend',e=>{
 canvas.addEventListener('mousedown',e=>{
   initAudio();
   const p=canvasXY(e.clientX,e.clientY);
+  if(rankingOpen){handleRankingTouch(p.x,p.y);return;}
   if(debugMenuOpen){handleDebugTouch(p.x,p.y);return;}
   if(settingsOpen){handleSettingsTouch(p.x,p.y);return;}
   if(state===ST.COUNTDOWN)return;
@@ -387,6 +401,7 @@ canvas.addEventListener('mouseup',()=>{
   draggingSlider=null;
 });
 document.addEventListener('keydown',e=>{
+  if(rankingOpen){if(e.code==='Escape'){rankingOpen=false;sfx('cancel');}e.preventDefault();return;}
   if(debugMenuOpen){if(e.code==='Escape'){debugMenuOpen=false;sfx('cancel');}e.preventDefault();return;}
   if(settingsOpen){if(e.code==='Escape'){settingsOpen=false;sfx('cancel');}e.preventDefault();return;}
   if(e.code==='Escape'){
@@ -447,8 +462,12 @@ function handleTitleTouch(tx,ty){
   if(tx>=W-84&&tx<=W-48&&ty>=safeTop+6&&ty<=safeTop+42){
     debugMenuOpen=true;sfx('select');return;
   }
-  // Inventory button (top-left, next to settings gear)
-  if(tx>=8&&tx<=48&&ty>=safeTop+6&&ty<=safeTop+42){
+  // Ranking button (top-left, leftmost)
+  if(tx>=8&&tx<=44&&ty>=safeTop+6&&ty<=safeTop+42){
+    rankingOpen=true;rankingScroll=0;rankingScrollTarget=0;sfx('select');return;
+  }
+  // Inventory button (top-left, 2nd)
+  if(tx>=50&&tx<=86&&ty>=safeTop+6&&ty<=safeTop+42){
     inventoryOpen=true;chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null};
     sfx('select');return;
   }
@@ -536,3 +555,31 @@ function handleDebugTouch(tx,ty){
     debugMenuOpen=false;sfx('cancel');return;
   }
 }
+function handleRankingTouch(tx,ty){
+  const mW=Math.min(340,W-16),mH=H-20;
+  const mX=(W-mW)/2,mY=10;
+  // Close button (top-right X)
+  if(tx>=mX+mW-38&&tx<=mX+mW-8&&ty>=mY+8&&ty<=mY+38){
+    rankingOpen=false;sfx('cancel');return;
+  }
+  // Footer close button
+  const ftY=mY+mH-40;
+  if(tx>=W/2-50&&tx<=W/2+50&&ty>=ftY&&ty<=ftY+30){
+    rankingOpen=false;sfx('cancel');return;
+  }
+  // Tap outside modal
+  if(tx<mX||tx>mX+mW||ty<mY||ty>mY+mH){
+    rankingOpen=false;sfx('cancel');return;
+  }
+}
+// Mouse wheel for ranking scroll
+canvas.addEventListener('wheel',e=>{
+  if(rankingOpen){
+    e.preventDefault();
+    const rowH=36;
+    const mH=H-20,hdrH=52,listH=mH-hdrH-50;
+    const totalH=RANKING_DATA.length*rowH;
+    const maxScroll=Math.max(0,totalH-listH);
+    rankingScrollTarget=Math.max(0,Math.min(maxScroll,rankingScrollTarget+e.deltaY*0.5));
+  }
+},{passive:false});
