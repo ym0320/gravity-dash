@@ -88,7 +88,7 @@ let gravZoneCD=0;
 
 // ===== BOSS PHASE =====
 // Boss appears periodically in endless mode
-let bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:800,lastBossScore:0,bossCount:0};
+let bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:1000,lastBossScore:0,bossCount:0,bossType:'',noDamage:true};
 
 function initBG(){
   stars=[];

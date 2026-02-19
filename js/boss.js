@@ -668,13 +668,13 @@ function drawBossWizard(en){
     const rushAlpha=en.rushReady?(.3+Math.sin(t*3)*.15):(.1+Math.sin(t*3)*.05);
     // Draw beam from wizard toward rush target
     const dx=en.rushTargetX-en.homeX,dy=en.rushTargetY-en.homeY;
-    const dist=Math.sqrt(dx*dx+dy*dy)||1;
+    const beamLen=Math.sqrt(dx*dx+dy*dy)||1;
     ctx.save();
     ctx.rotate(Math.atan2(dy,dx));
     ctx.fillStyle='rgba(255,140,40,'+rushAlpha+')';
-    ctx.fillRect(-dist*0.5,-s*0.12,dist,s*0.24);
+    ctx.fillRect(-beamLen*0.5,-s*0.12,beamLen,s*0.24);
     ctx.fillStyle='rgba(255,200,80,'+rushAlpha*0.5+')';
-    ctx.fillRect(-dist*0.5,-s*0.25,dist,s*0.5);
+    ctx.fillRect(-beamLen*0.5,-s*0.25,beamLen,s*0.5);
     ctx.restore();
   }
   // Floating shadow
