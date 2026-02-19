@@ -612,6 +612,33 @@ function update(dt){
         en.visible=true;en.visTimer=0;en.fadeT=20; // fade in over 20 frames
       }
       if(en.fadeT>0)en.fadeT--;
+    } else if(en.type===6){
+      // Dasher: patrol → warn → dash → cooldown → patrol
+      en.patrolOriginX-=speed;
+      const sy=floorSurfaceY(en.x);
+      if(sy<H+100){en.y=sy-en.sz;en.vy=0;}
+      else{en.vy=(en.vy||0)+GRAVITY;en.y+=en.vy;}
+      const dxP=player.x-en.x;
+      if(en.dashState==='patrol'){
+        en.x+=en.patrolDir*en.walkSpd*esm;
+        if(en.x>en.patrolOriginX+en.patrolRange) en.patrolDir=-1;
+        if(en.x<en.patrolOriginX-en.patrolRange) en.patrolDir=1;
+        // Detect player within range
+        if(Math.abs(dxP)<160&&Math.abs(player.y-en.y)<60){
+          en.dashState='warn';en.warnT=40;
+          en.dashDir=dxP<0?-1:1;
+        }
+      } else if(en.dashState==='warn'){
+        en.warnT--;
+        if(en.warnT<=0){en.dashState='dash';en.dashTimer=35;}
+      } else if(en.dashState==='dash'){
+        en.x+=en.dashDir*en.dashSpd*esm;
+        en.dashTimer--;
+        if(en.dashTimer<=0){en.dashState='cooldown';en.dashTimer=50;}
+      } else if(en.dashState==='cooldown'){
+        en.dashTimer--;
+        if(en.dashTimer<=0){en.dashState='patrol';en.patrolOriginX=en.x;}
+      }
     } else {
       // Default movement (type 1 cannon and legacy)
       en.x-=en.walkSpd*esm;

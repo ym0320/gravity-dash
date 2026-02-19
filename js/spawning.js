@@ -79,7 +79,7 @@ function trySpawnItem(){
     // Pick random item: 0=invincible, 1=magnet, 2=bomb, 3=heart
     let it;
     if(hp<maxHp()&&Math.random()<0.3){it=3;} // higher chance for heart when damaged
-    else{const r=Math.random();if(r<0.01){it=0;}else if(r<0.04){it=2;}else if(r<0.12){it=1;}else{itemCD=60+Math.floor(Math.random()*30);return;}}
+    else{const r=Math.random();if(r<0.01){it=0;}else if(r<0.04){it=2;}else if(r<0.08){it=1;}else{itemCD=60+Math.floor(Math.random()*30);return;}}
     items.push({x:ix,y:surfY-55-Math.random()*25,t:it,sz:14,p:Math.random()*6.28,col:false});
   } else {
     itemCD=20+Math.floor(Math.random()*15);
@@ -102,7 +102,8 @@ function trySpawnEnemy(){
     // Choose enemy type based on score - early game = walkers only
     let eType=0;
     const tr=Math.random();
-    if(score>=200&&bossPhase.bossCount>=1&&tr<0.15) eType=3; // bomber (after boss)
+    if(score>=400&&bossPhase.bossCount>=2&&tr<0.15) eType=3; // bomber (after 2nd boss)
+    else if(score>=250&&bossPhase.bossCount>=1&&tr<0.12) eType=6; // dasher (after 1st boss)
     else if(score>=160&&tr<0.12) eType=5; // phantom (mid-late)
     else if(score>=140&&tr<0.15) eType=4; // vertical mover (mid-late)
     else if(score>=120&&tr<0.22) eType=2; // flyer (mid-late)
@@ -135,6 +136,13 @@ function trySpawnEnemy(){
       enemies.push({x:ex,y:surfY-sz,vy:0,gDir:1,walkSpd:0.1,sz:sz+2,alive:true,fr:Math.random()*100,type:3,
         shootT:90+Math.floor(Math.random()*40),bombCD:90+Math.floor(Math.random()*40),
         patrolDir:1,patrolOriginX:ex,patrolRange:15+Math.random()*20});
+    } else if(eType===6){
+      // Dasher: walks slowly, then charges at player when close
+      const surfY=H-plat.h;
+      const sz=14;
+      enemies.push({x:ex,y:surfY-sz,vy:0,gDir:1,walkSpd:0.3,sz:sz,alive:true,fr:Math.random()*100,type:6,shootT:999,
+        patrolDir:-1,patrolOriginX:ex,patrolRange:25+Math.random()*20,
+        dashState:'patrol',dashTimer:0,dashSpd:6+Math.random()*3,dashDir:-1,warnT:0});
     } else {
       const onCeil=Math.random()<0.3;
       const gd=onCeil?-1:1;

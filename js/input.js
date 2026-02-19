@@ -41,8 +41,10 @@ function hitDeadBtn(px,py){
 }
 function handleDeadBtn(btnId){
   if(btnId==='continue'){
+    if(usedContinue){sfx('hurt');vibrate(15);return;}
     if(walletCoins>=100){
       walletCoins-=100;localStorage.setItem('gd5wallet',walletCoins.toString());
+      usedContinue=true;
       sfx('select');continueFromDeath();
     } else {sfx('hurt');vibrate(15);}
   } else if(btnId==='restart'){
@@ -340,7 +342,6 @@ canvas.addEventListener('mousedown',e=>{
   if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');state=ST.PAUSE;return;}
   if(state===ST.TITLE){if(charModal.show){sfx('cancel');charModal.show=false;return;}handleTitleTouch(p.x,p.y);}
   else if(state===ST.DEAD&&deadT>45){
-    if(handleChestTap())return;
     const btnId=hitDeadBtn(p.x,p.y);
     if(btnId)handleDeadBtn(btnId);
   }
@@ -382,7 +383,7 @@ document.addEventListener('keydown',e=>{
     }
     if(state===ST.PAUSE){sfx('select');state=ST.PLAY;switchBGM('play');return;}
     if(state===ST.TITLE){startCountdown('endless');}
-    else if(state===ST.DEAD&&deadT>45){if(!handleChestTap())handleDeadBtn('restart');}
+    else if(state===ST.DEAD&&deadT>45){handleDeadBtn('restart');}
     else if(state===ST.PLAY&&player.grounded){
       const jp=JUMP_POWER*ct().jumpMul;
       player.vy=-jp*player.gDir;player.grounded=false;djumpUsed=false;
