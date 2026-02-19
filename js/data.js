@@ -150,6 +150,11 @@ let sfxVol=parseFloat(localStorage.getItem('gd5sfxVol')||'0.7');
 let settingsOpen=false;
 let debugMenuOpen=false;
 let debugBossBc=1;
+let debugEnemyMode=false;
+let debugEnemyType=-1;
+let debugEnemyCD=0;
+let debugLastBossType='';
+let debugBossRetry=false;
 function initAudio(){
   if(audioCtx){
     if(audioCtx.state==='suspended')audioCtx.resume();

@@ -103,7 +103,7 @@ function trySpawnEnemy(){
     let eType=0;
     const tr=Math.random();
     if(score>=400&&bossPhase.bossCount>=2&&tr<0.15) eType=3; // bomber (after 2nd boss)
-    else if(score>=250&&bossPhase.bossCount>=1&&tr<0.12) eType=6; // dasher (after 1st boss)
+    else if(score>=250&&bossPhase.bossCount>=1&&tr<0.18) eType=6; // dasher (after 1st boss)
     else if(score>=160&&tr<0.12) eType=5; // phantom (mid-late)
     else if(score>=140&&tr<0.15) eType=4; // vertical mover (mid-late)
     else if(score>=120&&tr<0.22) eType=2; // flyer (mid-late)

@@ -142,20 +142,24 @@ function spawnBossEnemies(){
     bossPhase.bruiser=bruiser;
     bossPhase.total=1;
   } else if(bossType==='guardian'){
-    // Guardian type: armored knight, slams ground to create shockwaves, vulnerable when stunned
+    // Guardian type: armored knight - fires sword flame, then shield-charges at player
     const gsz=(28+Math.min(bc-1,3)*3)*2;
     const guardian={
       x:W+90,y:floorY-gsz,vy:0,gDir:1,sz:gsz,alive:true,fr:0,
       type:13,shootT:999,boss:true,bossType:'guardian',
       hp:4,maxHp:4,
-      advanceSpd:1.8+Math.min(bc-1,5)*0.3,
+      chargeSpd:3.5+Math.min(bc-1,5)*0.4,
+      retreatSpd:4+Math.min(bc-1,3)*0.5,
       state:'enter',
       timer:0,stunT:0,hurtFlash:0,invT:0,
-      slamT:0,slamCooldown:0,
-      shieldUp:true, // shield blocks frontal stomps
-      jumpEnabled:bc>=3, // from 3rd encounter: can jump toward player
-      doubleWave:bc>=2, // from 2nd encounter: slam sends waves both directions
-      stunDuration:Math.max(30,55-Math.min(bc-1,4)*5) // shorter stun at higher bc
+      fireT:0,
+      shieldUp:false,
+      targetY:floorY-gsz, // vertical target for movement
+      vertSpd:1.5+Math.min(bc-1,4)*0.3, // vertical movement speed
+      jumpChargeEnabled:bc>=2, // phase 2+: irregular jumping during charge
+      jumpVy:0, // vertical velocity during jump-charge
+      stunDuration:Math.max(30,55-Math.min(bc-1,4)*5),
+      doubleWave:bc>=2
     };
     bossPhase.guardian=guardian;
     bossPhase.total=1;
@@ -190,7 +194,7 @@ function updateBossPhase(){
     }
     if(bossPhase.prepare===0){spawnBossEnemies();
       // Boss roar after spawning
-      const bt=bossPhase.bruiser?'bruiser':bossPhase.wizard?'wizard':bossPhase.dodgeQueue.length>0?'dodge':'charge';
+      const bt=bossPhase.guardian?'guardian':bossPhase.bruiser?'bruiser':bossPhase.wizard?'wizard':bossPhase.dodgeQueue.length>0?'dodge':'charge';
       sfxBossRoar(bt);
     }
     return;
@@ -457,7 +461,7 @@ function updateBossPhase(){
       if(sy>-100)b.y=sy+b.sz;
     }
   }
-  // Phase C: guardian boss logic (armored knight with shockwaves)
+  // Phase C: guardian boss logic (sword fire → shield charge → retreat)
   const guardianActive=bossPhase.guardian&&bossPhase.guardian.alive;
   if(chargesCleared&&guardianActive){
     const g=bossPhase.guardian;
@@ -468,83 +472,118 @@ function updateBossPhase(){
     g.timer++;g.fr+=0.1;
     if(g.hurtFlash>0)g.hurtFlash--;
     if(g.invT>0)g.invT--;
-    if(g.slamCooldown>0)g.slamCooldown--;
+    const floorY2=H-GROUND_H;
+    const ceilY2=GROUND_H;
     if(g.state==='enter'){
       g.x-=2;
-      if(g.x<=W*0.7){g.state='advance';g.timer=0;}
-    } else if(g.state==='advance'){
-      // Walk toward player
+      if(g.x<=W*0.7){g.state='fireAttack';g.timer=0;g.fireT=40;g.shieldUp=false;}
+    } else if(g.state==='fireAttack'){
+      // Sword fire attack: telegraph then shoot flame projectile(s)
+      g.fireT--;
+      g.x+=(Math.random()-0.5)*1.5; // shake during windup
+      // Track player vertically
+      const dy=player.y-(g.y+g.sz*0.5);
+      g.y+=Math.sign(dy)*Math.min(Math.abs(dy)*0.05,g.vertSpd*0.5);
+      if(g.fireT===10){
+        // Fire flame projectile(s) toward player
+        const fx=g.x-g.sz*0.5,fy=g.y+g.sz*0.3;
+        const dx2=player.x-fx,dy2=player.y-fy;
+        const d2=Math.sqrt(dx2*dx2+dy2*dy2)||1;
+        const fspd=5+Math.min(bc-1,4)*0.5;
+        bullets.push({x:fx,y:fy,vx:dx2/d2*fspd,vy:dy2/d2*fspd,sz:8,life:80,flameBullet:true});
+        if(g.doubleWave){
+          // Spread shot at phase 2+
+          const ang=Math.atan2(dy2,dx2);
+          bullets.push({x:fx,y:fy,vx:Math.cos(ang+0.25)*fspd,vy:Math.sin(ang+0.25)*fspd,sz:6,life:60,flameBullet:true});
+          bullets.push({x:fx,y:fy,vx:Math.cos(ang-0.25)*fspd,vy:Math.sin(ang-0.25)*fspd,sz:6,life:60,flameBullet:true});
+        }
+        sfx('shoot');shakeI=6;vibrate(15);
+        emitParts(fx,fy,8,'#ff4400',4,2);
+      }
+      if(g.fireT<=0){
+        // Raise shield and charge!
+        g.state='shieldCharge';g.timer=0;g.shieldUp=true;g.jumpVy=0;
+        sfx('death');
+      }
+    } else if(g.state==='shieldCharge'){
+      // Charge toward player with shield up (blocks stomps from front)
       const dx=player.x-g.x;
-      g.x+=Math.sign(dx)*g.advanceSpd;
+      g.x+=Math.sign(dx)*g.chargeSpd;
+      g.fr+=0.15;
+      // Vertical tracking: move toward player's Y position
+      const dy=player.y-(g.y+g.sz*0.5);
+      if(g.jumpChargeEnabled){
+        // Phase 2+: irregular jumping during charge
+        if(g.jumpVy===0&&g.timer>8&&Math.random()<0.03*bc){
+          g.jumpVy=-5-Math.random()*3;
+          sfx('click');
+        }
+        if(g.jumpVy!==0){
+          g.jumpVy+=GRAVITY;
+          g.y+=g.jumpVy;
+          // Land on floor or ceiling
+          if(g.y+g.sz>=floorY2&&g.jumpVy>0){g.y=floorY2-g.sz;g.jumpVy=0;}
+          if(g.y<=ceilY2&&g.jumpVy<0){g.y=ceilY2;g.jumpVy=0;}
+        } else {
+          g.y+=Math.sign(dy)*Math.min(Math.abs(dy)*0.06,g.vertSpd);
+        }
+      } else {
+        // Phase 1: smooth vertical tracking
+        g.y+=Math.sign(dy)*Math.min(Math.abs(dy)*0.06,g.vertSpd);
+      }
+      // Clamp to playfield
+      if(g.y+g.sz>floorY2)g.y=floorY2-g.sz;
+      if(g.y<ceilY2)g.y=ceilY2;
+      // Trail particles
+      if(frame%2===0){
+        parts.push({x:g.x+g.sz*0.5,y:g.y+g.sz*0.5,vx:2+Math.random(),vy:(Math.random()-0.5)*2,
+          life:12,ml:12,sz:Math.random()*4+2,col:'#4488cc'});
+      }
+      // Reached player's X position → immediately retreat
+      if(Math.abs(dx)<g.sz*0.5||g.x<player.x-g.sz){
+        g.state='retreat';g.timer=0;g.shieldUp=true;g.jumpVy=0;
+        // Shockwave on arrival
+        const sy=g.y+g.sz;
+        if(sy>=floorY2-5){
+          shakeI=10;vibrate([15,10,20]);
+          emitParts(g.x,floorY2,8,'#ffaa00',3,2);
+          const waveSpd=4+Math.min(bc-1,4)*0.5;
+          bullets.push({x:g.x,y:floorY2-6,vx:-waveSpd,vy:0,sz:10,life:80,shockwave:true,baseY:floorY2-6});
+          if(g.doubleWave) bullets.push({x:g.x,y:floorY2-6,vx:waveSpd,vy:0,sz:10,life:80,shockwave:true,baseY:floorY2-6});
+        }
+      }
+    } else if(g.state==='retreat'){
+      // Quickly back away to right side, shield still up
+      g.x+=g.retreatSpd;
       g.fr+=0.08;
-      // Jump toward player at higher difficulties
-      if(g.jumpEnabled&&g.timer>40&&Math.abs(dx)<200&&Math.random()<0.008*bc){
-        g.vy=-6-Math.random()*2;g.state='jump';g.timer=0;
-      }
-      // Initiate slam when close enough to player
-      if(Math.abs(dx)<120&&g.slamCooldown<=0){
-        g.state='windup';g.timer=0;g.slamT=30;
-        g.shieldUp=false; // lower shield during attack
-      }
-    } else if(g.state==='jump'){
-      g.vy+=GRAVITY;g.y+=g.vy;
+      // Return to floor level during retreat
       const sy=floorSurfaceY(g.x);
-      if(sy<H+100&&g.y+g.sz>=sy&&g.vy>0){
-        g.y=sy-g.sz;g.vy=0;
-        // Land slam: create shockwave on landing
-        g.state='slam';g.timer=0;g.shieldUp=false;
-        shakeI=14;sfx('death');vibrate([20,10,30]);
-        emitParts(g.x,sy,10,'#ffaa00',4,2);
-        // Spawn shockwave(s)
-        const waveSpd=4+Math.min(bc-1,4)*0.5;
-        bullets.push({x:g.x,y:sy-6,vx:-waveSpd,vy:0,sz:10,life:80,shockwave:true,baseY:sy-6});
-        if(g.doubleWave) bullets.push({x:g.x,y:sy-6,vx:waveSpd,vy:0,sz:10,life:80,shockwave:true,baseY:sy-6});
+      if(sy<H+100){
+        const floorTarget=sy-g.sz;
+        g.y+=(floorTarget-g.y)*0.1;
       }
-    } else if(g.state==='windup'){
-      // Wind up before slam (shield down = vulnerable moment)
-      g.slamT--;
-      // Shake to telegraph
-      g.x+=(Math.random()-0.5)*2;
-      if(g.slamT<=0){
-        g.state='slam';g.timer=0;
-        const sy=floorSurfaceY(g.x);
-        shakeI=14;sfx('death');vibrate([20,10,30]);
-        emitParts(g.x,sy,10,'#ffaa00',4,2);
-        // Spawn shockwave(s)
-        const waveSpd=4+Math.min(bc-1,4)*0.5;
-        bullets.push({x:g.x,y:sy-6,vx:-waveSpd,vy:0,sz:10,life:80,shockwave:true,baseY:sy-6});
-        if(g.doubleWave) bullets.push({x:g.x,y:sy-6,vx:waveSpd,vy:0,sz:10,life:80,shockwave:true,baseY:sy-6});
-      }
-    } else if(g.state==='slam'){
-      // Brief slam animation, then stunned
-      if(g.timer>=12){
-        g.state='stunned';g.timer=0;g.stunT=g.stunDuration;
-        g.shieldUp=false;
+      if(g.timer>=30||g.x>=W*0.72){
+        g.state='fireAttack';g.timer=0;g.fireT=40+Math.floor(Math.random()*20);g.shieldUp=false;
       }
     } else if(g.state==='stunned'){
       g.stunT--;
-      // Stars above head visual (handled in draw)
-      if(g.stunT<=0){
-        g.state='recover';g.timer=0;g.shieldUp=true;
-        g.slamCooldown=60+Math.floor(Math.random()*30);
-      }
-    } else if(g.state==='recover'){
-      // Step back before re-engaging
-      g.x+=2.5;
-      if(g.timer>=25||g.x>=W*0.75){g.state='advance';g.timer=0;}
-    } else if(g.state==='invincible'){
-      g.invT--;
-      g.x+=2;
-      if(g.invT<=0){g.state='recover';g.timer=0;g.shieldUp=true;g.slamCooldown=40;}
-    }
-    // Keep on floor
-    if(g.state!=='jump'){
+      // Keep on floor during stun
       const sy=floorSurfaceY(g.x);
       if(sy<H+100)g.y=sy-g.sz;
+      if(g.stunT<=0){
+        g.state='retreat';g.timer=0;g.shieldUp=true;
+      }
+    } else if(g.state==='invincible'){
+      g.invT--;
+      g.x+=3;
+      // Return to floor
+      const sy=floorSurfaceY(g.x);
+      if(sy<H+100){const ft=sy-g.sz;g.y+=(ft-g.y)*0.15;}
+      if(g.invT<=0){g.state='retreat';g.timer=0;g.shieldUp=true;}
     }
     // Collision check
     if(g.invT<=0){
-      const dx=player.x-g.x,dy=player.y-g.y;
+      const dx=player.x-g.x,dy=player.y-(g.y+g.sz*0.5);
       const d=Math.sqrt(dx*dx+dy*dy);
       if(d<pr+g.sz*BOSS_HITBOX_SCALE){
         if(itemEff.invincible>0){
@@ -555,11 +594,11 @@ function updateBossPhase(){
         } else {
           // Stomp check: player above guardian and falling down
           const stomped=(player.y+pr<g.y-g.sz*0.15&&player.vy>=0&&player.gDir===1);
-          // Shield block: if shield is up and player is in front, stomp fails
+          // Shield block: if shield is up, stomp fails
           const shieldBlock=g.shieldUp&&stomped;
           if(stomped&&!shieldBlock){
             g.hp--;g.hurtFlash=20;
-            g.state='invincible';g.invT=60;g.timer=0;g.shieldUp=true;
+            g.state='stunned';g.stunT=g.stunDuration;g.timer=0;g.shieldUp=false;g.jumpVy=0;
             player.vy=-JUMP_POWER*0.8;player.grounded=false;
             flipCount=0;player.canFlip=true;djumpUsed=false;djumpAvailable=true;
             shakeI=12;sfx('bossHit');sfx('gstompHeavy');vibrate([20,10,30]);
@@ -948,7 +987,7 @@ function drawBossGuardian(en){
   // Shadow
   ctx.fillStyle='rgba(0,0,0,0.3)';ctx.beginPath();ctx.ellipse(0,s*0.85,s*0.7,s*0.12,0,0,6.28);ctx.fill();
   // Legs (animated walk)
-  const legSpd=en.state==='advance'?1.2:en.state==='stunned'?0:0.6;
+  const legSpd=en.state==='shieldCharge'?1.5:en.state==='stunned'?0:en.state==='retreat'?1.0:0.6;
   const legPhase=Math.sin(t*legSpd)*s*0.1;
   ctx.fillStyle=dmg>=3?'#1a2030':'#2a3040';
   ctx.fillRect(-s*0.4+legPhase,s*0.25,s*0.22,s*0.55);
@@ -997,7 +1036,7 @@ function drawBossGuardian(en){
   }
   // Shield (left side - blue steel, glows when blocking)
   if(en.shieldUp){
-    const shieldGlow=en.state==='advance'?0.8+Math.sin(t*0.8)*0.2:0.6;
+    const shieldGlow=en.state==='shieldCharge'?0.8+Math.sin(t*0.8)*0.2:0.6;
     ctx.globalAlpha=(en.invT>0&&en.invT%6<3?0.25:en.hurtFlash>0&&en.hurtFlash%4<2?0.5:1)*shieldGlow;
     ctx.fillStyle='#4488cc';ctx.shadowColor='#4488cc';ctx.shadowBlur=10;
     ctx.beginPath();
@@ -1013,8 +1052,8 @@ function drawBossGuardian(en){
     ctx.globalAlpha=en.invT>0&&en.invT%6<3?0.25:en.hurtFlash>0&&en.hurtFlash%4<2?0.5:1;
   }
   // Sword arm (right side)
-  const swordAngle=en.state==='windup'?-0.5-Math.sin(en.slamT*0.2)*0.3:
-    en.state==='slam'?0.8:en.state==='stunned'?0.3:0;
+  const swordAngle=en.state==='fireAttack'?-0.5-Math.sin(en.fireT*0.2)*0.3:
+    en.state==='shieldCharge'?0.3:en.state==='stunned'?0.3:0;
   ctx.save();ctx.translate(s*0.5,-s*0.2);ctx.rotate(swordAngle);
   ctx.fillStyle='#c0d0e0';
   ctx.fillRect(-s*0.04,-s*0.8,s*0.08,s*0.9); // blade
@@ -1033,7 +1072,7 @@ function drawBossGuardian(en){
   ctx.fillStyle=dmg>=2?'#3a4050':'#6a7a8a';
   ctx.beginPath();ctx.moveTo(0,-s*0.95);ctx.lineTo(-s*0.06,-s*0.7);ctx.lineTo(s*0.06,-s*0.7);ctx.closePath();ctx.fill();
   // Visor slit (glowing eyes behind)
-  const eyeCol=en.state==='windup'||en.state==='slam'?'#ff4400':'#ffaa00';
+  const eyeCol=en.state==='fireAttack'||en.state==='shieldCharge'?'#ff4400':'#ffaa00';
   ctx.fillStyle=eyeCol;ctx.shadowColor=eyeCol;ctx.shadowBlur=6;
   ctx.fillRect(-s*0.18,-s*0.7,s*0.36,s*0.06);ctx.shadowBlur=0;
   // HP bar
@@ -1054,11 +1093,18 @@ function drawBossGuardian(en){
       ctx.fillText('\u2605',sx,sy2);
     }
   }
-  // Windup telegraph (! above head)
-  if(en.state==='windup'){
-    const wa=Math.sin(en.slamT*0.4)*0.3+0.7;
+  // Fire attack telegraph (! above head)
+  if(en.state==='fireAttack'){
+    const wa=Math.sin(en.fireT*0.4)*0.3+0.7;
     ctx.globalAlpha=wa;ctx.fillStyle='#ff4400';ctx.font='bold 16px monospace';ctx.textAlign='center';
     ctx.fillText('!',0,-s*1.15);ctx.globalAlpha=1;
+  }
+  // Shield charge indicator
+  if(en.state==='shieldCharge'){
+    const ca=0.5+Math.sin(t*3)*0.3;
+    ctx.globalAlpha=ca;ctx.strokeStyle='#4488cc';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(0,-s*0.3,s*0.9+Math.sin(t*2)*s*0.1,0,6.28);ctx.stroke();
+    ctx.globalAlpha=1;
   }
   ctx.restore();
 }
@@ -1287,6 +1333,7 @@ window.testBoss=function(type,bc){
   if(!['charge','dodge','bruiser','wizard','guardian'].includes(type)){
     console.log('Usage: testBoss("guardian") / "bruiser" / "wizard" / "charge" / "dodge"');return;
   }
+  debugEnemyMode=false;debugEnemyType=-1;
   // Start a game if not playing
   if(state!==ST.PLAY){
     gameMode='endless';isPackMode=false;reset();
@@ -1300,3 +1347,53 @@ window.testBoss=function(type,bc){
   bossPhase.prepare=1; // skip prepare countdown (spawns next frame)
   console.log('Boss "'+type+'" starting! (bc='+bossPhase.bossCount+')');
 };
+// Debug: test enemy types with continuous spawning
+window.testEnemy=function(eType){
+  debugEnemyMode=true;debugEnemyType=eType;debugEnemyCD=0;
+  if(state!==ST.PLAY){
+    gameMode='endless';isPackMode=false;reset();
+    state=ST.PLAY;switchBGM('play');
+  }
+  bossPhase.active=false; // clear any boss phase
+  enemies=[];bullets=[];
+  console.log('Enemy type '+eType+' test mode active');
+};
+// Called from update loop to continuously spawn debug enemies
+function debugSpawnEnemy(){
+  if(!debugEnemyMode||debugEnemyType<0)return;
+  if(state!==ST.PLAY)return;
+  debugEnemyCD--;
+  if(debugEnemyCD>0)return;
+  debugEnemyCD=50; // spawn every 50 frames (~0.8s)
+  const floorY=H-GROUND_H;
+  const ceilY2=GROUND_H;
+  const ex=W+20;
+  const sz=13;
+  const eType=debugEnemyType;
+  if(eType===0){
+    enemies.push({x:ex,y:floorY-sz,vy:0,gDir:1,walkSpd:0.3+Math.random()*0.4,sz:sz,alive:true,fr:Math.random()*100,type:0,shootT:999,
+      patrolDir:1,patrolOriginX:ex,patrolRange:30+Math.random()*40});
+  } else if(eType===1){
+    enemies.push({x:ex,y:floorY-sz,vy:0,gDir:1,walkSpd:0.15+Math.random()*0.2,sz:sz,alive:true,fr:Math.random()*100,type:1,shootT:60+Math.floor(Math.random()*60)});
+  } else if(eType===2){
+    const flyY=floorY-60-Math.random()*80;
+    enemies.push({x:ex,y:flyY,vy:0,gDir:1,walkSpd:0,sz:sz,alive:true,fr:Math.random()*100,type:2,shootT:999,
+      baseY:flyY,flyPhase:Math.random()*6.28,flyAmp:20+Math.random()*25});
+  } else if(eType===3){
+    enemies.push({x:ex,y:floorY-sz-2,vy:0,gDir:1,walkSpd:0.1,sz:sz+2,alive:true,fr:Math.random()*100,type:3,
+      shootT:90+Math.floor(Math.random()*40),bombCD:90+Math.floor(Math.random()*40),
+      patrolDir:1,patrolOriginX:ex,patrolRange:15+Math.random()*20});
+  } else if(eType===4){
+    enemies.push({x:ex,y:floorY-14,vy:-2.5-Math.random()*1.5,gDir:1,walkSpd:0,sz:14,alive:true,fr:Math.random()*100,type:4,shootT:999,
+      moveDir:-1,moveSpd:2.5+Math.random()*1.5,pauseT:0});
+  } else if(eType===5){
+    const flyY=floorY-50-Math.random()*60;
+    enemies.push({x:ex,y:flyY,vy:0,gDir:1,walkSpd:0,sz:sz,alive:true,fr:Math.random()*100,type:5,shootT:999,
+      baseY:flyY,flyPhase:Math.random()*6.28,flyAmp:15+Math.random()*15,
+      visTimer:0,visCycle:90+Math.floor(Math.random()*60),visible:true,fadeT:0});
+  } else if(eType===6){
+    enemies.push({x:ex,y:floorY-14,vy:0,gDir:1,walkSpd:0.3,sz:14,alive:true,fr:Math.random()*100,type:6,shootT:999,
+      patrolDir:-1,patrolOriginX:ex,patrolRange:25+Math.random()*20,
+      dashState:'patrol',dashTimer:0,dashSpd:6+Math.random()*3,dashDir:-1,warnT:0});
+  }
+}

@@ -726,6 +726,19 @@ function drawBullet(b){
     ctx.fillStyle='#ff6600';ctx.shadowColor='#ff6600';ctx.shadowBlur=6;
     ctx.beginPath();ctx.arc(b.sz*0.3,-b.sz*1.8,2+Math.random()*2,0,6.28);ctx.fill();
     ctx.shadowBlur=0;
+  } else if(b.flameBullet){
+    // Guardian flame bullet - orange fire orb with trail
+    const fa=Math.min(1,b.life/15);
+    ctx.globalAlpha=fa;
+    ctx.shadowColor='#ff4400';ctx.shadowBlur=12;
+    ctx.fillStyle='#ff6600';ctx.beginPath();ctx.arc(0,0,b.sz,0,6.28);ctx.fill();
+    ctx.fillStyle='#ffdd00';ctx.beginPath();ctx.arc(0,0,b.sz*0.5,0,6.28);ctx.fill();
+    ctx.shadowBlur=0;
+    // Fire trail
+    ctx.fillStyle='#ff440066';
+    ctx.beginPath();ctx.arc(b.sz+4,0,b.sz*0.7,0,6.28);ctx.fill();
+    ctx.beginPath();ctx.arc(b.sz+10,0,b.sz*0.4,0,6.28);ctx.fill();
+    ctx.globalAlpha=1;
   } else if(b.wizBullet){
     // Wizard magic bullet - purple energy orb
     ctx.shadowColor='#aa44ff';ctx.shadowBlur=10;
@@ -1298,25 +1311,25 @@ function drawTitle(){
     ctx.fillText('\u9589\u3058\u308B',W/2,closeY+22);
   }
 
-  // Debug boss test panel
+  // Debug test panel
   if(debugMenuOpen){
     ctx.fillStyle='rgba(0,0,0,0.85)';ctx.fillRect(0,0,W,H);
-    ctx.fillStyle='#ff3860';ctx.font='bold 18px monospace';ctx.textAlign='center';
-    ctx.fillText('BOSS TEST',W/2,safeTop+40);
+    ctx.fillStyle='#ff3860';ctx.font='bold 16px monospace';ctx.textAlign='center';
+    ctx.fillText('DEBUG MENU',W/2,safeTop+36);
     // Difficulty selector
-    ctx.fillStyle='#fff8';ctx.font='12px monospace';
-    ctx.fillText('\u96E3\u6613\u5EA6 (bossCount): '+debugBossBc,W/2,safeTop+62);
-    const bcBtnW=36,bcBtnH=30;
-    const bcY=safeTop+70;
-    // - button
+    ctx.fillStyle='#fff8';ctx.font='11px monospace';
+    ctx.fillText('\u96E3\u6613\u5EA6: '+debugBossBc,W/2,safeTop+54);
+    const bcBtnW=36,bcBtnH=26;
+    const bcY=safeTop+60;
     ctx.fillStyle='#ffffff18';rr(W/2-60,bcY,bcBtnW,bcBtnH,6);ctx.fill();
     ctx.strokeStyle='#fff4';ctx.lineWidth=1;rr(W/2-60,bcY,bcBtnW,bcBtnH,6);ctx.stroke();
-    ctx.fillStyle='#fff';ctx.font='bold 16px monospace';ctx.fillText('-',W/2-42,bcY+22);
-    // + button
+    ctx.fillStyle='#fff';ctx.font='bold 14px monospace';ctx.fillText('-',W/2-42,bcY+19);
     ctx.fillStyle='#ffffff18';rr(W/2+24,bcY,bcBtnW,bcBtnH,6);ctx.fill();
     ctx.strokeStyle='#fff4';ctx.lineWidth=1;rr(W/2+24,bcY,bcBtnW,bcBtnH,6);ctx.stroke();
-    ctx.fillStyle='#fff';ctx.fillText('+',W/2+42,bcY+22);
-    // Boss buttons
+    ctx.fillStyle='#fff';ctx.fillText('+',W/2+42,bcY+19);
+    // Boss section
+    ctx.fillStyle='#ff3860aa';ctx.font='bold 11px monospace';
+    ctx.fillText('--- BOSS ---',W/2,bcY+bcBtnH+14);
     const bosses=[
       {id:'guardian',name:'\u30AC\u30FC\u30C7\u30A3\u30A2\u30F3',col:'#4488cc'},
       {id:'bruiser',name:'\u30D6\u30EB\u30FC\u30B6\u30FC',col:'#9333ea'},
@@ -1324,22 +1337,43 @@ function drawTitle(){
       {id:'charge',name:'\u30C1\u30E3\u30FC\u30B8',col:'#6a7a8a'},
       {id:'dodge',name:'\u30C9\u30C3\u30B8',col:'#8a6a4a'}
     ];
-    const bbW=Math.min(200,W-40),bbH=40,bbGap=8;
+    const bbW=Math.min(180,W-40),bbH=32,bbGap=5;
     const bbX=W/2-bbW/2;
-    let bbY=bcY+bcBtnH+16;
+    let bbY=bcY+bcBtnH+22;
     bosses.forEach(b=>{
-      ctx.fillStyle=b.col+'22';rr(bbX,bbY,bbW,bbH,8);ctx.fill();
-      ctx.strokeStyle=b.col;ctx.lineWidth=1.5;rr(bbX,bbY,bbW,bbH,8);ctx.stroke();
-      ctx.fillStyle=b.col;ctx.font='bold 14px monospace';ctx.textAlign='center';
-      ctx.fillText(b.name,W/2,bbY+26);
+      ctx.fillStyle=b.col+'22';rr(bbX,bbY,bbW,bbH,6);ctx.fill();
+      ctx.strokeStyle=b.col;ctx.lineWidth=1.5;rr(bbX,bbY,bbW,bbH,6);ctx.stroke();
+      ctx.fillStyle=b.col;ctx.font='bold 12px monospace';ctx.textAlign='center';
+      ctx.fillText(b.name,W/2,bbY+22);
+      bbY+=bbH+bbGap;
+    });
+    // Enemy section
+    bbY+=6;
+    ctx.fillStyle='#34d399aa';ctx.font='bold 11px monospace';
+    ctx.fillText('--- \u30B6\u30B3\u654C ---',W/2,bbY);
+    bbY+=8;
+    const enemyTypes=[
+      {id:0,name:'\u30A6\u30A9\u30FC\u30AB\u30FC',col:'#34d399'},
+      {id:1,name:'\u30AD\u30E3\u30CE\u30F3',col:'#ef4444'},
+      {id:2,name:'\u30D5\u30E9\u30A4\u30E4\u30FC',col:'#60a5fa'},
+      {id:3,name:'\u30DC\u30DE\u30FC',col:'#f59e0b'},
+      {id:4,name:'\u30D0\u30A6\u30F3\u30B5\u30FC',col:'#a78bfa'},
+      {id:5,name:'\u30D5\u30A1\u30F3\u30C8\u30E0',col:'#e879f9'},
+      {id:6,name:'\u30C0\u30C3\u30B7\u30E3\u30FC',col:'#ff4444'}
+    ];
+    enemyTypes.forEach(e=>{
+      ctx.fillStyle=e.col+'22';rr(bbX,bbY,bbW,bbH,6);ctx.fill();
+      ctx.strokeStyle=e.col;ctx.lineWidth=1.5;rr(bbX,bbY,bbW,bbH,6);ctx.stroke();
+      ctx.fillStyle=e.col;ctx.font='bold 12px monospace';ctx.textAlign='center';
+      ctx.fillText(e.name,W/2,bbY+22);
       bbY+=bbH+bbGap;
     });
     // Close button
-    const clY=bbY+8;
-    ctx.fillStyle='#ffffff12';rr(W/2-50,clY,100,34,8);ctx.fill();
-    ctx.strokeStyle='#fff4';ctx.lineWidth=1;rr(W/2-50,clY,100,34,8);ctx.stroke();
+    const clY=bbY+6;
+    ctx.fillStyle='#ffffff12';rr(W/2-50,clY,100,30,8);ctx.fill();
+    ctx.strokeStyle='#fff4';ctx.lineWidth=1;rr(W/2-50,clY,100,30,8);ctx.stroke();
     ctx.fillStyle='#fff8';ctx.font='bold 12px monospace';
-    ctx.fillText('\u9589\u3058\u308B',W/2,clY+22);
+    ctx.fillText('\u9589\u3058\u308B',W/2,clY+20);
   }
 
   // Character unlock celebration overlay
