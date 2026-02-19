@@ -30,7 +30,7 @@ const JUMP_POWER=8.0;
 const PLAYER_R=14;
 const GROUND_H=85;
 const SPEED_INIT=1.5;
-const SPEED_INC=0.0005;
+const SPEED_INC=0.00025;
 const SPEED_MAX=5.0;
 const HP_MAX=3;
 const HURT_INVINCIBLE=90; // frames of invincibility after taking damage
@@ -200,17 +200,17 @@ function bgmSnare(t){
 }
 
 // --- Rich BGM Definitions (multi-track, 32-step sequencer) ---
-// Title: bright J-pop, C-G-Am-F
-const BGM_TITLE={tempo:155,
-  melody:[523,587,659,784, 784,659,587,659, 880,784,659,523, 659,587,523,494,
-          523,659,784,1047, 880,784,659,784, 880,1047,880,784, 659,587,523,587],
-  harmony:[392,392,494,494, 523,523,494,494, 440,440,523,523, 440,440,392,392,
-           392,392,494,494, 523,523,494,494, 440,440,523,523, 440,440,392,392],
-  bass:[262,0,262,131, 196,0,196,98, 220,0,220,110, 175,0,175,87,
-        262,0,262,131, 196,0,196,98, 220,0,220,110, 175,0,262,131],
-  chords:[[523,659,784],[494,587,784],[440,523,659],[349,440,523],
-          [523,659,784],[494,587,784],[440,523,659],[349,440,523]],
-  melVol:0.25,harmVol:0.1,bassVol:0.2,chordVol:0.06,
+// Title: catchy pop earworm, C-Am-F-G bouncy hook
+const BGM_TITLE={tempo:138,
+  melody:[659,784,659,523, 587,659,0,0, 659,784,659,880, 784,659,0,0,
+          880,1047,880,784, 880,988,1047,0, 880,784,659,784, 659,587,523,0],
+  harmony:[392,0,392,0, 440,0,440,0, 392,0,392,0, 523,0,440,0,
+           523,0,523,0, 587,0,659,0, 523,0,440,0, 392,0,330,0],
+  bass:[262,0,262,131, 220,0,220,110, 175,0,175,87, 196,0,196,98,
+        262,0,262,131, 220,0,220,110, 175,0,175,87, 196,0,262,131],
+  chords:[[523,659,784],[440,523,659],[349,440,523],[392,494,587],
+          [523,659,784],[440,523,659],[349,440,523],[392,494,587]],
+  melVol:0.28,harmVol:0.08,bassVol:0.18,chordVol:0.06,
   melWave:'triangle',harmWave:'sine',bassWave:'sine',
   drums:'pop'};
 // Play1 (0-999): Starlight Stroll - dreamy, calm, C pentatonic, slow waltz feel
@@ -227,7 +227,7 @@ const BGM_PLAY1={tempo:100,
   melWave:'sine',harmWave:'sine',bassWave:'sine',
   drums:'soft'};
 // Play2 (1000-1999): Neon Streets - bouncy pop, G major, catchy hook
-const BGM_PLAY2={tempo:115,
+const BGM_PLAY2={tempo:108,
   melody:[784,0,880,784, 659,784,0,659, 523,587,659,0, 587,523,494,523,
           784,880,988,0, 880,784,659,784, 880,0,784,659, 587,0,523,0],
   harmony:[494,494,587,587, 440,440,494,494, 392,392,440,440, 370,370,392,392,
@@ -240,7 +240,7 @@ const BGM_PLAY2={tempo:115,
   melWave:'triangle',harmWave:'sine',bassWave:'sine',
   drums:'pop'};
 // Play3 (2000-2999): Cyberpunk Funk - Dm syncopated arpeggios, synth-funk
-const BGM_PLAY3={tempo:130,
+const BGM_PLAY3={tempo:116,
   melody:[587,0,698,784, 0,880,0,784, 698,0,587,698, 880,0,1047,0,
           880,784,0,698, 587,0,698,0, 523,587,659,0, 587,0,523,440],
   harmony:[440,0,440,523, 0,523,0,440, 392,0,392,440, 0,440,0,392,
@@ -253,7 +253,7 @@ const BGM_PLAY3={tempo:130,
   melWave:'triangle',harmWave:'triangle',bassWave:'sawtooth',
   drums:'drive'};
 // Play4 (3000-3999): Danger Zone - Em aggressive rock, heavy riffs
-const BGM_PLAY4={tempo:145,
+const BGM_PLAY4={tempo:125,
   melody:[659,0,784,880, 988,880,784,0, 659,784,880,1047, 988,0,880,784,
           523,587,659,784, 0,880,988,0, 1047,988,880,784, 659,0,784,0],
   harmony:[494,494,0,587, 523,0,494,494, 440,440,0,523, 494,0,440,440,
@@ -266,7 +266,7 @@ const BGM_PLAY4={tempo:145,
   melWave:'sawtooth',harmWave:'triangle',bassWave:'triangle',
   drums:'heavy'};
 // Play5 (4000+): Maximum Overdrive - Am frantic arpeggios, breakneck EDM
-const BGM_PLAY5={tempo:160,
+const BGM_PLAY5={tempo:134,
   melody:[880,1047,1319,1568, 1760,1568,1319,1047, 698,880,1047,1319, 1047,880,698,587,
           1175,1319,1568,1760, 1568,1319,1175,1047, 880,1047,1175,1319, 1175,1047,880,1047],
   harmony:[659,0,659,784, 0,784,0,659, 523,0,523,659, 0,659,0,523,
@@ -688,6 +688,55 @@ function sfxCharVoice(idx){
   }catch(e){}
 }
 
+// Chest GET jingle - magical ascending arpeggio with shimmer
+function sfxChestGet(){
+  if(!audioCtx)return;try{
+    const t=audioCtx.currentTime;
+    // Rising sparkle arpeggio
+    [523,659,784,1047,1319,1568].forEach((f,i)=>{
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='sine';
+      o.frequency.setValueAtTime(f,t+i*0.06);
+      g.gain.setValueAtTime(0.12,t+i*0.06);g.gain.exponentialRampToValueAtTime(0.001,t+i*0.06+0.4);
+      o.start(t+i*0.06);o.stop(t+i*0.06+0.45);
+    });
+    // Shimmery high tone
+    const s=audioCtx.createOscillator(),sg2=audioCtx.createGain();
+    s.connect(sg2);sg2.connect(sfxGain);s.type='triangle';
+    s.frequency.setValueAtTime(2093,t+0.3);s.frequency.exponentialRampToValueAtTime(1568,t+0.8);
+    sg2.gain.setValueAtTime(0.06,t+0.3);sg2.gain.exponentialRampToValueAtTime(0.001,t+0.9);
+    s.start(t+0.3);s.stop(t+0.95);
+  }catch(e){}
+}
+// Chest open jingle - dramatic reveal with bass impact + fanfare
+function sfxChestOpen(){
+  if(!audioCtx)return;try{
+    const t=audioCtx.currentTime;
+    // Bass impact
+    const b=audioCtx.createOscillator(),bg2=audioCtx.createGain();
+    b.connect(bg2);bg2.connect(sfxGain);b.type='sine';
+    b.frequency.setValueAtTime(80,t);b.frequency.exponentialRampToValueAtTime(30,t+0.3);
+    bg2.gain.setValueAtTime(0.25,t);bg2.gain.exponentialRampToValueAtTime(0.001,t+0.4);
+    b.start(t);b.stop(t+0.45);
+    // Dramatic ascending chord
+    [523,659,784].forEach((f,i)=>{
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='triangle';
+      o.frequency.setValueAtTime(f,t+0.15+i*0.08);
+      g.gain.setValueAtTime(0.15,t+0.15+i*0.08);g.gain.exponentialRampToValueAtTime(0.001,t+0.15+i*0.08+0.6);
+      o.start(t+0.15+i*0.08);o.stop(t+0.15+i*0.08+0.65);
+    });
+    // Final triumphant notes
+    [1047,1319,1568,2093].forEach((f,i)=>{
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='sine';
+      o.frequency.setValueAtTime(f,t+0.5+i*0.1);
+      g.gain.setValueAtTime(0.1,t+0.5+i*0.1);g.gain.exponentialRampToValueAtTime(0.001,t+0.5+i*0.1+0.5);
+      o.start(t+0.5+i*0.1);o.stop(t+0.5+i*0.1+0.55);
+    });
+  }catch(e){}
+}
+
 // ===== ITEMS (5 types) =====
 const ITEMS=[
   {name:'\u7121\u6575',desc:'10\u79D2\u9593\u7121\u6575',col:'#ff00ff',icon:'\u2731',dur:600},
@@ -788,6 +837,10 @@ let bombFlashT=0; // bomb explosion flash timer
 let invCount=0; // stockable invincibility items in inventory
 let bossRetry=null; // {score,bossCount} saved when quitting during boss
 let isRetryGame=false; // true if current game is a boss retry (only 1 retry allowed)
+// Treasure chest system
+let bossChests=0; // number of chests earned this run
+let chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0}; // falling chest during boss reward
+let chestOpen={phase:'none',t:0,charIdx:-1,parts:[]}; // chest opening on death screen
 const PANEL_H=56; // bottom action panel height
 // Ghost character periodic transparency
 let ghostPhaseT=0; // timer for ghost transparency cycle

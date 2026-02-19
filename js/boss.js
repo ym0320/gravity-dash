@@ -20,7 +20,7 @@ function startBossPhase(){
   enemies=[];bullets=[];floatPlats=[];spikes=[];movingHills=[];gravZones=[];
   bossPhase.bossCount++;
   bossPhase.lastBossScore=score;
-  bossPhase.nextAt=score+800+bossPhase.bossCount*100;
+  bossPhase.nextAt=(Math.floor(dist/1000)+1)*1000;
   shakeI=18;sfxBossAlert();vibrate([50,30,50,30,80,40,100]);
   switchBGM('boss');
 }
@@ -89,31 +89,35 @@ function spawnBossEnemies(){
     }
     bossPhase.total=chargeCount;
   } else if(bossType==='dodge'){
-    // Dodge type: 5 enemies, ALL must be killed (loopback if missed)
+    // Dodge type: 5 enemies rush from right to left, player dodges/stomps
+    // Phase 1: straight only, Phase 2+: diagonal added, Phase 3+: speed increase
     const dodgeCount=5;
-    const baseSpd=3+Math.min(bc-1,4)*0.3;
+    const phase=bc; // bc=1 is phase 1, bc=2 is phase 2, etc.
+    const baseSpd=3.5+(phase>=3?Math.min(phase-2,4)*0.6:0); // phase 3+ speed boost
     for(let i=0;i<dodgeCount;i++){
-      const fromCeil=Math.random()<0.5;
-      const gDir=fromCeil?-1:1;
-      const sy=gDir===1?floorY:ceilY;
+      // Random speed per enemy
+      const spd=baseSpd+Math.random()*2;
+      // Determine diagonal: phase 2+ adds random diagonal rushes
+      let diagVy=0;
+      const onFloor=Math.random()<0.5;
+      const startY=onFloor?floorY-PLAYER_R*5:ceilY+PLAYER_R*5;
+      const gDir=onFloor?1:-1;
+      if(phase>=2&&Math.random()<0.4+Math.min(phase-2,3)*0.1){
+        // Diagonal: aim toward opposite surface (floor→ceiling or ceiling→floor)
+        const targetY=onFloor?ceilY+PLAYER_R*5:floorY-PLAYER_R*5;
+        const travelFrames=(W+160)/(spd); // approx frames to cross screen
+        diagVy=(targetY-startY)/travelFrames;
+      }
       const sz=PLAYER_R*5;
-      const ey=gDir===1?sy-sz:sy+sz;
-      // 2nd encounter: varied speeds, cross movement
-      const spdRange=bc>=2?2.5:0.5;
-      const spd=baseSpd-spdRange/2+Math.random()*spdRange;
-      const diagVy=bc>=2&&Math.random()<0.5?(gDir===1?-1.5-Math.random()*1.5:1.5+Math.random()*1.5):0;
-      // 3rd encounter: feint (sudden direction change)
-      const hasFeint=bc>=3&&Math.random()<0.4;
       bossPhase.dodgeQueue.push({
-        x:W+80+i*10,y:ey,vy:0,gDir:gDir,sz:sz,alive:true,fr:Math.random()*100,
+        x:W+80+i*10,y:startY,vy:0,gDir:gDir,sz:sz,alive:true,fr:Math.random()*100,
         type:10,shootT:999,boss:true,bossType:'dodge',
         chargeVx:-spd,
         diagVy:diagVy,
         chargeState:'wait',
-        rushDelay:30+Math.floor(Math.random()*90),
+        rushDelay:40+i*30+Math.floor(Math.random()*20), // sequential spacing
         timer:0,
-        missCount:0,
-        feintDiag:hasFeint,feintTriggered:false
+        missCount:0
       });
     }
     bossPhase.total=dodgeCount;
@@ -171,6 +175,35 @@ function updateBossPhase(){
   }
   if(bossPhase.reward){
     bossPhase.rewardT++;
+    // Update chest fall physics
+    if(chestFall.active&&chestFall.gotT===0){
+      chestFall.vy+=0.15;
+      chestFall.y+=chestFall.vy;
+      chestFall.sparkT++;
+      // Sparkle trail while falling
+      if(chestFall.sparkT%3===0){
+        parts.push({x:chestFall.x+(Math.random()-0.5)*30,y:chestFall.y+(Math.random()-0.5)*10,
+          vx:(Math.random()-0.5)*2,vy:-1-Math.random()*2,life:20+Math.random()*15,ml:35,
+          sz:Math.random()*4+2,col:['#ffd700','#ffaa00','#fff4b0','#ffffff'][Math.floor(Math.random()*4)]});
+      }
+      // Land on player
+      if(chestFall.y>=player.y-20){
+        chestFall.y=player.y-20;chestFall.vy=0;chestFall.gotT=1;
+        sfxChestGet();shakeI=12;vibrate([20,10,40,20,60]);
+        // Big burst of sparkles
+        for(let i=0;i<30;i++){
+          const a=(6.28/30)*i,s=2+Math.random()*5;
+          parts.push({x:chestFall.x,y:chestFall.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-2,
+            life:40+Math.random()*30,ml:70,sz:Math.random()*6+2,
+            col:['#ffd700','#ffaa00','#ff88cc','#88ffff','#ffffff'][i%5]});
+        }
+        addPop(chestFall.x,chestFall.y-30,'宝箱 GET!','#ffd700');
+      }
+    } else if(chestFall.gotT>0){
+      chestFall.gotT++;
+      // Chest shrinks into player after collection
+      if(chestFall.gotT>40)chestFall.active=false;
+    }
     if(bossPhase.rewardT>=180){bossPhase.active=false;bossPhase.reward=false;if(itemEff.invincible<=0)switchBGM('play');}
     return;
   }
@@ -280,17 +313,13 @@ function updateBossPhase(){
       en.timer++;
       if(en.diagVy){
         en.y+=en.diagVy;
-        // 3rd encounter feint: sudden direction change
-        if(en.feintDiag&&!en.feintTriggered&&en.timer>20&&en.timer<50&&Math.random()<0.02){
-          en.diagVy*=-1;en.feintTriggered=true;
-        }
-        if(en.y-en.sz<ceilY)en.y=ceilY+en.sz;
-        if(en.y+en.sz>floorY)en.y=floorY-en.sz;
+        // Clamp to playfield
+        if(en.y-en.sz<ceilY){en.y=ceilY+en.sz;en.diagVy=Math.abs(en.diagVy);}
+        if(en.y+en.sz>floorY){en.y=floorY-en.sz;en.diagVy=-Math.abs(en.diagVy);}
       }
       en.fr+=0.2;
       if(frame%2===0){
-        const tc2='#ff8844';
-        parts.push({x:en.x+en.sz,y:en.y,vx:1+Math.random(),vy:(Math.random()-0.5)*2,life:12,ml:12,sz:Math.random()*4+2,col:tc2});
+        parts.push({x:en.x+en.sz,y:en.y,vx:1+Math.random(),vy:(Math.random()-0.5)*2,life:12,ml:12,sz:Math.random()*4+2,col:'#ff8844'});
       }
       // Off-screen: NOT defeated, fully reset behavior and re-queue
       if(en.x<-en.sz*2){
@@ -342,13 +371,6 @@ function updateBossPhase(){
       }
     }
   });
-  // Remove requeued dodge enemies from active enemies list, keep in dodgeQueue for respawn
-  const requeuedSet=new Set();
-  enemies.forEach(en=>{if(en._requeued){requeuedSet.add(en);delete en._requeued;}});
-  if(requeuedSet.size>0){
-    enemies=enemies.filter(en=>!requeuedSet.has(en));
-    bossPhase.enemies=bossPhase.enemies.filter(en=>!requeuedSet.has(en));
-  }
   // Phase B: bruiser logic (enters immediately if no charges, or after charges cleared)
   const chargesCleared=bossPhase.chargeQueue.length===0||(bossPhase.chargeIdx>=bossPhase.chargeQueue.length&&
     bossPhase.enemies.filter(e=>e.bossType==='charge'&&e.alive).length===0);
@@ -586,8 +608,8 @@ function updateBossPhase(){
   }
   const bruiserDone=!bossPhase.bruiser||!bossPhase.bruiser.alive;
   const wizardDone=!bossPhase.wizard||!bossPhase.wizard.alive;
-  // Dodge done: all enemies must be KILLED (dodgeKills>=total), not just dodged
-  const dodgeDone=bossPhase.bossType!=='dodge'||(bossPhase.dodgeKills>=bossPhase.total&&
+  // Dodge done: all 5 enemies finished their rush (killed or exited screen)
+  const dodgeDone=bossPhase.bossType!=='dodge'||(bossPhase.dodgeIdx>=bossPhase.dodgeQueue.length&&
     enemies.filter(e=>e.bossType==='dodge'&&e.alive).length===0);
   const allDone=chargesCleared&&dodgeDone&&bruiserDone&&wizardDone;
   if(allDone&&bossPhase.enemies.length>0&&!bossPhase.reward){
@@ -604,6 +626,9 @@ function updateBossPhase(){
     totalCoins+=bonus;
     addPop(W/2,H*0.45,'+'+bonus+' COINS!','#ffd700');
     for(let i=0;i<40;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*4,vy:1+Math.random()*4,life:80+Math.random()*40,ml:120,sz:Math.random()*5+3,col:['#ffd700','#ffaa00','#fff4b0'][i%3]});
+    // Spawn treasure chest falling from above
+    bossChests++;
+    chestFall={active:true,x:player.x,y:-40,vy:0,sparkT:0,gotT:0};
   }
 }
 // Rich bruiser defeat animation
@@ -663,13 +688,13 @@ function drawBossWizard(en){
     const rushAlpha=en.rushReady?(.3+Math.sin(t*3)*.15):(.1+Math.sin(t*3)*.05);
     // Draw beam from wizard toward rush target
     const dx=en.rushTargetX-en.homeX,dy=en.rushTargetY-en.homeY;
-    const dist=Math.sqrt(dx*dx+dy*dy)||1;
+    const beamLen=Math.sqrt(dx*dx+dy*dy)||1;
     ctx.save();
     ctx.rotate(Math.atan2(dy,dx));
     ctx.fillStyle='rgba(255,140,40,'+rushAlpha+')';
-    ctx.fillRect(-dist*0.5,-s*0.12,dist,s*0.24);
+    ctx.fillRect(-beamLen*0.5,-s*0.12,beamLen,s*0.24);
     ctx.fillStyle='rgba(255,200,80,'+rushAlpha*0.5+')';
-    ctx.fillRect(-dist*0.5,-s*0.25,dist,s*0.5);
+    ctx.fillRect(-beamLen*0.5,-s*0.25,beamLen,s*0.5);
     ctx.restore();
   }
   // Floating shadow

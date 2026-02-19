@@ -55,6 +55,30 @@ function handleDeadBtn(btnId){
     else{state=ST.TITLE;switchBGM('title');}
   }
 }
+function handleChestTap(){
+  if(bossChests<=0||chestOpen.phase==='none')return false;
+  if(chestOpen.phase==='waiting'){
+    // Start opening animation
+    chestOpen.phase='wobble';chestOpen.t=0;sfx('select');vibrate(15);
+    return true;
+  }
+  if(chestOpen.phase==='done'){
+    // Close chest display, decrement chests
+    bossChests--;
+    if(bossChests>0){
+      // More chests to open
+      chestOpen.phase='waiting';chestOpen.t=0;
+      chestOpen.charIdx=Math.floor(Math.random()*CHARS.length);
+      chestOpen.parts=[];
+    } else {
+      chestOpen.phase='none';chestOpen.t=0;chestOpen.parts=[];
+    }
+    sfx('click');
+    return true;
+  }
+  // During wobble/burst/reveal, tap does nothing (let animation play)
+  return true;
+}
 function continueFromDeath(){
   // Keep score, reset speed, revive player, start with countdown
   player.alive=true;player.face='normal';
@@ -71,13 +95,14 @@ function continueFromDeath(){
   player.y=floorSurfaceY(player.x)-PLAYER_R;player.grounded=false;
   // Clear hazards
   enemies=[];bullets=[];spikes=[];items=[];floatPlats=[];movingHills=[];gravZones=[];
-  bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:score+800,lastBossScore:score,bossCount:bossPhase.bossCount||0,bossType:'',noDamage:true};
+  bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:(Math.floor(dist/1000)+1)*1000,lastBossScore:score,bossCount:bossPhase.bossCount||0,bossType:'',noDamage:true};
   itemEff={invincible:0,magnet:0};bombCount=0;bombFlashT=0;invCount=0;
   djumpAvailable=!!ct().hasDjump;djumpUsed=false;ghostPhaseT=0;ghostInvis=false;
   deadT=0;newHi=false;combo=0;comboT=0;comboDsp=0;comboDspT=0;airCombo=0;
   shakeX=0;shakeY=0;shakeI=0;flipCount=0;flipTimer=999;
   coinCD=0;itemCD=0;enemyCD=0;spikeCD=0;hillCD=0;floatCD=0;gravZoneCD=0;
   flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
+  bossChests=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[]};
   state=ST.COUNTDOWN;countdownT=180;
   sfx('countdown');
 }
@@ -147,7 +172,7 @@ function startCountdown(mode){
     bossRetry=null;
     score=retry.score;dist=retry.score;
     bossPhase.bossCount=retry.bossCount;
-    bossPhase.nextAt=score; // will trigger boss on first play frame
+    bossPhase.nextAt=dist; // will trigger boss on first play frame
     bossPhase.lastBossScore=score;
     lastMile=Math.floor(score/1000)*1000;
     // Set correct theme for this score
@@ -195,6 +220,7 @@ canvas.addEventListener('touchstart',e=>{
     }
   }
   else if(state===ST.DEAD&&deadT>45){
+    if(handleChestTap())return;
     const btnId=hitDeadBtn(p.x,p.y);
     if(btnId)handleDeadBtn(btnId);
   }
@@ -290,6 +316,7 @@ canvas.addEventListener('mousedown',e=>{
   if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');state=ST.PAUSE;return;}
   if(state===ST.TITLE){if(charModal.show){sfx('cancel');charModal.show=false;return;}handleTitleTouch(p.x,p.y);}
   else if(state===ST.DEAD&&deadT>45){
+    if(handleChestTap())return;
     const btnId=hitDeadBtn(p.x,p.y);
     if(btnId)handleDeadBtn(btnId);
   }
@@ -331,7 +358,7 @@ document.addEventListener('keydown',e=>{
     }
     if(state===ST.PAUSE){sfx('select');state=ST.PLAY;switchBGM('play');return;}
     if(state===ST.TITLE){startCountdown('endless');}
-    else if(state===ST.DEAD&&deadT>45){handleDeadBtn('restart');}
+    else if(state===ST.DEAD&&deadT>45){if(!handleChestTap())handleDeadBtn('restart');}
     else if(state===ST.PLAY&&player.grounded){
       const jp=JUMP_POWER*ct().jumpMul;
       player.vy=-jp*player.gDir;player.grounded=false;djumpUsed=false;

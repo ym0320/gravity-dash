@@ -304,6 +304,7 @@ function draw(){
   parts.forEach(p=>{ctx.globalAlpha=p.life/p.ml;ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.sz*(p.life/p.ml),0,6.28);ctx.fill();});
   ctx.globalAlpha=1;
 
+  drawChestFall();
   drawUI();
   pops.forEach(p=>{const a=p.life/p.ml;ctx.globalAlpha=a;ctx.fillStyle=p.col;ctx.font='bold 16px monospace';ctx.textAlign='center';ctx.fillText(p.txt,p.x,p.y);});
   ctx.globalAlpha=1;
@@ -1485,6 +1486,253 @@ function drawPause(){
   ctx.fillText('ESC\u30AD\u30FC\u3067\u518D\u958B',W/2,H*0.67);
 }
 
+// ===== TREASURE CHEST DRAWING =====
+function drawChestIcon(cx,cy,sz,openLid){
+  // Chest body
+  ctx.fillStyle='#8B5E3C';
+  rr(cx-sz/2,cy-sz*0.3,sz,sz*0.6,sz*0.08);ctx.fill();
+  // Dark wood grain
+  ctx.fillStyle='#6B3E1C';
+  ctx.fillRect(cx-sz/2+2,cy-sz*0.1,sz-4,sz*0.08);
+  // Gold trim
+  ctx.strokeStyle='#ffd700';ctx.lineWidth=2;
+  rr(cx-sz/2,cy-sz*0.3,sz,sz*0.6,sz*0.08);ctx.stroke();
+  // Gold clasp
+  ctx.fillStyle='#ffd700';
+  rr(cx-sz*0.1,cy-sz*0.15,sz*0.2,sz*0.2,2);ctx.fill();
+  // Keyhole
+  ctx.fillStyle='#3a2010';
+  ctx.beginPath();ctx.arc(cx,cy-sz*0.05,sz*0.04,0,6.28);ctx.fill();
+  ctx.fillRect(cx-sz*0.015,cy-sz*0.05,sz*0.03,sz*0.08);
+  if(openLid){
+    // Open lid (tilted back)
+    ctx.save();ctx.translate(cx,cy-sz*0.3);ctx.rotate(-0.3);
+    ctx.fillStyle='#9B6E4C';
+    rr(-sz/2,-sz*0.35,sz,sz*0.35,sz*0.08);ctx.fill();
+    ctx.strokeStyle='#ffd700';ctx.lineWidth=2;
+    rr(-sz/2,-sz*0.35,sz,sz*0.35,sz*0.08);ctx.stroke();
+    ctx.restore();
+  } else {
+    // Closed lid (rounded top)
+    ctx.fillStyle='#9B6E4C';
+    ctx.beginPath();
+    ctx.moveTo(cx-sz/2,cy-sz*0.3);
+    ctx.quadraticCurveTo(cx,cy-sz*0.55,cx+sz/2,cy-sz*0.3);
+    ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#ffd700';ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(cx-sz/2,cy-sz*0.3);
+    ctx.quadraticCurveTo(cx,cy-sz*0.55,cx+sz/2,cy-sz*0.3);
+    ctx.stroke();
+  }
+}
+
+function drawChestFall(){
+  if(!chestFall.active)return;
+  ctx.save();
+  const sz=36;
+  let scale=1,alpha=1;
+  if(chestFall.gotT>0){
+    // Shrink and fade out after collection
+    const t=chestFall.gotT/40;
+    scale=1-t*0.8;
+    alpha=1-t;
+    // Glow ring expanding
+    const ringR=30+chestFall.gotT*2;
+    ctx.globalAlpha=Math.max(0,(1-chestFall.gotT/30)*0.6);
+    ctx.strokeStyle='#ffd700';ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(chestFall.x,chestFall.y,ringR,0,6.28);ctx.stroke();
+    ctx.globalAlpha=1;
+  }
+  ctx.globalAlpha=alpha;
+  ctx.translate(chestFall.x,chestFall.y);
+  ctx.scale(scale,scale);
+  // Glow behind chest
+  const glow=ctx.createRadialGradient(0,0,0,0,0,sz);
+  glow.addColorStop(0,'rgba(255,215,0,0.4)');glow.addColorStop(1,'rgba(255,215,0,0)');
+  ctx.fillStyle=glow;ctx.fillRect(-sz,-sz,sz*2,sz*2);
+  // Wobble while falling
+  if(chestFall.gotT===0){
+    ctx.rotate(Math.sin(chestFall.sparkT*0.15)*0.15);
+  }
+  drawChestIcon(0,0,sz,false);
+  ctx.restore();
+}
+
+function drawChestOpen(){
+  if(chestOpen.phase==='none'||bossChests<=0)return;
+  const p=chestOpen.phase,t=chestOpen.t;
+  ctx.save();
+  const cx=W/2,cy=H*0.45;
+  const chSz=52;
+
+  // Update and draw chest particles
+  chestOpen.parts=chestOpen.parts.filter(pp=>{
+    pp.x+=pp.vx;pp.y+=pp.vy;pp.vy+=pp.g||0;pp.vx*=0.99;pp.life--;
+    if(pp.life<=0)return false;
+    const a=pp.life/pp.ml;
+    ctx.globalAlpha=a;ctx.fillStyle=pp.col;
+    ctx.beginPath();ctx.arc(pp.x,pp.y,pp.sz*a,0,6.28);ctx.fill();
+    return true;
+  });
+  ctx.globalAlpha=1;
+
+  if(p==='waiting'){
+    // Pulsing chest with "tap to open" prompt
+    const pulse=1+Math.sin(t*0.08)*0.05;
+    ctx.save();ctx.translate(cx,cy);ctx.scale(pulse,pulse);
+    // Golden aura
+    const aura=ctx.createRadialGradient(0,0,chSz*0.5,0,0,chSz*1.5);
+    aura.addColorStop(0,'rgba(255,215,0,0.2)');aura.addColorStop(1,'rgba(255,215,0,0)');
+    ctx.fillStyle=aura;ctx.fillRect(-chSz*1.5,-chSz*1.5,chSz*3,chSz*3);
+    drawChestIcon(0,0,chSz,false);
+    ctx.restore();
+    // Floating sparkles
+    if(t%8===0){
+      const a=Math.random()*6.28,r=chSz*0.8+Math.random()*20;
+      chestOpen.parts.push({x:cx+Math.cos(a)*r,y:cy+Math.sin(a)*r,vx:(Math.random()-0.5)*0.5,vy:-0.5-Math.random(),life:25,ml:25,sz:Math.random()*3+1,col:['#ffd700','#ffffff','#ffaa00'][Math.floor(Math.random()*3)],g:0});
+    }
+    // "Tap to open" text
+    const ta=0.5+Math.sin(t*0.1)*0.3;
+    ctx.globalAlpha=ta;ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='center';
+    ctx.fillText('タップして開封!',cx,cy+chSz*0.8);
+    ctx.globalAlpha=1;
+  }
+  else if(p==='wobble'){
+    // Chest shakes intensely
+    const wobble=Math.sin(t*0.8)*Math.min(t*0.3,8);
+    ctx.save();ctx.translate(cx+wobble,cy);
+    // Increasing glow
+    const glowA=Math.min(t/40,0.6);
+    const aura=ctx.createRadialGradient(0,0,chSz*0.3,0,0,chSz*2);
+    aura.addColorStop(0,`rgba(255,215,0,${glowA})`);aura.addColorStop(1,'rgba(255,215,0,0)');
+    ctx.fillStyle=aura;ctx.fillRect(-chSz*2,-chSz*2,chSz*4,chSz*4);
+    drawChestIcon(0,0,chSz,false);
+    ctx.restore();
+    // Sparks flying off
+    if(t%3===0){
+      chestOpen.parts.push({x:cx+(Math.random()-0.5)*chSz,y:cy+(Math.random()-0.5)*chSz*0.5,
+        vx:(Math.random()-0.5)*4,vy:-2-Math.random()*3,life:20,ml:20,sz:Math.random()*3+1,
+        col:['#ffd700','#ff8800','#ffffff'][Math.floor(Math.random()*3)],g:0.1});
+    }
+  }
+  else if(p==='burst'){
+    // Light beam + lid opens
+    const burstT=Math.min(t/30,1);
+    // Full screen light beam from chest
+    const beamA=burstT*0.7;
+    const beamGr=ctx.createRadialGradient(cx,cy,0,cx,cy,H);
+    beamGr.addColorStop(0,`rgba(255,230,150,${beamA})`);beamGr.addColorStop(0.3,`rgba(255,215,0,${beamA*0.4})`);beamGr.addColorStop(1,'rgba(255,215,0,0)');
+    ctx.fillStyle=beamGr;ctx.fillRect(0,0,W,H);
+    // Light rays
+    ctx.save();ctx.translate(cx,cy);
+    for(let i=0;i<12;i++){
+      const ra=i*Math.PI/6+t*0.02;
+      const rayLen=80+burstT*200;
+      ctx.save();ctx.rotate(ra);
+      ctx.fillStyle=`rgba(255,230,180,${0.15*burstT})`;
+      ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-8,rayLen);ctx.lineTo(8,rayLen);ctx.closePath();ctx.fill();
+      ctx.restore();
+    }
+    ctx.restore();
+    // Open chest
+    ctx.save();ctx.translate(cx,cy);
+    const lidAngle=-0.3-burstT*0.5;
+    drawChestIcon(0,0,chSz,true);
+    ctx.restore();
+    // Burst of particles
+    if(t===1){
+      for(let i=0;i<40;i++){
+        const a=(6.28/40)*i,s=3+Math.random()*6;
+        chestOpen.parts.push({x:cx,y:cy,vx:Math.cos(a)*s,vy:Math.sin(a)*s-2,
+          life:50+Math.random()*30,ml:80,sz:Math.random()*6+2,
+          col:['#ffd700','#ffaa00','#ff88cc','#88ffff','#ffffff','#ff44ff'][i%6],g:0.05});
+      }
+    }
+  }
+  else if(p==='reveal'){
+    // Character silhouette → full reveal
+    const revealT=Math.min(t/60,1);
+    // Fading light background
+    const bgA=0.5*(1-revealT*0.5);
+    const bgGr=ctx.createRadialGradient(cx,cy-20,0,cx,cy-20,H*0.6);
+    bgGr.addColorStop(0,`rgba(255,230,150,${bgA})`);bgGr.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=bgGr;ctx.fillRect(0,0,W,H);
+    // Open chest below
+    ctx.save();ctx.translate(cx,cy+40);ctx.scale(0.7,0.7);
+    drawChestIcon(0,0,chSz,true);
+    ctx.restore();
+    // Character rising from chest
+    const charY=cy-10-revealT*40;
+    const charScale=0.5+revealT*0.5;
+    const charR=22*charScale;
+    if(revealT<0.4){
+      // Silhouette phase
+      ctx.save();ctx.translate(cx,charY);ctx.scale(charScale,charScale);
+      ctx.fillStyle='#000';
+      ctx.shadowColor='#ffd700';ctx.shadowBlur=20;
+      ctx.beginPath();ctx.arc(0,0,22,0,6.28);ctx.fill();
+      ctx.shadowBlur=0;ctx.restore();
+    } else {
+      // Reveal phase - color fades in
+      const colorT=Math.min((revealT-0.4)/0.4,1);
+      ctx.save();
+      // Glow behind character
+      ctx.shadowColor=CHARS[chestOpen.charIdx].col;ctx.shadowBlur=15+colorT*20;
+      drawCharacter(cx,charY,chestOpen.charIdx,charR,0,colorT,'happy',0);
+      ctx.shadowBlur=0;ctx.restore();
+      if(colorT>=1){
+        // Name reveal
+        const nameA=Math.min((revealT-0.8)/0.2,1);
+        ctx.globalAlpha=nameA;
+        ctx.fillStyle='#ffd700';ctx.font='bold 18px monospace';ctx.textAlign='center';
+        ctx.shadowColor='#ffd70066';ctx.shadowBlur=12;
+        ctx.fillText(CHARS[chestOpen.charIdx].name,cx,charY+charR+24);
+        ctx.shadowBlur=0;
+        ctx.fillStyle='#fff8';ctx.font='12px monospace';
+        ctx.fillText(CHARS[chestOpen.charIdx].trait,cx,charY+charR+42);
+        ctx.globalAlpha=1;
+      }
+    }
+    // Continuous sparkles
+    if(t%5===0){
+      const a=Math.random()*6.28,r=30+Math.random()*50;
+      chestOpen.parts.push({x:cx+Math.cos(a)*r,y:charY+Math.sin(a)*r,vx:(Math.random()-0.5)*1.5,vy:-1-Math.random(),life:30,ml:30,sz:Math.random()*3+1,col:['#ffd700','#ffffff','#ff88cc'][Math.floor(Math.random()*3)],g:0});
+    }
+  }
+  else if(p==='done'){
+    // Final display with sparkle border
+    const charY=cy-50;
+    const charR=24;
+    // Subtle glow bg
+    const bgGr=ctx.createRadialGradient(cx,charY,0,cx,charY,120);
+    bgGr.addColorStop(0,'rgba(255,215,0,0.1)');bgGr.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=bgGr;ctx.fillRect(cx-120,charY-80,240,200);
+    // Character display
+    const bounce=Math.sin(t*0.06)*3;
+    ctx.save();
+    ctx.shadowColor=CHARS[chestOpen.charIdx].col;ctx.shadowBlur=20;
+    drawCharacter(cx,charY+bounce,chestOpen.charIdx,charR,0,1,'happy',0);
+    ctx.shadowBlur=0;ctx.restore();
+    // Name and trait
+    ctx.fillStyle='#ffd700';ctx.font='bold 18px monospace';ctx.textAlign='center';
+    ctx.fillText(CHARS[chestOpen.charIdx].name,cx,charY+charR+22);
+    ctx.fillStyle='#fff8';ctx.font='12px monospace';
+    ctx.fillText(CHARS[chestOpen.charIdx].trait,cx,charY+charR+40);
+    // "Tap to continue"
+    const ta=0.4+Math.sin(t*0.1)*0.3;
+    ctx.globalAlpha=ta;ctx.fillStyle='#fff6';ctx.font='12px monospace';
+    ctx.fillText('タップで閉じる',cx,cy+80);
+    ctx.globalAlpha=1;
+    // Sparkle ring
+    if(t%6===0){
+      const a=Math.random()*6.28,r=50+Math.random()*30;
+      chestOpen.parts.push({x:cx+Math.cos(a)*r,y:charY+Math.sin(a)*r,vx:(Math.random()-0.5),vy:-0.5-Math.random()*0.5,life:25,ml:25,sz:Math.random()*2+1,col:['#ffd700','#ffffff'][Math.floor(Math.random()*2)],g:0});
+    }
+  }
+  ctx.restore();
+}
+
 function drawDead(){
   const oa=Math.min(deadT/40,0.7);
   ctx.fillStyle=`rgba(0,0,0,${oa})`;ctx.fillRect(-20,-20,W+40,H+40);
@@ -1560,6 +1808,13 @@ function drawDead(){
   ctx.fillText('\u25CF '+totalCoins+' \u7372\u5F97',W/2-40,coinY);
   ctx.fillStyle='#fff5';ctx.font='11px monospace';
   ctx.fillText('\u6240\u6301: '+walletCoins,W/2+50,coinY);
+
+  // --- Chest opening overlay (blocks buttons while active) ---
+  if(chestOpen.phase!=='none'&&bossChests>0){
+    drawChestOpen();
+    ctx.restore();ctx.globalAlpha=1;
+    return;
+  }
 
   // --- Action buttons (below card) ---
   if(deadT>45){
