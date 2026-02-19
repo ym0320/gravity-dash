@@ -271,7 +271,7 @@ function updateBossPhase(){
       }
       // Collision with player
       const dx=player.x-en.x,dy=player.y-en.y;
-      if(Math.sqrt(dx*dx+dy*dy)<pr+en.sz){
+      if(Math.sqrt(dx*dx+dy*dy)<pr+en.sz*BOSS_HITBOX_SCALE){
         if(itemEff.invincible>0){
           en.alive=false;
           emitParts(en.x,en.y,15,'#ff00ff',4,3);sfx('stomp');shakeI=4;
@@ -321,15 +321,35 @@ function updateBossPhase(){
       if(frame%2===0){
         parts.push({x:en.x+en.sz,y:en.y,vx:1+Math.random(),vy:(Math.random()-0.5)*2,life:12,ml:12,sz:Math.random()*4+2,col:'#ff8844'});
       }
-      // Off-screen left: rush complete (dodged or stomped already counted)
+      // Off-screen: NOT defeated, fully reset behavior and re-queue
       if(en.x<-en.sz*2){
-        en.alive=false;
-        addPop(40,en.y,'回避!','#34d399');
-        emitParts(10,en.y,6,'#34d399',3,2);
+        const bc2=bossPhase.bossCount;
+        const baseSpd2=3+Math.min(bc2-1,4)*0.3;
+        const spdRange2=bc2>=2?2.5:0.5;
+        // Full behavior reset with new random pattern
+        const fromCeil2=Math.random()<0.5;
+        const gDir2=fromCeil2?-1:1;
+        const floorY2=H-GROUND_H,ceilY2=GROUND_H;
+        en.gDir=gDir2;
+        en.y=gDir2===1?floorY2-en.sz:ceilY2+en.sz;
+        en.chargeState='wait';
+        en.x=W+80;
+        en.chargeVx=-(baseSpd2-spdRange2/2+Math.random()*spdRange2);
+        en.diagVy=bc2>=2&&Math.random()<0.5?(gDir2===1?-1.5-Math.random()*1.5:1.5+Math.random()*1.5):0;
+        en.feintDiag=bc2>=3&&Math.random()<0.4;
+        en.feintTriggered=false;
+        en.rushDelay=30+Math.floor(Math.random()*60);
+        en.timer=0;
+        en.missCount++;
+        en.alive=true;
+        bossPhase.dodgeQueue.push(en);
+        addPop(40,en.y,'逃した!','#ff8844');
+        emitParts(10,en.y,6,'#ff8844',3,2);
+        en._requeued=true;
       }
       // Collision with player
       const dx=player.x-en.x,dy=player.y-en.y;
-      if(Math.sqrt(dx*dx+dy*dy)<pr+en.sz){
+      if(Math.sqrt(dx*dx+dy*dy)<pr+en.sz*BOSS_HITBOX_SCALE){
         if(itemEff.invincible>0){
           en.alive=false;bossPhase.dodgeKills++;
           emitParts(en.x,en.y,15,'#ff00ff',4,3);sfx('stomp');shakeI=4;
@@ -400,7 +420,7 @@ function updateBossPhase(){
     if(b.invT<=0){
       const dx=player.x-b.x,dy=player.y-b.y;
       const d=Math.sqrt(dx*dx+dy*dy);
-      if(d<pr+b.sz){
+      if(d<pr+b.sz*BOSS_HITBOX_SCALE){
         if(itemEff.invincible>0){
           b.hp--;b.hurtFlash=20;b.invT=60;b.state='invincible';b.timer=0;
           shakeI=8;sfx('bossHit');
@@ -548,7 +568,7 @@ function updateBossPhase(){
     if(w.invT<=0&&w.alpha>0.5){
       const dx=player.x-w.x,dy=player.y-w.y;
       const d=Math.sqrt(dx*dx+dy*dy);
-      if(d<pr+w.sz){
+      if(d<pr+w.sz*BOSS_HITBOX_SCALE){
         if(itemEff.invincible>0){
           w.hp--;w.hurtFlash=20;
           shakeI=8;sfx('bossHit');emitParts(w.x,w.y,15,'#ff00ff',4,3);
