@@ -55,38 +55,42 @@ function handleDeadBtn(btnId){
     else{state=ST.TITLE;switchBGM('title');}
   }
 }
-function handleChestTap(){
-  if(bossChests<=0||chestOpen.phase==='none')return false;
+function handleInventoryChestTap(){
+  if(!inventoryOpen)return false;
+  // Tap anywhere in inventory when no chest is opening: start first chest
+  if(chestOpen.phase==='none'&&storedChests>0){
+    startInventoryChestOpen();
+    return true;
+  }
   if(chestOpen.phase==='waiting'){
-    // Start opening animation, increment total opened count
     chestOpen.phase='wobble';chestOpen.t=0;sfx('select');vibrate(15);
     totalChestsOpened++;localStorage.setItem('gd5chestTotal',totalChestsOpened.toString());
+    storedChests--;localStorage.setItem('gd5storedChests',storedChests.toString());
     return true;
   }
   if(chestOpen.phase==='done'){
-    // Close chest display, decrement chests
-    bossChests--;
-    if(bossChests>0){
-      // Determine next reward
-      const roll=Math.random();
-      let reward;
-      if(roll<0.10){
-        const ci=Math.floor(Math.random()*CHARS.length);
-        reward={type:'char',charIdx:ci,isNew:!isCharUnlocked(ci),bonusCoins:0};
-      } else if(roll<0.20){reward={type:'coin',amount:100};}
-      else if(roll<0.45){reward={type:'coin',amount:50};}
-      else{reward={type:'coin',amount:30};}
-      chestOpen.phase='waiting';chestOpen.t=0;
-      chestOpen.charIdx=reward.type==='char'?reward.charIdx:-1;
-      chestOpen.parts=[];chestOpen.reward=reward;
+    if(storedChests>0){
+      startInventoryChestOpen();
     } else {
       chestOpen.phase='none';chestOpen.t=0;chestOpen.parts=[];chestOpen.reward=null;
     }
     sfx('click');
     return true;
   }
-  // During wobble/burst/reveal, tap does nothing (let animation play)
-  return true;
+  return true; // block taps during animation
+}
+function startInventoryChestOpen(){
+  const roll=Math.random();
+  let reward;
+  if(roll<0.10){
+    const ci=Math.floor(Math.random()*CHARS.length);
+    reward={type:'char',charIdx:ci,isNew:!isCharUnlocked(ci),bonusCoins:0};
+  } else if(roll<0.20){reward={type:'coin',amount:100};}
+  else if(roll<0.45){reward={type:'coin',amount:50};}
+  else{reward={type:'coin',amount:30};}
+  chestOpen.phase='waiting';chestOpen.t=0;
+  chestOpen.charIdx=reward.type==='char'?reward.charIdx:-1;
+  chestOpen.parts=[];chestOpen.reward=reward;
 }
 function continueFromDeath(){
   // Keep score, reset speed, revive player, start with countdown
@@ -113,6 +117,7 @@ function continueFromDeath(){
   flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
   bossChests=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null};
   state=ST.COUNTDOWN;countdownT=180;
+  bgmCurrent='';switchBGM('play'); // reset BGM from beginning
   sfx('countdown');
 }
 function startPackStageFromDead(){
@@ -218,6 +223,17 @@ canvas.addEventListener('touchstart',e=>{
   if(state===ST.PLAY&&hitBombBtn(p.x,p.y)){useBomb();return;}
   if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');state=ST.PAUSE;return;}
   if(state===ST.TITLE){
+    // Inventory modal intercepts all input when open
+    if(inventoryOpen){
+      // Close button area (top-right X or outside modal)
+      const mW2=Math.min(300,W-24),mH2=Math.min(400,H-40);
+      const mX2=(W-mW2)/2,mY2=(H-mH2)/2;
+      // Close button at top-right of modal
+      if(p.x>=mX2+mW2-36&&p.x<=mX2+mW2-4&&p.y>=mY2+4&&p.y<=mY2+36&&chestOpen.phase==='none'){
+        inventoryOpen=false;sfx('cancel');return;
+      }
+      handleInventoryChestTap();return;
+    }
     if(charModal.show){sfx('cancel');charModal.show=false;return;}
     longPressFired=false;titleTouchPos=p;
     const cidx=getCharGridIdx(p.x,p.y);
@@ -229,7 +245,6 @@ canvas.addEventListener('touchstart',e=>{
     }
   }
   else if(state===ST.DEAD&&deadT>45){
-    if(handleChestTap())return;
     const btnId=hitDeadBtn(p.x,p.y);
     if(btnId)handleDeadBtn(btnId);
   }
@@ -406,6 +421,11 @@ function getCharGridIdx(tx,ty){
   return -1;
 }
 function handleTitleTouch(tx,ty){
+  // Inventory button (top-left, next to settings gear)
+  if(tx>=8&&tx<=48&&ty>=safeTop+6&&ty<=safeTop+42){
+    inventoryOpen=true;chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null};
+    sfx('select');return;
+  }
   // Character selection: 2 rows x 3 columns grid
   const cols=3,rows=2;
   const charW=58,charH=62,charGap=10;

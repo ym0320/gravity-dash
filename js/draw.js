@@ -55,10 +55,11 @@ function drawFloatPlats(){
 function drawSpikes(){
   spikes.forEach(sp=>{
     if(sp.x+sp.w<-10||sp.x>W+10)return;
-    const baseY=sp.h; // floor surface Y position (stored as H-plat.h originally)
-    let spikeShow=0; // 0=hidden, 0-1=partial
+    const isFloor=sp.isFloor;
+    const baseY=isFloor?sp.h:sp.h; // floor: H-plat.h, ceiling: ceilPlat.h
+    let spikeShow=0;
     if(sp.state==='warning'){
-      spikeShow=Math.sin(sp.timer/30*Math.PI*4)*0.15; // pulsing warning
+      spikeShow=Math.sin(sp.timer/30*Math.PI*4)*0.15;
     } else if(sp.state==='up'){
       spikeShow=1;
     } else if(sp.state==='retracting'){
@@ -66,41 +67,38 @@ function drawSpikes(){
     }
     const sH=sp.spikeH*spikeShow;
     const spikes_n=Math.floor(sp.w/10);
+    const dir=isFloor?-1:1; // floor spikes point up (-1), ceiling spikes point down (+1)
     ctx.save();
-    // Always show base slot (visible from right edge as soon as it spawns)
+    // Base slot
     ctx.fillStyle=tca('obs',0x44);
-    ctx.fillRect(sp.x,baseY-3,sp.w,5);
-    // Slot lines to show spike positions even when hidden
+    ctx.fillRect(sp.x,baseY-2,sp.w,4);
     if(spikeShow<=0){
       ctx.strokeStyle=tca('obs',0x66);ctx.lineWidth=1;
       for(let i=0;i<spikes_n;i++){
         const sx=sp.x+i*(sp.w/spikes_n)+sp.w/spikes_n/2;
-        ctx.beginPath();ctx.moveTo(sx,baseY-2);ctx.lineTo(sx,baseY);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(sx,baseY-1);ctx.lineTo(sx,baseY+1);ctx.stroke();
       }
       ctx.restore();return;
     }
-    // Warning glow on ground
     if(sp.state==='warning'){
       const wa=0.2*Math.abs(Math.sin(sp.timer*0.3));
       ctx.globalAlpha=wa;ctx.fillStyle=tc('obs');
-      ctx.fillRect(sp.x,baseY-5,sp.w,5);
+      ctx.fillRect(sp.x,isFloor?baseY-5:baseY+1,sp.w,5);
       ctx.globalAlpha=1;
     }
-    // Draw spike triangles
     for(let i=0;i<spikes_n;i++){
       const sx=sp.x+i*(sp.w/spikes_n);
       const sw=sp.w/spikes_n;
       ctx.fillStyle=tc('obs');
       ctx.beginPath();
       ctx.moveTo(sx,baseY);
-      ctx.lineTo(sx+sw/2,baseY-sH);
+      ctx.lineTo(sx+sw/2,baseY+dir*sH);
       ctx.lineTo(sx+sw,baseY);
       ctx.closePath();ctx.fill();
-      // Metallic highlight
       ctx.fillStyle='rgba(255,255,255,0.25)';
       ctx.beginPath();
       ctx.moveTo(sx+sw*0.3,baseY);
-      ctx.lineTo(sx+sw/2,baseY-sH);
+      ctx.lineTo(sx+sw/2,baseY+dir*sH);
       ctx.lineTo(sx+sw*0.5,baseY);
       ctx.closePath();ctx.fill();
     }
@@ -139,19 +137,23 @@ function drawGravZones(){
     if(g.x+g.w<-10||g.x>W+10)return;
     const alpha=g.fadeT>0?Math.max(0,1-g.fadeT/40):1;
     if(alpha<=0)return;
+    const isDown=(g.dir||1)===1; // blue=down, pink=up
+    const r1=isDown?'0,130,255':'255,80,160';
+    const r2=isDown?'80,180,255':'255,130,190';
+    const r3=isDown?'100,200,255':'255,160,210';
     ctx.save();ctx.globalAlpha=alpha;
-    // Waterfall aura: vertical gradient flowing from ceiling to floor
+    // Aura gradient
     const gr=ctx.createLinearGradient(g.x,0,g.x+g.w,0);
-    gr.addColorStop(0,'rgba(0,200,255,0)');
-    gr.addColorStop(0.3,'rgba(0,200,255,0.12)');
-    gr.addColorStop(0.5,'rgba(100,220,255,0.18)');
-    gr.addColorStop(0.7,'rgba(0,200,255,0.12)');
-    gr.addColorStop(1,'rgba(0,200,255,0)');
+    gr.addColorStop(0,'rgba('+r1+',0)');
+    gr.addColorStop(0.3,'rgba('+r1+',0.12)');
+    gr.addColorStop(0.5,'rgba('+r2+',0.18)');
+    gr.addColorStop(0.7,'rgba('+r1+',0.12)');
+    gr.addColorStop(1,'rgba('+r1+',0)');
     ctx.fillStyle=gr;
     ctx.fillRect(g.x,0,g.w,H);
-    // Flowing stream lines (animated)
+    // Flowing stream lines
     const t=frame*0.05;
-    ctx.strokeStyle='rgba(100,230,255,'+0.25*alpha+')';
+    ctx.strokeStyle='rgba('+r3+','+0.25*alpha+')';
     ctx.lineWidth=1.5;
     for(let i=0;i<4;i++){
       const lx=g.x+g.w*(0.2+i*0.2)+Math.sin(t+i)*3;
@@ -163,27 +165,29 @@ function drawGravZones(){
       }
       ctx.stroke();
     }
-    // Particles flowing downward/upward
-    const flowDir=frame%120<60?1:-1;
-    ctx.fillStyle='rgba(150,240,255,'+0.5*alpha+')';
+    // Particles flowing in the forced direction
+    const flowDir=isDown?1:-1;
+    ctx.fillStyle='rgba('+r3+','+0.5*alpha+')';
     for(let i=0;i<6;i++){
       const px=g.x+((frame*2+i*40)%Math.max(1,Math.floor(g.w)));
-      const py=((frame*3+i*70)*flowDir)%H;
+      const py=((frame*3*flowDir+i*70))%H;
       const ppy=py<0?py+H:py;
       ctx.beginPath();ctx.arc(px,ppy,2+Math.sin(frame*0.1+i)*1,0,6.28);ctx.fill();
     }
-    // Arrow indicators showing gravity direction
+    // Arrow indicators showing forced direction
     const arrowAlpha=0.3+Math.sin(frame*0.08)*0.15;
-    ctx.fillStyle='rgba(0,229,255,'+arrowAlpha*alpha+')';
+    ctx.fillStyle='rgba('+(isDown?'68,136,255':'255,102,170')+','+arrowAlpha*alpha+')';
     const cx=g.x+g.w/2;
     for(let i=0;i<3;i++){
-      const ay=H*0.25+i*H*0.25+((frame*1.5)%50);
-      ctx.beginPath();
-      ctx.moveTo(cx-8,ay-8);ctx.lineTo(cx,ay+8);ctx.lineTo(cx+8,ay-8);
-      ctx.closePath();ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(cx-8,ay+8);ctx.lineTo(cx,ay-8);ctx.lineTo(cx+8,ay+8);
-      ctx.closePath();ctx.fill();
+      const ay=H*0.25+i*H*0.25+((frame*1.5*flowDir)%50);
+      const apy=ay<0?ay+H:ay>H?ay-H:ay;
+      if(isDown){
+        // Down arrow ▽
+        ctx.beginPath();ctx.moveTo(cx-8,apy-8);ctx.lineTo(cx,apy+8);ctx.lineTo(cx+8,apy-8);ctx.closePath();ctx.fill();
+      } else {
+        // Up arrow △
+        ctx.beginPath();ctx.moveTo(cx-8,apy+8);ctx.lineTo(cx,apy-8);ctx.lineTo(cx+8,apy+8);ctx.closePath();ctx.fill();
+      }
     }
     ctx.globalAlpha=1;ctx.restore();
   });
@@ -249,6 +253,10 @@ function draw(){
   mtns.forEach(m=>{ctx.globalAlpha=m.a;ctx.fillStyle=tc('line');ctx.beginPath();ctx.moveTo(-10,H*0.75);m.pts.forEach(p=>ctx.lineTo(p.x+m.off,H*0.75-p.h));ctx.lineTo(W+510+m.off,H*0.75);ctx.closePath();ctx.fill();});
   ctx.globalAlpha=1;
 
+  // Title and stage select: draw early, before game objects, to avoid leftover stage bleed
+  if(state===ST.TITLE){drawDemo();drawTitle();drawCharModal();drawInventory();ctx.restore();return;}
+  if(state===ST.STAGE_SEL){drawStageSel();ctx.restore();return;}
+
   // Platforms
   drawPlatforms(platforms,true);
   drawPlatforms(ceilPlats,false);
@@ -260,8 +268,6 @@ function draw(){
   drawCoinSwitches();
 
   if(isPackMode)drawAmbient();
-  if(state===ST.TITLE){drawDemo();drawTitle();drawCharModal();ctx.restore();return;}
-  if(state===ST.STAGE_SEL){drawStageSel();ctx.restore();return;}
   if(state===ST.COUNTDOWN){drawCountdown();ctx.restore();return;}
 
   // Pack mode: draw stars (stageBigCoins)
@@ -1146,6 +1152,20 @@ function drawTitle(){
   ctx.fillStyle='#667';ctx.font='10px monospace';ctx.textAlign='center';
   ctx.fillText('\u30BF\u30C3\u30D7=\u30B8\u30E3\u30F3\u30D7 / \u30B9\u30EF\u30A4\u30D7=\u91CD\u529B\u53CD\u8EE2',W/2,H*0.93);
 
+  // Inventory button (top left) - chest icon with ! badge
+  ctx.fillStyle='#ffffff14';rr(8,safeTop+6,36,36,8);ctx.fill();
+  ctx.fillStyle='#ffd700';ctx.font='18px monospace';ctx.textAlign='center';
+  ctx.fillText('\uD83D\uDCE6',26,safeTop+30);
+  if(storedChests>0){
+    // Pulsing ! badge
+    const bp=Math.sin(titleT*2)*0.15+1;
+    ctx.save();ctx.translate(38,safeTop+10);ctx.scale(bp,bp);
+    ctx.fillStyle='#ff3860';ctx.beginPath();ctx.arc(0,0,8,0,6.28);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='bold 10px monospace';ctx.textAlign='center';
+    ctx.fillText('!',0,4);
+    ctx.restore();
+  }
+
   // Settings gear button (top right)
   ctx.fillStyle='#ffffff14';rr(W-44,safeTop+6,36,36,8);ctx.fill();
   ctx.fillStyle='#fff6';ctx.font='18px monospace';ctx.textAlign='center';
@@ -1483,6 +1503,72 @@ function drawPause(){
   ctx.fillText('ESC\u30AD\u30FC\u3067\u518D\u958B',W/2,H*0.67);
 }
 
+// ===== INVENTORY MODAL (title screen) =====
+function drawInventory(){
+  if(!inventoryOpen)return;
+  // If chest opening is active, draw the chest open modal instead
+  if(chestOpen.phase!=='none'){
+    drawChestOpen();
+    return;
+  }
+  ctx.save();
+  // Dark overlay
+  ctx.fillStyle='rgba(0,0,0,0.85)';ctx.fillRect(0,0,W,H);
+  const mW=Math.min(300,W-24),mH=Math.min(360,H-40);
+  const mX=(W-mW)/2,mY=(H-mH)/2;
+  // Modal panel
+  const mgr=ctx.createLinearGradient(mX,mY,mX,mY+mH);
+  mgr.addColorStop(0,'#1a1a2e');mgr.addColorStop(0.5,'#16213e');mgr.addColorStop(1,'#0f0f23');
+  ctx.fillStyle=mgr;rr(mX,mY,mW,mH,16);ctx.fill();
+  ctx.strokeStyle='#ffd70044';ctx.lineWidth=2;rr(mX,mY,mW,mH,16);ctx.stroke();
+  // Gold accent top
+  ctx.strokeStyle='#ffd700';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(mX+16,mY);ctx.lineTo(mX+mW-16,mY);ctx.stroke();
+  // Close button (X) top-right
+  ctx.fillStyle='#ff386088';ctx.font='bold 18px monospace';ctx.textAlign='center';
+  ctx.fillText('\u2715',mX+mW-20,mY+22);
+  // Title
+  ctx.fillStyle='#ffd700';ctx.font='bold 18px monospace';ctx.textAlign='center';
+  ctx.fillText('\uD83D\uDCE6 所持品',W/2,mY+36);
+  // Wallet
+  ctx.fillStyle='#ffd700';ctx.font='bold 13px monospace';
+  ctx.fillText('\u25CF '+walletCoins,W/2,mY+58);
+  // Chest count display
+  const cx=W/2,cy=mY+mH*0.42;
+  if(storedChests>0){
+    // Animated chest icon
+    const pulse=1+Math.sin(Date.now()*0.003)*0.05;
+    ctx.save();ctx.translate(cx,cy);ctx.scale(pulse,pulse);
+    drawChestIcon(0,0,48,false);
+    ctx.restore();
+    // Count
+    ctx.fillStyle='#ffd700';ctx.font='bold 28px monospace';ctx.textAlign='center';
+    ctx.fillText('\u00D7 '+storedChests,cx,cy+50);
+    // Tap to open hint
+    ctx.fillStyle='#fff8';ctx.font='12px monospace';
+    ctx.fillText('\u30BF\u30C3\u30D7\u3067\u958B\u5C01',cx,cy+72);
+    // Total opened
+    ctx.fillStyle='#fff4';ctx.font='10px monospace';
+    ctx.fillText('\u901A\u7B97 '+totalChestsOpened+' \u500B\u958B\u5C01',cx,mY+mH-20);
+  } else {
+    // No chests
+    ctx.globalAlpha=0.3;
+    ctx.save();ctx.translate(cx,cy);
+    drawChestIcon(0,0,40,false);
+    ctx.restore();
+    ctx.globalAlpha=1;
+    ctx.fillStyle='#fff4';ctx.font='14px monospace';ctx.textAlign='center';
+    ctx.fillText('\u5B9D\u7BB1\u304C\u3042\u308A\u307E\u305B\u3093',cx,cy+48);
+    ctx.fillStyle='#fff3';ctx.font='10px monospace';
+    ctx.fillText('\u30DC\u30B9\u3092\u5012\u3057\u3066\u5B9D\u7BB1\u3092\u7372\u5F97\u3057\u3088\u3046',cx,cy+66);
+    if(totalChestsOpened>0){
+      ctx.fillStyle='#fff3';ctx.font='10px monospace';
+      ctx.fillText('\u901A\u7B97 '+totalChestsOpened+' \u500B\u958B\u5C01',cx,mY+mH-20);
+    }
+  }
+  ctx.restore();
+}
+
 // ===== TREASURE CHEST DRAWING =====
 function drawChestIcon(cx,cy,sz,openLid){
   // Chest body
@@ -1557,7 +1643,7 @@ function drawChestFall(){
 }
 
 function drawChestOpen(){
-  if(chestOpen.phase==='none'||bossChests<=0)return;
+  if(chestOpen.phase==='none')return;
   const p=chestOpen.phase,t=chestOpen.t;
   const rw=chestOpen.reward;
   const isChar=rw&&rw.type==='char';
@@ -1585,10 +1671,10 @@ function drawChestOpen(){
   ctx.fillText('宝箱開封',cx,mY+30);
   ctx.fillStyle='#fff8';ctx.font='11px monospace';
   ctx.fillText('通算 '+totalChestsOpened+' 個開封',cx,mY+48);
-  // Remaining chests this run
-  if(bossChests>1){
+  // Remaining chests in inventory
+  if(storedChests>0){
     ctx.fillStyle='#ffaa00';ctx.font='10px monospace';
-    ctx.fillText('残り '+(bossChests-1)+' 個',cx,mY+62);
+    ctx.fillText('残り '+storedChests+' 個',cx,mY+62);
   }
 
   // Update and draw chest particles (clipped to modal)
@@ -1945,11 +2031,17 @@ function drawDead(){
   ctx.fillStyle='#fff5';ctx.font='11px monospace';
   ctx.fillText('\u6240\u6301: '+walletCoins,W/2+50,coinY);
 
-  // --- Chest opening overlay (blocks buttons while active) ---
-  if(chestOpen.phase!=='none'&&bossChests>0){
-    drawChestOpen();
-    ctx.restore();ctx.globalAlpha=1;
-    return;
+  // Chest acquisition display (if any chests were earned this run)
+  const earnedChests=storedChests>0||bossChests>0;
+  if(earnedChests){
+    const chestY=coinY+20;
+    ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';ctx.textAlign='center';
+    const cEarned=parseInt(localStorage.getItem('gd5lastRunChests')||'0');
+    if(cEarned>0){
+      ctx.fillText('\uD83D\uDCE6 宝箱 +'+cEarned+' 獲得',W/2,chestY);
+      ctx.fillStyle='#fff4';ctx.font='10px monospace';
+      ctx.fillText('ホームの所持品で開封できます',W/2,chestY+14);
+    }
   }
 
   // --- Action buttons (below card) ---

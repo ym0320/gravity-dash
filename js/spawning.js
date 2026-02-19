@@ -79,7 +79,7 @@ function trySpawnItem(){
     // Pick random item: 0=invincible, 1=magnet, 2=bomb, 3=heart
     let it;
     if(hp<maxHp()&&Math.random()<0.3){it=3;} // higher chance for heart when damaged
-    else{const r=Math.random();if(r<0.01){it=0;}else if(r<0.06){it=2;}else if(r<0.14){it=1;}else{itemCD=60+Math.floor(Math.random()*30);return;}}
+    else{const r=Math.random();if(r<0.01){it=0;}else if(r<0.04){it=2;}else if(r<0.12){it=1;}else{itemCD=60+Math.floor(Math.random()*30);return;}}
     items.push({x:ix,y:surfY-55-Math.random()*25,t:it,sz:14,p:Math.random()*6.28,col:false});
   } else {
     itemCD=20+Math.floor(Math.random()*15);
@@ -206,10 +206,17 @@ function trySpawnSpike(){
     if(!ceilHere){spikeCD=25+Math.floor(Math.random()*15);return;}
     spikeCD=80+Math.floor(Math.random()*60);
     const sw=30+Math.random()*30;
-    // state: 'hidden','warning','up','retracting'
-    spikes.push({x:sx,w:sw,h:H-plat.h,spikeH:22,phase:0,timer:0,state:'hidden',
-      cycle:120+Math.floor(Math.random()*80),upTime:60+Math.floor(Math.random()*30),
-      isFloor:true});
+    // Randomly choose floor or ceiling spike
+    const isFloor=Math.random()<0.5;
+    if(isFloor){
+      spikes.push({x:sx,w:sw,h:H-plat.h,spikeH:22,phase:0,timer:0,state:'hidden',
+        cycle:120+Math.floor(Math.random()*80),upTime:60+Math.floor(Math.random()*30),
+        isFloor:true});
+    } else {
+      spikes.push({x:sx,w:sw,h:ceilHere.h,spikeH:22,phase:0,timer:0,state:'hidden',
+        cycle:120+Math.floor(Math.random()*80),upTime:60+Math.floor(Math.random()*30),
+        isFloor:false});
+    }
   } else {
     spikeCD=25+Math.floor(Math.random()*15);
   }
@@ -301,13 +308,15 @@ function trySpawnGravZone(){
   if(gravZoneChain>0&&gravZoneChain<gravZoneChainTarget){
     doSpawn=true;
   } else {
-    const chance=Math.min(0.08,0.015+(score-150)*0.0005);
+    const chance=Math.min(0.04,0.008+(score-150)*0.0003);
     doSpawn=Math.random()<chance;
   }
   if(doSpawn){
     const gx=Math.max(W+20,plat.x+plat.w*0.3);
     const gw=60+Math.random()*50;
-    gravZones.push({x:gx,w:gw,triggered:false,fadeT:0});
+    // dir: 1=force down (blue), -1=force up (pink)
+    const gdir=Math.random()<0.5?1:-1;
+    gravZones.push({x:gx,w:gw,triggered:false,fadeT:0,dir:gdir});
     if(gravZoneChain===0){
       // Start new chain: determine count based on score
       let maxCount=1;
@@ -320,13 +329,13 @@ function trySpawnGravZone(){
         gravZoneCD=30+Math.floor(Math.random()*80); // 30-110 frames gap (uneven)
       } else {
         gravZoneChain=0;gravZoneChainTarget=0;
-        gravZoneCD=200+Math.floor(Math.random()*120);
+        gravZoneCD=300+Math.floor(Math.random()*150);
       }
     } else {
       gravZoneChain++;
       if(gravZoneChain>=gravZoneChainTarget){
         gravZoneChain=0;gravZoneChainTarget=0;
-        gravZoneCD=200+Math.floor(Math.random()*120);
+        gravZoneCD=300+Math.floor(Math.random()*150);
       } else {
         // Random uneven spacing: sometimes close, sometimes far apart
         gravZoneCD=20+Math.floor(Math.random()*100); // 20-120 frames (very uneven)
