@@ -443,6 +443,7 @@ function drawItem(it){
 function drawEnemy(en){
   if(en.bossType==='charge'||en.bossType==='dodge'){drawBossCharge(en);return;}
   if(en.bossType==='bruiser'){drawBossBruiser(en);return;}
+  if(en.bossType==='guardian'){drawBossGuardian(en);return;}
   if(en.bossType==='wizard'){drawBossWizard(en);return;}
   if(en.type===1){drawShooter(en);return;}
   if(en.type===2){drawFlyer(en);return;}
@@ -699,6 +700,21 @@ function drawDasher(en){
 }
 function drawBullet(b){
   ctx.save();ctx.translate(b.x,b.y);
+  if(b.shockwave){
+    // Shockwave: vertical energy wave traveling along floor
+    const alpha=Math.min(1,b.life/20);
+    ctx.globalAlpha=alpha;
+    const waveH=30+Math.sin(b.life*0.3)*5;
+    const gr=ctx.createLinearGradient(0,0,0,-waveH);
+    gr.addColorStop(0,'#ffaa00');gr.addColorStop(0.5,'#ff660088');gr.addColorStop(1,'#ff660000');
+    ctx.fillStyle=gr;
+    ctx.beginPath();ctx.moveTo(-b.sz*0.6,0);ctx.lineTo(-b.sz*0.2,-waveH);
+    ctx.lineTo(b.sz*0.2,-waveH);ctx.lineTo(b.sz*0.6,0);ctx.closePath();ctx.fill();
+    // Bright core
+    ctx.fillStyle='#ffdd44';ctx.beginPath();
+    ctx.moveTo(-b.sz*0.3,0);ctx.lineTo(0,-waveH*0.7);ctx.lineTo(b.sz*0.3,0);ctx.closePath();ctx.fill();
+    ctx.globalAlpha=1;ctx.restore();return;
+  }
   if(b.bomb){
     // Bomb projectile
     ctx.fillStyle='#333';ctx.beginPath();ctx.arc(0,0,b.sz,0,6.28);ctx.fill();

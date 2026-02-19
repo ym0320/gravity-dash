@@ -751,6 +751,19 @@ function update(dt){
   const bpr=PLAYER_R*ct().sizeMul;
   bullets.forEach(b=>{
     b.x+=b.vx;b.y+=b.vy;b.life--;
+    // Shockwave: stays on floor, tall hitbox
+    if(b.shockwave){
+      const sy=floorSurfaceY(b.x);
+      if(sy<H+100)b.y=sy-6;
+      // Tall collision area (player must jump over)
+      const dx=player.x-b.x,dy=player.y-(b.y-20);
+      if(Math.abs(dx)<bpr+b.sz&&dy>-40&&dy<30){
+        if(itemEff.invincible<=0&&hurtT<=0){b.life=0;hurt();}
+      }
+      // Particles trail
+      if(b.life%3===0)parts.push({x:b.x,y:b.y,vx:(Math.random()-0.5)*0.5,vy:-1-Math.random()*2,life:12,ml:12,sz:Math.random()*4+2,col:'#ffaa00'});
+      return;
+    }
     // Bomb gravity (parabolic arc)
     if(b.grav)b.vy+=b.grav;
     // Bomb explodes on ground contact

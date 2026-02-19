@@ -14,6 +14,7 @@ function startBossPhase(){
   bossPhase.chargeIdx=0;
   bossPhase.bruiser=null; // the multi-stomp boss
   bossPhase.wizard=null; // the teleporting wizard boss
+  bossPhase.guardian=null; // the shockwave knight boss
   bossPhase.dodgeQueue=[]; // queue of dodge enemies
   bossPhase.dodgeIdx=0;
   bossPhase.dodgeKills=0;
@@ -32,15 +33,17 @@ function spawnBossEnemies(){
   bossPhase.chargeIdx=0;
   bossPhase.bruiser=null;
   bossPhase.wizard=null;
+  bossPhase.guardian=null;
   bossPhase.dodgeQueue=[];
   bossPhase.dodgeIdx=0;
   bossPhase.dodgeKills=0;
-  // Randomly choose boss type: all 4 types equally likely (25% each)
+  // Randomly choose boss type: all 5 types equally likely (20% each)
   const roll=Math.random();
   let bossType;
-  if(roll<0.25) bossType='wizard';
-  else if(roll<0.50) bossType='bruiser';
-  else if(roll<0.75) bossType='charge';
+  if(roll<0.20) bossType='wizard';
+  else if(roll<0.40) bossType='bruiser';
+  else if(roll<0.60) bossType='guardian';
+  else if(roll<0.80) bossType='charge';
   else bossType='dodge';
   bossPhase.bossType=bossType;
   if(bossType==='charge'){
@@ -133,6 +136,24 @@ function spawnBossEnemies(){
       patrolDir:1,patrolOriginX:W*0.6,patrolRange:0
     };
     bossPhase.bruiser=bruiser;
+    bossPhase.total=1;
+  } else if(bossType==='guardian'){
+    // Guardian type: armored knight, slams ground to create shockwaves, vulnerable when stunned
+    const gsz=(28+Math.min(bc-1,3)*3)*2;
+    const guardian={
+      x:W+90,y:floorY-gsz,vy:0,gDir:1,sz:gsz,alive:true,fr:0,
+      type:13,shootT:999,boss:true,bossType:'guardian',
+      hp:4,maxHp:4,
+      advanceSpd:1.8+Math.min(bc-1,5)*0.3,
+      state:'enter',
+      timer:0,stunT:0,hurtFlash:0,invT:0,
+      slamT:0,slamCooldown:0,
+      shieldUp:true, // shield blocks frontal stomps
+      jumpEnabled:bc>=3, // from 3rd encounter: can jump toward player
+      doubleWave:bc>=2, // from 2nd encounter: slam sends waves both directions
+      stunDuration:Math.max(30,55-Math.min(bc-1,4)*5) // shorter stun at higher bc
+    };
+    bossPhase.guardian=guardian;
     bossPhase.total=1;
   } else {
     // Wizard type: floats in air, dashes toward player then returns, shoots patterns
@@ -432,7 +453,130 @@ function updateBossPhase(){
       if(sy>-100)b.y=sy+b.sz;
     }
   }
-  // Phase C: wizard boss logic
+  // Phase C: guardian boss logic (armored knight with shockwaves)
+  const guardianActive=bossPhase.guardian&&bossPhase.guardian.alive;
+  if(chargesCleared&&guardianActive){
+    const g=bossPhase.guardian;
+    const bc=bossPhase.bossCount;
+    if(!enemies.includes(g)){
+      enemies.push(g);bossPhase.enemies.push(g);
+    }
+    g.timer++;g.fr+=0.1;
+    if(g.hurtFlash>0)g.hurtFlash--;
+    if(g.invT>0)g.invT--;
+    if(g.slamCooldown>0)g.slamCooldown--;
+    if(g.state==='enter'){
+      g.x-=2;
+      if(g.x<=W*0.7){g.state='advance';g.timer=0;}
+    } else if(g.state==='advance'){
+      // Walk toward player
+      const dx=player.x-g.x;
+      g.x+=Math.sign(dx)*g.advanceSpd;
+      g.fr+=0.08;
+      // Jump toward player at higher difficulties
+      if(g.jumpEnabled&&g.timer>40&&Math.abs(dx)<200&&Math.random()<0.008*bc){
+        g.vy=-6-Math.random()*2;g.state='jump';g.timer=0;
+      }
+      // Initiate slam when close enough to player
+      if(Math.abs(dx)<120&&g.slamCooldown<=0){
+        g.state='windup';g.timer=0;g.slamT=30;
+        g.shieldUp=false; // lower shield during attack
+      }
+    } else if(g.state==='jump'){
+      g.vy+=GRAVITY;g.y+=g.vy;
+      const sy=floorSurfaceY(g.x);
+      if(sy<H+100&&g.y+g.sz>=sy&&g.vy>0){
+        g.y=sy-g.sz;g.vy=0;
+        // Land slam: create shockwave on landing
+        g.state='slam';g.timer=0;g.shieldUp=false;
+        shakeI=14;sfx('death');vibrate([20,10,30]);
+        emitParts(g.x,sy,10,'#ffaa00',4,2);
+        // Spawn shockwave(s)
+        const waveSpd=4+Math.min(bc-1,4)*0.5;
+        bullets.push({x:g.x,y:sy-6,vx:-waveSpd,vy:0,sz:10,life:80,shockwave:true,baseY:sy-6});
+        if(g.doubleWave) bullets.push({x:g.x,y:sy-6,vx:waveSpd,vy:0,sz:10,life:80,shockwave:true,baseY:sy-6});
+      }
+    } else if(g.state==='windup'){
+      // Wind up before slam (shield down = vulnerable moment)
+      g.slamT--;
+      // Shake to telegraph
+      g.x+=(Math.random()-0.5)*2;
+      if(g.slamT<=0){
+        g.state='slam';g.timer=0;
+        const sy=floorSurfaceY(g.x);
+        shakeI=14;sfx('death');vibrate([20,10,30]);
+        emitParts(g.x,sy,10,'#ffaa00',4,2);
+        // Spawn shockwave(s)
+        const waveSpd=4+Math.min(bc-1,4)*0.5;
+        bullets.push({x:g.x,y:sy-6,vx:-waveSpd,vy:0,sz:10,life:80,shockwave:true,baseY:sy-6});
+        if(g.doubleWave) bullets.push({x:g.x,y:sy-6,vx:waveSpd,vy:0,sz:10,life:80,shockwave:true,baseY:sy-6});
+      }
+    } else if(g.state==='slam'){
+      // Brief slam animation, then stunned
+      if(g.timer>=12){
+        g.state='stunned';g.timer=0;g.stunT=g.stunDuration;
+        g.shieldUp=false;
+      }
+    } else if(g.state==='stunned'){
+      g.stunT--;
+      // Stars above head visual (handled in draw)
+      if(g.stunT<=0){
+        g.state='recover';g.timer=0;g.shieldUp=true;
+        g.slamCooldown=60+Math.floor(Math.random()*30);
+      }
+    } else if(g.state==='recover'){
+      // Step back before re-engaging
+      g.x+=2.5;
+      if(g.timer>=25||g.x>=W*0.75){g.state='advance';g.timer=0;}
+    } else if(g.state==='invincible'){
+      g.invT--;
+      g.x+=2;
+      if(g.invT<=0){g.state='recover';g.timer=0;g.shieldUp=true;g.slamCooldown=40;}
+    }
+    // Keep on floor
+    if(g.state!=='jump'){
+      const sy=floorSurfaceY(g.x);
+      if(sy<H+100)g.y=sy-g.sz;
+    }
+    // Collision check
+    if(g.invT<=0){
+      const dx=player.x-g.x,dy=player.y-g.y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<pr+g.sz*BOSS_HITBOX_SCALE){
+        if(itemEff.invincible>0){
+          g.hp--;g.hurtFlash=20;g.invT=60;g.state='invincible';g.timer=0;
+          shakeI=8;sfx('bossHit');
+          emitParts(g.x,g.y,15,'#ff00ff',4,3);
+          if(g.hp<=0){bossGuardianDefeat(g);}
+        } else {
+          // Stomp check: player above guardian and falling down
+          const stomped=(player.y+pr<g.y-g.sz*0.15&&player.vy>=0&&player.gDir===1);
+          // Shield block: if shield is up and player is in front, stomp fails
+          const shieldBlock=g.shieldUp&&stomped;
+          if(stomped&&!shieldBlock){
+            g.hp--;g.hurtFlash=20;
+            g.state='invincible';g.invT=60;g.timer=0;g.shieldUp=true;
+            player.vy=-JUMP_POWER*0.8;player.grounded=false;
+            flipCount=0;player.canFlip=true;djumpUsed=false;djumpAvailable=true;
+            shakeI=12;sfx('bossHit');sfx('gstompHeavy');vibrate([20,10,30]);
+            addPop(g.x,g.y-g.sz-10,'HP '+g.hp+'/'+g.maxHp,'#ffaa00');
+            emitParts(g.x,g.y-g.sz,12,'#ffaa00',5,3);
+            if(g.hp<=0){bossGuardianDefeat(g);}
+          } else if(shieldBlock){
+            // Shield deflects: player bounces off, takes damage
+            player.vy=-JUMP_POWER*0.5;player.grounded=false;
+            sfx('hurt');vibrate(15);shakeI=6;
+            addPop(g.x,g.y-g.sz-10,'BLOCKED!','#88ccff');
+            emitParts(g.x,g.y-g.sz,8,'#88ccff',3,2);
+            hurt();
+          } else {
+            hurt();
+          }
+        }
+      }
+    }
+  }
+  // Phase D: wizard boss logic
   const wizardActive=bossPhase.wizard&&bossPhase.wizard.alive;
   if(chargesCleared&&wizardActive){
     const w=bossPhase.wizard;
@@ -585,10 +729,11 @@ function updateBossPhase(){
   }
   const bruiserDone=!bossPhase.bruiser||!bossPhase.bruiser.alive;
   const wizardDone=!bossPhase.wizard||!bossPhase.wizard.alive;
+  const guardianDone=!bossPhase.guardian||!bossPhase.guardian.alive;
   // Dodge done: all 5 enemies finished their rush (killed or exited screen)
   const dodgeDone=bossPhase.bossType!=='dodge'||(bossPhase.dodgeIdx>=bossPhase.dodgeQueue.length&&
     enemies.filter(e=>e.bossType==='dodge'&&e.alive).length===0);
-  const allDone=chargesCleared&&dodgeDone&&bruiserDone&&wizardDone;
+  const allDone=chargesCleared&&dodgeDone&&bruiserDone&&wizardDone&&guardianDone;
   if(allDone&&bossPhase.enemies.length>0&&!bossPhase.reward){
     bossPhase.reward=true;bossPhase.rewardT=0;
     // Catch up score that accumulated during boss
@@ -650,6 +795,32 @@ function bossWizardDefeat(w){
       life:35+Math.random()*25,ml:60,sz:Math.random()*5+2,col:'#ffd700'});
   }
   addPop(w.x,w.y-w.sz-20,'\u6483\u7834\uFF01','#ffd700');
+  sfx('death');
+}
+function bossGuardianDefeat(g){
+  g.alive=false;
+  shakeI=22;vibrate([40,20,60,30,100]);
+  // Armor shatter explosion
+  const cols=['#4488cc','#336699','#88bbee','#c0d0e0','#ffaa00','#ffd700'];
+  for(let i=0;i<40;i++){
+    const a=(6.28/40)*i,s=3+Math.random()*7;
+    parts.push({x:g.x+(Math.random()-0.5)*g.sz,y:g.y+(Math.random()-0.5)*g.sz,
+      vx:Math.cos(a)*s,vy:Math.sin(a)*s-3,life:60+Math.random()*40,ml:100,
+      sz:Math.random()*8+3,col:cols[i%cols.length]});
+  }
+  // Shield fragment burst
+  for(let i=0;i<15;i++){
+    const a=Math.random()*6.28,s=2+Math.random()*5;
+    parts.push({x:g.x-g.sz*0.4,y:g.y-g.sz*0.3,vx:Math.cos(a)*s-2,vy:Math.sin(a)*s,
+      life:40+Math.random()*30,ml:70,sz:Math.random()*6+3,col:'#88ccff'});
+  }
+  // Upward gold sparks
+  for(let i=0;i<15;i++){
+    parts.push({x:g.x+(Math.random()-0.5)*g.sz*0.8,y:g.y-g.sz*0.5,
+      vx:(Math.random()-0.5)*2,vy:-3-Math.random()*5,life:40+Math.random()*30,ml:70,
+      sz:Math.random()*4+1,col:'#ffd700'});
+  }
+  addPop(g.x,g.y-g.sz-20,'\u6483\u7834\uFF01','#ffd700');
   sfx('death');
 }
 // === Boss enemy draw: wizard type ===
@@ -760,6 +931,131 @@ function drawBossWizard(en){
     ctx.beginPath();ctx.moveTo(s*0.1,-s*0.3);ctx.lineTo(-s*0.1,s*0.1);ctx.lineTo(s*0.2,s*0.4);ctx.stroke();
   }
   ctx.globalAlpha=1;
+  ctx.restore();
+}
+// === Boss enemy draw: guardian type (armored knight with shield) ===
+function drawBossGuardian(en){
+  const s=en.sz,t=en.fr;
+  const dmg=en.maxHp-en.hp;
+  ctx.save();ctx.translate(en.x,en.y);
+  // Hurt flash / invincible blink
+  if(en.invT>0&&en.invT%6<3){ctx.globalAlpha=0.25;}
+  else if(en.hurtFlash>0&&en.hurtFlash%4<2){ctx.globalAlpha=0.5;}
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,0.3)';ctx.beginPath();ctx.ellipse(0,s*0.85,s*0.7,s*0.12,0,0,6.28);ctx.fill();
+  // Legs (animated walk)
+  const legSpd=en.state==='advance'?1.2:en.state==='stunned'?0:0.6;
+  const legPhase=Math.sin(t*legSpd)*s*0.1;
+  ctx.fillStyle=dmg>=3?'#1a2030':'#2a3040';
+  ctx.fillRect(-s*0.4+legPhase,s*0.25,s*0.22,s*0.55);
+  ctx.fillRect(s*0.18-legPhase,s*0.25,s*0.22,s*0.55);
+  // Armored boots
+  ctx.fillStyle=dmg>=2?'#3a4050':'#4a5565';
+  ctx.fillRect(-s*0.45+legPhase,s*0.6,s*0.32,s*0.2);
+  ctx.fillRect(s*0.13-legPhase,s*0.6,s*0.32,s*0.2);
+  // Main body (heavy armored torso - steel blue)
+  const bodyGr=ctx.createRadialGradient(0,-s*0.1,s*0.1,0,-s*0.1,s*0.85);
+  if(dmg>=3){bodyGr.addColorStop(0,'#2a3545');bodyGr.addColorStop(0.5,'#1a2535');bodyGr.addColorStop(1,'#0a1525');}
+  else if(dmg>=2){bodyGr.addColorStop(0,'#3a4a5a');bodyGr.addColorStop(0.5,'#2a3a4a');bodyGr.addColorStop(1,'#1a2a3a');}
+  else if(dmg>=1){bodyGr.addColorStop(0,'#4a5a6a');bodyGr.addColorStop(0.5,'#3a4a5a');bodyGr.addColorStop(1,'#2a3a4a');}
+  else{bodyGr.addColorStop(0,'#5a6a7a');bodyGr.addColorStop(0.5,'#4a5a6a');bodyGr.addColorStop(1,'#3a4a5a');}
+  ctx.fillStyle=bodyGr;
+  ctx.beginPath();
+  ctx.moveTo(-s*0.6,-s*0.55);ctx.quadraticCurveTo(-s*0.75,-s*0.1,-s*0.6,s*0.35);
+  ctx.lineTo(s*0.6,s*0.35);ctx.quadraticCurveTo(s*0.75,-s*0.1,s*0.6,-s*0.55);
+  ctx.quadraticCurveTo(0,-s*0.7,-s*0.6,-s*0.55);
+  ctx.closePath();ctx.fill();
+  // Damage cracks
+  if(dmg>=1){
+    ctx.strokeStyle='rgba(100,180,255,0.5)';ctx.lineWidth=1.5;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(s*0.2,-s*0.4);ctx.lineTo(s*0.35,-s*0.1);ctx.lineTo(s*0.2,s*0.15);ctx.stroke();
+  }
+  if(dmg>=2){
+    ctx.strokeStyle='rgba(255,170,0,0.6)';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(-s*0.3,-s*0.35);ctx.lineTo(-s*0.1,0);ctx.lineTo(-s*0.3,s*0.25);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(s*0.1,-s*0.5);ctx.lineTo(s*0.4,-s*0.15);ctx.stroke();
+  }
+  if(dmg>=3){
+    ctx.fillStyle='rgba(255,170,0,0.15)';
+    ctx.beginPath();ctx.arc(0,-s*0.1,s*0.2,0,6.28);ctx.fill();
+    if(Math.random()<0.3){
+      const spx=(Math.random()-0.5)*s*0.6,spy=-s*0.3+Math.random()*s*0.5;
+      ctx.fillStyle='#ffaa00';ctx.beginPath();ctx.arc(spx,spy,s*0.04,0,6.28);ctx.fill();
+    }
+  }
+  // Chest plate
+  if(dmg<3){
+    ctx.fillStyle=dmg>=1?'#3a4a55':'#5a6a75';
+    ctx.beginPath();
+    ctx.moveTo(-s*0.35,-s*0.45);ctx.lineTo(0,-s*0.55);ctx.lineTo(s*0.35,-s*0.45);
+    ctx.lineTo(s*0.3,s*0.1);ctx.lineTo(0,s*0.2);ctx.lineTo(-s*0.3,s*0.1);
+    ctx.closePath();ctx.fill();
+  }
+  // Shield (left side - blue steel, glows when blocking)
+  if(en.shieldUp){
+    const shieldGlow=en.state==='advance'?0.8+Math.sin(t*0.8)*0.2:0.6;
+    ctx.globalAlpha=(en.invT>0&&en.invT%6<3?0.25:en.hurtFlash>0&&en.hurtFlash%4<2?0.5:1)*shieldGlow;
+    ctx.fillStyle='#4488cc';ctx.shadowColor='#4488cc';ctx.shadowBlur=10;
+    ctx.beginPath();
+    ctx.moveTo(-s*0.65,-s*0.6);ctx.quadraticCurveTo(-s*1.1,-s*0.35,-s*1.05,0);
+    ctx.quadraticCurveTo(-s*1.1,s*0.35,-s*0.65,s*0.4);
+    ctx.lineTo(-s*0.55,s*0.3);ctx.quadraticCurveTo(-s*0.85,0,-s*0.55,-s*0.5);
+    ctx.closePath();ctx.fill();
+    ctx.shadowBlur=0;
+    // Shield emblem (cross)
+    ctx.strokeStyle='#88bbee';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(-s*0.8,-s*0.25);ctx.lineTo(-s*0.8,s*0.15);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(-s*0.95,-s*0.05);ctx.lineTo(-s*0.65,-s*0.05);ctx.stroke();
+    ctx.globalAlpha=en.invT>0&&en.invT%6<3?0.25:en.hurtFlash>0&&en.hurtFlash%4<2?0.5:1;
+  }
+  // Sword arm (right side)
+  const swordAngle=en.state==='windup'?-0.5-Math.sin(en.slamT*0.2)*0.3:
+    en.state==='slam'?0.8:en.state==='stunned'?0.3:0;
+  ctx.save();ctx.translate(s*0.5,-s*0.2);ctx.rotate(swordAngle);
+  ctx.fillStyle='#c0d0e0';
+  ctx.fillRect(-s*0.04,-s*0.8,s*0.08,s*0.9); // blade
+  ctx.fillStyle='#8090a0';
+  ctx.fillRect(-s*0.1,s*0.05,s*0.2,s*0.12); // guard
+  ctx.fillStyle='#5a4030';
+  ctx.fillRect(-s*0.05,s*0.12,s*0.1,s*0.18); // grip
+  ctx.restore();
+  // Helmet (visored)
+  const headGr=ctx.createRadialGradient(0,-s*0.65,s*0.05,0,-s*0.65,s*0.3);
+  if(dmg>=3){headGr.addColorStop(0,'#2a3545');headGr.addColorStop(1,'#1a2030');}
+  else{headGr.addColorStop(0,'#5a6a7a');headGr.addColorStop(1,'#3a4a5a');}
+  ctx.fillStyle=headGr;
+  ctx.beginPath();ctx.arc(0,-s*0.65,s*0.28,0,6.28);ctx.fill();
+  // Helmet crest
+  ctx.fillStyle=dmg>=2?'#3a4050':'#6a7a8a';
+  ctx.beginPath();ctx.moveTo(0,-s*0.95);ctx.lineTo(-s*0.06,-s*0.7);ctx.lineTo(s*0.06,-s*0.7);ctx.closePath();ctx.fill();
+  // Visor slit (glowing eyes behind)
+  const eyeCol=en.state==='windup'||en.state==='slam'?'#ff4400':'#ffaa00';
+  ctx.fillStyle=eyeCol;ctx.shadowColor=eyeCol;ctx.shadowBlur=6;
+  ctx.fillRect(-s*0.18,-s*0.7,s*0.36,s*0.06);ctx.shadowBlur=0;
+  // HP bar
+  const baseAlpha=en.invT>0&&en.invT%6<3?0.25:en.hurtFlash>0&&en.hurtFlash%4<2?0.5:1;
+  ctx.globalAlpha=baseAlpha;
+  const hpW=s*1.2,hpH=5,hpX=-hpW/2,hpY=-s-15;
+  ctx.fillStyle='#333';ctx.fillRect(hpX,hpY,hpW,hpH);
+  const hpRatio=en.hp/en.maxHp;
+  const hpCol=hpRatio>0.5?'#4488cc':hpRatio>0.25?'#ffaa00':'#ff4400';
+  ctx.fillStyle=hpCol;ctx.fillRect(hpX,hpY,hpW*hpRatio,hpH);
+  ctx.strokeStyle='#fff4';ctx.lineWidth=1;ctx.strokeRect(hpX,hpY,hpW,hpH);
+  // Stunned stars
+  if(en.state==='stunned'){
+    for(let i=0;i<3;i++){
+      const a=t*2+i*2.09;
+      const sx=Math.cos(a)*s*0.4,sy2=-s*0.95+Math.sin(a*1.3)*s*0.08;
+      ctx.fillStyle='#ffdd00';ctx.font='bold 10px monospace';ctx.textAlign='center';
+      ctx.fillText('\u2605',sx,sy2);
+    }
+  }
+  // Windup telegraph (! above head)
+  if(en.state==='windup'){
+    const wa=Math.sin(en.slamT*0.4)*0.3+0.7;
+    ctx.globalAlpha=wa;ctx.fillStyle='#ff4400';ctx.font='bold 16px monospace';ctx.textAlign='center';
+    ctx.fillText('!',0,-s*1.15);ctx.globalAlpha=1;
+  }
   ctx.restore();
 }
 // === Boss enemy draw: charge type (also used for dodge type) ===
