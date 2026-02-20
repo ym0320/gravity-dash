@@ -851,7 +851,7 @@ function handleDebugTouch(tx,ty){
   }
   // Enemy buttons
   bbY+=14;
-  for(let i=0;i<7;i++){
+  for(let i=0;i<9;i++){
     if(tx>=bbX&&tx<=bbX+bbW&&ty>=bbY&&ty<=bbY+bbH){
       debugMenuOpen=false;debugBossRetry=false;
       debugEnemyMode=true;debugEnemyType=i;debugEnemyCD=0;
