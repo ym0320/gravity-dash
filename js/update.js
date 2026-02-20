@@ -226,7 +226,7 @@ function update(dt){
     const _sd=getEquippedSkinData();
     const ghostCol=_sd?(_sd.col==='rainbow'?'#ff00ff':_sd.col):ct().col;
     ghostPhaseT++;
-    if(ghostInvis&&ghostPhaseT>=90){
+    if(ghostInvis&&ghostPhaseT>=60){
       ghostInvis=false;ghostPhaseT=0;
       emitParts(player.x,player.y,6,ghostCol,2,1);
     } else if(!ghostInvis&&ghostPhaseT>=90){
