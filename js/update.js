@@ -40,31 +40,35 @@ function update(dt){
     // Warp transition animation
     if(tutWarpPhase==='welcome'||tutWarpPhase==='warp'){
       tutWarpT++;
-      if(tutWarpPhase==='warp'&&tutWarpT>90){
+      if(tutWarpPhase==='warp'&&tutWarpT>150){
         state=ST.TITLE;switchBGM('title');tutWarpPhase='';tutWarpT=0;
+        screenFadeIn=90; // 1.5s white fade-out revealing title
       }
       return;
     }
-    // Background scroll
-    const scrollSpd=tutPhase==='scroll'?tutSpeed:0;
+    // Background scroll (also scroll during 'action' phase)
+    const scrollSpd=(tutPhase==='scroll'||tutPhase==='action')?tutSpeed:0;
     stars.forEach(s=>{s.x-=s.sp*scrollSpd*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
     mtns.forEach(m=>{m.off-=m.sp*scrollSpd*0.15;if(m.off<-500)m.off+=500;});
     // Scroll camera
-    if(tutPhase==='scroll'){
+    if(tutPhase==='scroll'||tutPhase==='action'){
       tutScrollX+=scrollSpd;
-      if(tutStep<TUT_CHECKPOINTS.length){
-        const cp=TUT_CHECKPOINTS[tutStep];
-        if(tutScrollX>=cp.dist){
-          tutScrollX=cp.dist;tutPhase='wait';tutWaiting=true;tutStepT=0;
-          if(cp.type==='bomb')bombCount=1;
+      // Only detect checkpoints during scroll phase (not action)
+      if(tutPhase==='scroll'){
+        if(tutStep<TUT_CHECKPOINTS.length){
+          const cp=TUT_CHECKPOINTS[tutStep];
+          if(tutScrollX>=cp.dist){
+            tutScrollX=cp.dist;tutPhase='wait';tutWaiting=true;tutStepT=0;
+            if(cp.type==='bomb')bombCount=1;
+          }
+        }
+        if(tutStep>=TUT_CHECKPOINTS.length&&tutPhase!=='transition'){
+          tutPhase='transition';tutSuccessT=0;
         }
       }
-      if(tutStep>=TUT_CHECKPOINTS.length&&tutPhase!=='transition'){
-        tutPhase='transition';tutSuccessT=0;
-      }
     }
-    // Player gravity physics
-    if(!player.grounded){player.vy+=GRAVITY*player.gDir;player.y+=player.vy;}
+    // Player gravity physics (freeze during double-flip mid-air pause)
+    if(!player.grounded&&!tutFreezePlayer){player.vy+=GRAVITY*player.gDir;player.y+=player.vy;}
     player.x=W*0.25;
     // Platform collision (world-space)
     const wpx=player.x+tutScrollX,tpr=PLAYER_R;
@@ -95,7 +99,7 @@ function update(dt){
       tutEnemySpawned=true;
       const eSz=13; // same as real game enemy size
       for(let i=0;i<5;i++){
-        const ex=tutScrollX+W*0.35+i*42;
+        const ex=tutScrollX+W*0.5+i*38;
         enemies.push({x:ex-tutScrollX,y:H-GROUND_H-eSz,vy:0,gDir:1,sz:eSz,alive:true,type:0,
           shootT:999,fr:Math.random()*100,boss:false,_worldX:ex,
           patrolDir:Math.random()<0.5?1:-1,walkSpd:0.3,patrolOriginX:ex,patrolRange:18});
@@ -124,6 +128,7 @@ function update(dt){
   if(state===ST.STAGE_SEL){frame++;return;}
   if(state===ST.TITLE){
     titleT+=0.03;
+    if(screenFadeIn>0)screenFadeIn--;
     if(unlockCelebT>0)unlockCelebT--;
     if(charModal.show)charModal.animT++;
     stars.forEach(s=>{s.x-=s.sp*SPEED_INIT*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});

@@ -430,33 +430,37 @@ canvas.addEventListener('touchend',e=>{
   if(state===ST.TITLE&&!longPressFired&&titleTouchPos){handleTitleTouch(titleTouchPos.x,titleTouchPos.y);titleTouchPos=null;return;}
   // Tutorial swipe & tap
   if(state===ST.TUTORIAL){
-    if(tutPhase!=='wait'||tutStep>=TUT_CHECKPOINTS.length){return;}
+    if((tutPhase!=='wait'&&tutPhase!=='action')||tutStep>=TUT_CHECKPOINTS.length){return;}
+    if(tutPhase==='action')return; // block input during action animation
     const cp=TUT_CHECKPOINTS[tutStep];
     const tt=e.changedTouches[0];const tdy=tt.clientY-touchStartY;
     if(touchMoved&&Math.abs(tdy)>30){
       // Swipe in tutorial
       if(cp.type==='flip_up'&&tdy<0&&player.gDir===1){
-        player.gDir=-1;player.vy=-6;sfx('flip');vibrate(20);
+        player.gDir=-1;player.vy=-8;sfx('flip');vibrate(20);
         player.face='flip';setTimeout(()=>{if(player.alive)player.face='normal';},250);
         emitParts(player.x,player.y,10,tc('ply'),3,2.5);player.rotTarget-=Math.PI;
-        tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,600);
+        tutDone=true;tutPhase='action';
+        setTimeout(()=>{tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,600);},700);
       } else if(cp.type==='flip_down'&&tdy>0&&player.gDir===-1){
-        player.gDir=1;player.vy=6;sfx('flip');vibrate(20);
+        player.gDir=1;player.vy=8;sfx('flip');vibrate(20);
         player.face='flip';setTimeout(()=>{if(player.alive)player.face='normal';},250);
         emitParts(player.x,player.y,10,tc('ply'),3,2.5);player.rotTarget+=Math.PI;
-        tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,600);
+        tutDone=true;tutPhase='action';
+        setTimeout(()=>{tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,600);},700);
       } else if(cp.type==='double_flip'){
-        if(tdy<0&&player.gDir===1){
-          player.gDir=-1;player.vy=-4;sfx('flip');vibrate(20);player.grounded=false;
+        if(tdy<0&&player.gDir===1&&tutFlipCount===0){
+          // First flip: up → freeze mid-air after 350ms
+          player.gDir=-1;player.vy=-5;sfx('flip');vibrate(20);player.grounded=false;
           emitParts(player.x,player.y,10,tc('ply'),3,2.5);player.rotTarget-=Math.PI;
-          tutFlipCount++;
-        } else if(tdy>0&&player.gDir===-1){
-          player.gDir=1;player.vy=4;sfx('flip');vibrate(20);player.grounded=false;
+          tutFlipCount=1;tutPhase='action';
+          setTimeout(()=>{if(tutFlipCount===1){player.vy=0;tutFreezePlayer=true;tutPhase='wait';tutStepT=0;}},350);
+        } else if(tdy>0&&player.gDir===-1&&tutFlipCount>=1){
+          // Second flip: down → success
+          player.gDir=1;player.vy=5;sfx('flip');vibrate(20);player.grounded=false;
           emitParts(player.x,player.y,10,tc('ply'),3,2.5);player.rotTarget+=Math.PI;
-          tutFlipCount++;
-        }
-        if(tutFlipCount>=2){
-          tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,700);
+          tutFreezePlayer=false;tutFlipCount=2;
+          tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,800);
         }
       }
     }
@@ -595,35 +599,42 @@ document.addEventListener('keydown',e=>{
       sfx('select');vibrate([15,10,30]);tutWarpPhase='warp';tutWarpT=0;return;
     }
     if(tutWarpPhase==='warp')return;
+    if(tutPhase==='action')return;
     if(tutPhase!=='wait'||tutStep>=TUT_CHECKPOINTS.length)return;
     const cp=TUT_CHECKPOINTS[tutStep];
     if(cp.type==='jump'&&(e.code==='Space'||e.code==='ArrowUp')&&player.grounded){
       player.vy=player.gDir===1?-JUMP_POWER:JUMP_POWER;player.grounded=false;sfx('jump');
-      tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,500);return;
+      tutDone=true;tutPhase='action';
+      setTimeout(()=>{tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,600);},500);return;
     }
     if(cp.type==='flip_up'&&e.code==='ArrowUp'&&player.gDir===1){
-      player.gDir=-1;player.vy=-6;sfx('flip');vibrate(20);player.rotTarget-=Math.PI;
+      player.gDir=-1;player.vy=-8;sfx('flip');vibrate(20);player.rotTarget-=Math.PI;
       emitParts(player.x,player.y,10,tc('ply'),3,2.5);
-      tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,600);return;
+      tutDone=true;tutPhase='action';
+      setTimeout(()=>{tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,600);},700);return;
     }
     if(cp.type==='flip_down'&&e.code==='ArrowDown'&&player.gDir===-1){
-      player.gDir=1;player.vy=6;sfx('flip');vibrate(20);player.rotTarget+=Math.PI;
+      player.gDir=1;player.vy=8;sfx('flip');vibrate(20);player.rotTarget+=Math.PI;
       emitParts(player.x,player.y,10,tc('ply'),3,2.5);
-      tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,600);return;
+      tutDone=true;tutPhase='action';
+      setTimeout(()=>{tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,600);},700);return;
     }
     if(cp.type==='double_flip'){
-      if(e.code==='ArrowUp'&&player.gDir===1){
-        player.gDir=-1;player.vy=-6;sfx('flip');player.grounded=false;player.rotTarget-=Math.PI;
-        emitParts(player.x,player.y,10,tc('ply'),3,2.5);tutFlipCount++;
-      } else if(e.code==='ArrowDown'&&player.gDir===-1){
-        player.gDir=1;player.vy=6;sfx('flip');player.grounded=false;player.rotTarget+=Math.PI;
-        emitParts(player.x,player.y,10,tc('ply'),3,2.5);tutFlipCount++;
+      if(e.code==='ArrowUp'&&player.gDir===1&&tutFlipCount===0){
+        player.gDir=-1;player.vy=-5;sfx('flip');player.grounded=false;player.rotTarget-=Math.PI;
+        emitParts(player.x,player.y,10,tc('ply'),3,2.5);
+        tutFlipCount=1;tutPhase='action';
+        setTimeout(()=>{if(tutFlipCount===1){player.vy=0;tutFreezePlayer=true;tutPhase='wait';tutStepT=0;}},350);
+      } else if(e.code==='ArrowDown'&&player.gDir===-1&&tutFlipCount>=1){
+        player.gDir=1;player.vy=5;sfx('flip');player.grounded=false;player.rotTarget+=Math.PI;
+        emitParts(player.x,player.y,10,tc('ply'),3,2.5);
+        tutFreezePlayer=false;tutFlipCount=2;
+        tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,800);
       }
-      if(tutFlipCount>=2){tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,700);}
       return;
     }
     if(cp.type==='bomb'&&(e.code==='KeyB'||e.code==='KeyX')&&bombCount>0){
-      useBomb();tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,700);return;
+      useBomb();tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,800);return;
     }
     return;
   }
@@ -1003,53 +1014,56 @@ loginBtn.addEventListener('click',()=>{
 });
 
 // ===== TUTORIAL (course-based) =====
+// Checkpoint distances calculated for player at W*0.25
 const TUT_CHECKPOINTS=[
-  {dist:120,type:'jump',msg:'障害物をジャンプで\n飛び越えよう！',sub:'画面をタップ！',icon:'tap'},
-  {dist:350,type:'flip_up',msg:'重力を反転して\n天井へ移動！',sub:'上にスワイプ！',icon:'swipe_up'},
-  {dist:580,type:'flip_down',msg:'重力を戻して\n地面へ！',sub:'下にスワイプ！',icon:'swipe_down'},
-  {dist:810,type:'double_flip',msg:'空中で重力を\n2回切り替えよう！',sub:'↑スワイプ → ↓スワイプ',icon:'double'},
-  {dist:1050,type:'bomb',msg:'ボムで敵を\n一掃しよう！',sub:'ボムボタンをタップ！',icon:'bomb'},
+  {dist:160,type:'jump',msg:'障害物をジャンプで\n飛び越えよう！',sub:'画面をタップ！',icon:'tap'},
+  {dist:430,type:'flip_up',msg:'奈落だ！重力反転で\n天井へ避難！',sub:'上にスワイプ！',icon:'swipe_up'},
+  {dist:700,type:'flip_down',msg:'天井が途切れる！\n地面に戻ろう！',sub:'下にスワイプ！',icon:'swipe_down'},
+  {dist:980,type:'double_flip',msg:'空中で重力を\n切り替えよう！',sub:'↑ 上にスワイプ！',icon:'double'},
+  {dist:1300,type:'bomb',msg:'ボムで敵を\n一掃しよう！',sub:'ボムボタンをタップ！',icon:'bomb'},
 ];
 function buildTutorialCourse(){
   tutCoursePlats=[];tutCourseCeil=[];tutCourseSpikes=[];
-  // Continuous floor from start through jump section
-  tutCoursePlats.push({x:-50,w:280,h:GROUND_H}); // floor before spike
-  // Spike obstacle at dist~120 (player at W*0.25 so spike world-x = dist + some offset ahead)
-  tutCourseSpikes.push({x:180,w:30,h:24});
-  tutCoursePlats.push({x:220,w:250,h:GROUND_H}); // floor after spike, up to flip-up area
-  // Flip-up: floor ends, ceiling begins - player must flip to ceiling
-  // Ceiling for flip-up section (starts at dist~350 area, continuous)
-  tutCourseCeil.push({x:350,w:400,h:GROUND_H});
-  // Floor gap here forces flip-up; add safety floor far below covered by bounds check
-  // Flip-down: ceiling ends, floor resumes - player must flip back down
-  tutCoursePlats.push({x:580,w:400,h:GROUND_H}); // floor resumes for flip-down landing
-  tutCourseCeil.push({x:580,w:400,h:GROUND_H}); // ceiling also present for double-flip
-  // Double-flip section: both floor and ceiling present for bouncing
-  tutCoursePlats.push({x:980,w:300,h:GROUND_H}); // extended floor through bomb section
-  // Bomb section: floor with enemies walking
-  tutCoursePlats.push({x:1000,w:500,h:GROUND_H});
-  tutCourseCeil.push({x:1000,w:500,h:GROUND_H});
+  // Player screen-x = W*0.25. At dist D, player world-x = W*0.25+D
+  const pw=W*0.25; // player screen offset (~90px)
+  // --- Jump section (dist=160, player world-x=250) ---
+  // Continuous floor, spike ahead of player
+  tutCoursePlats.push({x:-50,w:600,h:GROUND_H}); // floor [-50,550]
+  tutCourseSpikes.push({x:pw+160+30,w:30,h:24}); // spike ~30px ahead of player when stopped
+  // --- Flip-up section (dist=430, player world-x=520) ---
+  // Floor ends near player → long abyss ahead → ceiling available
+  // (floor [-50,550] ends at 550, player at 520 is near edge)
+  tutCourseCeil.push({x:400,w:450,h:GROUND_H}); // ceiling [400,850]
+  // --- Flip-down section (dist=700, player world-x=790) ---
+  // Ceiling ends near player → must flip back to floor
+  // (ceiling [400,850] ends at 850, player at 790 is near edge)
+  tutCoursePlats.push({x:700,w:700,h:GROUND_H}); // floor [700,1400]
+  // --- Double-flip section (dist=980, player world-x=1070) ---
+  // Floor present, NO ceiling (player flips up into open air, gets frozen, flips back)
+  // (floor [700,1400] covers this area, no ceiling between 850 and 1250)
+  // --- Bomb section (dist=1300, player world-x=1390) ---
+  tutCoursePlats.push({x:1250,w:600,h:GROUND_H}); // floor [1250,1850]
+  tutCourseCeil.push({x:1250,w:600,h:GROUND_H}); // ceiling [1250,1850]
 }
 function startTutorial(){
   reset();
   state=ST.TUTORIAL;
   tutStep=0;tutStepT=0;tutDone=false;tutEnemySpawned=false;
-  tutScrollX=0;tutSpeed=2.0;tutWaiting=false;
+  tutScrollX=0;tutSpeed=1.5;tutWaiting=false;
   tutPhase='scroll';tutSuccessT=0;tutFlipCount=0;
-  tutWarpT=0;tutWarpPhase='';
+  tutWarpT=0;tutWarpPhase='';tutFreezePlayer=false;
   bombCount=0;invCount=0;
   buildTutorialCourse();
   player.x=W*0.25;player.gDir=1;player.vy=0;
   player.y=H-GROUND_H-PLAYER_R;player.grounded=true;
-  speed=2.0;
+  speed=1.5;
   switchBGM('title');
 }
 function tutAdvance(){
-  tutPhase='scroll';tutSpeed=2.0;tutWaiting=false;
+  tutPhase='scroll';tutSpeed=1.5;tutWaiting=false;tutFreezePlayer=false;
   tutStep++;tutStepT=0;tutDone=false;tutEnemySpawned=false;tutFlipCount=0;
   if(tutStep>=TUT_CHECKPOINTS.length){
     tutorialDone=true;localStorage.setItem('gd5tutorialDone','1');
-    // Show welcome screen - wait for tap to start warp transition
     tutPhase='transition';tutSuccessT=0;
     tutWarpT=0;tutWarpPhase='welcome';
   }
@@ -1066,20 +1080,22 @@ function handleTutorialTouch(tx,ty){
     tutWarpPhase='warp';tutWarpT=0;
     return;
   }
-  if(tutWarpPhase==='warp')return; // block input during warp
-  if(tutPhase==='success'){return;} // wait for auto-advance
+  if(tutWarpPhase==='warp')return;
+  if(tutPhase==='success'||tutPhase==='action')return;
   if(tutStep>=TUT_CHECKPOINTS.length)return;
   const cp=TUT_CHECKPOINTS[tutStep];
-  if(tutPhase!=='wait')return; // only accept input when waiting
+  if(tutPhase!=='wait')return;
   // Bomb: hit test on button
   if(cp.type==='bomb'){
-    if(hitBombBtn(tx,ty)&&bombCount>0){useBomb();tutDone=true;tutPhase='success';tutSuccessT=0;sfx('item');setTimeout(tutAdvance,700);}
+    if(hitBombBtn(tx,ty)&&bombCount>0){useBomb();tutDone=true;tutPhase='success';tutSuccessT=0;sfx('item');setTimeout(tutAdvance,800);}
     return;
   }
-  // Jump: tap anywhere
+  // Jump: tap anywhere → jump + resume scroll so player flies over spike
   if(cp.type==='jump'&&player.grounded){
     player.vy=player.gDir===1?-JUMP_POWER:JUMP_POWER;player.grounded=false;
-    sfx('jump');tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,500);
+    sfx('jump');tutDone=true;
+    tutPhase='action'; // scroll resumes during jump
+    setTimeout(()=>{tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,600);},500);
     return;
   }
 }
