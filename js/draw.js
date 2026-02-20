@@ -1424,11 +1424,11 @@ function drawTitle(){
   ctx.strokeStyle='#ff69b444';ctx.lineWidth=1;rr(8,safeTop+82,36,36,8);ctx.stroke();
   ctx.fillStyle='#ff69b4';ctx.font='16px monospace';ctx.textAlign='center';
   ctx.fillText('\uD83D\uDED2',26,safeTop+105);
-  // Cosmetic button (top left, row 4)
+  // Dress-up button (top left, row 4)
   ctx.fillStyle='#ffffff14';rr(8,safeTop+120,36,36,8);ctx.fill();
   ctx.strokeStyle='#a855f744';ctx.lineWidth=1;rr(8,safeTop+120,36,36,8);ctx.stroke();
   ctx.fillStyle='#a855f7';ctx.font='16px monospace';ctx.textAlign='center';
-  ctx.fillText('\uD83C\uDFA8',26,safeTop+143);
+  ctx.fillText('\uD83D\uDC57',26,safeTop+143);
 
   // Debug button (top right, left of settings)
   ctx.fillStyle='#ff386014';rr(W-84,safeTop+6,36,36,8);ctx.fill();
@@ -1509,7 +1509,6 @@ function drawTitle(){
       {id:'guardian',name:'\u30AC\u30FC\u30C7\u30A3\u30A2\u30F3',col:'#4488cc'},
       {id:'bruiser',name:'\u30D6\u30EB\u30FC\u30B6\u30FC',col:'#9333ea'},
       {id:'wizard',name:'\u30A6\u30A3\u30B6\u30FC\u30C9',col:'#aa44ff'},
-      {id:'charge',name:'\u30C1\u30E3\u30FC\u30B8',col:'#6a7a8a'},
       {id:'dodge',name:'\u30C9\u30C3\u30B8',col:'#8a6a4a'}
     ];
     const bbW=Math.min(180,W-40),bbH=32,bbGap=5;
@@ -1955,7 +1954,7 @@ function drawInventory(){
   ctx.beginPath();ctx.moveTo(mX+16,mY);ctx.lineTo(mX+mW-16,mY);ctx.stroke();
   // Title
   ctx.fillStyle='#ffd700';ctx.font='bold 18px monospace';ctx.textAlign='center';
-  ctx.fillText('\uD83D\uDCE6 所持品',W/2,mY+36);
+  ctx.fillText('\uD83D\uDCE6 \u5B9D\u7BB1',W/2,mY+36);
   // Wallet
   ctx.fillStyle='#ffd700';ctx.font='bold 13px monospace';
   ctx.fillText('\u25CF '+walletCoins,W/2,mY+58);
@@ -1983,7 +1982,7 @@ function drawInventory(){
     }
     // Total opened
     ctx.fillStyle='#fff4';ctx.font='10px monospace';
-    ctx.fillText('\u901A\u7B97 '+totalChestsOpened+' \u500B\u958B\u5C01',cx,mY+mH-20);
+    ctx.fillText('\u901A\u7B97 '+totalChestsOpened+' \u500B\u958B\u5C01',cx,mY+mH-48);
   } else {
     // No chests
     ctx.globalAlpha=0.3;
@@ -1997,11 +1996,11 @@ function drawInventory(){
     ctx.fillText('\u30DC\u30B9\u3092\u5012\u3057\u3066\u5B9D\u7BB1\u3092\u7372\u5F97\u3057\u3088\u3046',cx,cy+66);
     if(totalChestsOpened>0){
       ctx.fillStyle='#fff3';ctx.font='10px monospace';
-      ctx.fillText('\u901A\u7B97 '+totalChestsOpened+' \u500B\u958B\u5C01',cx,mY+mH-36);
+      ctx.fillText('\u901A\u7B97 '+totalChestsOpened+' \u500B\u958B\u5C01',cx,mY+mH-48);
     }
   }
   // Footer close button
-  const invCloseY=mY+mH-24;
+  const invCloseY=mY+mH-38;
   ctx.fillStyle='#ffffff12';rr(W/2-50,invCloseY,100,30,8);ctx.fill();
   ctx.strokeStyle='#fff2';ctx.lineWidth=1;rr(W/2-50,invCloseY,100,30,8);ctx.stroke();
   ctx.fillStyle='#fff8';ctx.font='bold 12px monospace';ctx.textAlign='center';
@@ -2907,10 +2906,10 @@ function drawShop(){
   ctx.strokeStyle='#fff2';ctx.lineWidth=1;rr(W/2-50,shopCloseY,100,30,8);ctx.stroke();
   ctx.fillStyle='#fff8';ctx.font='bold 12px monospace';ctx.textAlign='center';
   ctx.fillText('\u9589\u3058\u308B',W/2,shopCloseY+20);
-  // Purchase confirmation dialog
+  // Purchase confirmation dialog with preview
   if(shopConfirm){
     ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(0,0,W,H);
-    const dlgW=Math.min(260,W-40),dlgH=180;
+    const dlgW=Math.min(270,W-30),dlgH=260;
     const dlgX=W/2-dlgW/2,dlgY=H/2-dlgH/2;
     const dgr=ctx.createLinearGradient(dlgX,dlgY,dlgX,dlgY+dlgH);
     dgr.addColorStop(0,'#1e1e3a');dgr.addColorStop(1,'#0f0f23');
@@ -2919,26 +2918,37 @@ function drawShop(){
     // Title
     ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='center';
     ctx.fillText('\u8CFC\u5165\u78BA\u8A8D',W/2,dlgY+26);
+    // Character preview with item applied
+    const prevY2=dlgY+80;
+    ctx.save();
+    // Temporarily apply the item for preview
+    const origSkin=equippedSkin,origEyes=equippedEyes,origFx=equippedEffect;
+    if(shopConfirm.tab===0)equippedSkin=shopConfirm.item.id;
+    else if(shopConfirm.tab===1)equippedEyes=shopConfirm.item.id;
+    else equippedEffect=shopConfirm.item.id;
+    drawCharacter(W/2,prevY2,selChar,26,0,1,'normal',0,true);
+    const fxPrev=getEquippedEffectData();
+    if(fxPrev)drawPlayerEffect(W/2,prevY2,26,fxPrev.type,1);
+    equippedSkin=origSkin;equippedEyes=origEyes;equippedEffect=origFx;
+    ctx.restore();
     // Item name
-    ctx.fillStyle='#fff';ctx.font='bold 13px monospace';
-    ctx.fillText(shopConfirm.item.name,W/2,dlgY+56);
+    ctx.fillStyle='#fff';ctx.font='bold 13px monospace';ctx.textAlign='center';
+    ctx.fillText(shopConfirm.item.name,W/2,prevY2+42);
     ctx.fillStyle='#fff6';ctx.font='10px monospace';
-    ctx.fillText(shopConfirm.item.desc,W/2,dlgY+74);
+    ctx.fillText(shopConfirm.item.desc,W/2,prevY2+58);
     // Price
     ctx.fillStyle='#ffd700';ctx.font='bold 16px monospace';
-    ctx.fillText('\u25CF '+shopConfirm.item.price,W/2,dlgY+100);
+    ctx.fillText('\u25CF '+shopConfirm.item.price,W/2,prevY2+82);
     // Balance after purchase
     const after=walletCoins-shopConfirm.item.price;
     ctx.fillStyle='#fff6';ctx.font='10px monospace';
-    ctx.fillText('\u6240\u6301: '+walletCoins+' \u2192 '+after,W/2,dlgY+118);
+    ctx.fillText('\u6240\u6301: '+walletCoins+' \u2192 '+after,W/2,prevY2+98);
     // Buttons
     const btnW2=100,btnH2=36;
-    // Buy button
     ctx.fillStyle='#ffd70022';rr(W/2-btnW2-6,dlgY+dlgH-52,btnW2,btnH2,8);ctx.fill();
     ctx.strokeStyle='#ffd700';ctx.lineWidth=1.5;rr(W/2-btnW2-6,dlgY+dlgH-52,btnW2,btnH2,8);ctx.stroke();
     ctx.fillStyle='#ffd700';ctx.font='bold 13px monospace';ctx.textAlign='center';
     ctx.fillText('\u8CFC\u5165',W/2-btnW2/2-6,dlgY+dlgH-28);
-    // Cancel button
     ctx.fillStyle='#ffffff0a';rr(W/2+6,dlgY+dlgH-52,btnW2,btnH2,8);ctx.fill();
     ctx.strokeStyle='#fff4';ctx.lineWidth=1;rr(W/2+6,dlgY+dlgH-52,btnW2,btnH2,8);ctx.stroke();
     ctx.fillStyle='#fff8';ctx.font='bold 13px monospace';
@@ -3005,7 +3015,7 @@ function drawCosmeticMenu(){
   ctx.strokeStyle='#a855f7';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(mX+16,mY);ctx.lineTo(mX+mW-16,mY);ctx.stroke();
   // Title
   ctx.fillStyle='#a855f7';ctx.font='bold 18px monospace';
-  ctx.fillText('\uD83C\uDFA8 \u30B3\u30B9\u30E1',W/2,mY+30);
+  ctx.fillText('\uD83D\uDC57 \u7740\u305B\u66FF\u3048',W/2,mY+30);
   // Character preview
   const prevX=W/2,prevY=mY+75;
   drawCharacter(prevX,prevY,selChar,22,0,1,'normal',0,true);
@@ -3070,5 +3080,31 @@ function drawCosmeticMenu(){
   ctx.strokeStyle='#fff2';ctx.lineWidth=1;rr(W/2-50,cosCloseY,100,30,8);ctx.stroke();
   ctx.fillStyle='#fff8';ctx.font='bold 12px monospace';ctx.textAlign='center';
   ctx.fillText('\u9589\u3058\u308B',W/2,cosCloseY+20);
+  // Equip confirmation dialog
+  if(cosmeticConfirm){
+    ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(0,0,W,H);
+    const dlgW=Math.min(240,W-40),dlgH=140;
+    const dlgX=W/2-dlgW/2,dlgY=H/2-dlgH/2;
+    const dgr=ctx.createLinearGradient(dlgX,dlgY,dlgX,dlgY+dlgH);
+    dgr.addColorStop(0,'#1e1e3a');dgr.addColorStop(1,'#0f0f23');
+    ctx.fillStyle=dgr;rr(dlgX,dlgY,dlgW,dlgH,14);ctx.fill();
+    ctx.strokeStyle='#a855f7';ctx.lineWidth=2;rr(dlgX,dlgY,dlgW,dlgH,14);ctx.stroke();
+    ctx.fillStyle='#a855f7';ctx.font='bold 14px monospace';ctx.textAlign='center';
+    const isUnequip=cosmeticConfirm.item.id==='';
+    ctx.fillText(isUnequip?'\u89E3\u9664\u78BA\u8A8D':'\u88C5\u5099\u78BA\u8A8D',W/2,dlgY+26);
+    ctx.fillStyle='#fff';ctx.font='bold 13px monospace';
+    ctx.fillText(cosmeticConfirm.item.name,W/2,dlgY+56);
+    ctx.fillStyle='#fff6';ctx.font='10px monospace';
+    ctx.fillText(isUnequip?'\u30C7\u30D5\u30A9\u30EB\u30C8\u306B\u623B\u3057\u307E\u3059\u304B\uFF1F':'\u3053\u306E\u30A2\u30A4\u30C6\u30E0\u3092\u88C5\u5099\u3057\u307E\u3059\u304B\uFF1F',W/2,dlgY+76);
+    const btnW2=90,btnH2=34;
+    ctx.fillStyle='#a855f722';rr(W/2-btnW2-6,dlgY+dlgH-48,btnW2,btnH2,8);ctx.fill();
+    ctx.strokeStyle='#a855f7';ctx.lineWidth=1.5;rr(W/2-btnW2-6,dlgY+dlgH-48,btnW2,btnH2,8);ctx.stroke();
+    ctx.fillStyle='#a855f7';ctx.font='bold 13px monospace';ctx.textAlign='center';
+    ctx.fillText('OK',W/2-btnW2/2-6,dlgY+dlgH-26);
+    ctx.fillStyle='#ffffff0a';rr(W/2+6,dlgY+dlgH-48,btnW2,btnH2,8);ctx.fill();
+    ctx.strokeStyle='#fff4';ctx.lineWidth=1;rr(W/2+6,dlgY+dlgH-48,btnW2,btnH2,8);ctx.stroke();
+    ctx.fillStyle='#fff8';ctx.font='bold 13px monospace';
+    ctx.fillText('\u3084\u3081\u308B',W/2+btnW2/2+6,dlgY+dlgH-26);
+  }
   ctx.restore();
 }

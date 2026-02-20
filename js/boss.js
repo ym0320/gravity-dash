@@ -37,16 +37,15 @@ function spawnBossEnemies(){
   bossPhase.dodgeQueue=[];
   bossPhase.dodgeIdx=0;
   bossPhase.dodgeKills=0;
-  // Randomly choose boss type: all 5 types equally likely (20% each)
+  // Randomly choose boss type: 4 types equally likely (25% each)
   let bossType;
   if(bossPhase._forceType){
     bossType=bossPhase._forceType;bossPhase._forceType=null;
   } else {
     const roll=Math.random();
-    if(roll<0.20) bossType='wizard';
-    else if(roll<0.40) bossType='bruiser';
-    else if(roll<0.60) bossType='guardian';
-    else if(roll<0.80) bossType='charge';
+    if(roll<0.25) bossType='wizard';
+    else if(roll<0.50) bossType='bruiser';
+    else if(roll<0.75) bossType='guardian';
     else bossType='dodge';
   }
   bossPhase.bossType=bossType;
@@ -1515,11 +1514,11 @@ function drawBossBruiser(en){
 function addPop(x,y,txt,col){pops.push({x,y,txt,col,life:45,ml:45});}
 
 // Debug: force-start a specific boss from browser console
-// Usage: testBoss('guardian')  testBoss('bruiser')  testBoss('wizard')  testBoss('charge')  testBoss('dodge')
+// Usage: testBoss('guardian')  testBoss('bruiser')  testBoss('wizard')  testBoss('dodge')
 // Optional 2nd arg = bossCount difficulty (default 1)
 window.testBoss=function(type,bc){
-  if(!['charge','dodge','bruiser','wizard','guardian'].includes(type)){
-    console.log('Usage: testBoss("guardian") / "bruiser" / "wizard" / "charge" / "dodge"');return;
+  if(!['dodge','bruiser','wizard','guardian'].includes(type)){
+    console.log('Usage: testBoss("guardian") / "bruiser" / "wizard" / "dodge"');return;
   }
   debugEnemyMode=false;debugEnemyType=-1;
   // Start a game if not playing

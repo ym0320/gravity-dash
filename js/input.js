@@ -303,7 +303,7 @@ canvas.addEventListener('touchstart',e=>{
       const mW2=Math.min(300,W-24),mH2=Math.min(360,H-40);
       const mX2=(W-mW2)/2,mY2=(H-mH2)/2;
       // Footer close button
-      const invClY=mY2+mH2-24;
+      const invClY=mY2+mH2-38;
       if(p.x>=W/2-50&&p.x<=W/2+50&&p.y>=invClY&&p.y<=invClY+30&&chestOpen.phase==='none'){
         inventoryOpen=false;sfx('cancel');return;
       }
@@ -387,7 +387,17 @@ canvas.addEventListener('touchend',e=>{
     draggingSlider=null;return;
   }
   if(settingsOpen||rankingOpen||inventoryOpen)return;
-  if(shopOpen||cosmeticMenuOpen)return; // handled by touchstart
+  // Shop/cosmetic: confirm pending item taps if user didn't scroll
+  if(shopOpen){
+    if(!touchMoved&&shopPendingTap){confirmShopTap();}
+    else{shopPendingTap=null;}
+    return;
+  }
+  if(cosmeticMenuOpen){
+    if(!touchMoved&&cosmeticPendingTap){confirmCosmeticTap();}
+    else{cosmeticPendingTap=null;}
+    return;
+  }
   if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}
   if(state===ST.TITLE&&!longPressFired&&titleTouchPos){handleTitleTouch(titleTouchPos.x,titleTouchPos.y);titleTouchPos=null;return;}
   if(state!==ST.PLAY||state===ST.PAUSE)return;
@@ -460,7 +470,7 @@ canvas.addEventListener('mousedown',e=>{
     if(inventoryOpen){
       const mW2=Math.min(300,W-24),mH2=Math.min(360,H-40);
       const mX2=(W-mW2)/2,mY2=(H-mH2)/2;
-      const invClY=mY2+mH2-24;
+      const invClY=mY2+mH2-38;
       if(p.x>=W/2-50&&p.x<=W/2+50&&p.y>=invClY&&p.y<=invClY+30&&chestOpen.phase==='none'){
         inventoryOpen=false;sfx('cancel');return;
       }
@@ -633,7 +643,7 @@ function handleDebugTouch(tx,ty){
     debugBossBc=Math.min(10,debugBossBc+1);sfx('click');return;
   }
   // Boss buttons
-  const bosses=['guardian','bruiser','wizard','charge','dodge'];
+  const bosses=['guardian','bruiser','wizard','dodge'];
   const bbW=Math.min(180,W-40),bbH=32,bbGap=5;
   const bbX=W/2-bbW/2;
   let bbY=bcY+bcBtnH+22;
@@ -717,7 +727,7 @@ function handleShopTouch(tx,ty){
   }
   // Confirm dialog active
   if(shopConfirm){
-    const dlgW=Math.min(260,W-40),dlgH=180;
+    const dlgW=Math.min(270,W-30),dlgH=260;
     const dlgX=W/2-dlgW/2,dlgY=H/2-dlgH/2;
     const btnW2=100,btnH2=36;
     // Buy button
@@ -766,7 +776,8 @@ function handleShopTouch(tx,ty){
       shopTab=i;shopScroll=0;sfx('click');return;
     }
   }
-  // Item rows
+  // Item rows - record pending tap (confirmed on touchend if no scroll)
+  shopPendingTap=null;
   const listY=mY+90,listH=mH-140;
   const items=shopTab===0?SHOP_ITEMS.skins:shopTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
   const rowH=54;
@@ -774,22 +785,28 @@ function handleShopTouch(tx,ty){
     const iy=listY+i*rowH-shopScroll;
     if(iy+rowH<listY||iy>listY+listH)continue;
     if(tx>=mX+8&&tx<=mX+mW-8&&ty>=iy+2&&ty<=iy+rowH-2){
-      const item=items[i];
-      if(ownsItem(item.id)){
-        // Already owned: equip it
-        if(shopTab===0){if(equippedSkin===item.id)unequipSkin();else equipSkin(item.id);}
-        else if(shopTab===1){if(equippedEyes===item.id)unequipEyes();else equipEyes(item.id);}
-        else{if(equippedEffect===item.id)unequipEffect();else equipEffect(item.id);}
-        sfx('select');vibrate(10);
-      } else {
-        // Show purchase confirmation
-        if(walletCoins>=item.price){
-          shopConfirm={item,tab:shopTab};sfx('select');
-        } else {
-          sfx('hurt');vibrate(15);
-        }
-      }
+      shopPendingTap={idx:i,tab:shopTab};
       return;
+    }
+  }
+}
+function confirmShopTap(){
+  if(!shopPendingTap)return;
+  const tab=shopPendingTap.tab,idx=shopPendingTap.idx;
+  shopPendingTap=null;
+  const items=tab===0?SHOP_ITEMS.skins:tab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
+  if(idx>=items.length)return;
+  const item=items[idx];
+  if(ownsItem(item.id)){
+    if(tab===0){if(equippedSkin===item.id)unequipSkin();else equipSkin(item.id);}
+    else if(tab===1){if(equippedEyes===item.id)unequipEyes();else equipEyes(item.id);}
+    else{if(equippedEffect===item.id)unequipEffect();else equipEffect(item.id);}
+    sfx('select');vibrate(10);
+  } else {
+    if(walletCoins>=item.price){
+      shopConfirm={item,tab};sfx('select');
+    } else {
+      sfx('hurt');vibrate(15);
     }
   }
 }
@@ -798,6 +815,28 @@ function handleShopTouch(tx,ty){
 function handleCosmeticTouch(tx,ty){
   const mW=Math.min(320,W-16),mH=Math.min(500,H-30);
   const mX=(W-mW)/2,mY=(H-mH)/2;
+  // Equip confirm dialog active
+  if(cosmeticConfirm){
+    const dlgW=Math.min(240,W-40),dlgH=140;
+    const dlgX=W/2-dlgW/2,dlgY=H/2-dlgH/2;
+    const btnW2=90,btnH2=34;
+    // OK button
+    if(tx>=W/2-btnW2-6&&tx<=W/2-6&&ty>=dlgY+dlgH-48&&ty<=dlgY+dlgH-48+btnH2){
+      const it=cosmeticConfirm.item,tab=cosmeticConfirm.tab;
+      if(it.id===''){
+        if(tab===0)unequipSkin();else if(tab===1)unequipEyes();else unequipEffect();
+      } else {
+        if(tab===0)equipSkin(it.id);else if(tab===1)equipEyes(it.id);else equipEffect(it.id);
+      }
+      sfx('select');vibrate(10);cosmeticConfirm=null;return;
+    }
+    // Cancel button
+    if(tx>=W/2+6&&tx<=W/2+6+btnW2&&ty>=dlgY+dlgH-48&&ty<=dlgY+dlgH-48+btnH2){
+      cosmeticConfirm=null;sfx('cancel');return;
+    }
+    if(tx<dlgX||tx>dlgX+dlgW||ty<dlgY||ty>dlgY+dlgH){cosmeticConfirm=null;sfx('cancel');return;}
+    return;
+  }
   // Footer close button
   const cosClY=mY+mH-42;
   if(tx>=W/2-50&&tx<=W/2+50&&ty>=cosClY&&ty<=cosClY+30){cosmeticMenuOpen=false;sfx('cancel');return;}
@@ -811,7 +850,8 @@ function handleCosmeticTouch(tx,ty){
       cosmeticTab=i;cosmeticScroll=0;sfx('click');return;
     }
   }
-  // Item rows
+  // Item rows - record pending tap (confirmed on touchend if no scroll)
+  cosmeticPendingTap=null;
   const listY=mY+134,listH=mH-184;
   const allItems=cosmeticTab===0?SHOP_ITEMS.skins:cosmeticTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
   const ownedList=[{id:'',name:'\u306A\u3057',desc:'\u30C7\u30D5\u30A9\u30EB\u30C8'}].concat(allItems.filter(it=>ownsItem(it.id)));
@@ -820,20 +860,19 @@ function handleCosmeticTouch(tx,ty){
     const iy=listY+i*rowH-cosmeticScroll;
     if(iy+rowH<listY||iy>listY+listH)continue;
     if(tx>=mX+8&&tx<=mX+mW-8&&ty>=iy+2&&ty<=iy+rowH-2){
-      const item=ownedList[i];
-      if(item.id===''){
-        // Unequip
-        if(cosmeticTab===0)unequipSkin();
-        else if(cosmeticTab===1)unequipEyes();
-        else unequipEffect();
-      } else {
-        // Equip
-        if(cosmeticTab===0)equipSkin(item.id);
-        else if(cosmeticTab===1)equipEyes(item.id);
-        else equipEffect(item.id);
-      }
-      sfx('select');vibrate(10);
+      cosmeticPendingTap={idx:i,tab:cosmeticTab};
       return;
     }
   }
+}
+function confirmCosmeticTap(){
+  if(!cosmeticPendingTap)return;
+  const tab=cosmeticPendingTap.tab,idx=cosmeticPendingTap.idx;
+  cosmeticPendingTap=null;
+  const allItems=tab===0?SHOP_ITEMS.skins:tab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
+  const ownedList=[{id:'',name:'\u306A\u3057',desc:'\u30C7\u30D5\u30A9\u30EB\u30C8'}].concat(allItems.filter(it=>ownsItem(it.id)));
+  if(idx>=ownedList.length)return;
+  const item=ownedList[idx];
+  // Show equip confirmation dialog
+  cosmeticConfirm={item,tab};sfx('select');
 }
