@@ -439,15 +439,18 @@ function updateBossPhase(){
     if(b.invT<=0){
       const dx=player.x-b.x,dy=player.y-b.y;
       const d=Math.sqrt(dx*dx+dy*dy);
-      // Hitbox matches head width (s*0.38) - slightly larger for easier hits
-      if(d<pr+b.sz*0.38){
+      // Head hitbox (inner) for stomp detection
+      const headHit=d<pr+b.sz*0.38;
+      // Body hitbox (outer) for damage contact - full body
+      const bodyHit=d<pr+b.sz*0.75;
+      if(headHit){
         if(itemEff.invincible>0){
           b.hp--;b.hurtFlash=20;b.invT=60;b.state='invincible';b.timer=0;
           shakeI=8;sfx('bossHit');
           emitParts(b.x,b.y,15,'#ff00ff',4,3);
           if(b.hp<=0){bossBruiserDefeat(b);}
         } else {
-          // Stomp check: stricter - player must be well above bruiser top (gDir-aware)
+          // Stomp check: player must be well above bruiser top (gDir-aware)
           const stomped=b.gDir===1
             ?(player.y+pr<b.y-b.sz*0.15&&player.vy>=0&&player.gDir===1)
             :(player.y-pr>b.y+b.sz*0.15&&player.vy<=0&&player.gDir===-1);
@@ -461,9 +464,15 @@ function updateBossPhase(){
             emitParts(b.x,b.y-b.sz*b.gDir,12,'#ff3860',5,3);
             if(b.hp<=0){bossBruiserDefeat(b);}
           } else {
-            // Non-weak-point hit: player takes damage on touch
             takeDamage(player.x,player.y);
           }
+        }
+      } else if(bodyHit){
+        // Body contact outside head: always damage (no stomp possible here)
+        if(itemEff.invincible>0){
+          shakeI=4;emitParts(b.x,b.y,8,'#ff00ff',3,2);
+        } else {
+          takeDamage(player.x,player.y);
         }
       }
     }
@@ -693,8 +702,8 @@ function updateBossPhase(){
     if(g.invT<=0){
       const dx=player.x-g.x,dy=player.y-(g.y+g.sz*0.5*g.gDir);
       const d=Math.sqrt(dx*dx+dy*dy);
-      // Use larger hitbox during charge for easier stomping
-      const hitScale=(g.state==='charge')?0.9:BOSS_HITBOX_SCALE;
+      // Use larger hitbox during charge for easier stomping, smaller otherwise
+      const hitScale=(g.state==='charge')?0.85:BOSS_HITBOX_SCALE*0.8;
       if(d<pr+g.sz*hitScale){
         if(itemEff.invincible>0){
           g.hp--;g.hurtFlash=20;g.invT=60;g.state='invincible';g.timer=0;

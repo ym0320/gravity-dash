@@ -903,6 +903,8 @@ function drawEnemy(en){
   if(en.type===4){drawVertMover(en);return;}
   if(en.type===5){drawPhantom(en);return;}
   if(en.type===6){drawDasher(en);return;}
+  if(en.type===7){drawShielder(en);return;}
+  if(en.type===8){drawSplitter(en);return;}
   const s=en.sz,flip=en.gDir;
   ctx.save();ctx.translate(en.x,en.y);
   if(flip===-1)ctx.scale(1,-1);
@@ -1148,6 +1150,81 @@ function drawDasher(en){
     ctx.globalAlpha=wa;ctx.fillStyle='#ff0';ctx.font='bold 14px monospace';ctx.textAlign='center';
     ctx.fillText('!',0,-s*1.4);ctx.globalAlpha=1;
   }
+  ctx.restore();
+}
+function drawShielder(en){
+  const s=en.sz,flip=en.gDir;
+  ctx.save();ctx.translate(en.x,en.y);
+  if(flip===-1)ctx.scale(1,-1);
+  // Body (armored blue-gray)
+  const gr=ctx.createRadialGradient(0,0,0,0,0,s);
+  gr.addColorStop(0,'#5577aa');gr.addColorStop(1,'#334466');
+  ctx.fillStyle=gr;
+  ctx.beginPath();ctx.arc(0,-s*0.1,s*0.85,0,6.28);ctx.fill();
+  // Shield (on facing side)
+  const sf=en.shieldFacing||(-1);
+  ctx.fillStyle='#4488ff';
+  ctx.strokeStyle='#aaccff';ctx.lineWidth=2;
+  const shx=sf*s*0.65;
+  ctx.beginPath();
+  ctx.ellipse(shx,-s*0.05,s*0.25,s*0.7,0,0,6.28);ctx.fill();ctx.stroke();
+  // Shield highlight
+  ctx.fillStyle='#aaddff44';
+  ctx.beginPath();ctx.ellipse(shx-sf*s*0.05,-s*0.25,s*0.08,s*0.3,0,0,6.28);ctx.fill();
+  // Shield bolt
+  ctx.fillStyle='#ffdd44';
+  ctx.beginPath();ctx.arc(shx,-s*0.05,s*0.1,0,6.28);ctx.fill();
+  // Eyes (peeking over shield)
+  ctx.fillStyle='#fff';
+  ctx.beginPath();ctx.arc(-s*0.2,-s*0.25,s*0.18,0,6.28);ctx.fill();
+  ctx.beginPath();ctx.arc(s*0.2,-s*0.25,s*0.18,0,6.28);ctx.fill();
+  ctx.fillStyle='#1a1a44';
+  ctx.beginPath();ctx.arc(-s*0.15,-s*0.28,s*0.09,0,6.28);ctx.fill();
+  ctx.beginPath();ctx.arc(s*0.25,-s*0.28,s*0.09,0,6.28);ctx.fill();
+  // Helmet
+  ctx.fillStyle='#445588';
+  ctx.beginPath();ctx.arc(0,-s*0.5,s*0.55,Math.PI,0);ctx.fill();
+  ctx.fillStyle='#556699';
+  ctx.beginPath();ctx.arc(0,-s*0.55,s*0.2,0,6.28);ctx.fill();
+  // Feet
+  const step=Math.sin(en.fr*2)*s*0.15;
+  ctx.fillStyle='#2a3355';
+  ctx.fillRect(-s*0.45+step,s*0.4,s*0.28,s*0.18);
+  ctx.fillRect(s*0.17-step,s*0.4,s*0.28,s*0.18);
+  ctx.restore();
+}
+function drawSplitter(en){
+  const s=en.sz,flip=en.gDir;
+  ctx.save();ctx.translate(en.x,en.y);
+  if(flip===-1)ctx.scale(1,-1);
+  // Body (green slime-like, slightly larger)
+  const gr=ctx.createRadialGradient(0,-s*0.1,0,0,-s*0.1,s);
+  gr.addColorStop(0,'#88cc44');gr.addColorStop(0.6,'#55aa22');gr.addColorStop(1,'#338811');
+  ctx.fillStyle=gr;
+  // Slime blob shape (wobbly)
+  const wobble=Math.sin(en.fr*0.8)*s*0.08;
+  ctx.beginPath();
+  ctx.moveTo(-s*0.8-wobble,s*0.3);
+  ctx.quadraticCurveTo(-s*0.9,s*-0.3,-s*0.4-wobble,-s*0.7);
+  ctx.quadraticCurveTo(0,-s*1.0+wobble,s*0.4+wobble,-s*0.7);
+  ctx.quadraticCurveTo(s*0.9,s*-0.3,s*0.8+wobble,s*0.3);
+  ctx.quadraticCurveTo(s*0.4,s*0.5,0,s*0.4);
+  ctx.quadraticCurveTo(-s*0.4,s*0.5,-s*0.8-wobble,s*0.3);
+  ctx.closePath();ctx.fill();
+  // Shine
+  ctx.fillStyle='#bbff6644';
+  ctx.beginPath();ctx.ellipse(-s*0.2,-s*0.3,s*0.15,s*0.25,0.3,0,6.28);ctx.fill();
+  // Eyes
+  ctx.fillStyle='#fff';
+  ctx.beginPath();ctx.arc(-s*0.25,-s*0.15,s*0.2,0,6.28);ctx.fill();
+  ctx.beginPath();ctx.arc(s*0.25,-s*0.15,s*0.2,0,6.28);ctx.fill();
+  ctx.fillStyle='#1a3300';
+  ctx.beginPath();ctx.arc(-s*0.2,-s*0.18,s*0.1,0,6.28);ctx.fill();
+  ctx.beginPath();ctx.arc(s*0.3,-s*0.18,s*0.1,0,6.28);ctx.fill();
+  // Split line (visual hint that this enemy splits)
+  ctx.strokeStyle='#44660044';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);
+  ctx.beginPath();ctx.moveTo(0,-s*0.7);ctx.lineTo(0,s*0.35);ctx.stroke();
+  ctx.setLineDash([]);
   ctx.restore();
 }
 function drawBullet(b){
