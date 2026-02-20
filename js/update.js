@@ -13,6 +13,7 @@ function update(dt){
   pops=pops.filter(p=>{p.y-=1.2;p.life--;return p.life>0;});
 
   if(state===ST.PAUSE)return; // freeze everything while paused
+  if(debugBossVictoryT>0){debugBossVictoryT++;return;} // freeze during debug boss victory
 
   if(state===ST.COUNTDOWN){
     countdownT--;
@@ -50,8 +51,8 @@ function update(dt){
     const scrollSpd=(tutPhase==='scroll'||tutPhase==='action'||tutPhase==='success')?tutSpeed:0;
     stars.forEach(s=>{s.x-=s.sp*scrollSpd*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
     mtns.forEach(m=>{m.off-=m.sp*scrollSpd*0.15;if(m.off<-500)m.off+=500;});
-    // Scroll camera
-    if(tutPhase==='scroll'||tutPhase==='action'){
+    // Scroll camera (also during success so player clears obstacles)
+    if(tutPhase==='scroll'||tutPhase==='action'||tutPhase==='success'){
       tutScrollX+=scrollSpd;
       // Only detect checkpoints during scroll phase (not action)
       if(tutPhase==='scroll'){
@@ -221,21 +222,22 @@ function update(dt){
   // === PLAYING ===
   // Ghost character periodic transparency (immune to enemy attacks while transparent)
   if(ct().shape==='ghost'){
+    // Use equipped skin color for ghost particles (default: ghost's own color)
+    const _sd=getEquippedSkinData();
+    const ghostCol=_sd?(_sd.col==='rainbow'?'#ff00ff':_sd.col):ct().col;
     ghostPhaseT++;
     if(ghostInvis&&ghostPhaseT>=90){
       ghostInvis=false;ghostPhaseT=0;
-      // Reappear particles
-      emitParts(player.x,player.y,6,'#a855f7',2,1);
+      emitParts(player.x,player.y,6,ghostCol,2,1);
     } else if(!ghostInvis&&ghostPhaseT>=90){
       ghostInvis=true;ghostPhaseT=0;
-      // Vanish particles
-      emitParts(player.x,player.y,8,'#a855f7',3,2);
+      emitParts(player.x,player.y,8,ghostCol,3,2);
     }
-    // Shimmer particles while invisible
+    // Shimmer particles while invisible (use skin color + alpha)
     if(ghostInvis&&frame%6===0){
       parts.push({x:player.x+(Math.random()-0.5)*20,y:player.y+(Math.random()-0.5)*20,
         vx:(Math.random()-0.5)*0.5,vy:(Math.random()-0.5)*0.5,
-        life:10,ml:10,sz:Math.random()*2+1,col:'#a855f766'});
+        life:10,ml:10,sz:Math.random()*2+1,col:ghostCol+'66'});
     }
   } else {ghostInvis=false;ghostPhaseT=0;}
   // Hurt invincibility timer
