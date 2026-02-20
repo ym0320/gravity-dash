@@ -474,7 +474,7 @@ function updateBossPhase(){
         if(itemEff.invincible>0){
           shakeI=4;emitParts(b.x,b.y,8,'#ff00ff',3,2);
         } else {
-          takeDamage(player.x,player.y);
+          hurt();
         }
       }
     }
