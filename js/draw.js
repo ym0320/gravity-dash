@@ -416,7 +416,7 @@ function draw(){
   if(state===ST.PLAY){
     drawActionPanel();
   }
-  if(state===ST.DEAD)drawDead();
+  if(state===ST.DEAD){drawDead();if(deadChestOpen&&chestOpen.phase!=='none')drawChestOpen();}
   if(state===ST.PAUSE)drawPause();
   if(state===ST.STAGE_CLEAR)drawStageClear();
   ctx.restore();
@@ -1398,8 +1398,9 @@ function drawTitle(){
   if(rankingOpen){
     rankingScroll+=(rankingScrollTarget-rankingScroll)*0.15;
     ctx.fillStyle='rgba(0,0,0,0.92)';ctx.fillRect(0,0,W,H);
-    const mW=Math.min(340,W-16),mH=H-20;
-    const mX=(W-mW)/2,mY=10;
+    const mW=Math.min(340,W-16),topPad=safeTop+8;
+    const mH=H-topPad-10;
+    const mX=(W-mW)/2,mY=topPad;
     // Modal background
     ctx.fillStyle='#0a0a1a';rr(mX,mY,mW,mH,12);ctx.fill();
     ctx.strokeStyle='#ffd70044';ctx.lineWidth=2;rr(mX,mY,mW,mH,12);ctx.stroke();
@@ -1454,18 +1455,9 @@ function drawTitle(){
         ctx.fillStyle=rank<=10?'#fff8':'#fff4';ctx.font=(rank<=10?'bold ':'')+'11px monospace';ctx.textAlign='left';
         ctx.fillText(String(rank),rx+(rank<10?4:0),ry+22);
       }
-      // Character icon (small colored circle with shape indicator)
-      const ch=CHARS[entry.charIdx];
+      // Character icon (exact drawCharacter with actual shape)
       const cix=mX+42,ciy=ry+16;
-      ctx.fillStyle=ch.col;ctx.beginPath();ctx.arc(cix,ciy,8,0,6.28);ctx.fill();
-      if(rank<=3){ctx.strokeStyle='#fff4';ctx.lineWidth=1;ctx.beginPath();ctx.arc(cix,ciy,8,0,6.28);ctx.stroke();}
-      // Eyes on character icon
-      ctx.fillStyle=ch.eye;
-      ctx.beginPath();ctx.arc(cix-3,ciy-2,2,0,6.28);ctx.fill();
-      ctx.beginPath();ctx.arc(cix+3,ciy-2,2,0,6.28);ctx.fill();
-      ctx.fillStyle=ch.pupil;
-      ctx.beginPath();ctx.arc(cix-3,ciy-2,1,0,6.28);ctx.fill();
-      ctx.beginPath();ctx.arc(cix+3,ciy-2,1,0,6.28);ctx.fill();
+      drawCharacter(cix,ciy,entry.charIdx,9,0,1,'normal',0);
       // Name
       const nameX=mX+58;
       if(rank===1){ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';}
@@ -1831,6 +1823,14 @@ function drawInventory(){
     // Tap to open hint
     ctx.fillStyle='#fff8';ctx.font='12px monospace';
     ctx.fillText('\u30BF\u30C3\u30D7\u3067\u958B\u5C01',cx,cy+72);
+    // Batch open button (if 2+ chests)
+    if(storedChests>=2){
+      const boW=160,boH=34,boX=cx-boW/2,boY=cy+82;
+      ctx.fillStyle='#ffd70018';rr(boX,boY,boW,boH,8);ctx.fill();
+      ctx.strokeStyle='#ffd700';ctx.lineWidth=1.5;rr(boX,boY,boW,boH,8);ctx.stroke();
+      ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';ctx.textAlign='center';
+      ctx.fillText('\uD83D\uDCE6 \u307E\u3068\u3081\u3066\u958B\u5C01 ('+storedChests+')',cx,boY+22);
+    }
     // Total opened
     ctx.fillStyle='#fff4';ctx.font='10px monospace';
     ctx.fillText('\u901A\u7B97 '+totalChestsOpened+' \u500B\u958B\u5C01',cx,mY+mH-20);
@@ -2233,8 +2233,62 @@ function drawChestOpen(){
     // "Tap to close" at bottom
     const ta=0.4+Math.sin(t*0.1)*0.3;
     ctx.globalAlpha=ta;ctx.fillStyle='#fff6';ctx.font='13px monospace';ctx.textAlign='center';
+    ctx.fillText(storedChests>0?'タップで次の宝箱':'タップで閉じる',cx,mY+mH-20);
+    ctx.globalAlpha=1;
+  }
+  else if(p==='batchDone'){
+    // === BATCH OPEN SUMMARY ===
+    ctx.fillStyle='#ffd700';ctx.font='bold 18px monospace';ctx.textAlign='center';
+    ctx.fillText('開封結果',cx,mY+70);
+    // Tally results
+    let totalCoinsGot=0,charsGot=[];
+    chestBatchResults.forEach(r=>{
+      if(!r)return;
+      if(r.type==='coin')totalCoinsGot+=r.amount;
+      else if(r.type==='char')charsGot.push(r);
+    });
+    // Also count the last chest reward (not yet in batchResults)
+    if(rw){
+      if(rw.type==='coin')totalCoinsGot+=rw.amount;
+      else if(rw.type==='char')charsGot.push(rw);
+    }
+    let sumY=mY+100;
+    // Total coins
+    if(totalCoinsGot>0){
+      ctx.fillStyle='#ffd700';ctx.font='bold 22px monospace';
+      ctx.fillText('+'+totalCoinsGot+' コイン',cx,sumY);
+      sumY+=30;
+    }
+    // Characters obtained
+    if(charsGot.length>0){
+      ctx.fillStyle='#ff88cc';ctx.font='bold 14px monospace';
+      ctx.fillText('キャラクター \u00D7'+charsGot.length,cx,sumY);
+      sumY+=8;
+      charsGot.forEach((cr,i)=>{
+        if(i>=5)return; // max 5 shown
+        const cy2=sumY+i*36+20;
+        drawCharacter(cx-60,cy2,cr.charIdx,14,0,1,'happy',0);
+        ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';ctx.textAlign='left';
+        ctx.fillText(CHARS[cr.charIdx].name,cx-40,cy2+5);
+        ctx.fillStyle=cr.isNew?'#34d399':'#ffaa00';ctx.font='10px monospace';
+        ctx.fillText(cr.isNew?'NEW!':'+50コイン',cx-40,cy2+18);
+        ctx.textAlign='center';
+      });
+      sumY+=Math.min(charsGot.length,5)*36+10;
+    }
+    // Count
+    ctx.fillStyle='#fff6';ctx.font='11px monospace';
+    ctx.fillText(chestBatchResults.length+1+' 個開封',cx,sumY+10);
+    // Tap to close
+    const ta2=0.4+Math.sin(t*0.1)*0.3;
+    ctx.globalAlpha=ta2;ctx.fillStyle='#fff6';ctx.font='13px monospace';
     ctx.fillText('タップで閉じる',cx,mY+mH-20);
     ctx.globalAlpha=1;
+    // Sparkles
+    if(t%5===0){
+      const a=Math.random()*6.28,r2=40+Math.random()*40;
+      chestOpen.parts.push({x:cx+Math.cos(a)*r2,y:mY+mH*0.4+Math.sin(a)*r2,vx:(Math.random()-0.5),vy:-0.3-Math.random()*0.5,life:25,ml:25,sz:Math.random()*2+1,col:['#ffd700','#ffffff','#ffaa00'][Math.floor(Math.random()*3)],g:0});
+    }
   }
   ctx.restore();
 }
@@ -2315,17 +2369,17 @@ function drawDead(){
   ctx.fillStyle='#fff5';ctx.font='11px monospace';
   ctx.fillText('\u6240\u6301: '+walletCoins,W/2+50,coinY);
 
-  // Chest acquisition display (if any chests were earned this run)
-  const earnedChests=storedChests>0||bossChests>0;
-  if(earnedChests){
+  // Chest acquisition display + open button
+  if(storedChests>0){
     const chestY=coinY+20;
     ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';ctx.textAlign='center';
-    const cEarned=parseInt(localStorage.getItem('gd5lastRunChests')||'0');
-    if(cEarned>0){
-      ctx.fillText('\uD83D\uDCE6 宝箱 +'+cEarned+' 獲得',W/2,chestY);
-      ctx.fillStyle='#fff4';ctx.font='10px monospace';
-      ctx.fillText('ホームの所持品で開封できます',W/2,chestY+14);
-    }
+    ctx.fillText('\uD83D\uDCE6 宝箱 \u00D7'+storedChests,W/2,chestY);
+    // "Open chests" button
+    const ocW=140,ocH=28,ocX=W/2-ocW/2,ocY=chestY+6;
+    ctx.fillStyle='#ffd70018';rr(ocX,ocY,ocW,ocH,6);ctx.fill();
+    ctx.strokeStyle='#ffd700';ctx.lineWidth=1;rr(ocX,ocY,ocW,ocH,6);ctx.stroke();
+    ctx.fillStyle='#ffd700';ctx.font='bold 11px monospace';
+    ctx.fillText('\u958B\u5C01\u3059\u308B',W/2,ocY+19);
   }
 
   // --- Action buttons (below card) ---
