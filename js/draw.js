@@ -6,6 +6,89 @@ function rr(x,y,w,h,r){
   ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
 }
 
+// --- Menu icon drawing functions (canvas-drawn, no emoji) ---
+function drawIconPodium(cx,cy,col){
+  // Podium / 表彰台: three blocks (1st tall center, 2nd left, 3rd right)
+  ctx.save();ctx.translate(cx,cy);
+  const s=0.9;
+  // 2nd place (left)
+  ctx.fillStyle=col+'99';
+  ctx.fillRect(-11*s,-2*s,7*s,10*s);
+  // 1st place (center, taller)
+  ctx.fillStyle=col;
+  ctx.fillRect(-3*s,-8*s,7*s,16*s);
+  // 3rd place (right)
+  ctx.fillStyle=col+'66';
+  ctx.fillRect(5*s,2*s,7*s,6*s);
+  // Base line
+  ctx.strokeStyle=col;ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(-12*s,8*s);ctx.lineTo(13*s,8*s);ctx.stroke();
+  // Numbers
+  ctx.fillStyle='#000';ctx.font='bold 6px monospace';ctx.textAlign='center';
+  ctx.fillText('2',-7.5*s,5*s);
+  ctx.fillText('1',0.5*s,-1*s);
+  ctx.fillText('3',8.5*s,7*s);
+  ctx.restore();
+}
+function drawIconChest(cx,cy,col){
+  // Treasure chest / 宝箱
+  ctx.save();ctx.translate(cx,cy);
+  const s=1.0;
+  // Chest body (bottom half)
+  ctx.fillStyle=col+'cc';
+  rr(-10*s,-1*s,20*s,10*s,2);ctx.fill();
+  // Chest lid (top dome)
+  ctx.fillStyle=col;
+  ctx.beginPath();
+  ctx.moveTo(-10*s,-1*s);
+  ctx.lineTo(-10*s,-4*s);
+  ctx.quadraticCurveTo(-10*s,-9*s,0,-9*s);
+  ctx.quadraticCurveTo(10*s,-9*s,10*s,-4*s);
+  ctx.lineTo(10*s,-1*s);
+  ctx.closePath();ctx.fill();
+  // Metal band (horizontal stripe)
+  ctx.strokeStyle='#000';ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.moveTo(-10*s,-1*s);ctx.lineTo(10*s,-1*s);ctx.stroke();
+  // Keyhole / latch
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(0,3*s,2.5*s,0,6.28);ctx.fill();
+  ctx.fillStyle=col;ctx.beginPath();ctx.arc(0,3*s,1.2*s,0,6.28);ctx.fill();
+  // Outline
+  ctx.strokeStyle=col;ctx.lineWidth=1;
+  rr(-10*s,-1*s,20*s,10*s,2);ctx.stroke();
+  ctx.restore();
+}
+function drawIconCart(cx,cy,col){
+  // Shopping cart
+  ctx.save();ctx.translate(cx,cy);
+  ctx.strokeStyle=col;ctx.lineWidth=1.8;ctx.lineCap='round';ctx.lineJoin='round';
+  // Cart body
+  ctx.beginPath();
+  ctx.moveTo(-9,-4);ctx.lineTo(-6,-4);ctx.lineTo(-3,5);ctx.lineTo(8,5);ctx.lineTo(10,-1);ctx.lineTo(-4,-1);
+  ctx.stroke();
+  // Handle
+  ctx.beginPath();ctx.moveTo(-9,-4);ctx.lineTo(-11,-7);ctx.stroke();
+  // Wheels
+  ctx.fillStyle=col;
+  ctx.beginPath();ctx.arc(-1,8,2,0,6.28);ctx.fill();
+  ctx.beginPath();ctx.arc(6,8,2,0,6.28);ctx.fill();
+  ctx.restore();
+}
+function drawIconHanger(cx,cy,col){
+  // Clothes hanger / 着せ替え
+  ctx.save();ctx.translate(cx,cy);
+  ctx.strokeStyle=col;ctx.lineWidth=1.8;ctx.lineCap='round';ctx.lineJoin='round';
+  // Hook at top
+  ctx.beginPath();ctx.arc(0,-8,3,Math.PI,0);ctx.stroke();
+  // Hanger body (triangle shape)
+  ctx.beginPath();
+  ctx.moveTo(0,-5);ctx.lineTo(-11,5);ctx.lineTo(11,5);ctx.closePath();
+  ctx.stroke();
+  // Bar at bottom
+  ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(-11,5);ctx.lineTo(11,5);ctx.stroke();
+  ctx.restore();
+}
+
 function drawPlatforms(arr,isFloor){
   arr.forEach(p=>{
     if(p.x+p.w<-10||p.x>W+10)return;
@@ -759,10 +842,8 @@ function drawCharacter(x,y,charIdx,r,rot,alpha,face,dmgLevel,showCosmetics){
     } else {bodyCol=skinData.col;bodyCol2=skinData.col2;}
   }
   const gr=ctx.createRadialGradient(0,0,0,0,0,r);
-  // Desaturate color with damage (skin color still visible)
-  if(dmgLevel>=2){gr.addColorStop(0,bodyCol);gr.addColorStop(1,'#555');}
-  else if(dmgLevel===1){gr.addColorStop(0,bodyCol);gr.addColorStop(1,'#666');}
-  else{gr.addColorStop(0,bodyCol);gr.addColorStop(1,bodyCol2);}
+  // Keep skin color intact even when damaged (damage shown via overlays only)
+  gr.addColorStop(0,bodyCol);gr.addColorStop(1,bodyCol2);
 
   switch(ch.shape){
     case'cube':
@@ -1401,16 +1482,15 @@ function drawTitle(){
   ctx.fillStyle='#667';ctx.font='10px monospace';ctx.textAlign='center';
   ctx.fillText('\u30BF\u30C3\u30D7=\u30B8\u30E3\u30F3\u30D7 / \u30B9\u30EF\u30A4\u30D7=\u91CD\u529B\u53CD\u8EE2',W/2,H*0.93);
 
-  // Ranking button (top left, row 1)
+  // Ranking button (top left, row 1) - podium icon
   ctx.fillStyle='#ffffff14';rr(8,safeTop+6,36,36,8);ctx.fill();
   ctx.strokeStyle='#ffd70044';ctx.lineWidth=1;rr(8,safeTop+6,36,36,8);ctx.stroke();
-  ctx.fillStyle='#ffd700';ctx.font='16px monospace';ctx.textAlign='center';
-  ctx.fillText('\uD83C\uDFC6',26,safeTop+30);
+  drawIconPodium(26,safeTop+24,'#ffd700');
 
-  // Inventory button (top left, row 2) - chest icon with ! badge
+  // Inventory button (top left, row 2) - treasure chest icon
   ctx.fillStyle='#ffffff14';rr(8,safeTop+44,36,36,8);ctx.fill();
-  ctx.fillStyle='#ffd700';ctx.font='18px monospace';ctx.textAlign='center';
-  ctx.fillText('\uD83D\uDCE6',26,safeTop+68);
+  ctx.strokeStyle='#ffd70044';ctx.lineWidth=1;rr(8,safeTop+44,36,36,8);ctx.stroke();
+  drawIconChest(26,safeTop+62,'#ffd700');
   if(storedChests>0){
     const bp=Math.sin(titleT*2)*0.15+1;
     ctx.save();ctx.translate(38,safeTop+48);ctx.scale(bp,bp);
@@ -1419,16 +1499,14 @@ function drawTitle(){
     ctx.fillText('!',0,4);
     ctx.restore();
   }
-  // Shop button (top left, row 3)
+  // Shop button (top left, row 3) - shopping cart icon
   ctx.fillStyle='#ffffff14';rr(8,safeTop+82,36,36,8);ctx.fill();
   ctx.strokeStyle='#ff69b444';ctx.lineWidth=1;rr(8,safeTop+82,36,36,8);ctx.stroke();
-  ctx.fillStyle='#ff69b4';ctx.font='16px monospace';ctx.textAlign='center';
-  ctx.fillText('\uD83D\uDED2',26,safeTop+105);
-  // Dress-up button (top left, row 4)
+  drawIconCart(26,safeTop+100,'#ff69b4');
+  // Dress-up button (top left, row 4) - hanger icon
   ctx.fillStyle='#ffffff14';rr(8,safeTop+120,36,36,8);ctx.fill();
   ctx.strokeStyle='#a855f744';ctx.lineWidth=1;rr(8,safeTop+120,36,36,8);ctx.stroke();
-  ctx.fillStyle='#a855f7';ctx.font='16px monospace';ctx.textAlign='center';
-  ctx.fillText('\uD83D\uDC57',26,safeTop+143);
+  drawIconHanger(26,safeTop+138,'#a855f7');
 
   // Debug button (top right, left of settings)
   ctx.fillStyle='#ff386014';rr(W-84,safeTop+6,36,36,8);ctx.fill();

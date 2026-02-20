@@ -243,6 +243,72 @@ const BGM_TITLE={tempo:108,
   melVol:0.28,harmVol:0.08,bassVol:0.18,chordVol:0.06,
   melWave:'triangle',harmWave:'sine',bassWave:'sine',
   drums:'pop'};
+// Title2: upbeat synth-pop, E major, bright and bouncy
+const BGM_TITLE2={tempo:120,
+  melody:[659,784,988,784, 880,784,659,0, 784,880,988,1175, 988,880,784,0,
+          1175,988,880,784, 880,988,1175,0, 988,880,784,659, 784,880,659,0],
+  harmony:[494,0,494,0, 523,0,523,0, 587,0,587,0, 494,0,494,0,
+           523,0,523,0, 587,0,587,0, 494,0,494,0, 440,0,440,0],
+  bass:[330,0,165,330, 262,0,131,262, 294,0,147,294, 247,0,124,247,
+        330,0,165,330, 262,0,131,262, 294,0,147,294, 247,0,330,165],
+  chords:[[330,415,494],[262,330,392],[294,370,440],[247,311,370],
+          [330,415,494],[262,330,392],[294,370,440],[247,311,370]],
+  melVol:0.26,harmVol:0.09,bassVol:0.18,chordVol:0.06,
+  melWave:'triangle',harmWave:'sine',bassWave:'sine',
+  drums:'pop'};
+// Title3: funky city-pop, Dm groove, disco-style with catchy bass
+const BGM_TITLE3={tempo:112,
+  melody:[587,698,880,0, 784,698,587,698, 880,0,1047,880, 784,698,587,0,
+          523,587,698,784, 880,0,784,698, 587,0,698,784, 698,587,523,0],
+  harmony:[440,0,440,523, 0,523,0,440, 349,0,349,440, 0,440,0,349,
+           392,0,392,494, 0,494,0,440, 349,0,349,392, 0,440,0,349],
+  bass:[294,0,294,147, 262,0,262,131, 233,0,233,117, 220,0,220,110,
+        294,147,294,0, 262,131,262,0, 233,117,233,0, 220,110,294,147],
+  chords:[[294,349,440],[262,330,392],[233,294,349],[220,262,330],
+          [294,349,440],[262,330,392],[233,294,349],[220,262,330]],
+  melVol:0.24,harmVol:0.10,bassVol:0.22,chordVol:0.06,
+  melWave:'triangle',harmWave:'triangle',bassWave:'sine',
+  drums:'drive'};
+// Title4: bright kawaii-pop, F major, bubbly and playful
+const BGM_TITLE4={tempo:126,
+  melody:[698,880,1047,880, 784,698,784,0, 880,1047,1175,1047, 880,784,698,0,
+          1047,1175,1397,1175, 1047,880,784,880, 1047,880,784,698, 784,880,698,0],
+  harmony:[523,0,523,0, 587,0,587,0, 523,0,523,0, 440,0,440,0,
+           523,0,587,0, 523,0,494,0, 440,0,494,0, 523,0,440,0],
+  bass:[175,0,349,175, 196,0,392,196, 220,0,440,220, 175,0,349,175,
+        175,0,349,175, 196,0,392,196, 220,0,440,220, 262,0,349,175],
+  chords:[[349,440,523],[392,494,587],[440,523,659],[349,440,523],
+          [349,440,523],[392,494,587],[440,523,659],[349,440,523]],
+  melVol:0.24,harmVol:0.08,bassVol:0.16,chordVol:0.07,
+  melWave:'triangle',harmWave:'sine',bassWave:'sine',
+  drums:'pop'};
+// Title5: retro chiptune-pop, A minor, fast arpeggios
+const BGM_TITLE5={tempo:132,
+  melody:[880,0,1047,1175, 1319,1175,1047,880, 784,880,1047,0, 880,784,659,0,
+          523,659,784,880, 1047,880,784,659, 784,0,880,1047, 880,784,659,0],
+  harmony:[523,0,523,587, 659,0,587,523, 440,0,440,0, 523,0,440,0,
+           349,0,349,440, 523,0,440,349, 440,0,523,0, 440,0,392,0],
+  bass:[220,0,110,220, 262,0,131,262, 175,0,87,175, 196,0,98,196,
+        220,110,220,0, 262,131,262,0, 175,87,175,0, 196,0,220,110],
+  chords:[[220,262,330],[262,330,392],[175,220,262],[196,247,294],
+          [220,262,330],[262,330,392],[175,220,262],[196,247,294]],
+  melVol:0.22,harmVol:0.10,bassVol:0.20,chordVol:0.06,
+  melWave:'square',harmWave:'triangle',bassWave:'triangle',
+  drums:'edm'};
+// Title6: smooth jazz-pop, Bb major, laid-back groove
+const BGM_TITLE6={tempo:100,
+  melody:[932,0,1047,932, 784,0,698,784, 932,1047,1175,0, 1047,932,784,0,
+          698,784,932,0, 784,698,587,698, 784,0,932,784, 698,587,466,0],
+  harmony:[587,0,587,0, 523,0,523,0, 466,0,466,0, 587,0,523,0,
+           466,0,466,0, 523,0,523,0, 587,0,587,0, 466,0,440,0],
+  bass:[233,0,117,233, 262,0,131,262, 175,0,87,175, 233,0,117,233,
+        233,117,0,233, 262,131,0,262, 175,87,0,175, 233,0,262,233],
+  chords:[[466,587,698],[523,659,784],[349,440,523],[466,587,698],
+          [466,587,698],[523,659,784],[349,440,523],[466,587,698]],
+  melVol:0.22,harmVol:0.09,bassVol:0.18,chordVol:0.07,
+  melWave:'triangle',harmWave:'sine',bassWave:'sine',
+  drums:'soft'};
+const BGM_TITLES=[BGM_TITLE,BGM_TITLE2,BGM_TITLE3,BGM_TITLE4,BGM_TITLE5,BGM_TITLE6];
 // Play1 (0-999): Starlight Stroll - dreamy, calm, C pentatonic, slow waltz feel
 const BGM_PLAY1={tempo:100,
   melody:[523,0,0,659, 0,0,784,0, 0,880,0,784, 0,659,0,0,
@@ -392,13 +458,20 @@ function switchBGM(type){
   if(!audioCtx)return;
   // 'play' resolves to score-based play BGM
   if(type==='play')type=getPlayBGMType();
+  // 'title' always picks a random variant (force restart for variety)
+  if(type==='title'){
+    bgmCurrent='';
+    const idx=Math.floor(Math.random()*BGM_TITLES.length);
+    type='title'+idx;
+  }
   if(bgmCurrent===type)return;
   bgmCurrent=type;
   if(bgmTimer){clearTimeout(bgmTimer);bgmTimer=null;}
   if(feverTimer){clearTimeout(feverTimer);feverTimer=null;}
   // Fever uses old-style simple oscillator
   if(type==='fever'){feverBI=0;playFeverBGM();return;}
-  const BGM_MAP={title:BGM_TITLE,play1:BGM_PLAY1,play2:BGM_PLAY2,play3:BGM_PLAY3,play4:BGM_PLAY4,play5:BGM_PLAY5,boss:BGM_BOSS,dead:BGM_DEAD};
+  const BGM_MAP={title0:BGM_TITLES[0],title1:BGM_TITLES[1],title2:BGM_TITLES[2],title3:BGM_TITLES[3],title4:BGM_TITLES[4],title5:BGM_TITLES[5],
+    play1:BGM_PLAY1,play2:BGM_PLAY2,play3:BGM_PLAY3,play4:BGM_PLAY4,play5:BGM_PLAY5,boss:BGM_BOSS,dead:BGM_DEAD};
   const def=BGM_MAP[type]||BGM_PLAY1;
   const stepMs=60000/(def.tempo*4); // ms per 16th note step
   const stepS=stepMs/1000;

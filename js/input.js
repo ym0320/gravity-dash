@@ -233,11 +233,30 @@ document.addEventListener('visibilitychange',()=>{
     if(typeof feverTimer!=='undefined'&&feverTimer){clearTimeout(feverTimer);feverTimer=null;}
     bgmCurrent=''; // allow restart
   } else {
-    // Page visible again: restart BGM silently (no sfx)
-    if(bgmBeforePause)switchBGM(bgmBeforePause);
-    bgmBeforePause='';
+    // Page visible again: try resume audio and restart BGM
+    if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();
+    if(bgmBeforePause){switchBGM(bgmBeforePause);bgmBeforePause='';}
+    else if(audioCtx&&!bgmCurrent)switchBGM('title');
   }
 });
+// Try auto-init audio on page load (works if browser allows or user previously interacted)
+(function autoInitBGM(){
+  try{
+    initAudio();
+    if(audioCtx&&audioCtx.state==='suspended'){
+      // AudioContext suspended - add one-time listeners for earliest possible resume
+      const resumeAudio=()=>{
+        initAudio();
+        document.removeEventListener('touchstart',resumeAudio,true);
+        document.removeEventListener('mousedown',resumeAudio,true);
+        document.removeEventListener('keydown',resumeAudio,true);
+      };
+      document.addEventListener('touchstart',resumeAudio,{capture:true,once:true});
+      document.addEventListener('mousedown',resumeAudio,{capture:true,once:true});
+      document.addEventListener('keydown',resumeAudio,{capture:true,once:true});
+    }
+  }catch(e){}
+})();
 window.addEventListener('blur',()=>{
   if(state===ST.PLAY){state=ST.PAUSE;}
 });
