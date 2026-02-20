@@ -295,21 +295,25 @@ canvas.addEventListener('touchstart',e=>{
   if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');state=ST.PAUSE;return;}
   if(state===ST.TITLE){
     // Shop modal intercepts all input when open
-    if(shopOpen){handleShopTouch(p.x,p.y);return;}
+    if(shopOpen){handleShopTouch(p.x,p.y);titleTouchPos=null;return;}
     // Cosmetic menu intercepts all input when open
-    if(cosmeticMenuOpen){handleCosmeticTouch(p.x,p.y);return;}
+    if(cosmeticMenuOpen){handleCosmeticTouch(p.x,p.y);titleTouchPos=null;return;}
     // Inventory modal intercepts all input when open
     if(inventoryOpen){
-      // Close button area (top-right X or outside modal)
-      const mW2=Math.min(300,W-24),mH2=Math.min(400,H-40);
+      const mW2=Math.min(300,W-24),mH2=Math.min(360,H-40);
       const mX2=(W-mW2)/2,mY2=(H-mH2)/2;
-      // Close button at top-right of modal
-      if(p.x>=mX2+mW2-36&&p.x<=mX2+mW2-4&&p.y>=mY2+4&&p.y<=mY2+36&&chestOpen.phase==='none'){
+      // Footer close button
+      const invClY=mY2+mH2-24;
+      if(p.x>=W/2-50&&p.x<=W/2+50&&p.y>=invClY&&p.y<=invClY+30&&chestOpen.phase==='none'){
         inventoryOpen=false;sfx('cancel');return;
       }
-      handleInventoryChestTap(p.x,p.y);return;
+      // Tap outside modal
+      if((p.x<mX2||p.x>mX2+mW2||p.y<mY2||p.y>mY2+mH2)&&chestOpen.phase==='none'){
+        inventoryOpen=false;sfx('cancel');return;
+      }
+      handleInventoryChestTap(p.x,p.y);titleTouchPos=null;return;
     }
-    if(charModal.show){sfx('cancel');charModal.show=false;return;}
+    if(charModal.show){sfx('cancel');charModal.show=false;titleTouchPos=null;return;}
     longPressFired=false;titleTouchPos=p;
     const cidx=getCharGridIdx(p.x,p.y);
     if(cidx>=0&&isCharUnlocked(cidx)){
@@ -317,6 +321,7 @@ canvas.addEventListener('touchstart',e=>{
     } else if(cidx>=0){
     } else {
       handleTitleTouch(p.x,p.y);
+      titleTouchPos=null; // prevent touchend from re-calling handleTitleTouch
     }
   }
   else if(state===ST.DEAD&&deadChestOpen){
@@ -350,7 +355,7 @@ canvas.addEventListener('touchmove',e=>{
   if(shopOpen){
     const dy2=t.clientY-touchStartY;touchStartY=t.clientY;
     const items=shopTab===0?SHOP_ITEMS.skins:shopTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
-    const mH2=Math.min(500,H-30),listH2=mH2-110,totalH2=items.length*54;
+    const mH2=Math.min(500,H-30),listH2=mH2-140,totalH2=items.length*54;
     const maxS=Math.max(0,totalH2-listH2);
     shopScroll=Math.max(0,Math.min(maxS,shopScroll-dy2*2));touchMoved=true;return;
   }
@@ -359,7 +364,7 @@ canvas.addEventListener('touchmove',e=>{
     const dy2=t.clientY-touchStartY;touchStartY=t.clientY;
     const allItems=cosmeticTab===0?SHOP_ITEMS.skins:cosmeticTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
     const ownedList=[{id:''}].concat(allItems.filter(it=>ownsItem(it.id)));
-    const mH2=Math.min(500,H-30),listH2=mH2-154,totalH2=ownedList.length*48;
+    const mH2=Math.min(500,H-30),listH2=mH2-184,totalH2=ownedList.length*48;
     const maxS=Math.max(0,totalH2-listH2);
     cosmeticScroll=Math.max(0,Math.min(maxS,cosmeticScroll-dy2*2));touchMoved=true;return;
   }
@@ -381,7 +386,7 @@ canvas.addEventListener('touchend',e=>{
     if(draggingSlider==='sfx')sfx('coin'); // preview SE at new volume
     draggingSlider=null;return;
   }
-  if(settingsOpen)return;
+  if(settingsOpen||rankingOpen||inventoryOpen)return;
   if(shopOpen||cosmeticMenuOpen)return; // handled by touchstart
   if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}
   if(state===ST.TITLE&&!longPressFired&&titleTouchPos){handleTitleTouch(titleTouchPos.x,titleTouchPos.y);titleTouchPos=null;return;}
@@ -452,6 +457,18 @@ canvas.addEventListener('mousedown',e=>{
   if(state===ST.TITLE){
     if(shopOpen){handleShopTouch(p.x,p.y);return;}
     if(cosmeticMenuOpen){handleCosmeticTouch(p.x,p.y);return;}
+    if(inventoryOpen){
+      const mW2=Math.min(300,W-24),mH2=Math.min(360,H-40);
+      const mX2=(W-mW2)/2,mY2=(H-mH2)/2;
+      const invClY=mY2+mH2-24;
+      if(p.x>=W/2-50&&p.x<=W/2+50&&p.y>=invClY&&p.y<=invClY+30&&chestOpen.phase==='none'){
+        inventoryOpen=false;sfx('cancel');return;
+      }
+      if((p.x<mX2||p.x>mX2+mW2||p.y<mY2||p.y>mY2+mH2)&&chestOpen.phase==='none'){
+        inventoryOpen=false;sfx('cancel');return;
+      }
+      handleInventoryChestTap(p.x,p.y);return;
+    }
     if(charModal.show){sfx('cancel');charModal.show=false;return;}handleTitleTouch(p.x,p.y);
   }
   else if(state===ST.DEAD&&deadChestOpen){
@@ -545,22 +562,22 @@ function handleTitleTouch(tx,ty){
   if(tx>=W-84&&tx<=W-48&&ty>=safeTop+6&&ty<=safeTop+42){
     debugMenuOpen=true;sfx('select');return;
   }
-  // Ranking button (top-left, leftmost)
+  // Ranking button (top-left, row 1)
   if(tx>=8&&tx<=44&&ty>=safeTop+6&&ty<=safeTop+42){
     rankingOpen=true;rankingScroll=0;rankingScrollTarget=0;sfx('select');return;
   }
-  // Inventory button (top-left, 2nd)
-  if(tx>=50&&tx<=86&&ty>=safeTop+6&&ty<=safeTop+42){
+  // Inventory button (top-left, row 2)
+  if(tx>=8&&tx<=44&&ty>=safeTop+44&&ty<=safeTop+80){
     inventoryOpen=true;chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null};
     sfx('select');return;
   }
-  // Shop button (top-left, 3rd)
-  if(tx>=92&&tx<=128&&ty>=safeTop+6&&ty<=safeTop+42){
+  // Shop button (top-left, row 3)
+  if(tx>=8&&tx<=44&&ty>=safeTop+82&&ty<=safeTop+118){
     shopOpen=true;shopTab=0;shopScroll=0;
     sfx('select');return;
   }
-  // Cosmetic button (top-left, 4th)
-  if(tx>=134&&tx<=170&&ty>=safeTop+6&&ty<=safeTop+42){
+  // Cosmetic button (top-left, row 4)
+  if(tx>=8&&tx<=44&&ty>=safeTop+120&&ty<=safeTop+156){
     cosmeticMenuOpen=true;cosmeticTab=0;cosmeticScroll=0;
     sfx('select');return;
   }
@@ -652,10 +669,6 @@ function handleRankingTouch(tx,ty){
   const mW=Math.min(340,W-16),topPad=safeTop+8;
   const mH=H-topPad-10;
   const mX=(W-mW)/2,mY=topPad;
-  // Close button (top-right X)
-  if(tx>=mX+mW-38&&tx<=mX+mW-8&&ty>=mY+8&&ty<=mY+38){
-    rankingOpen=false;sfx('cancel');return;
-  }
   // Footer close button
   const ftY=mY+mH-40;
   if(tx>=W/2-50&&tx<=W/2+50&&ty>=ftY&&ty<=ftY+30){
@@ -679,7 +692,7 @@ canvas.addEventListener('wheel',e=>{
   if(shopOpen){
     e.preventDefault();
     const items=shopTab===0?SHOP_ITEMS.skins:shopTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
-    const mH2=Math.min(500,H-30),listH2=mH2-110,totalH2=items.length*54;
+    const mH2=Math.min(500,H-30),listH2=mH2-140,totalH2=items.length*54;
     const maxS=Math.max(0,totalH2-listH2);
     shopScroll=Math.max(0,Math.min(maxS,shopScroll+e.deltaY*1.5));
   }
@@ -687,7 +700,7 @@ canvas.addEventListener('wheel',e=>{
     e.preventDefault();
     const allItems=cosmeticTab===0?SHOP_ITEMS.skins:cosmeticTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
     const ownedList=[{id:''}].concat(allItems.filter(it=>ownsItem(it.id)));
-    const mH2=Math.min(500,H-30),listH2=mH2-154,totalH2=ownedList.length*48;
+    const mH2=Math.min(500,H-30),listH2=mH2-184,totalH2=ownedList.length*48;
     const maxS=Math.max(0,totalH2-listH2);
     cosmeticScroll=Math.max(0,Math.min(maxS,cosmeticScroll+e.deltaY*1.5));
   }
@@ -697,8 +710,52 @@ canvas.addEventListener('wheel',e=>{
 function handleShopTouch(tx,ty){
   const mW=Math.min(320,W-16),mH=Math.min(500,H-30);
   const mX=(W-mW)/2,mY=(H-mH)/2;
-  // Close X
-  if(tx>=mX+mW-36&&tx<=mX+mW-4&&ty>=mY+4&&ty<=mY+36){shopOpen=false;sfx('cancel');return;}
+  // Purchase animation playing - tap to dismiss
+  if(shopPurchaseAnim){
+    if(shopPurchaseAnim.t>30){shopPurchaseAnim=null;sfx('click');}
+    return;
+  }
+  // Confirm dialog active
+  if(shopConfirm){
+    const dlgW=Math.min(260,W-40),dlgH=180;
+    const dlgX=W/2-dlgW/2,dlgY=H/2-dlgH/2;
+    const btnW2=100,btnH2=36;
+    // Buy button
+    if(tx>=W/2-btnW2-6&&tx<=W/2-6&&ty>=dlgY+dlgH-52&&ty<=dlgY+dlgH-52+btnH2){
+      const item=shopConfirm.item,tab=shopConfirm.tab;
+      if(buyItem(item.id,item.price)){
+        // Auto-equip
+        if(tab===0)equipSkin(item.id);
+        else if(tab===1)equipEyes(item.id);
+        else equipEffect(item.id);
+        // Start gacha celebration
+        const parts=[];
+        for(let i=0;i<20;i++){
+          parts.push({x:W/2,y:H/2,vx:(Math.random()-0.5)*12,vy:(Math.random()-0.5)*12,
+            life:60+Math.random()*40,col:['#ffd700','#ff69b4','#00e5ff','#a855f7','#34d399','#ff4444'][Math.floor(Math.random()*6)],
+            sz:3+Math.random()*5});
+        }
+        shopPurchaseAnim={item,tab,t:0,parts};
+        sfx('item');sfxFanfare();vibrate([10,5,15,5,10]);
+      } else {
+        sfx('hurt');vibrate(15);
+      }
+      shopConfirm=null;
+      return;
+    }
+    // Cancel button
+    if(tx>=W/2+6&&tx<=W/2+6+btnW2&&ty>=dlgY+dlgH-52&&ty<=dlgY+dlgH-52+btnH2){
+      shopConfirm=null;sfx('cancel');return;
+    }
+    // Tap outside dialog dismisses it
+    if(tx<dlgX||tx>dlgX+dlgW||ty<dlgY||ty>dlgY+dlgH){
+      shopConfirm=null;sfx('cancel');return;
+    }
+    return;
+  }
+  // Footer close button
+  const shopClY=mY+mH-42;
+  if(tx>=W/2-50&&tx<=W/2+50&&ty>=shopClY&&ty<=shopClY+30){shopOpen=false;sfx('cancel');return;}
   // Outside modal
   if(tx<mX||tx>mX+mW||ty<mY||ty>mY+mH){shopOpen=false;sfx('cancel');return;}
   // Tabs
@@ -710,7 +767,7 @@ function handleShopTouch(tx,ty){
     }
   }
   // Item rows
-  const listY=mY+90,listH=mH-110;
+  const listY=mY+90,listH=mH-140;
   const items=shopTab===0?SHOP_ITEMS.skins:shopTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
   const rowH=54;
   for(let i=0;i<items.length;i++){
@@ -725,13 +782,9 @@ function handleShopTouch(tx,ty){
         else{if(equippedEffect===item.id)unequipEffect();else equipEffect(item.id);}
         sfx('select');vibrate(10);
       } else {
-        // Buy
-        if(buyItem(item.id,item.price)){
-          sfx('coin');sfx('item');vibrate([10,5,15]);
-          // Auto-equip on purchase
-          if(shopTab===0)equipSkin(item.id);
-          else if(shopTab===1)equipEyes(item.id);
-          else equipEffect(item.id);
+        // Show purchase confirmation
+        if(walletCoins>=item.price){
+          shopConfirm={item,tab:shopTab};sfx('select');
         } else {
           sfx('hurt');vibrate(15);
         }
@@ -745,8 +798,9 @@ function handleShopTouch(tx,ty){
 function handleCosmeticTouch(tx,ty){
   const mW=Math.min(320,W-16),mH=Math.min(500,H-30);
   const mX=(W-mW)/2,mY=(H-mH)/2;
-  // Close X
-  if(tx>=mX+mW-36&&tx<=mX+mW-4&&ty>=mY+4&&ty<=mY+36){cosmeticMenuOpen=false;sfx('cancel');return;}
+  // Footer close button
+  const cosClY=mY+mH-42;
+  if(tx>=W/2-50&&tx<=W/2+50&&ty>=cosClY&&ty<=cosClY+30){cosmeticMenuOpen=false;sfx('cancel');return;}
   // Outside modal
   if(tx<mX||tx>mX+mW||ty<mY||ty>mY+mH){cosmeticMenuOpen=false;sfx('cancel');return;}
   // Tabs
@@ -758,7 +812,7 @@ function handleCosmeticTouch(tx,ty){
     }
   }
   // Item rows
-  const listY=mY+134,listH=mH-154;
+  const listY=mY+134,listH=mH-184;
   const allItems=cosmeticTab===0?SHOP_ITEMS.skins:cosmeticTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
   const ownedList=[{id:'',name:'\u306A\u3057',desc:'\u30C7\u30D5\u30A9\u30EB\u30C8'}].concat(allItems.filter(it=>ownsItem(it.id)));
   const rowH=48;

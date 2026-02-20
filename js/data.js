@@ -1233,6 +1233,9 @@ let equippedEffect=localStorage.getItem('gd5eqFx')||'';
 let cosmeticMenuOpen=false; // cosmetic equip menu
 let cosmeticTab=0; // 0=skins, 1=eyes, 2=effects
 let cosmeticScroll=0;
+// Shop purchase confirmation & gacha animation
+let shopConfirm=null; // {item, tab} when confirm dialog shown
+let shopPurchaseAnim=null; // {item, tab, t, parts} when purchase animation playing
 function ownsItem(id){return ownedItems.includes(id);}
 function buyItem(id,price){
   if(ownsItem(id)||walletCoins<price)return false;
