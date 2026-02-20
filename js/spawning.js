@@ -102,7 +102,9 @@ function trySpawnEnemy(){
     // Choose enemy type based on score - early game = walkers only
     let eType=0;
     const tr=Math.random();
-    if(score>=400&&bossPhase.bossCount>=2&&tr<0.15) eType=3; // bomber (after 2nd boss)
+    if(score>=600&&bossPhase.bossCount>=3&&tr<0.10) eType=8; // splitter (after 3rd boss)
+    else if(score>=400&&bossPhase.bossCount>=2&&tr<0.15) eType=3; // bomber (after 2nd boss)
+    else if(score>=300&&bossPhase.bossCount>=1&&tr<0.13) eType=7; // shielder (after 1st boss)
     else if(score>=250&&bossPhase.bossCount>=1&&tr<0.18) eType=6; // dasher (after 1st boss)
     else if(score>=160&&tr<0.12) eType=5; // phantom (mid-late)
     else if(score>=140&&tr<0.15) eType=4; // vertical mover (mid-late)
@@ -112,7 +114,7 @@ function trySpawnEnemy(){
 
     if(eType===4){
       // Vertical mover: bounces between floor and ceiling
-      const onCeil4=Math.random()<0.3;
+      const onCeil4=Math.random()<0.4;
       const gd4=onCeil4?-1:1;
       const surfY=gd4===1?H-plat.h:ceilSurfaceY(ex);
       const sz=14;
@@ -120,7 +122,7 @@ function trySpawnEnemy(){
         moveDir:gd4===1?-1:1,moveSpd:2.5+Math.random()*1.5,pauseT:0});
     } else if(eType===5){
       // Phantom: floats in air, periodically becomes invisible
-      const onCeil5=Math.random()<0.3;
+      const onCeil5=Math.random()<0.4;
       const gd5=onCeil5?-1:1;
       const surfY=gd5===1?H-plat.h:ceilSurfaceY(ex);
       const flyY=gd5===1?surfY-50-Math.random()*60:surfY+50+Math.random()*60;
@@ -130,7 +132,7 @@ function trySpawnEnemy(){
         visTimer:0,visCycle:90+Math.floor(Math.random()*60),visible:true,fadeT:0});
     } else if(eType===2){
       // Flying enemy: spawns in the air between floor and ceiling
-      const onCeil2=Math.random()<0.3;
+      const onCeil2=Math.random()<0.4;
       const gd2=onCeil2?-1:1;
       const surfY=gd2===1?H-plat.h:ceilSurfaceY(ex);
       const flyY=gd2===1?surfY-60-Math.random()*80:surfY+60+Math.random()*80;
@@ -144,15 +146,33 @@ function trySpawnEnemy(){
         patrolDir:1,patrolOriginX:ex,patrolRange:15+Math.random()*20});
     } else if(eType===6){
       // Dasher: walks slowly, then charges at player when close
-      const onCeil6=Math.random()<0.3;
+      const onCeil6=Math.random()<0.4;
       const gd6=onCeil6?-1:1;
       const surfY=gd6===1?H-plat.h:ceilSurfaceY(ex);
       const sz=14;
       enemies.push({x:ex,y:gd6===1?surfY-sz:surfY+sz,vy:0,gDir:gd6,walkSpd:0.3,sz:sz,alive:true,fr:Math.random()*100,type:6,shootT:999,
         patrolDir:-1,patrolOriginX:ex,patrolRange:25+Math.random()*20,
         dashState:'patrol',dashTimer:0,dashSpd:6+Math.random()*3,dashDir:-1,warnT:0});
+    } else if(eType===7){
+      // Shielder: walks with front shield, must stomp from above or hit from behind
+      const onCeil7=Math.random()<0.4;
+      const gd7=onCeil7?-1:1;
+      const surfY=gd7===1?H-plat.h:ceilSurfaceY(ex);
+      const sz=14;
+      enemies.push({x:ex,y:gd7===1?surfY-sz:surfY+sz,vy:0,gDir:gd7,walkSpd:0.25+Math.random()*0.3,sz:sz,alive:true,fr:Math.random()*100,type:7,shootT:999,
+        patrolDir:-1,patrolOriginX:ex,patrolRange:20+Math.random()*30,
+        shieldFacing:-1}); // shield faces left (toward player)
+    } else if(eType===8){
+      // Splitter: medium enemy that splits into 2 small ones when killed
+      const onCeil8=Math.random()<0.4;
+      const gd8=onCeil8?-1:1;
+      const surfY=gd8===1?H-plat.h:ceilSurfaceY(ex);
+      const sz=16;
+      enemies.push({x:ex,y:gd8===1?surfY-sz:surfY+sz,vy:0,gDir:gd8,walkSpd:0.2+Math.random()*0.3,sz:sz,alive:true,fr:Math.random()*100,type:8,shootT:999,
+        patrolDir:1,patrolOriginX:ex,patrolRange:25+Math.random()*35,
+        splitDone:false});
     } else {
-      const onCeil=Math.random()<0.3;
+      const onCeil=Math.random()<0.4;
       const gd=onCeil?-1:1;
       const surfY=gd===1?H-plat.h:ceilSurfaceY(ex);
       if(eType===0){
@@ -221,9 +241,12 @@ function trySpawnSpike(){
     const ceilHere=ceilPlats.find(p=>sx>=p.x&&sx<=p.x+p.w);
     if(!ceilHere){spikeCD=25+Math.floor(Math.random()*15);return;}
     spikeCD=80+Math.floor(Math.random()*60);
-    const sw=30+Math.random()*30;
     // Randomly choose floor or ceiling spike
     const isFloor=Math.random()<0.5;
+    // Clamp spike width to not exceed platform edges
+    const maxW=isFloor?(plat.x+plat.w-sx):(ceilHere.x+ceilHere.w-sx);
+    const sw=Math.min(30+Math.random()*30,Math.max(10,maxW));
+    if(sw<10){spikeCD=25;return;} // platform too narrow
     if(isFloor){
       spikes.push({x:sx,w:sw,h:H-plat.h,spikeH:22,phase:0,timer:0,state:'hidden',
         cycle:120+Math.floor(Math.random()*80),upTime:60+Math.floor(Math.random()*30),

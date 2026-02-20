@@ -765,6 +765,26 @@ function sfxEnemyDeath(type){
       o2.frequency.setValueAtTime(1500,t);o2.frequency.exponentialRampToValueAtTime(500,t+0.2);
       g2.gain.setValueAtTime(0.04,t+0.05);g2.gain.exponentialRampToValueAtTime(0.001,t+0.25);
       o2.start(t+0.05);o2.stop(t+0.27);
+    } else if(type===7){
+      // Shielder: metallic crash
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='square';
+      o.frequency.setValueAtTime(400,t);o.frequency.exponentialRampToValueAtTime(120,t+0.12);
+      g.gain.setValueAtTime(0.10,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.15);
+      o.start(t);o.stop(t+0.15);
+      const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
+      o2.connect(g2);g2.connect(sfxGain);o2.type='sine';
+      o2.frequency.setValueAtTime(800,t+0.05);o2.frequency.exponentialRampToValueAtTime(200,t+0.12);
+      g2.gain.setValueAtTime(0.05,t+0.05);g2.gain.exponentialRampToValueAtTime(0.001,t+0.14);
+      o2.start(t+0.05);o2.stop(t+0.15);
+    } else if(type===8){
+      // Splitter: squelch pop
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='sine';
+      o.frequency.setValueAtTime(300,t);o.frequency.exponentialRampToValueAtTime(600,t+0.06);
+      o.frequency.exponentialRampToValueAtTime(100,t+0.15);
+      g.gain.setValueAtTime(0.10,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+      o.start(t);o.stop(t+0.2);
     } else {
       // Default stomp
       const o=audioCtx.createOscillator(),g=audioCtx.createGain();
