@@ -461,11 +461,8 @@ function updateBossPhase(){
             emitParts(b.x,b.y-b.sz*b.gDir,12,'#ff3860',5,3);
             if(b.hp<=0){bossBruiserDefeat(b);}
           } else {
-            // Non-weak-point hit: bounce player upward with no damage
-            sfx('bounce');vibrate(10);shakeI=4;
-            player.vy=-JUMP_POWER*0.7*player.gDir;
-            player.grounded=false;
-            emitParts(player.x,player.y,6,'#ffffff',2,2);
+            // Non-weak-point hit: player takes damage on touch
+            takeDamage(player.x,player.y);
           }
         }
       }

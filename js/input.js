@@ -147,13 +147,17 @@ function handleInventoryChestTap(tapX,tapY){
   return true; // block taps during animation
 }
 function startInventoryChestOpen(){
+  // Gacha probabilities:
+  // Character: 8%, Secret cosmetic (rare): 7%, Normal cosmetic: 10%,
+  // 500 coins: 5%, 100 coins: 15%, 50 coins: 25%, 30 coins: 30%
   const roll=Math.random();
   let reward;
-  if(roll<0.10){
+  if(roll<0.08){
+    // Character (8%)
     const ci=Math.floor(Math.random()*CHARS.length);
     reward={type:'char',charIdx:ci,isNew:!isCharUnlocked(ci),bonusCoins:0};
-  } else if(roll<0.18){
-    // Rare cosmetic item from gacha (secret items only obtainable here)
+  } else if(roll<0.15){
+    // Secret (rare) cosmetic item (7%)
     const allRare=[];
     SHOP_ITEMS.skins.forEach(it=>{if(it.rarity==='rare')allRare.push({...it,tab:0});});
     SHOP_ITEMS.eyes.forEach(it=>{if(it.rarity==='rare')allRare.push({...it,tab:1});});
@@ -164,10 +168,25 @@ function startInventoryChestOpen(){
       ownedItems.push(ri.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));
       reward={type:'cosmetic',item:ri,isNew:true};
     } else {
+      reward={type:'coin',amount:500};
+    }
+  } else if(roll<0.25){
+    // Normal cosmetic item (10%)
+    const allNormal=[];
+    SHOP_ITEMS.skins.forEach(it=>{if(it.rarity!=='rare')allNormal.push({...it,tab:0});});
+    SHOP_ITEMS.eyes.forEach(it=>{if(it.rarity!=='rare')allNormal.push({...it,tab:1});});
+    SHOP_ITEMS.effects.forEach(it=>{if(it.rarity!=='rare')allNormal.push({...it,tab:2});});
+    const unownedNormal=allNormal.filter(it=>!ownsItem(it.id));
+    if(unownedNormal.length>0){
+      const ni=unownedNormal[Math.floor(Math.random()*unownedNormal.length)];
+      ownedItems.push(ni.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));
+      reward={type:'cosmetic',item:ni,isNew:true};
+    } else {
       reward={type:'coin',amount:100};
     }
-  } else if(roll<0.28){reward={type:'coin',amount:100};}
-  else if(roll<0.50){reward={type:'coin',amount:50};}
+  } else if(roll<0.30){reward={type:'coin',amount:500};}
+  else if(roll<0.45){reward={type:'coin',amount:100};}
+  else if(roll<0.70){reward={type:'coin',amount:50};}
   else{reward={type:'coin',amount:30};}
   chestOpen.phase='waiting';chestOpen.t=0;
   chestOpen.charIdx=reward.type==='char'?reward.charIdx:-1;
@@ -436,7 +455,7 @@ canvas.addEventListener('touchmove',e=>{
   // Shop scroll
   if(shopOpen){
     const dy2=t.clientY-touchStartY;touchStartY=t.clientY;
-    const items=shopTab===0?SHOP_ITEMS.skins:shopTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
+    const items=shopSorted(shopTab===0?SHOP_ITEMS.skins:shopTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects);
     const mH2=Math.min(500,H-30),listH2=mH2-140,totalH2=items.length*54;
     const maxS=Math.max(0,totalH2-listH2);
     shopScroll=Math.max(0,Math.min(maxS,shopScroll-dy2*2));touchMoved=true;return;
@@ -873,7 +892,7 @@ canvas.addEventListener('wheel',e=>{
   }
   if(shopOpen){
     e.preventDefault();
-    const items=shopTab===0?SHOP_ITEMS.skins:shopTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
+    const items=shopSorted(shopTab===0?SHOP_ITEMS.skins:shopTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects);
     const mH2=Math.min(500,H-30),listH2=mH2-140,totalH2=items.length*54;
     const maxS=Math.max(0,totalH2-listH2);
     shopScroll=Math.max(0,Math.min(maxS,shopScroll+e.deltaY*1.5));
@@ -951,7 +970,7 @@ function handleShopTouch(tx,ty){
   // Item rows - record pending tap (confirmed on touchend if no scroll)
   shopPendingTap=null;
   const listY=mY+90,listH=mH-140;
-  const items=shopTab===0?SHOP_ITEMS.skins:shopTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
+  const items=shopSorted(shopTab===0?SHOP_ITEMS.skins:shopTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects);
   const rowH=54;
   for(let i=0;i<items.length;i++){
     const iy=listY+i*rowH-shopScroll;
@@ -966,7 +985,7 @@ function confirmShopTap(){
   if(!shopPendingTap)return;
   const tab=shopPendingTap.tab,idx=shopPendingTap.idx;
   shopPendingTap=null;
-  const items=tab===0?SHOP_ITEMS.skins:tab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
+  const items=shopSorted(tab===0?SHOP_ITEMS.skins:tab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects);
   if(idx>=items.length)return;
   const item=items[idx];
   if(ownsItem(item.id)){
