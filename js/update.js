@@ -371,12 +371,31 @@ function update(dt){
       }
     }
 
+    // Abyss phase: score 6000+, occasionally force massive floor gaps
+    if(abyssPhase.cd>0)abyssPhase.cd--;
+    if(!abyssPhase.active&&abyssPhase.cd<=0&&score>=6000&&!bossPhase.active){
+      if(Math.random()<0.005){
+        abyssPhase.active=true;
+        abyssPhase.len=8+Math.floor(Math.random()*6); // 8-13 platforms of heavy gaps
+      }
+    }
+    // Gravity rush phase: score 5000+, occasionally force many gravity zones
+    if(gravRushPhase.cd>0)gravRushPhase.cd--;
+    if(!gravRushPhase.active&&gravRushPhase.cd<=0&&score>=5000&&!bossPhase.active){
+      if(Math.random()<0.005){
+        gravRushPhase.active=true;
+        gravRushPhase.len=6+Math.floor(Math.random()*5); // 6-10 rapid gravity zones
+      }
+    }
+
     let lastF=platforms[platforms.length-1];
     let lastC=ceilPlats[ceilPlats.length-1];
     while(lastF.x+lastF.w<W+300){
       const forceFloorGap=flipZone.active&&flipZone.type===0&&flipZone.len>0;
       generatePlatform(platforms,false,forceFloorGap);
       if(forceFloorGap){flipZone.len--;if(flipZone.len<=0){flipZone.active=false;flipZone.cd=120+Math.floor(Math.random()*100);}}
+      // Abyss phase: count down platforms generated
+      if(abyssPhase.active){abyssPhase.len--;if(abyssPhase.len<=0){abyssPhase.active=false;abyssPhase.cd=600+Math.floor(Math.random()*400);}}
       lastF=platforms[platforms.length-1];
     }
     while(lastC.x+lastC.w<W+300){
@@ -399,8 +418,8 @@ function update(dt){
       startBossPhase();
     }
     updateBossPhase();
-    // During boss prepare/active, cancel flip zones
-    if(bossPhase.active){flipZone.active=false;flipZone.cd=200;}
+    // During boss prepare/active, cancel flip zones and special phases
+    if(bossPhase.active){flipZone.active=false;flipZone.cd=200;abyssPhase.active=false;abyssPhase.cd=300;gravRushPhase.active=false;gravRushPhase.cd=300;}
   }
 
   // Physics
@@ -803,13 +822,12 @@ function update(dt){
         en.dashTimer--;
         if(en.dashTimer<=0){en.dashState='patrol';en.patrolOriginX=en.x;}
       }
-    } else if(en.type===7){
-      // Shielder: patrol like walker but with shield direction tracking
+    } else if(en.type===8){
+      // Splitter: patrol, detect player, then self-split into 2 small bouncing slimes
       en.x+=en.patrolDir*en.walkSpd*esm;
       en.patrolOriginX-=speed;
       if(en.x>en.patrolOriginX+en.patrolRange) en.patrolDir=-1;
       if(en.x<en.patrolOriginX-en.patrolRange) en.patrolDir=1;
-      en.shieldFacing=en.patrolDir; // shield faces movement direction
       if(en.gDir===1){
         const sy=floorSurfaceY(en.x);
         const aheadSy=floorSurfaceY(en.x+en.patrolDir*(en.sz+4));
@@ -821,22 +839,34 @@ function update(dt){
         if(sy>-100){en.y=sy+en.sz;en.vy=0;if(aheadSy<-100||aheadSy<sy-30)en.patrolDir*=-1;}
         else{en.vy=(en.vy||0)-GRAVITY;en.y+=en.vy;}
       }
-    } else if(en.type===8){
-      // Splitter: same patrol movement as walker
-      en.x+=en.patrolDir*en.walkSpd*esm;
+      // Detect player and self-split
+      if(!en.splitDone){
+        const sdx=player.x-en.x,sdy=player.y-en.y;
+        const sdist=Math.sqrt(sdx*sdx+sdy*sdy);
+        if(sdist<180){
+          en.splitDone=true;en.alive=false;
+          for(let si=0;si<2;si++){
+            const sdir=si===0?-1:1;
+            enemies.push({x:en.x+sdir*10,y:en.y,vy:en.gDir===1?-4:4,gDir:en.gDir,
+              walkSpd:0,sz:9,alive:true,fr:Math.random()*100,type:9,shootT:999,
+              bounceVy:en.gDir===1?-3.5:3.5,patrolOriginX:en.x+sdir*10});
+          }
+          sfx('shoot');emitParts(en.x,en.y,10,'#88cc44',4,3);
+          addPop(en.x,en.y-en.sz*en.gDir-10,'\u5206\u88C2!','#88cc44');
+        }
+      }
+    } else if(en.type===9){
+      // Mini slime (from splitter): bounces in place
+      const grav=GRAVITY*en.gDir;
+      en.vy+=grav;
+      en.y+=en.vy;
       en.patrolOriginX-=speed;
-      if(en.x>en.patrolOriginX+en.patrolRange) en.patrolDir=-1;
-      if(en.x<en.patrolOriginX-en.patrolRange) en.patrolDir=1;
       if(en.gDir===1){
         const sy=floorSurfaceY(en.x);
-        const aheadSy=floorSurfaceY(en.x+en.patrolDir*(en.sz+4));
-        if(sy<H+100){en.y=sy-en.sz;en.vy=0;if(aheadSy>H+100||aheadSy>sy+30)en.patrolDir*=-1;}
-        else{en.vy=(en.vy||0)+GRAVITY;en.y+=en.vy;}
+        if(en.y+en.sz>=sy&&sy<H+100){en.y=sy-en.sz;en.vy=en.bounceVy;}
       } else {
         const sy=ceilSurfaceY(en.x);
-        const aheadSy=ceilSurfaceY(en.x+en.patrolDir*(en.sz+4));
-        if(sy>-100){en.y=sy+en.sz;en.vy=0;if(aheadSy<-100||aheadSy<sy-30)en.patrolDir*=-1;}
-        else{en.vy=(en.vy||0)-GRAVITY;en.y+=en.vy;}
+        if(en.y-en.sz<=sy&&sy>-100){en.y=sy+en.sz;en.vy=en.bounceVy;}
       }
     } else {
       // Default movement (type 1 cannon and legacy)
@@ -882,23 +912,6 @@ function update(dt){
         player.face='happy';setTimeout(()=>{if(player.alive)player.face='normal';},300);
         return;
       }
-      // Shielder: frontal shield blocks non-stomp attacks
-      if(en.type===7){
-        const stompedSh=(en.gDir===1&&player.y<en.y-en.sz*0.2&&player.vy>=0)||(en.gDir===-1&&player.y>en.y+en.sz*0.2&&player.vy<=0);
-        if(!stompedSh){
-          // Check if hitting from shield side (front)
-          const hitFromFront=(player.x-en.x)*en.shieldFacing>0||(Math.abs(player.x-en.x)<en.sz*0.5);
-          if(hitFromFront){
-            // Shield deflect: bounce player away, no damage to either side
-            sfx('bounce');vibrate(10);shakeI=4;
-            player.vy=-JUMP_POWER*0.5*player.gDir;
-            player.grounded=false;
-            emitParts(en.x+en.shieldFacing*en.sz*0.6,en.y,6,'#4488ff',2,2);
-            addPop(en.x,en.y-en.sz*en.gDir-10,'\u30AC\u30FC\u30C9!','#4488ff');
-            return;
-          }
-        }
-      }
       // Fast kill trait (Flame): destroy on contact at high speed
       const fkill=ct().fastKill&&speed>4;
       // Tire roll kill: grounded tire destroys ground-based enemies by rolling into them
@@ -907,18 +920,6 @@ function update(dt){
       const stomped=fkill||tireRoll||(en.gDir===1&&player.y<en.y-en.sz*0.2&&player.vy>=0)||(en.gDir===-1&&player.y>en.y+en.sz*0.2&&player.vy<=0);
       if(stomped){
         en.alive=false;
-        // Splitter: spawn 2 smaller enemies on death
-        if(en.type===8&&!en.splitDone){
-          en.splitDone=true;
-          for(let si=0;si<2;si++){
-            const sdir=si===0?-1:1;
-            enemies.push({x:en.x+sdir*12,y:en.y,vy:en.gDir===1?-3:3,gDir:en.gDir,
-              walkSpd:0.5+Math.random()*0.3,sz:9,alive:true,fr:Math.random()*100,type:0,shootT:999,
-              patrolDir:sdir,patrolOriginX:en.x+sdir*12,patrolRange:20+Math.random()*15});
-          }
-          sfx('shoot');emitParts(en.x,en.y,10,'#88cc44',4,3);
-          addPop(en.x,en.y-en.sz*en.gDir-10,'\u5206\u88C2!','#88cc44');
-        }
         // Tire: crush without bouncing; others: bounce off enemy
         if(isTire&&(tireRoll||player.grounded)){
           player.vy=0;

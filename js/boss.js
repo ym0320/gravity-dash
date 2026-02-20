@@ -1605,10 +1605,6 @@ function debugSpawnEnemy(){
     enemies.push({x:ex,y:floorY-14,vy:0,gDir:1,walkSpd:0.3,sz:14,alive:true,fr:Math.random()*100,type:6,shootT:999,
       patrolDir:-1,patrolOriginX:ex,patrolRange:25+Math.random()*20,
       dashState:'patrol',dashTimer:0,dashSpd:6+Math.random()*3,dashDir:-1,warnT:0});
-  } else if(eType===7){
-    enemies.push({x:ex,y:floorY-14,vy:0,gDir:1,walkSpd:0.25+Math.random()*0.3,sz:14,alive:true,fr:Math.random()*100,type:7,shootT:999,
-      patrolDir:-1,patrolOriginX:ex,patrolRange:20+Math.random()*30,
-      shieldFacing:-1});
   } else if(eType===8){
     enemies.push({x:ex,y:floorY-16,vy:0,gDir:1,walkSpd:0.2+Math.random()*0.3,sz:16,alive:true,fr:Math.random()*100,type:8,shootT:999,
       patrolDir:1,patrolOriginX:ex,patrolRange:25+Math.random()*35,
