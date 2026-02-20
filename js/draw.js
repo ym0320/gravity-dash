@@ -1106,12 +1106,12 @@ function drawDasher(en){
   gr.addColorStop(0,ds==='dash'?'#ff2222':'#e63946');gr.addColorStop(1,ds==='dash'?'#aa0000':'#9d0208');
   ctx.fillStyle=gr;
   ctx.beginPath();ctx.arc(0,-s*0.1,s*0.85,0,6.28);ctx.fill();
-  // Speed lines during dash
+  // Speed lines during dash (behind the dash direction)
   if(ds==='dash'){
     ctx.strokeStyle='#ff444466';ctx.lineWidth=2;
     for(let i=0;i<3;i++){
       const ly=-s*0.5+i*s*0.4;
-      ctx.beginPath();ctx.moveTo(en.dashDir*s*1.2,ly);ctx.lineTo(en.dashDir*s*2.5,ly);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(-en.dashDir*s*1.2,ly);ctx.lineTo(-en.dashDir*s*2.5,ly);ctx.stroke();
     }
   }
   // Ears (pointed)
@@ -1779,16 +1779,12 @@ function drawTitle(){
 
   // Player name
   if(playerName){
-    ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.textAlign='center';
-    ctx.fillText(playerName,W/2,H*0.18+86);
+    ctx.fillStyle='#fff8';ctx.font='bold 14px monospace';ctx.textAlign='center';
+    ctx.fillText(playerName,W/2,H*0.18+92);
   }
 
-  // Wallet display
-  ctx.fillStyle='#ffd700';ctx.font='bold 13px monospace';ctx.textAlign='center';
-  ctx.fillText('\u25CF '+walletCoins,W/2,H*0.38);
-
   // Character selection: 2 rows x 3 columns
-  ctx.fillStyle='#fff8';ctx.font='bold 13px monospace';
+  ctx.fillStyle='#fff8';ctx.font='bold 13px monospace';ctx.textAlign='center';
   ctx.fillText('\u30AD\u30E3\u30E9\u30AF\u30BF\u30FC\u9078\u629E',W/2,H*0.42);
 
   const cols=3,rows=2;
@@ -1813,11 +1809,17 @@ function drawTitle(){
       rr(cx,cy,charW,charH,6);ctx.fill();
 
       if(locked){
-        // Secret: hidden character, no silhouette shown
-        ctx.fillStyle='#ffffff15';
-        ctx.beginPath();ctx.arc(cx+charW/2,cy+charH/2-6,16,0,6.28);ctx.fill();
-        ctx.fillStyle='#fff4';ctx.font='bold 22px monospace';ctx.textAlign='center';
-        ctx.fillText('?',cx+charW/2,cy+charH/2+2);
+        // Secret: show character silhouette
+        ctx.save();
+        ctx.globalAlpha=0.25;
+        drawCharacter(cx+charW/2,cy+charH/2-8,idx,14,0,1,'normal',0,false);
+        ctx.restore();
+        // Dark overlay tint
+        ctx.fillStyle='#00000066';
+        ctx.beginPath();ctx.arc(cx+charW/2,cy+charH/2-8,16,0,6.28);ctx.fill();
+        // Lock icon
+        ctx.fillStyle='#fff5';ctx.font='bold 14px monospace';ctx.textAlign='center';
+        ctx.fillText('\uD83D\uDD12',cx+charW/2,cy+charH/2+1);
         ctx.fillStyle='#fff3';ctx.font='8px monospace';
         ctx.fillText('SECRET',cx+charW/2,cy+charH-4);
       } else {
@@ -1846,13 +1848,19 @@ function drawTitle(){
 
   // Stats panel (between character grid and mode buttons)
   const statsY=hintY+16;
-  if(highScore>0||played>0){
-    const statsPanelH=highScore>0&&played>0?36:22;
+  {
+    let statLines=0;
+    if(highScore>0) statLines++;
+    statLines++; // coins always shown
+    if(played>0) statLines++;
+    const statsPanelH=statLines*16+6;
     ctx.fillStyle='rgba(0,0,0,0.35)';rr(W/2-100,statsY,200,statsPanelH,8);ctx.fill();
     ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;rr(W/2-100,statsY,200,statsPanelH,8);ctx.stroke();
+    let lineIdx=0;
+    if(highScore>0){ctx.fillStyle='#ffd700';ctx.font='bold 13px monospace';ctx.textAlign='center';ctx.fillText('\u30D9\u30B9\u30C8: '+highScore,W/2,statsY+16+lineIdx*16);lineIdx++;}
+    ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';ctx.textAlign='center';ctx.fillText('\u25CF '+walletCoins,W/2,statsY+16+lineIdx*16);lineIdx++;
+    if(played>0){ctx.fillStyle='#fff3';ctx.font='11px monospace';ctx.fillText('\u30D7\u30EC\u30A4\u56DE\u6570: '+played,W/2,statsY+16+lineIdx*16);}
   }
-  if(highScore>0){ctx.fillStyle='#ffd700';ctx.font='bold 13px monospace';ctx.textAlign='center';ctx.fillText('\u30D9\u30B9\u30C8: '+highScore,W/2,statsY+16);}
-  if(played>0){ctx.fillStyle='#fff3';ctx.font='11px monospace';ctx.fillText('\u30D7\u30EC\u30A4\u56DE\u6570: '+played,W/2,statsY+(highScore>0?32:16));}
 
   // Endless mode button
   const ebx=btnStartX;
@@ -1860,14 +1868,14 @@ function drawTitle(){
   ctx.strokeStyle='#00e5ff';ctx.lineWidth=1.5;rr(ebx,btnY,btnW,btnH,8);ctx.stroke();
   ctx.fillStyle='#00e5ff';ctx.font='bold 13px monospace';ctx.textAlign='center';
   ctx.fillText('エンドレス',ebx+btnW/2,btnY+24);
-  // Stage mode button
+  // Stage mode button (disabled - coming soon)
   const sbx=btnStartX+btnW+btnGap;
-  ctx.fillStyle='#ffd70022';rr(sbx,btnY,btnW,btnH,8);ctx.fill();
-  ctx.strokeStyle='#ffd700';ctx.lineWidth=1.5;rr(sbx,btnY,btnW,btnH,8);ctx.stroke();
-  ctx.fillStyle='#ffd700';ctx.font='bold 13px monospace';
-  ctx.fillText('ステージ',sbx+btnW/2,btnY+24);
-  const ts=getTotalStars();
-  if(ts>0){ctx.fillStyle='#ffd700aa';ctx.font='9px monospace';ctx.fillText('★'+ts,sbx+btnW/2,btnY+36);}
+  ctx.fillStyle='#ffffff08';rr(sbx,btnY,btnW,btnH,8);ctx.fill();
+  ctx.strokeStyle='#ffffff33';ctx.lineWidth=1.5;rr(sbx,btnY,btnW,btnH,8);ctx.stroke();
+  ctx.fillStyle='#ffffff44';ctx.font='bold 13px monospace';
+  ctx.fillText('\u30B9\u30C6\u30FC\u30B8',sbx+btnW/2,btnY+20);
+  ctx.fillStyle='#ffffff33';ctx.font='9px monospace';
+  ctx.fillText('\u8FD1\u65E5\u516C\u958B',sbx+btnW/2,btnY+34);
 
   ctx.fillStyle='#667';ctx.font='10px monospace';ctx.textAlign='center';
   ctx.fillText('\u30BF\u30C3\u30D7=\u30B8\u30E3\u30F3\u30D7 / \u30B9\u30EF\u30A4\u30D7=\u91CD\u529B\u53CD\u8EE2',W/2,H*0.93);
@@ -3432,7 +3440,7 @@ function drawShop(){
   const listY=mY+90,listH=mH-140;
   const items=shopTab===0?SHOP_ITEMS.skins:shopTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
   const rowH=54;
-  ctx.save();ctx.beginPath();ctx.rect(mX,listY,mW,listH);ctx.clip();
+  ctx.save();ctx.beginPath();ctx.rect(mX+1,listY,mW-2,listH);ctx.clip();
   for(let i=0;i<items.length;i++){
     const item=items[i];
     const iy=listY+i*rowH-shopScroll;
@@ -3461,15 +3469,15 @@ function drawShop(){
     } else {
     // Preview
     if(shopTab===0){
-      // Skin color swatch
+      // Skin color swatch (border as filled ring to avoid clip bleed)
+      ctx.fillStyle=item.col2==='rainbow'?'#888':item.col2;
+      ctx.beginPath();ctx.arc(mX+33,iy+rowH/2,14,0,6.28);ctx.fill();
       if(item.col==='rainbow'){
         const rg=ctx.createLinearGradient(mX+20,iy+10,mX+46,iy+36);
         rg.addColorStop(0,'#ff0000');rg.addColorStop(0.33,'#00ff00');rg.addColorStop(0.66,'#0000ff');rg.addColorStop(1,'#ff0000');
         ctx.fillStyle=rg;
       } else ctx.fillStyle=item.col;
-      ctx.beginPath();ctx.arc(mX+33,iy+rowH/2,13,0,6.28);ctx.fill();
-      ctx.strokeStyle=item.col2==='rainbow'?'#888':item.col2;ctx.lineWidth=2;
-      ctx.beginPath();ctx.arc(mX+33,iy+rowH/2,13,0,6.28);ctx.stroke();
+      ctx.beginPath();ctx.arc(mX+33,iy+rowH/2,12,0,6.28);ctx.fill();
     } else if(shopTab===1){
       ctx.fillStyle='#fff';ctx.font='20px monospace';ctx.textAlign='center';
       const eyeIcons={smile:'\u263A',angry:'\uD83D\uDE20',star:'\u2605',heart:'\u2665',fire:'\uD83D\uDD25',cat:'\uD83D\uDC31',spiral:'\uD83C\uDF00',cyber:'\u26A1',diamond:'\uD83D\uDC8E',void:'\uD83D\uDD73'};

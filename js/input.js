@@ -798,9 +798,9 @@ function handleTitleTouch(tx,ty){
   if(tx>=ebx&&tx<=ebx+btnW&&ty>=btnY&&ty<=btnY+btnH){
     startCountdown('endless');return;
   }
-  // Stage mode button -> go to stage selection screen
+  // Stage mode button (disabled - coming soon)
   if(tx>=sbx&&tx<=sbx+btnW&&ty>=btnY&&ty<=btnY+btnH){
-    sfx('select');gameMode='stage';state=ST.STAGE_SEL;stageSelScroll=0;stageSelTarget=0;titleTouchPos=null;return;
+    sfx('cancel');vibrate(10);return;
   }
 }
 function handleDebugTouch(tx,ty){

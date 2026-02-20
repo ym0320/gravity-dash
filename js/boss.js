@@ -461,13 +461,9 @@ function updateBossPhase(){
             emitParts(b.x,b.y-b.sz*b.gDir,12,'#ff3860',5,3);
             if(b.hp<=0){bossBruiserDefeat(b);}
           } else {
-            // Non-weak-point hit: bounce player away with no damage
+            // Non-weak-point hit: bounce player upward with no damage
             sfx('bounce');vibrate(10);shakeI=4;
-            const bx=player.x-b.x,by=player.y-b.y;
-            const bd=Math.sqrt(bx*bx+by*by)||1;
-            player.vy=(-by/bd)*JUMP_POWER*0.6*player.gDir;
-            const pushX=(bx/bd)*4;
-            player.x+=pushX;
+            player.vy=-JUMP_POWER*0.7*player.gDir;
             player.grounded=false;
             emitParts(player.x,player.y,6,'#ffffff',2,2);
           }
