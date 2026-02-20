@@ -29,6 +29,49 @@ function update(dt){
     return;
   }
 
+  if(state===ST.LOGIN){
+    loginT+=0.03;loginCursorBlink+=0.06;
+    stars.forEach(s=>{s.x-=s.sp*0.2;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
+    return;
+  }
+  if(state===ST.TUTORIAL){
+    tutStepT++;
+    const step=TUT_STEPS[tutStep];
+    // Animate background
+    stars.forEach(s=>{s.x-=s.sp*speed*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
+    mtns.forEach(m=>{m.off-=m.sp*speed*0.15;if(m.off<-500)m.off+=500;});
+    // Physics for player
+    if(!player.grounded){
+      player.vy+=GRAVITY*player.gDir;
+      player.y+=player.vy;
+    }
+    // Floor/ceiling collision
+    const floorY2=H-GROUND_H-PLAYER_R;
+    const ceilY2=GROUND_H+PLAYER_R;
+    if(player.gDir===1&&player.y>=floorY2){player.y=floorY2;player.vy=0;player.grounded=true;}
+    if(player.gDir===-1&&player.y<=ceilY2){player.y=ceilY2;player.vy=0;player.grounded=true;}
+    // Smooth rotation
+    const rd=player.rotTarget-player.rot;
+    player.rot+=rd*0.15;
+    // Spawn tutorial enemies for bomb/invincible steps
+    if(step&&(step.type==='bomb'||step.type==='invincible')&&!tutEnemySpawned&&tutStepT>30){
+      tutEnemySpawned=true;
+      for(let i=0;i<4;i++){
+        const ey=H-GROUND_H-20-Math.random()*60;
+        enemies.push({x:W*0.5+i*50,y:ey,vy:0,gDir:1,sz:PLAYER_R*2,alive:true,type:0,
+          shootT:999,fr:Math.random()*100,boss:false});
+      }
+    }
+    // Update enemy positions (keep them stationary for tutorial)
+    enemies.forEach(en=>{if(!en.alive)return;en.fr+=0.05;});
+    // Particles
+    parts=parts.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.07;p.vx*=0.99;p.life--;return p.life>0;});
+    pops=pops.filter(p=>{p.y-=1.2;p.life--;return p.life>0;});
+    if(bombFlashT>0)bombFlashT--;
+    // Item effects (for invincible)
+    if(itemEff.invincible>0)itemEff.invincible--;
+    return;
+  }
   if(state===ST.STAGE_SEL){frame++;return;}
   if(state===ST.TITLE){
     titleT+=0.03;
