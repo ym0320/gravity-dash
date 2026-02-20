@@ -1,5 +1,5 @@
 'use strict';
-let touchStartY=0,touchStartX=0,touchStartT=0,touchMoved=false;
+let touchStartY=0,touchStartX=0,touchStartT=0,touchMoved=false,touchBtnUsed=false;
 // Character modal (long-press on title to show details + animated demo)
 let charModal={show:false,idx:0,animT:0};
 let longPressTimer=null,longPressFired=false,titleTouchPos=null;
@@ -295,7 +295,7 @@ canvas.addEventListener('touchstart',e=>{
   e.preventDefault();initAudio();
   const t=e.touches[0];
   const p=canvasXY(t.clientX,t.clientY);
-  touchStartY=t.clientY;touchStartX=t.clientX;touchStartT=Date.now();touchMoved=false;
+  touchStartY=t.clientY;touchStartX=t.clientX;touchStartT=Date.now();touchMoved=false;touchBtnUsed=false;
   // Ranking modal intercepts all input when open
   if(rankingOpen){handleRankingTouch(p.x,p.y);return;}
   // Debug menu intercepts all input when open
@@ -318,9 +318,9 @@ canvas.addEventListener('touchstart',e=>{
     if(hitQuitBtn(p.x,p.y)){sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     return;
   }
-  if(state===ST.PLAY&&hitInvBtn(p.x,p.y)){useInvincible();return;}
-  if(state===ST.PLAY&&hitBombBtn(p.x,p.y)){useBomb();return;}
-  if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');state=ST.PAUSE;return;}
+  if(state===ST.PLAY&&hitInvBtn(p.x,p.y)){useInvincible();touchBtnUsed=true;return;}
+  if(state===ST.PLAY&&hitBombBtn(p.x,p.y)){useBomb();touchBtnUsed=true;return;}
+  if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');state=ST.PAUSE;touchBtnUsed=true;return;}
   if(state===ST.TITLE){
     // Shop modal intercepts all input when open
     if(shopOpen){handleShopTouch(p.x,p.y);titleTouchPos=null;return;}
@@ -436,15 +436,15 @@ canvas.addEventListener('touchend',e=>{
     if(touchMoved&&Math.abs(tdy)>30){
       // Swipe in tutorial
       if(cp.type==='flip_up'&&tdy<0&&player.gDir===1){
-        player.gDir=-1;player.vy=-2;sfx('flip');vibrate(20);
+        player.gDir=-1;player.vy=-6;sfx('flip');vibrate(20);
         player.face='flip';setTimeout(()=>{if(player.alive)player.face='normal';},250);
         emitParts(player.x,player.y,10,tc('ply'),3,2.5);player.rotTarget-=Math.PI;
-        tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,1000);
+        tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,600);
       } else if(cp.type==='flip_down'&&tdy>0&&player.gDir===-1){
-        player.gDir=1;player.vy=2;sfx('flip');vibrate(20);
+        player.gDir=1;player.vy=6;sfx('flip');vibrate(20);
         player.face='flip';setTimeout(()=>{if(player.alive)player.face='normal';},250);
         emitParts(player.x,player.y,10,tc('ply'),3,2.5);player.rotTarget+=Math.PI;
-        tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,1000);
+        tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,600);
       } else if(cp.type==='double_flip'){
         if(tdy<0&&player.gDir===1){
           player.gDir=-1;player.vy=-4;sfx('flip');vibrate(20);player.grounded=false;
@@ -456,13 +456,14 @@ canvas.addEventListener('touchend',e=>{
           tutFlipCount++;
         }
         if(tutFlipCount>=2){
-          tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,1200);
+          tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,700);
         }
       }
     }
     return;
   }
   if(state!==ST.PLAY||state===ST.PAUSE)return;
+  if(touchBtnUsed)return; // button was pressed in touchstart, don't also jump
   const dt=Date.now()-touchStartT;
   const t=e.changedTouches[0];
   const dy=t.clientY-touchStartY;
@@ -588,36 +589,41 @@ document.addEventListener('keydown',e=>{
   // Tutorial keyboard
   if(state===ST.TUTORIAL){
     e.preventDefault();initAudio();
-    if(e.code==='Escape'){tutorialDone=true;localStorage.setItem('gd5tutorialDone','1');state=ST.TITLE;switchBGM('title');return;}
+    if(e.code==='Escape'){tutorialDone=true;localStorage.setItem('gd5tutorialDone','1');state=ST.TITLE;switchBGM('title');tutWarpPhase='';return;}
+    // Welcome screen: any key to start warp
+    if(tutWarpPhase==='welcome'&&tutWarpT>30&&(e.code==='Space'||e.code==='Enter')){
+      sfx('select');vibrate([15,10,30]);tutWarpPhase='warp';tutWarpT=0;return;
+    }
+    if(tutWarpPhase==='warp')return;
     if(tutPhase!=='wait'||tutStep>=TUT_CHECKPOINTS.length)return;
     const cp=TUT_CHECKPOINTS[tutStep];
     if(cp.type==='jump'&&(e.code==='Space'||e.code==='ArrowUp')&&player.grounded){
       player.vy=player.gDir===1?-JUMP_POWER:JUMP_POWER;player.grounded=false;sfx('jump');
-      tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,800);return;
+      tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,500);return;
     }
     if(cp.type==='flip_up'&&e.code==='ArrowUp'&&player.gDir===1){
-      player.gDir=-1;player.vy=-2;sfx('flip');vibrate(20);player.rotTarget-=Math.PI;
+      player.gDir=-1;player.vy=-6;sfx('flip');vibrate(20);player.rotTarget-=Math.PI;
       emitParts(player.x,player.y,10,tc('ply'),3,2.5);
-      tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,1000);return;
+      tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,600);return;
     }
     if(cp.type==='flip_down'&&e.code==='ArrowDown'&&player.gDir===-1){
-      player.gDir=1;player.vy=2;sfx('flip');vibrate(20);player.rotTarget+=Math.PI;
+      player.gDir=1;player.vy=6;sfx('flip');vibrate(20);player.rotTarget+=Math.PI;
       emitParts(player.x,player.y,10,tc('ply'),3,2.5);
-      tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,1000);return;
+      tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,600);return;
     }
     if(cp.type==='double_flip'){
       if(e.code==='ArrowUp'&&player.gDir===1){
-        player.gDir=-1;player.vy=-4;sfx('flip');player.grounded=false;player.rotTarget-=Math.PI;
+        player.gDir=-1;player.vy=-6;sfx('flip');player.grounded=false;player.rotTarget-=Math.PI;
         emitParts(player.x,player.y,10,tc('ply'),3,2.5);tutFlipCount++;
       } else if(e.code==='ArrowDown'&&player.gDir===-1){
-        player.gDir=1;player.vy=4;sfx('flip');player.grounded=false;player.rotTarget+=Math.PI;
+        player.gDir=1;player.vy=6;sfx('flip');player.grounded=false;player.rotTarget+=Math.PI;
         emitParts(player.x,player.y,10,tc('ply'),3,2.5);tutFlipCount++;
       }
-      if(tutFlipCount>=2){tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,1200);}
+      if(tutFlipCount>=2){tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,700);}
       return;
     }
     if(cp.type==='bomb'&&(e.code==='KeyB'||e.code==='KeyX')&&bombCount>0){
-      useBomb();tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,1200);return;
+      useBomb();tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,700);return;
     }
     return;
   }
@@ -998,72 +1004,82 @@ loginBtn.addEventListener('click',()=>{
 
 // ===== TUTORIAL (course-based) =====
 const TUT_CHECKPOINTS=[
-  {dist:250,type:'jump',msg:'障害物をジャンプで\n飛び越えよう！',sub:'画面をタップ！',icon:'tap'},
-  {dist:950,type:'flip_up',msg:'重力を反転して\n天井へ移動！',sub:'上にスワイプ！',icon:'swipe_up'},
-  {dist:1700,type:'flip_down',msg:'重力を戻して\n地面へ！',sub:'下にスワイプ！',icon:'swipe_down'},
-  {dist:2350,type:'double_flip',msg:'空中で重力を\n2回切り替えよう！',sub:'↑スワイプ → ↓スワイプ',icon:'double'},
-  {dist:3000,type:'bomb',msg:'ボムで敵を\n一掃しよう！',sub:'ボムボタンをタップ！',icon:'bomb'},
+  {dist:120,type:'jump',msg:'障害物をジャンプで\n飛び越えよう！',sub:'画面をタップ！',icon:'tap'},
+  {dist:350,type:'flip_up',msg:'重力を反転して\n天井へ移動！',sub:'上にスワイプ！',icon:'swipe_up'},
+  {dist:580,type:'flip_down',msg:'重力を戻して\n地面へ！',sub:'下にスワイプ！',icon:'swipe_down'},
+  {dist:810,type:'double_flip',msg:'空中で重力を\n2回切り替えよう！',sub:'↑スワイプ → ↓スワイプ',icon:'double'},
+  {dist:1050,type:'bomb',msg:'ボムで敵を\n一掃しよう！',sub:'ボムボタンをタップ！',icon:'bomb'},
 ];
 function buildTutorialCourse(){
   tutCoursePlats=[];tutCourseCeil=[];tutCourseSpikes=[];
-  const floorY=H-GROUND_H;
-  // Floor platforms
-  tutCoursePlats.push({x:0,w:450,h:GROUND_H});
-  // Spike obstacle for jump
-  tutCourseSpikes.push({x:420,w:36,h:28});
-  tutCoursePlats.push({x:500,w:700,h:GROUND_H});
-  // Ceiling for flip-up section
-  tutCourseCeil.push({x:950,w:900,h:GROUND_H});
-  tutCoursePlats.push({x:1200,w:100,h:GROUND_H}); // small floor ledge
-  // Floor for flip-down and beyond
-  tutCoursePlats.push({x:1850,w:900,h:GROUND_H});
-  tutCourseCeil.push({x:1850,w:900,h:GROUND_H});
-  // Bomb section
-  tutCoursePlats.push({x:2900,w:800,h:GROUND_H});
-  tutCourseCeil.push({x:2900,w:800,h:GROUND_H});
+  // Continuous floor from start through jump section
+  tutCoursePlats.push({x:-50,w:280,h:GROUND_H}); // floor before spike
+  // Spike obstacle at dist~120 (player at W*0.25 so spike world-x = dist + some offset ahead)
+  tutCourseSpikes.push({x:180,w:30,h:24});
+  tutCoursePlats.push({x:220,w:250,h:GROUND_H}); // floor after spike, up to flip-up area
+  // Flip-up: floor ends, ceiling begins - player must flip to ceiling
+  // Ceiling for flip-up section (starts at dist~350 area, continuous)
+  tutCourseCeil.push({x:350,w:400,h:GROUND_H});
+  // Floor gap here forces flip-up; add safety floor far below covered by bounds check
+  // Flip-down: ceiling ends, floor resumes - player must flip back down
+  tutCoursePlats.push({x:580,w:400,h:GROUND_H}); // floor resumes for flip-down landing
+  tutCourseCeil.push({x:580,w:400,h:GROUND_H}); // ceiling also present for double-flip
+  // Double-flip section: both floor and ceiling present for bouncing
+  tutCoursePlats.push({x:980,w:300,h:GROUND_H}); // extended floor through bomb section
+  // Bomb section: floor with enemies walking
+  tutCoursePlats.push({x:1000,w:500,h:GROUND_H});
+  tutCourseCeil.push({x:1000,w:500,h:GROUND_H});
 }
 function startTutorial(){
   reset();
   state=ST.TUTORIAL;
   tutStep=0;tutStepT=0;tutDone=false;tutEnemySpawned=false;
-  tutScrollX=0;tutSpeed=0.8;tutWaiting=false;
+  tutScrollX=0;tutSpeed=2.0;tutWaiting=false;
   tutPhase='scroll';tutSuccessT=0;tutFlipCount=0;
+  tutWarpT=0;tutWarpPhase='';
   bombCount=0;invCount=0;
   buildTutorialCourse();
   player.x=W*0.25;player.gDir=1;player.vy=0;
   player.y=H-GROUND_H-PLAYER_R;player.grounded=true;
-  speed=0.8;
+  speed=2.0;
   switchBGM('title');
 }
 function tutAdvance(){
-  tutPhase='scroll';tutSpeed=0.8;tutWaiting=false;
+  tutPhase='scroll';tutSpeed=2.0;tutWaiting=false;
   tutStep++;tutStepT=0;tutDone=false;tutEnemySpawned=false;tutFlipCount=0;
   if(tutStep>=TUT_CHECKPOINTS.length){
     tutorialDone=true;localStorage.setItem('gd5tutorialDone','1');
-    // Show completion briefly then go to title
+    // Show welcome screen - wait for tap to start warp transition
     tutPhase='transition';tutSuccessT=0;
-    setTimeout(()=>{state=ST.TITLE;switchBGM('title');},2000);
+    tutWarpT=0;tutWarpPhase='welcome';
   }
 }
 function handleTutorialTouch(tx,ty){
   // Skip button
-  if(tx>=W-64&&tx<=W-8&&ty>=safeTop+4&&ty<=safeTop+28){
+  if(tutWarpPhase!=='warp'&&tx>=W-64&&tx<=W-8&&ty>=safeTop+4&&ty<=safeTop+28){
     sfx('select');tutorialDone=true;localStorage.setItem('gd5tutorialDone','1');
     state=ST.TITLE;switchBGM('title');return;
   }
+  // Welcome screen: tap to start warp
+  if(tutWarpPhase==='welcome'&&tutWarpT>30){
+    sfx('select');vibrate([15,10,30]);
+    tutWarpPhase='warp';tutWarpT=0;
+    return;
+  }
+  if(tutWarpPhase==='warp')return; // block input during warp
   if(tutPhase==='success'){return;} // wait for auto-advance
   if(tutStep>=TUT_CHECKPOINTS.length)return;
   const cp=TUT_CHECKPOINTS[tutStep];
   if(tutPhase!=='wait')return; // only accept input when waiting
   // Bomb: hit test on button
   if(cp.type==='bomb'){
-    if(hitBombBtn(tx,ty)&&bombCount>0){useBomb();tutDone=true;tutPhase='success';tutSuccessT=0;sfx('item');setTimeout(tutAdvance,1200);}
+    if(hitBombBtn(tx,ty)&&bombCount>0){useBomb();tutDone=true;tutPhase='success';tutSuccessT=0;sfx('item');setTimeout(tutAdvance,700);}
     return;
   }
   // Jump: tap anywhere
   if(cp.type==='jump'&&player.grounded){
     player.vy=player.gDir===1?-JUMP_POWER:JUMP_POWER;player.grounded=false;
-    sfx('jump');tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,800);
+    sfx('jump');tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,500);
     return;
   }
 }

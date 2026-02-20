@@ -438,19 +438,21 @@ function playFeverBGM(){
   feverTimer=setTimeout(playFeverBGM,110);
 }
 
-// Score-based play BGM selection
+// Speed-linked play BGM selection (uses effective distance from speed reset point)
 function getPlayBGM(){
-  if(score>=4000)return BGM_PLAY5;
-  if(score>=3000)return BGM_PLAY4;
-  if(score>=2000)return BGM_PLAY3;
-  if(score>=1000)return BGM_PLAY2;
+  const eDist=dist-speedOffset;
+  if(eDist>=4000)return BGM_PLAY5;
+  if(eDist>=3000)return BGM_PLAY4;
+  if(eDist>=2000)return BGM_PLAY3;
+  if(eDist>=1000)return BGM_PLAY2;
   return BGM_PLAY1;
 }
 function getPlayBGMType(){
-  if(score>=4000)return'play5';
-  if(score>=3000)return'play4';
-  if(score>=2000)return'play3';
-  if(score>=1000)return'play2';
+  const eDist=dist-speedOffset;
+  if(eDist>=4000)return'play5';
+  if(eDist>=3000)return'play4';
+  if(eDist>=2000)return'play3';
+  if(eDist>=1000)return'play2';
   return'play1';
 }
 
@@ -1073,6 +1075,8 @@ let tutFlipCount=0; // for double-flip step
 let tutCoursePlats=[]; // generated floor platforms for tutorial
 let tutCourseCeil=[]; // generated ceiling platforms
 let tutCourseSpikes=[]; // spike obstacles
+let tutWarpT=0; // warp transition timer (0=inactive, >0=animating)
+let tutWarpPhase=''; // 'welcome','warp' - welcome screen then warp animation
 let countdownT=0; // countdown timer (frames, counts down from 180 = 3 seconds)
 let score=0,highScore=parseInt(localStorage.getItem('gd5hi')||'0');
 let newHi=false,speed=SPEED_INIT,frame=0,deadT=0,titleT=0;
