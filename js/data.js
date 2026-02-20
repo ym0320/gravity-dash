@@ -1077,6 +1077,8 @@ let tutCourseCeil=[]; // generated ceiling platforms
 let tutCourseSpikes=[]; // spike obstacles
 let tutWarpT=0; // warp transition timer (0=inactive, >0=animating)
 let tutWarpPhase=''; // 'welcome','warp' - welcome screen then warp animation
+let tutFreezePlayer=false; // freeze player mid-air during double-flip
+let screenFadeIn=0; // white overlay fade-in timer for screen transitions
 let countdownT=0; // countdown timer (frames, counts down from 180 = 3 seconds)
 let score=0,highScore=parseInt(localStorage.getItem('gd5hi')||'0');
 let newHi=false,speed=SPEED_INIT,frame=0,deadT=0,titleT=0;

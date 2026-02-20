@@ -101,8 +101,8 @@ function drawTutorialOverlay(){
       return;
     }
     if(tutWarpPhase==='warp'){
-      // RPG-style warp/suction transition
-      const t=tutWarpT,maxT=90;
+      // RPG-style warp/suction transition (slow and dramatic)
+      const t=tutWarpT,maxT=150;
       const prog=Math.min(1,t/maxT);
       // Radial suction effect: everything gets pulled to center
       ctx.save();
@@ -194,8 +194,13 @@ function drawTutorialOverlay(){
       ctx.fillStyle='#34d399aa';ctx.font='12px monospace';ctx.textAlign='center';
       ctx.fillText('次のステップへ...',W/2,boxY+80);
     } else {
+      // Double-flip sub-step: override message for second flip
+      let msgText=cp.msg,subText=cp.sub;
+      if(cp.type==='double_flip'&&tutFlipCount>=1){
+        msgText='そのまま重力を\n戻そう！';subText='↓ 下にスワイプ！';
+      }
       // Main message (supports \n)
-      const lines=cp.msg.split('\n');
+      const lines=msgText.split('\n');
       const fontSize=18;
       ctx.fillStyle='#ffd700';ctx.font='bold '+fontSize+'px monospace';ctx.textAlign='center';
       const startY=boxY+32+(lines.length===1?8:0);
@@ -209,7 +214,7 @@ function drawTutorialOverlay(){
       const subPulse=Math.sin(tutStepT*0.1)*0.3+0.7;
       ctx.globalAlpha=0.5+subPulse*0.5;
       ctx.fillStyle='#fff';ctx.font='bold 14px monospace';
-      ctx.fillText(cp.sub,W/2,subY);
+      ctx.fillText(subText,W/2,subY);
       ctx.globalAlpha=1;
 
       // Big visual guide icons
@@ -281,22 +286,23 @@ function drawTutorialGuide(cp){
     grd.addColorStop(0,'rgba(255,56,96,0)');grd.addColorStop(1,'rgba(255,56,96,0.3)');
     ctx.fillStyle=grd;ctx.fillRect(cx-8,cy-40+offset,16,80);
   } else if(cp.icon==='double'){
-    // Two arrows: up then down, animated sequence
-    const cx=px+70,phase=(t*0.05)%2;
-    // Up arrow (first action)
-    const upA=phase<1?0.9:0.25;
+    // Two arrows: show relevant step based on tutFlipCount
+    const cx=px+70;
+    const showSecond=tutFlipCount>=1;
+    // Up arrow
+    const upA=showSecond?0.15:0.9;
     ctx.globalAlpha=upA;
     ctx.strokeStyle='#00e5ff';ctx.lineWidth=4;ctx.lineCap='round';
-    const uy=H*0.4+Math.sin(t*0.1)*8;
+    const uy=H*0.4+(showSecond?0:Math.sin(t*0.1)*8);
     ctx.beginPath();ctx.moveTo(cx-20,uy+25);ctx.lineTo(cx-20,uy-15);ctx.stroke();
     ctx.beginPath();ctx.moveTo(cx-30,uy-5);ctx.lineTo(cx-20,uy-20);ctx.lineTo(cx-10,uy-5);ctx.stroke();
     ctx.fillStyle='#00e5ff';ctx.font='bold 11px monospace';ctx.textAlign='center';
     ctx.fillText(tutFlipCount>=1?'✓':'①↑',cx-20,uy+42);
-    // Down arrow (second action)
-    const dnA=phase>=1?0.9:0.25;
+    // Down arrow (prominent when second step)
+    const dnA=showSecond?0.9:0.2;
     ctx.globalAlpha=dnA;
     ctx.strokeStyle='#ff3860';ctx.lineWidth=4;
-    const dy=H*0.4+Math.sin(t*0.1+1)*8;
+    const dy=H*0.4+(showSecond?Math.sin(t*0.1)*8:0);
     ctx.beginPath();ctx.moveTo(cx+20,dy-15);ctx.lineTo(cx+20,dy+25);ctx.stroke();
     ctx.beginPath();ctx.moveTo(cx+10,dy+15);ctx.lineTo(cx+20,dy+30);ctx.lineTo(cx+30,dy+15);ctx.stroke();
     ctx.fillStyle='#ff3860';ctx.font='bold 11px monospace';
@@ -656,7 +662,10 @@ function draw(){
   // Tutorial
   if(state===ST.TUTORIAL){drawTutorial();ctx.restore();return;}
   // Title and stage select: draw early, before game objects, to avoid leftover stage bleed
-  if(state===ST.TITLE){drawDemo();drawTitle();drawCharModal();drawInventory();drawShop();drawCosmeticMenu();ctx.restore();return;}
+  if(state===ST.TITLE){drawDemo();drawTitle();drawCharModal();drawInventory();drawShop();drawCosmeticMenu();
+    // Screen transition fade-in (white overlay fading out to reveal title)
+    if(screenFadeIn>0){ctx.fillStyle='rgba(255,255,255,'+(screenFadeIn/90)+')';ctx.fillRect(0,0,W,H);}
+    ctx.restore();return;}
   if(state===ST.STAGE_SEL){drawStageSel();ctx.restore();return;}
 
   // Platforms
