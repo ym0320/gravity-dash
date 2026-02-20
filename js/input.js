@@ -294,6 +294,10 @@ canvas.addEventListener('touchstart',e=>{
   if(state===ST.PLAY&&hitBombBtn(p.x,p.y)){useBomb();return;}
   if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');state=ST.PAUSE;return;}
   if(state===ST.TITLE){
+    // Shop modal intercepts all input when open
+    if(shopOpen){handleShopTouch(p.x,p.y);return;}
+    // Cosmetic menu intercepts all input when open
+    if(cosmeticMenuOpen){handleCosmeticTouch(p.x,p.y);return;}
     // Inventory modal intercepts all input when open
     if(inventoryOpen){
       // Close button area (top-right X or outside modal)
@@ -342,6 +346,23 @@ canvas.addEventListener('touchmove',e=>{
   }
   // Settings slider drag
   if(settingsOpen&&draggingSlider){const mp=canvasXY(t.clientX,t.clientY);updateSliderDrag(mp.x);return;}
+  // Shop scroll
+  if(shopOpen){
+    const dy2=t.clientY-touchStartY;touchStartY=t.clientY;
+    const items=shopTab===0?SHOP_ITEMS.skins:shopTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
+    const mH2=Math.min(500,H-30),listH2=mH2-110,totalH2=items.length*54;
+    const maxS=Math.max(0,totalH2-listH2);
+    shopScroll=Math.max(0,Math.min(maxS,shopScroll-dy2*2));touchMoved=true;return;
+  }
+  // Cosmetic scroll
+  if(cosmeticMenuOpen){
+    const dy2=t.clientY-touchStartY;touchStartY=t.clientY;
+    const allItems=cosmeticTab===0?SHOP_ITEMS.skins:cosmeticTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
+    const ownedList=[{id:''}].concat(allItems.filter(it=>ownsItem(it.id)));
+    const mH2=Math.min(500,H-30),listH2=mH2-154,totalH2=ownedList.length*48;
+    const maxS=Math.max(0,totalH2-listH2);
+    cosmeticScroll=Math.max(0,Math.min(maxS,cosmeticScroll-dy2*2));touchMoved=true;return;
+  }
   const dy=t.clientY-touchStartY;
   const dx=t.clientX-touchStartX;
   if(Math.abs(dy)>20||Math.abs(dx)>20){touchMoved=true;if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}}
@@ -361,6 +382,7 @@ canvas.addEventListener('touchend',e=>{
     draggingSlider=null;return;
   }
   if(settingsOpen)return;
+  if(shopOpen||cosmeticMenuOpen)return; // handled by touchstart
   if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}
   if(state===ST.TITLE&&!longPressFired&&titleTouchPos){handleTitleTouch(titleTouchPos.x,titleTouchPos.y);titleTouchPos=null;return;}
   if(state!==ST.PLAY||state===ST.PAUSE)return;
@@ -427,7 +449,11 @@ canvas.addEventListener('mousedown',e=>{
   if(state===ST.PLAY&&hitInvBtn(p.x,p.y)){useInvincible();return;}
   if(state===ST.PLAY&&hitBombBtn(p.x,p.y)){useBomb();return;}
   if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');state=ST.PAUSE;return;}
-  if(state===ST.TITLE){if(charModal.show){sfx('cancel');charModal.show=false;return;}handleTitleTouch(p.x,p.y);}
+  if(state===ST.TITLE){
+    if(shopOpen){handleShopTouch(p.x,p.y);return;}
+    if(cosmeticMenuOpen){handleCosmeticTouch(p.x,p.y);return;}
+    if(charModal.show){sfx('cancel');charModal.show=false;return;}handleTitleTouch(p.x,p.y);
+  }
   else if(state===ST.DEAD&&deadChestOpen){
     handleInventoryChestTap(p.x,p.y);
   }
@@ -526,6 +552,16 @@ function handleTitleTouch(tx,ty){
   // Inventory button (top-left, 2nd)
   if(tx>=50&&tx<=86&&ty>=safeTop+6&&ty<=safeTop+42){
     inventoryOpen=true;chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null};
+    sfx('select');return;
+  }
+  // Shop button (top-left, 3rd)
+  if(tx>=92&&tx<=128&&ty>=safeTop+6&&ty<=safeTop+42){
+    shopOpen=true;shopTab=0;shopScroll=0;
+    sfx('select');return;
+  }
+  // Cosmetic button (top-left, 4th)
+  if(tx>=134&&tx<=170&&ty>=safeTop+6&&ty<=safeTop+42){
+    cosmeticMenuOpen=true;cosmeticTab=0;cosmeticScroll=0;
     sfx('select');return;
   }
   // Character selection: 2 rows x 3 columns grid
@@ -630,7 +666,7 @@ function handleRankingTouch(tx,ty){
     rankingOpen=false;sfx('cancel');return;
   }
 }
-// Mouse wheel for ranking scroll
+// Mouse wheel for ranking scroll & shop/cosmetic scroll
 canvas.addEventListener('wheel',e=>{
   if(rankingOpen){
     e.preventDefault();
@@ -640,4 +676,110 @@ canvas.addEventListener('wheel',e=>{
     const maxScroll=Math.max(0,totalH-listH);
     rankingScrollTarget=Math.max(0,Math.min(maxScroll,rankingScrollTarget+e.deltaY*1.5));
   }
+  if(shopOpen){
+    e.preventDefault();
+    const items=shopTab===0?SHOP_ITEMS.skins:shopTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
+    const mH2=Math.min(500,H-30),listH2=mH2-110,totalH2=items.length*54;
+    const maxS=Math.max(0,totalH2-listH2);
+    shopScroll=Math.max(0,Math.min(maxS,shopScroll+e.deltaY*1.5));
+  }
+  if(cosmeticMenuOpen){
+    e.preventDefault();
+    const allItems=cosmeticTab===0?SHOP_ITEMS.skins:cosmeticTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
+    const ownedList=[{id:''}].concat(allItems.filter(it=>ownsItem(it.id)));
+    const mH2=Math.min(500,H-30),listH2=mH2-154,totalH2=ownedList.length*48;
+    const maxS=Math.max(0,totalH2-listH2);
+    cosmeticScroll=Math.max(0,Math.min(maxS,cosmeticScroll+e.deltaY*1.5));
+  }
 },{passive:false});
+
+// ===== SHOP TOUCH HANDLING =====
+function handleShopTouch(tx,ty){
+  const mW=Math.min(320,W-16),mH=Math.min(500,H-30);
+  const mX=(W-mW)/2,mY=(H-mH)/2;
+  // Close X
+  if(tx>=mX+mW-36&&tx<=mX+mW-4&&ty>=mY+4&&ty<=mY+36){shopOpen=false;sfx('cancel');return;}
+  // Outside modal
+  if(tx<mX||tx>mX+mW||ty<mY||ty>mY+mH){shopOpen=false;sfx('cancel');return;}
+  // Tabs
+  const tabW=(mW-20)/3;
+  for(let i=0;i<3;i++){
+    const tbx=mX+10+i*tabW,tby=mY+56;
+    if(tx>=tbx&&tx<=tbx+tabW-4&&ty>=tby&&ty<=tby+26){
+      shopTab=i;shopScroll=0;sfx('click');return;
+    }
+  }
+  // Item rows
+  const listY=mY+90,listH=mH-110;
+  const items=shopTab===0?SHOP_ITEMS.skins:shopTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
+  const rowH=54;
+  for(let i=0;i<items.length;i++){
+    const iy=listY+i*rowH-shopScroll;
+    if(iy+rowH<listY||iy>listY+listH)continue;
+    if(tx>=mX+8&&tx<=mX+mW-8&&ty>=iy+2&&ty<=iy+rowH-2){
+      const item=items[i];
+      if(ownsItem(item.id)){
+        // Already owned: equip it
+        if(shopTab===0){if(equippedSkin===item.id)unequipSkin();else equipSkin(item.id);}
+        else if(shopTab===1){if(equippedEyes===item.id)unequipEyes();else equipEyes(item.id);}
+        else{if(equippedEffect===item.id)unequipEffect();else equipEffect(item.id);}
+        sfx('select');vibrate(10);
+      } else {
+        // Buy
+        if(buyItem(item.id,item.price)){
+          sfx('coin');sfx('item');vibrate([10,5,15]);
+          // Auto-equip on purchase
+          if(shopTab===0)equipSkin(item.id);
+          else if(shopTab===1)equipEyes(item.id);
+          else equipEffect(item.id);
+        } else {
+          sfx('hurt');vibrate(15);
+        }
+      }
+      return;
+    }
+  }
+}
+
+// ===== COSMETIC MENU TOUCH HANDLING =====
+function handleCosmeticTouch(tx,ty){
+  const mW=Math.min(320,W-16),mH=Math.min(500,H-30);
+  const mX=(W-mW)/2,mY=(H-mH)/2;
+  // Close X
+  if(tx>=mX+mW-36&&tx<=mX+mW-4&&ty>=mY+4&&ty<=mY+36){cosmeticMenuOpen=false;sfx('cancel');return;}
+  // Outside modal
+  if(tx<mX||tx>mX+mW||ty<mY||ty>mY+mH){cosmeticMenuOpen=false;sfx('cancel');return;}
+  // Tabs
+  const tabW=(mW-20)/3;
+  for(let i=0;i<3;i++){
+    const tbx=mX+10+i*tabW,tby=mY+100;
+    if(tx>=tbx&&tx<=tbx+tabW-4&&ty>=tby&&ty<=tby+26){
+      cosmeticTab=i;cosmeticScroll=0;sfx('click');return;
+    }
+  }
+  // Item rows
+  const listY=mY+134,listH=mH-154;
+  const allItems=cosmeticTab===0?SHOP_ITEMS.skins:cosmeticTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
+  const ownedList=[{id:'',name:'\u306A\u3057',desc:'\u30C7\u30D5\u30A9\u30EB\u30C8'}].concat(allItems.filter(it=>ownsItem(it.id)));
+  const rowH=48;
+  for(let i=0;i<ownedList.length;i++){
+    const iy=listY+i*rowH-cosmeticScroll;
+    if(iy+rowH<listY||iy>listY+listH)continue;
+    if(tx>=mX+8&&tx<=mX+mW-8&&ty>=iy+2&&ty<=iy+rowH-2){
+      const item=ownedList[i];
+      if(item.id===''){
+        // Unequip
+        if(cosmeticTab===0)unequipSkin();
+        else if(cosmeticTab===1)unequipEyes();
+        else unequipEffect();
+      } else {
+        // Equip
+        if(cosmeticTab===0)equipSkin(item.id);
+        else if(cosmeticTab===1)equipEyes(item.id);
+        else equipEffect(item.id);
+      }
+      sfx('select');vibrate(10);
+      return;
+    }
+  }
+}

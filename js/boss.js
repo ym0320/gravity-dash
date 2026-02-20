@@ -108,13 +108,15 @@ function spawnBossEnemies(){
       // Diagonal: always home toward player Y (no safe "stay on floor" cheese)
       const diagStrength=phase>=2?(1.5+Math.min(phase-2,4)*0.4):0;
       const sz=PLAYER_R*5;
+      // Spawn interval: base 8 frames apart, reduced by 1 per phase (min 4)
+      const baseInterval=Math.max(4,8-Math.min(phase-1,4));
       bossPhase.dodgeQueue.push({
         x:W+80+i*10,y:onFloor?floorY-sz:ceilY+sz,vy:0,gDir:gDir,sz:sz,alive:true,fr:Math.random()*100,
         type:10,shootT:999,boss:true,bossType:'dodge',
         chargeVx:-spd,
         diagStrength:diagStrength,
         chargeState:'wait',
-        rushDelay:15+i*12+Math.floor(Math.random()*8), // much faster intervals, tighter spacing
+        rushDelay:10+i*baseInterval+Math.floor(Math.random()*4), // tight intervals, tighter with phase
         timer:0,
         missCount:0
       });
@@ -150,18 +152,18 @@ function spawnBossEnemies(){
       state:'enter',
       timer:0,stunT:0,hurtFlash:0,invT:0,
       jumpVy:0,
-      // Jump parameters - fast and hard to react to
-      bigJumpPower:-(16+Math.min(bc-1,4)*1.5), // very fast jump
-      smallJumpPower:-(3+Math.min(bc-1,3)*0.3), // tiny feint hop
+      // Jump parameters - lower arc, easier to read
+      bigJumpPower:-(10+Math.min(bc-1,4)*1.0), // moderate jump height
+      smallJumpPower:0, // unused (feint removed)
       onCeiling:false, // whether currently on ceiling
       flipEnabled:bc>=2, // can flip between floor/ceiling from bc>=2
       // Earthquake parameters
-      quakeStunDuration:90+Math.min(bc-1,3)*15, // longer stun = charge is unavoidable
+      quakeStunDuration:50+Math.min(bc-1,3)*10, // moderate stun, charge is still dodgeable
       quakeDuration:25, // visual earthquake frames
       quakeT:0,
-      // Feint parameters (higher bc = more feints before real jump)
-      feintEnabled:bc>=2,
-      feintCount:bc>=3?1+Math.floor(Math.random()*Math.min(bc-2,3)):bc>=2?1:0,
+      // Feint parameters (disabled - no feint jumps)
+      feintEnabled:false,
+      feintCount:0,
       feintsDone:0,
       feintCooldown:0,
       // Sword attack
@@ -514,28 +516,21 @@ function updateBossPhase(){
       snapToSurface();
       if(g.x<=W*0.65){
         g.state='jumpPrep';g.timer=0;g.feintsDone=0;
-        g.feintCount=g.feintEnabled?(bc>=3?1+Math.floor(Math.random()*Math.min(bc-2,3)):1):0;
+        g.feintCount=0; // no feints
       }
     } else if(g.state==='jumpPrep'){
-      // Very brief crouch before jumping (fast = hard to react)
+      // Brief crouch before jumping (no feint - always real jump)
       snapToSurface();
       g.x+=(Math.random()-0.5)*1.0; // shake telegraph
       if(g.timer>=8){
-        // Decide: feint or real jump?
-        if(g.feintsDone<g.feintCount&&Math.random()<0.6){
-          g.state='feintJump';g.timer=0;
-          g.jumpVy=g.smallJumpPower*g.gDir;
-          sfx('jump');
-        } else {
-          // Real big jump! Optionally flip to other surface
-          const willFlip=g.flipEnabled&&Math.random()<0.45;
-          g._jumpFlip=willFlip;
-          g.state='bigJump';g.timer=0;
-          g.jumpVy=g.bigJumpPower*g.gDir; // always jump away from current surface
-          sfx('guardianJump');shakeI=5;vibrate(10);
-          const dustY=g.gDir===1?floorY2:ceilY2;
-          emitParts(g.x,dustY,8,'#8a7060',4,2);
-        }
+        // Always real big jump! Optionally flip to other surface
+        const willFlip=g.flipEnabled&&Math.random()<0.45;
+        g._jumpFlip=willFlip;
+        g.state='bigJump';g.timer=0;
+        g.jumpVy=g.bigJumpPower*g.gDir; // always jump away from current surface
+        sfx('guardianJump');shakeI=5;vibrate(10);
+        const dustY=g.gDir===1?floorY2:ceilY2;
+        emitParts(g.x,dustY,8,'#8a7060',4,2);
       }
     } else if(g.state==='feintJump'){
       // Small jump - lands on same surface without earthquake
@@ -635,7 +630,7 @@ function updateBossPhase(){
           life:12,ml:12,sz:Math.random()*4+2,col:'#4488cc'});
       }
       // Reached target X → sword attack!
-      if(Math.abs(dx)<g.sz*0.4||g.timer>120){
+      if(Math.abs(dx)<g.sz*0.4||g.timer>180){
         g.state='swordAttack';g.timer=0;g.swordSwingT=g.swordDuration;
         sfx('swordSlash');shakeI=6;vibrate([10,5,15]);
       }
@@ -665,7 +660,7 @@ function updateBossPhase(){
       snapToSurface();
       if(g.timer>=35||g.x>=W*0.65){
         g.state='jumpPrep';g.timer=0;g.feintsDone=0;
-        g.feintCount=g.feintEnabled?(bc>=3?1+Math.floor(Math.random()*Math.min(bc-2,3)):1):0;
+        g.feintCount=0; // no feints
       }
     } else if(g.state==='stunned'){
       g.stunT--;
@@ -687,18 +682,21 @@ function updateBossPhase(){
     if(g.invT<=0){
       const dx=player.x-g.x,dy=player.y-(g.y+g.sz*0.5*g.gDir);
       const d=Math.sqrt(dx*dx+dy*dy);
-      if(d<pr+g.sz*BOSS_HITBOX_SCALE){
+      // Use larger hitbox during charge for easier stomping
+      const hitScale=(g.state==='charge')?0.9:BOSS_HITBOX_SCALE;
+      if(d<pr+g.sz*hitScale){
         if(itemEff.invincible>0){
           g.hp--;g.hurtFlash=20;g.invT=60;g.state='invincible';g.timer=0;
           shakeI=8;sfx('bossHit');
           emitParts(g.x,g.y,15,'#ff00ff',4,3);
           if(g.hp<=0){bossGuardianDefeat(g);}
         } else {
-          // Stomp check: depends on which surface guardian is on
-          // Stomping works in ANY state - always deals damage!
+          // Stomp check: VERY generous - player center above guardian center = stomp
+          // Works in ANY state - always deals damage!
+          const guardianCenter=g.y+g.sz*0.5*g.gDir;
           const stomped=g.gDir===1
-            ?(player.y+pr<g.y-g.sz*0.15&&player.vy>=0)
-            :(player.y-pr>g.y+g.sz*0.15&&player.vy<=0);
+            ?(player.y<guardianCenter) // player center above guardian center
+            :(player.y>guardianCenter); // player center below guardian center (ceiling)
           if(stomped){
             g.hp--;g.hurtFlash=20;
             g.state='stunned';g.stunT=g.stunDuration;g.timer=0;g.jumpVy=0;
