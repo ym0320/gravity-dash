@@ -47,7 +47,7 @@ function update(dt){
       return;
     }
     // Background scroll (also scroll during 'action' phase)
-    const scrollSpd=(tutPhase==='scroll'||tutPhase==='action')?tutSpeed:0;
+    const scrollSpd=(tutPhase==='scroll'||tutPhase==='action'||tutPhase==='success')?tutSpeed:0;
     stars.forEach(s=>{s.x-=s.sp*scrollSpd*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
     mtns.forEach(m=>{m.off-=m.sp*scrollSpd*0.15;if(m.off<-500)m.off+=500;});
     // Scroll camera

@@ -152,8 +152,22 @@ function startInventoryChestOpen(){
   if(roll<0.10){
     const ci=Math.floor(Math.random()*CHARS.length);
     reward={type:'char',charIdx:ci,isNew:!isCharUnlocked(ci),bonusCoins:0};
-  } else if(roll<0.20){reward={type:'coin',amount:100};}
-  else if(roll<0.45){reward={type:'coin',amount:50};}
+  } else if(roll<0.18){
+    // Rare cosmetic item from gacha (secret items only obtainable here)
+    const allRare=[];
+    SHOP_ITEMS.skins.forEach(it=>{if(it.rarity==='rare')allRare.push({...it,tab:0});});
+    SHOP_ITEMS.eyes.forEach(it=>{if(it.rarity==='rare')allRare.push({...it,tab:1});});
+    SHOP_ITEMS.effects.forEach(it=>{if(it.rarity==='rare')allRare.push({...it,tab:2});});
+    const unownedRare=allRare.filter(it=>!ownsItem(it.id));
+    if(unownedRare.length>0){
+      const ri=unownedRare[Math.floor(Math.random()*unownedRare.length)];
+      ownedItems.push(ri.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));
+      reward={type:'cosmetic',item:ri,isNew:true};
+    } else {
+      reward={type:'coin',amount:100};
+    }
+  } else if(roll<0.28){reward={type:'coin',amount:100};}
+  else if(roll<0.50){reward={type:'coin',amount:50};}
   else{reward={type:'coin',amount:30};}
   chestOpen.phase='waiting';chestOpen.t=0;
   chestOpen.charIdx=reward.type==='char'?reward.charIdx:-1;
@@ -193,21 +207,38 @@ function startPackStageFromDead(){
 
 // Settings panel input helpers (must match drawTitle layout)
 function settingsLayout(){
-  const pw=Math.min(280,W-30),ph=270,px=W/2-pw/2,py=H/2-ph/2;
+  const pw=Math.min(280,W-30),ph=330,px=W/2-pw/2,py=H/2-ph/2;
   const slW=pw-50,slX=px+25,barX=slX+42,barW=slW-42;
   const slY1=py+52,slY2=slY1+44;
   const barH=10;
   const tutBtnY=slY2+44;
-  return{px,py,pw,ph,barX,barW,barY1:slY1-8,barY2:slY2-8,barH,tutBtnY,closeY:py+ph-42};
+  const resetBtnY=tutBtnY+38;
+  return{px,py,pw,ph,barX,barW,barY1:slY1-8,barY2:slY2-8,barH,tutBtnY,resetBtnY,closeY:py+ph-42};
 }
 function hitSettingsGear(tx,ty){return tx>=W-44&&tx<=W-8&&ty>=safeTop+6&&ty<=safeTop+42;}
 function handleSettingsTouch(tx,ty){
   const s=settingsLayout();
   // Close button
-  if(tx>=W/2-60&&tx<=W/2+60&&ty>=s.closeY&&ty<=s.closeY+32){sfx('click');settingsOpen=false;return true;}
+  if(tx>=W/2-60&&tx<=W/2+60&&ty>=s.closeY&&ty<=s.closeY+32){sfx('click');settingsOpen=false;resetConfirmStep=0;return true;}
   // Tutorial replay button
   if(tx>=s.px+20&&tx<=s.px+s.pw-20&&ty>=s.tutBtnY&&ty<=s.tutBtnY+30){
-    sfx('select');settingsOpen=false;startTutorial();return true;
+    sfx('select');settingsOpen=false;resetConfirmStep=0;startTutorial();return true;
+  }
+  // Data reset button
+  if(tx>=s.px+20&&tx<=s.px+s.pw-20&&ty>=s.resetBtnY&&ty<=s.resetBtnY+30){
+    if(resetConfirmStep===0){
+      resetConfirmStep=1;sfx('hurt');vibrate(20);return true;
+    } else if(resetConfirmStep===1){
+      resetConfirmStep=2;sfx('hurt');vibrate(30);return true;
+    } else if(resetConfirmStep===2){
+      // Clear all game data
+      const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gd5'))keys.push(k);}
+      keys.forEach(k=>localStorage.removeItem(k));
+      sfx('bomb');vibrate(50);
+      resetConfirmStep=0;settingsOpen=false;
+      location.reload();
+      return true;
+    }
   }
   // BGM slider
   if(ty>=s.barY1-10&&ty<=s.barY1+s.barH+10&&tx>=s.barX-10&&tx<=s.barX+s.barW+10){
@@ -450,11 +481,11 @@ canvas.addEventListener('touchend',e=>{
         setTimeout(()=>{tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,600);},700);
       } else if(cp.type==='double_flip'){
         if(tdy<0&&player.gDir===1&&tutFlipCount===0){
-          // First flip: up → freeze mid-air after 350ms
-          player.gDir=-1;player.vy=-5;sfx('flip');vibrate(20);player.grounded=false;
+          // First flip: up → freeze mid-air after 280ms (higher on screen)
+          player.gDir=-1;player.vy=-7;sfx('flip');vibrate(20);player.grounded=false;
           emitParts(player.x,player.y,10,tc('ply'),3,2.5);player.rotTarget-=Math.PI;
           tutFlipCount=1;tutPhase='action';
-          setTimeout(()=>{if(tutFlipCount===1){player.vy=0;tutFreezePlayer=true;tutPhase='wait';tutStepT=0;}},350);
+          setTimeout(()=>{if(tutFlipCount===1){player.vy=0;tutFreezePlayer=true;tutPhase='wait';tutStepT=0;}},280);
         } else if(tdy>0&&player.gDir===-1&&tutFlipCount>=1){
           // Second flip: down → success
           player.gDir=1;player.vy=5;sfx('flip');vibrate(20);player.grounded=false;
@@ -621,10 +652,10 @@ document.addEventListener('keydown',e=>{
     }
     if(cp.type==='double_flip'){
       if(e.code==='ArrowUp'&&player.gDir===1&&tutFlipCount===0){
-        player.gDir=-1;player.vy=-5;sfx('flip');player.grounded=false;player.rotTarget-=Math.PI;
+        player.gDir=-1;player.vy=-7;sfx('flip');player.grounded=false;player.rotTarget-=Math.PI;
         emitParts(player.x,player.y,10,tc('ply'),3,2.5);
         tutFlipCount=1;tutPhase='action';
-        setTimeout(()=>{if(tutFlipCount===1){player.vy=0;tutFreezePlayer=true;tutPhase='wait';tutStepT=0;}},350);
+        setTimeout(()=>{if(tutFlipCount===1){player.vy=0;tutFreezePlayer=true;tutPhase='wait';tutStepT=0;}},280);
       } else if(e.code==='ArrowDown'&&player.gDir===-1&&tutFlipCount>=1){
         player.gDir=1;player.vy=5;sfx('flip');player.grounded=false;player.rotTarget+=Math.PI;
         emitParts(player.x,player.y,10,tc('ply'),3,2.5);
@@ -692,7 +723,7 @@ function handleTitleTouch(tx,ty){
   }
   // Ranking button (top-left, row 1)
   if(tx>=8&&tx<=44&&ty>=safeTop+6&&ty<=safeTop+42){
-    rankingOpen=true;rankingScroll=0;rankingScrollTarget=0;sfx('select');return;
+    rebuildRankingData();rankingOpen=true;rankingScroll=0;rankingScrollTarget=0;sfx('select');return;
   }
   // Inventory button (top-left, row 2)
   if(tx>=8&&tx<=44&&ty>=safeTop+44&&ty<=safeTop+80){
@@ -921,6 +952,12 @@ function confirmShopTap(){
     else{if(equippedEffect===item.id)unequipEffect();else equipEffect(item.id);}
     sfx('select');vibrate(10);
   } else {
+    // Block purchase of secret/rare items (gacha only)
+    if(item.rarity==='rare'){
+      sfx('hurt');vibrate(15);
+      addPop(W/2,H/2,'\u30AC\u30C1\u30E3\u9650\u5B9A!','#a855f7');
+      return;
+    }
     if(walletCoins>=item.price){
       shopConfirm={item,tab};sfx('select');
     } else {
@@ -1033,11 +1070,11 @@ function buildTutorialCourse(){
   // --- Flip-up section (dist=430, player world-x=520) ---
   // Floor ends near player → long abyss ahead → ceiling available
   // (floor [-50,550] ends at 550, player at 520 is near edge)
-  tutCourseCeil.push({x:400,w:450,h:GROUND_H}); // ceiling [400,850]
+  tutCourseCeil.push({x:400,w:550,h:GROUND_H}); // ceiling [400,950]
   // --- Flip-down section (dist=700, player world-x=790) ---
   // Ceiling ends near player → must flip back to floor
-  // (ceiling [400,850] ends at 850, player at 790 is near edge)
-  tutCoursePlats.push({x:700,w:700,h:GROUND_H}); // floor [700,1400]
+  // (ceiling [400,950] ends at 950, player at 790 has more room)
+  tutCoursePlats.push({x:850,w:700,h:GROUND_H}); // floor [850,1550]
   // --- Double-flip section (dist=980, player world-x=1070) ---
   // Floor present, NO ceiling (player flips up into open air, gets frozen, flips back)
   // (floor [700,1400] covers this area, no ceiling between 850 and 1250)
