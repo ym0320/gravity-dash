@@ -327,6 +327,29 @@ canvas.addEventListener('touchstart',e=>{
   const t=e.touches[0];
   const p=canvasXY(t.clientX,t.clientY);
   touchStartY=t.clientY;touchStartX=t.clientX;touchStartT=Date.now();touchMoved=false;touchBtnUsed=false;
+  // Debug boss victory overlay
+  if(debugBossVictoryT>30){
+    const bw=160,bh=40,bx=W/2-bw/2;
+    const retryY=H*0.50,homeY=H*0.60;
+    if(p.x>=bx&&p.x<=bx+bw&&p.y>=retryY&&p.y<=retryY+bh){
+      // Retry boss
+      sfx('click');debugBossVictoryT=0;
+      gameMode='endless';isPackMode=false;reset();
+      state=ST.PLAY;switchBGM('play');
+      bossPhase.bossCount=Math.max(0,debugBossBc-1);
+      bossPhase._forceType=debugLastBossType;
+      startBossPhase();bossPhase.prepare=1;
+      return;
+    }
+    if(p.x>=bx&&p.x<=bx+bw&&p.y>=homeY&&p.y<=homeY+bh){
+      // Go home
+      sfx('cancel');debugBossVictoryT=0;
+      debugBossRetry=false;debugEnemyMode=false;debugEnemyType=-1;
+      state=ST.TITLE;switchBGM('title');
+      return;
+    }
+    return; // block other input while victory overlay is shown
+  }
   // Ranking modal intercepts all input when open
   if(rankingOpen){handleRankingTouch(p.x,p.y);return;}
   // Debug menu intercepts all input when open
@@ -1070,11 +1093,11 @@ function buildTutorialCourse(){
   // --- Flip-up section (dist=430, player world-x=520) ---
   // Floor ends near player → long abyss ahead → ceiling available
   // (floor [-50,550] ends at 550, player at 520 is near edge)
-  tutCourseCeil.push({x:400,w:550,h:GROUND_H}); // ceiling [400,950]
+  tutCourseCeil.push({x:400,w:420,h:GROUND_H}); // ceiling [400,820] ends just past player at flip_down
   // --- Flip-down section (dist=700, player world-x=790) ---
-  // Ceiling ends near player → must flip back to floor
-  // (ceiling [400,950] ends at 950, player at 790 has more room)
-  tutCoursePlats.push({x:850,w:700,h:GROUND_H}); // floor [850,1550]
+  // Ceiling ends ギリギリ near player → must flip back to floor ASAP
+  // (ceiling ends at 820, player at 790 is right at the edge)
+  tutCoursePlats.push({x:780,w:770,h:GROUND_H}); // floor [780,1550] player lands safely at 790
   // --- Double-flip section (dist=980, player world-x=1070) ---
   // Floor present, NO ceiling (player flips up into open air, gets frozen, flips back)
   // (floor [700,1400] covers this area, no ceiling between 850 and 1250)

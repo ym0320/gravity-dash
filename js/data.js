@@ -156,6 +156,7 @@ let debugEnemyType=-1;
 let debugEnemyCD=0;
 let debugLastBossType='';
 let debugBossRetry=false;
+let debugBossVictoryT=0; // >0 when debug boss defeated, shows victory overlay
 let rankingOpen=false;
 let rankingScroll=0;
 let rankingScrollTarget=0;

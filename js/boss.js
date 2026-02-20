@@ -241,7 +241,14 @@ function updateBossPhase(){
       // Chest shrinks into player after collection
       if(chestFall.gotT>40)chestFall.active=false;
     }
-    if(bossPhase.rewardT>=180){bossPhase.active=false;bossPhase.reward=false;if(itemEff.invincible<=0)switchBGM('play');}
+    if(bossPhase.rewardT>=180){
+      bossPhase.active=false;bossPhase.reward=false;
+      if(debugBossRetry){
+        debugBossVictoryT=1; // show victory overlay with retry/home
+      } else {
+        if(itemEff.invincible<=0)switchBGM('play');
+      }
+    }
     return;
   }
   const floorY=H-GROUND_H;
@@ -432,7 +439,8 @@ function updateBossPhase(){
     if(b.invT<=0){
       const dx=player.x-b.x,dy=player.y-b.y;
       const d=Math.sqrt(dx*dx+dy*dy);
-      if(d<pr+b.sz*BOSS_HITBOX_SCALE){
+      // Hitbox matches head width (s*0.28) instead of full body
+      if(d<pr+b.sz*0.28){
         if(itemEff.invincible>0){
           b.hp--;b.hurtFlash=20;b.invT=60;b.state='invincible';b.timer=0;
           shakeI=8;sfx('bossHit');
@@ -664,12 +672,15 @@ function updateBossPhase(){
     } else if(g.state==='stunned'){
       g.stunT--;
       snapToSurface();
-      if(g.stunT<=0){g.state='retreat';g.timer=0;}
+      if(g.stunT<=0){g.state='invincible';g.timer=0;}
     } else if(g.state==='invincible'){
       g.invT--;
-      g.x+=3;
+      // Move toward original position (W*0.65)
+      const homeX=W*0.65;
+      const dx2=homeX-g.x;
+      g.x+=Math.sign(dx2)*Math.min(Math.abs(dx2),g.retreatSpd);
       snapToSurface();
-      if(g.invT<=0){g.state='retreat';g.timer=0;}
+      if(g.invT<=0){g.state='jumpPrep';g.timer=0;g.feintsDone=0;g.feintCount=0;}
     }
     // Player quake stun countdown - complete freeze (no movement, no gravity change)
     if(player._quakeStunT>0){
@@ -697,7 +708,7 @@ function updateBossPhase(){
             ?(player.y<guardianCenter) // player center above guardian center
             :(player.y>guardianCenter); // player center below guardian center (ceiling)
           if(stomped){
-            g.hp--;g.hurtFlash=20;
+            g.hp--;g.hurtFlash=20;g.invT=g.stunDuration+60;
             g.state='stunned';g.stunT=g.stunDuration;g.timer=0;g.jumpVy=0;
             player.vy=g.gDir===1?-JUMP_POWER*0.8:JUMP_POWER*0.8;player.grounded=false;
             flipCount=0;player.canFlip=true;djumpUsed=false;djumpAvailable=true;

@@ -830,6 +830,47 @@ function draw(){
   if(state===ST.DEAD){drawDead();if(deadChestOpen&&chestOpen.phase!=='none')drawChestOpen();}
   if(state===ST.PAUSE)drawPause();
   if(state===ST.STAGE_CLEAR)drawStageClear();
+  // Debug boss victory overlay
+  if(debugBossVictoryT>0){
+    const fadeIn=Math.min(1,debugBossVictoryT/30);
+    ctx.fillStyle='rgba(0,0,0,'+(0.75*fadeIn)+')';ctx.fillRect(0,0,W,H);
+    // Gold particles
+    for(let i=0;i<15;i++){
+      const sx=(Math.sin(i*4.1+debugBossVictoryT*0.02)*0.4+0.5)*W;
+      const sy=(Math.cos(i*2.7+debugBossVictoryT*0.015)*0.4+0.3)*H;
+      const sa=Math.sin(debugBossVictoryT*0.08+i)*0.3+0.3;
+      ctx.fillStyle='rgba(255,215,0,'+sa*fadeIn+')';
+      ctx.beginPath();ctx.arc(sx,sy,2+Math.sin(i+debugBossVictoryT*0.05),0,6.28);ctx.fill();
+    }
+    // Title
+    const ps=1+Math.sin(debugBossVictoryT*0.04)*0.03;
+    ctx.save();ctx.translate(W/2,H*0.30);ctx.scale(ps*fadeIn,ps*fadeIn);
+    ctx.fillStyle='#ffd700';ctx.font='bold 24px monospace';ctx.textAlign='center';
+    ctx.shadowColor='#ffd700';ctx.shadowBlur=20;
+    ctx.fillText('BOSS DEFEATED!',0,0);
+    ctx.shadowBlur=0;ctx.restore();
+    ctx.fillStyle='#fff8';ctx.font='12px monospace';ctx.textAlign='center';
+    ctx.fillText((debugLastBossType||'').toUpperCase()+' Lv.'+debugBossBc,W/2,H*0.36);
+    // Buttons (show after fade in)
+    if(debugBossVictoryT>30){
+      const btnA=Math.min(1,(debugBossVictoryT-30)/20);
+      ctx.globalAlpha=btnA;
+      const bw=160,bh=40,bx=W/2-bw/2;
+      // Retry button
+      const retryY=H*0.50;
+      ctx.fillStyle='#ff386022';rr(bx,retryY,bw,bh,10);ctx.fill();
+      ctx.strokeStyle='#ff3860';ctx.lineWidth=2;rr(bx,retryY,bw,bh,10);ctx.stroke();
+      ctx.fillStyle='#ff3860';ctx.font='bold 14px monospace';ctx.textAlign='center';
+      ctx.fillText('\u30EA\u30C8\u30E9\u30A4',W/2,retryY+26);
+      // Home button
+      const homeY=H*0.60;
+      ctx.fillStyle='#00e5ff22';rr(bx,homeY,bw,bh,10);ctx.fill();
+      ctx.strokeStyle='#00e5ff';ctx.lineWidth=2;rr(bx,homeY,bw,bh,10);ctx.stroke();
+      ctx.fillStyle='#00e5ff';ctx.font='bold 14px monospace';ctx.textAlign='center';
+      ctx.fillText('\u30DB\u30FC\u30E0\u306B\u623B\u308B',W/2,homeY+26);
+      ctx.globalAlpha=1;
+    }
+  }
   ctx.restore();
 }
 
