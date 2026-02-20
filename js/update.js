@@ -37,6 +37,14 @@ function update(dt){
   if(state===ST.TUTORIAL){
     frame++;tutStepT++;
     if(tutPhase==='success')tutSuccessT++;
+    // Warp transition animation
+    if(tutWarpPhase==='welcome'||tutWarpPhase==='warp'){
+      tutWarpT++;
+      if(tutWarpPhase==='warp'&&tutWarpT>90){
+        state=ST.TITLE;switchBGM('title');tutWarpPhase='';tutWarpT=0;
+      }
+      return;
+    }
     // Background scroll
     const scrollSpd=tutPhase==='scroll'?tutSpeed:0;
     stars.forEach(s=>{s.x-=s.sp*scrollSpd*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
@@ -82,16 +90,31 @@ function update(dt){
     if(player.y>H+50){player.y=H-GROUND_H-tpr;player.vy=0;player.gDir=1;player.grounded=true;}
     if(player.y<-50){player.y=GROUND_H+tpr;player.vy=0;player.gDir=-1;player.grounded=true;}
     player.rot+=(player.rotTarget-player.rot)*0.15;
-    // Spawn enemies for bomb
+    // Spawn enemies for bomb (realistic size and walking on floor like real game)
     if(tutStep<TUT_CHECKPOINTS.length&&TUT_CHECKPOINTS[tutStep].type==='bomb'&&tutPhase==='wait'&&!tutEnemySpawned){
       tutEnemySpawned=true;
+      const eSz=13; // same as real game enemy size
       for(let i=0;i<5;i++){
-        const ex=tutScrollX+W*0.4+i*55;
-        enemies.push({x:ex-tutScrollX,y:H-GROUND_H-20-Math.random()*50,vy:0,gDir:1,sz:PLAYER_R*2,alive:true,type:0,
-          shootT:999,fr:Math.random()*100,boss:false,_worldX:ex});
+        const ex=tutScrollX+W*0.35+i*42;
+        enemies.push({x:ex-tutScrollX,y:H-GROUND_H-eSz,vy:0,gDir:1,sz:eSz,alive:true,type:0,
+          shootT:999,fr:Math.random()*100,boss:false,_worldX:ex,
+          patrolDir:Math.random()<0.5?1:-1,walkSpd:0.3,patrolOriginX:ex,patrolRange:18});
       }
     }
-    enemies.forEach(en=>{if(!en.alive)return;en.fr+=0.05;if(en._worldX!==undefined)en.x=en._worldX-tutScrollX;});
+    enemies.forEach(en=>{
+      if(!en.alive)return;
+      en.fr+=0.12;
+      if(en._worldX!==undefined){
+        // Patrol walk in world-space
+        if(en.patrolDir!==undefined){
+          en._worldX+=en.patrolDir*(en.walkSpd||0);
+          if(en._worldX>en.patrolOriginX+en.patrolRange)en.patrolDir=-1;
+          if(en._worldX<en.patrolOriginX-en.patrolRange)en.patrolDir=1;
+        }
+        en.x=en._worldX-tutScrollX;
+        en.y=H-GROUND_H-en.sz; // keep on floor
+      }
+    });
     parts=parts.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.07;p.vx*=0.99;p.life--;return p.life>0;});
     pops=pops.filter(p=>{p.y-=1.2;p.life--;return p.life>0;});
     if(bombFlashT>0)bombFlashT--;

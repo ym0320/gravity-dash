@@ -69,8 +69,83 @@ function drawTutorial(){
 }
 
 function drawTutorialOverlay(){
-  if(tutStep>=TUT_CHECKPOINTS.length){
-    // Completion screen
+  if(tutStep>=TUT_CHECKPOINTS.length||tutWarpPhase){
+    // Welcome / Warp transition
+    if(tutWarpPhase==='welcome'){
+      const fadeIn=Math.min(1,tutWarpT/30);
+      ctx.fillStyle='rgba(0,0,0,'+(0.7*fadeIn)+')';ctx.fillRect(0,0,W,H);
+      // Stars sparkle
+      for(let i=0;i<20;i++){
+        const sx=(Math.sin(i*3.7+tutWarpT*0.02)*0.5+0.5)*W;
+        const sy=(Math.cos(i*2.3+tutWarpT*0.015)*0.5+0.5)*H;
+        const sa=Math.sin(tutWarpT*0.1+i)*0.4+0.4;
+        ctx.fillStyle='rgba(255,215,0,'+sa*fadeIn+')';
+        ctx.beginPath();ctx.arc(sx,sy,1.5+Math.sin(i+tutWarpT*0.05)*1,0,6.28);ctx.fill();
+      }
+      // Title text
+      ctx.save();ctx.translate(W/2,H*0.30);
+      const ps=1+Math.sin(tutWarpT*0.06)*0.04;ctx.scale(ps*fadeIn,ps*fadeIn);
+      ctx.fillStyle='#ffd700';ctx.font='bold 26px monospace';ctx.textAlign='center';
+      ctx.shadowColor='#ffd700';ctx.shadowBlur=20;
+      ctx.fillText('ようこそ',0,-20);
+      ctx.fillText('冒険の世界へ！',0,16);
+      ctx.shadowBlur=0;ctx.restore();
+      // Tap prompt (blink)
+      if(tutWarpT>30){
+        const blink=Math.sin(tutWarpT*0.12)*0.4+0.6;
+        ctx.globalAlpha=blink*fadeIn;
+        ctx.fillStyle='#fff';ctx.font='bold 16px monospace';ctx.textAlign='center';
+        ctx.fillText('▶ タップしてスタート',W/2,H*0.55);
+        ctx.globalAlpha=1;
+      }
+      return;
+    }
+    if(tutWarpPhase==='warp'){
+      // RPG-style warp/suction transition
+      const t=tutWarpT,maxT=90;
+      const prog=Math.min(1,t/maxT);
+      // Radial suction effect: everything gets pulled to center
+      ctx.save();
+      // Rotating speed lines
+      const numLines=24;
+      for(let i=0;i<numLines;i++){
+        const angle=(i/numLines)*Math.PI*2+t*0.08;
+        const innerR=Math.max(0,(1-prog*1.5))*Math.max(W,H);
+        const outerR=Math.max(W,H)*1.5;
+        const lw=4+prog*12;
+        ctx.strokeStyle='rgba(255,215,0,'+(0.3+prog*0.5)+')';
+        ctx.lineWidth=lw;
+        ctx.beginPath();
+        ctx.moveTo(W/2+Math.cos(angle)*innerR,H/2+Math.sin(angle)*innerR);
+        ctx.lineTo(W/2+Math.cos(angle)*outerR,H/2+Math.sin(angle)*outerR);
+        ctx.stroke();
+      }
+      // Central glow expanding
+      const glowR=prog*Math.max(W,H)*1.2;
+      const grd=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,glowR||1);
+      grd.addColorStop(0,'rgba(255,255,255,'+Math.min(1,prog*2)+')');
+      grd.addColorStop(0.3,'rgba(255,215,0,'+Math.min(0.8,prog*1.5)+')');
+      grd.addColorStop(0.7,'rgba(0,229,255,'+Math.min(0.4,prog)+')');
+      grd.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=grd;ctx.fillRect(0,0,W,H);
+      // Spiral particles
+      for(let i=0;i<12;i++){
+        const sa=i/12*Math.PI*2+t*0.15;
+        const sr=Math.max(0,(1-prog))*120+20;
+        const sx=W/2+Math.cos(sa)*sr,sy=H/2+Math.sin(sa)*sr;
+        const spA=Math.max(0,1-prog*1.2);
+        ctx.fillStyle='rgba(255,215,0,'+spA+')';
+        ctx.beginPath();ctx.arc(sx,sy,3+prog*4,0,6.28);ctx.fill();
+      }
+      // White flash at the end
+      if(prog>0.7){
+        const flashA=(prog-0.7)/0.3;
+        ctx.fillStyle='rgba(255,255,255,'+flashA+')';ctx.fillRect(0,0,W,H);
+      }
+      ctx.restore();
+      return;
+    }
+    // Fallback completion screen
     const sc=Math.min(1,tutSuccessT/30);
     ctx.fillStyle='rgba(0,0,0,'+(0.6*sc)+')';ctx.fillRect(0,0,W,H);
     ctx.save();ctx.translate(W/2,H*0.35);const ps=1+Math.sin(tutSuccessT*0.08)*0.05;ctx.scale(ps,ps);
