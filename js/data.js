@@ -1002,6 +1002,9 @@ let chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null}; // chest openi
 let totalChestsOpened=parseInt(localStorage.getItem('gd5chestTotal')||'0'); // lifetime chest count
 let storedChests=parseInt(localStorage.getItem('gd5storedChests')||'0'); // inventory chest count
 let inventoryOpen=false; // inventory modal on title screen
+let deadChestOpen=false; // chest opening from game over screen
+let chestBatchMode=false; // batch opening all chests
+let chestBatchResults=[]; // collected results for batch summary
 const PANEL_H=56; // bottom action panel height
 // Ghost character periodic transparency
 let ghostPhaseT=0; // timer for ghost transparency cycle

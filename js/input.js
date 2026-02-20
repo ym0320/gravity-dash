@@ -32,6 +32,16 @@ function deadBtnLayout(){
   btns.push({id:'title',x:btnX2,y:btnTop,w:btnW2,h:btnH2});
   return btns;
 }
+function hitDeadChestBtn(px,py){
+  if(storedChests<=0)return false;
+  const cardY=H*0.24;
+  const scoreY=cardY+(newHi?68:60);
+  const divY=scoreY+(maxCombo>1?82:70);
+  const coinY=divY+18;
+  const chestY=coinY+20;
+  const ocW=140,ocH=28,ocX=W/2-ocW/2,ocY=chestY+6;
+  return px>=ocX&&px<=ocX+ocW&&py>=ocY&&py<=ocY+ocH;
+}
 function hitDeadBtn(px,py){
   const btns=deadBtnLayout();
   for(const b of btns){
@@ -74,10 +84,24 @@ function handleDeadBtn(btnId){
     else{state=ST.TITLE;switchBGM('title');}
   }
 }
-function handleInventoryChestTap(){
-  if(!inventoryOpen)return false;
+function handleInventoryChestTap(tapX,tapY){
+  if(!inventoryOpen&&!deadChestOpen)return false;
+  // Check for batch open button tap (only in inventory, phase=none, 2+ chests)
+  if(chestOpen.phase==='none'&&storedChests>=2&&tapX!==undefined){
+    const cx=W/2,mW2=Math.min(300,W-24),mH2=Math.min(400,H-40);
+    const mY2=(H-mH2)/2,cy=mY2+mH2*0.42;
+    const boW=160,boH=34,boX=cx-boW/2,boY=cy+82;
+    if(tapX>=boX&&tapX<=boX+boW&&tapY>=boY&&tapY<=boY+boH){
+      // Start batch mode
+      chestBatchMode=true;chestBatchResults=[];
+      startInventoryChestOpen();
+      sfx('select');vibrate(15);
+      return true;
+    }
+  }
   // Tap anywhere in inventory when no chest is opening: start first chest
   if(chestOpen.phase==='none'&&storedChests>0){
+    chestBatchMode=false;
     startInventoryChestOpen();
     return true;
   }
@@ -88,11 +112,35 @@ function handleInventoryChestTap(){
     return true;
   }
   if(chestOpen.phase==='done'){
+    if(chestBatchMode){
+      // Collect result
+      chestBatchResults.push(chestOpen.reward);
+      if(storedChests>0){
+        startInventoryChestOpen();
+        // Auto-open immediately in batch mode
+        chestOpen.phase='wobble';chestOpen.t=0;
+        totalChestsOpened++;localStorage.setItem('gd5chestTotal',totalChestsOpened.toString());
+        storedChests--;localStorage.setItem('gd5storedChests',storedChests.toString());
+      } else {
+        // All done - show batch summary
+        chestOpen.phase='batchDone';chestOpen.t=0;chestBatchMode=false;
+      }
+      sfx('click');
+      return true;
+    }
     if(storedChests>0){
       startInventoryChestOpen();
     } else {
       chestOpen.phase='none';chestOpen.t=0;chestOpen.parts=[];chestOpen.reward=null;
+      if(deadChestOpen){deadChestOpen=false;}
     }
+    sfx('click');
+    return true;
+  }
+  if(chestOpen.phase==='batchDone'){
+    chestOpen.phase='none';chestOpen.t=0;chestOpen.parts=[];chestOpen.reward=null;
+    chestBatchResults=[];
+    if(deadChestOpen){deadChestOpen=false;}
     sfx('click');
     return true;
   }
@@ -255,7 +303,7 @@ canvas.addEventListener('touchstart',e=>{
       if(p.x>=mX2+mW2-36&&p.x<=mX2+mW2-4&&p.y>=mY2+4&&p.y<=mY2+36&&chestOpen.phase==='none'){
         inventoryOpen=false;sfx('cancel');return;
       }
-      handleInventoryChestTap();return;
+      handleInventoryChestTap(p.x,p.y);return;
     }
     if(charModal.show){sfx('cancel');charModal.show=false;return;}
     longPressFired=false;titleTouchPos=p;
@@ -267,7 +315,11 @@ canvas.addEventListener('touchstart',e=>{
       handleTitleTouch(p.x,p.y);
     }
   }
+  else if(state===ST.DEAD&&deadChestOpen){
+    handleInventoryChestTap(p.x,p.y);
+  }
   else if(state===ST.DEAD&&deadT>45){
+    if(hitDeadChestBtn(p.x,p.y)){deadChestOpen=true;chestBatchMode=false;startInventoryChestOpen();sfx('select');return;}
     const btnId=hitDeadBtn(p.x,p.y);
     if(btnId)handleDeadBtn(btnId);
   }
@@ -281,10 +333,11 @@ canvas.addEventListener('touchmove',e=>{
     const dy2=t.clientY-touchStartY;
     touchStartY=t.clientY;
     const rowH=36;
-    const mH=H-20,hdrH=52,listH=mH-hdrH-50;
+    const topPad=safeTop+8;
+    const mH=H-topPad-10,hdrH=52,listH=mH-hdrH-50;
     const totalH=RANKING_DATA.length*rowH;
     const maxScroll=Math.max(0,totalH-listH);
-    rankingScrollTarget=Math.max(0,Math.min(maxScroll,rankingScrollTarget-dy2));
+    rankingScrollTarget=Math.max(0,Math.min(maxScroll,rankingScrollTarget-dy2*2.5));
     return;
   }
   // Settings slider drag
@@ -375,7 +428,11 @@ canvas.addEventListener('mousedown',e=>{
   if(state===ST.PLAY&&hitBombBtn(p.x,p.y)){useBomb();return;}
   if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');state=ST.PAUSE;return;}
   if(state===ST.TITLE){if(charModal.show){sfx('cancel');charModal.show=false;return;}handleTitleTouch(p.x,p.y);}
+  else if(state===ST.DEAD&&deadChestOpen){
+    handleInventoryChestTap(p.x,p.y);
+  }
   else if(state===ST.DEAD&&deadT>45){
+    if(hitDeadChestBtn(p.x,p.y)){deadChestOpen=true;chestBatchMode=false;startInventoryChestOpen();sfx('select');return;}
     const btnId=hitDeadBtn(p.x,p.y);
     if(btnId)handleDeadBtn(btnId);
   }
@@ -556,8 +613,9 @@ function handleDebugTouch(tx,ty){
   }
 }
 function handleRankingTouch(tx,ty){
-  const mW=Math.min(340,W-16),mH=H-20;
-  const mX=(W-mW)/2,mY=10;
+  const mW=Math.min(340,W-16),topPad=safeTop+8;
+  const mH=H-topPad-10;
+  const mX=(W-mW)/2,mY=topPad;
   // Close button (top-right X)
   if(tx>=mX+mW-38&&tx<=mX+mW-8&&ty>=mY+8&&ty<=mY+38){
     rankingOpen=false;sfx('cancel');return;
@@ -577,9 +635,9 @@ canvas.addEventListener('wheel',e=>{
   if(rankingOpen){
     e.preventDefault();
     const rowH=36;
-    const mH=H-20,hdrH=52,listH=mH-hdrH-50;
+    const topPad=safeTop+8,mH=H-topPad-10,hdrH=52,listH=mH-hdrH-50;
     const totalH=RANKING_DATA.length*rowH;
     const maxScroll=Math.max(0,totalH-listH);
-    rankingScrollTarget=Math.max(0,Math.min(maxScroll,rankingScrollTarget+e.deltaY*0.5));
+    rankingScrollTarget=Math.max(0,Math.min(maxScroll,rankingScrollTarget+e.deltaY*1.5));
   }
 },{passive:false});

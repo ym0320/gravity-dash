@@ -37,8 +37,8 @@ function update(dt){
     stars.forEach(s=>{s.x-=s.sp*SPEED_INIT*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
     mtns.forEach(m=>{m.off-=m.sp*SPEED_INIT*0.15;if(m.off<-500)m.off+=500;});
     updateDemo();
-    // Inventory chest opening state machine
-    if(inventoryOpen&&chestOpen.phase!=='none'){
+    // Inventory/dead chest opening state machine
+    if((inventoryOpen||deadChestOpen)&&chestOpen.phase!=='none'){
       chestOpen.t++;
       if(chestOpen.phase==='wobble'&&chestOpen.t>=50){
         chestOpen.phase='burst';chestOpen.t=0;sfxChestOpen();shakeI=15;vibrate([30,20,40,20,80]);
@@ -60,7 +60,25 @@ function update(dt){
       }
       else if(chestOpen.phase==='reveal'){
         const revealLen=chestOpen.reward&&chestOpen.reward.type==='char'?140:90;
-        if(chestOpen.t>=revealLen){chestOpen.phase='done';chestOpen.t=0;}
+        if(chestOpen.t>=revealLen){
+          if(chestBatchMode){
+            // Auto-advance in batch mode: collect result and open next
+            chestBatchResults.push(chestOpen.reward);
+            if(storedChests>0){
+              startInventoryChestOpen();
+              chestOpen.phase='wobble';chestOpen.t=0;
+              totalChestsOpened++;localStorage.setItem('gd5chestTotal',totalChestsOpened.toString());
+              storedChests--;localStorage.setItem('gd5storedChests',storedChests.toString());
+            } else {
+              chestOpen.phase='batchDone';chestOpen.t=0;chestBatchMode=false;
+            }
+          } else {
+            chestOpen.phase='done';chestOpen.t=0;
+          }
+        }
+      }
+      else if(chestOpen.phase==='batchDone'){
+        // Just increment timer for sparkle animation
       }
     }
     return;
@@ -69,7 +87,28 @@ function update(dt){
     deadT++;
     parts=parts.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.07;p.vx*=0.99;p.life--;return p.life>0;});
     stars.forEach(s=>{s.x-=s.sp*0.15;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
-    // No chest opening on death screen - chests are stored in inventory
+    // Chest opening on death screen
+    if(deadChestOpen&&chestOpen.phase!=='none'){
+      chestOpen.t++;
+      if(chestOpen.phase==='wobble'&&chestOpen.t>=50){
+        chestOpen.phase='burst';chestOpen.t=0;sfxChestOpen();shakeI=15;vibrate([30,20,40,20,80]);
+      }
+      else if(chestOpen.phase==='burst'&&chestOpen.t>=40){
+        chestOpen.phase='reveal';chestOpen.t=0;
+        if(chestOpen.reward&&chestOpen.reward.type==='coin'){
+          walletCoins+=chestOpen.reward.amount;localStorage.setItem('gd5wallet',walletCoins.toString());
+        }
+        if(chestOpen.reward&&chestOpen.reward.type==='char'){
+          sfxSuperRare();shakeI=25;vibrate([40,20,60,30,80,40,100]);
+          if(chestOpen.reward.isNew){unlockCharFromChest(chestOpen.reward.charIdx);}
+          else{chestOpen.reward.bonusCoins=50;walletCoins+=50;localStorage.setItem('gd5wallet',walletCoins.toString());}
+        }
+      }
+      else if(chestOpen.phase==='reveal'){
+        const revealLen=chestOpen.reward&&chestOpen.reward.type==='char'?140:90;
+        if(chestOpen.t>=revealLen){chestOpen.phase='done';chestOpen.t=0;}
+      }
+    }
     return;
   }
   if(state===ST.STAGE_CLEAR){
