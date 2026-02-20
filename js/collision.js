@@ -65,6 +65,7 @@ let newHiEffT=0; // new highscore effect timer
 
 function useBomb(){
   if(bombCount<=0||(state!==ST.PLAY&&state!==ST.TUTORIAL))return;
+  if(bossPhase.active){sfx('hurt');vibrate(10);addPop(player.x,player.y-30,'\u30DC\u30B9\u6226\u4E2D\u306F\u4F7F\u3048\u306A\u3044!','#ff4444');return;}
   bombCount--;sfx('bomb');vibrate([30,20,50]);shakeI=15;bombFlashT=20;
   // Kill all on-screen enemies
   let kills=0;
@@ -84,6 +85,7 @@ function useBomb(){
 }
 function useInvincible(){
   if(invCount<=0||(state!==ST.PLAY&&state!==ST.TUTORIAL))return;
+  if(bossPhase.active){sfx('hurt');vibrate(10);addPop(player.x,player.y-30,'\u30DC\u30B9\u6226\u4E2D\u306F\u4F7F\u3048\u306A\u3044!','#ff4444');return;}
   invCount--;sfx('item');vibrate([20,10,30]);
   itemEff.invincible=state===ST.TUTORIAL?180:600;
   if(state===ST.PLAY)switchBGM('fever');

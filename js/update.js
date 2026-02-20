@@ -609,6 +609,12 @@ function update(dt){
   if(ct().shape==='tire'&&player.grounded){
     player.rotTarget+=speed*0.08*player.gDir;
   }
+  // Correct rotation when grounded to prevent inversion from rapid flipping
+  if(player.grounded&&ct().shape!=='tire'){
+    const correctRot=player.gDir===1?Math.round(player.rotTarget/(Math.PI*2))*Math.PI*2
+      :(Math.round((player.rotTarget-Math.PI)/(Math.PI*2))*Math.PI*2+Math.PI);
+    player.rotTarget+=(correctRot-player.rotTarget)*0.2;
+  }
   player.rot+=(player.rotTarget-player.rot)*0.12;
 
   // Trail

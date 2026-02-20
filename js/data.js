@@ -118,25 +118,25 @@ function sfxBossAlert(){
     const drone=audioCtx.createOscillator(),dg=audioCtx.createGain();
     drone.connect(dg);dg.connect(sfxGain);drone.type='sawtooth';
     drone.frequency.setValueAtTime(55,t);drone.frequency.linearRampToValueAtTime(40,t+1.5);
-    dg.gain.setValueAtTime(0.2,t);dg.gain.linearRampToValueAtTime(0.3,t+0.8);dg.gain.exponentialRampToValueAtTime(0.001,t+2.0);
+    dg.gain.setValueAtTime(0.08,t);dg.gain.linearRampToValueAtTime(0.12,t+0.8);dg.gain.exponentialRampToValueAtTime(0.001,t+2.0);
     drone.start(t);drone.stop(t+2.1);
     [220,208,196,185,175].forEach((f,i)=>{
       const o=audioCtx.createOscillator(),g=audioCtx.createGain();
       o.connect(g);g.connect(sfxGain);o.type='square';
       const st=t+i*0.3;
       o.frequency.setValueAtTime(f,st);
-      g.gain.setValueAtTime(0.18,st);g.gain.exponentialRampToValueAtTime(0.001,st+0.25);
+      g.gain.setValueAtTime(0.07,st);g.gain.exponentialRampToValueAtTime(0.001,st+0.25);
       o.start(st);o.stop(st+0.3);
     });
     const sir=audioCtx.createOscillator(),sg=audioCtx.createGain();
     sir.connect(sg);sg.connect(sfxGain);sir.type='sawtooth';
     sir.frequency.setValueAtTime(300,t+0.5);sir.frequency.exponentialRampToValueAtTime(900,t+1.8);
-    sg.gain.setValueAtTime(0,t+0.5);sg.gain.linearRampToValueAtTime(0.15,t+0.8);sg.gain.exponentialRampToValueAtTime(0.001,t+2.0);
+    sg.gain.setValueAtTime(0,t+0.5);sg.gain.linearRampToValueAtTime(0.06,t+0.8);sg.gain.exponentialRampToValueAtTime(0.001,t+2.0);
     sir.start(t+0.5);sir.stop(t+2.1);
     const imp=audioCtx.createOscillator(),ig=audioCtx.createGain();
     imp.connect(ig);ig.connect(sfxGain);imp.type='triangle';
     imp.frequency.setValueAtTime(80,t+1.8);imp.frequency.exponentialRampToValueAtTime(20,t+2.5);
-    ig.gain.setValueAtTime(0.25,t+1.8);ig.gain.exponentialRampToValueAtTime(0.001,t+2.5);
+    ig.gain.setValueAtTime(0.10,t+1.8);ig.gain.exponentialRampToValueAtTime(0.001,t+2.5);
     imp.start(t+1.8);imp.stop(t+2.6);
   }catch(e){}
 }
