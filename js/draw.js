@@ -1278,7 +1278,12 @@ function drawCharacter(x,y,charIdx,r,rot,alpha,face,dmgLevel,showCosmetics){
   dmgLevel=dmgLevel||0; // 0=full HP, 1=hurt once, 2=critical
   if(showCosmetics===undefined)showCosmetics=(charIdx===selChar);
   const ch=CHARS[charIdx];
-  ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.globalAlpha=alpha;
+  ctx.save();ctx.translate(x,y);ctx.rotate(rot);
+  // When upside-down (on ceiling), flip horizontally so face still looks right/forward
+  // Skip tire (always spinning) and ghost (always upright, charRot=0)
+  const normRot=((rot%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
+  if(ch.shape!=='tire'&&normRot>Math.PI*0.5&&normRot<Math.PI*1.5)ctx.scale(-1,1);
+  ctx.globalAlpha=alpha;
   // Apply skin color override (always, even when damaged)
   const skinData=showCosmetics?getEquippedSkinData():null;
   let bodyCol=ch.col,bodyCol2=ch.col2;
@@ -1918,22 +1923,19 @@ function drawTitle(){
       rr(cx,cy,charW,charH,6);ctx.fill();
 
       if(locked){
-        // Secret: black silhouette only (design completely hidden)
-        ctx.save();
-        // Draw character to get shape, then cover with black
-        ctx.globalAlpha=0.6;
-        // Black silhouette: draw character shape filled with black
-        const sx=cx+charW/2,sy=cy+charH/2-8,sr=14;
+        // Secret: exact character silhouette in black using offscreen canvas
+        ctx.save();ctx.globalAlpha=0.6;
+        const ofc=document.createElement('canvas');
+        ofc.width=60;ofc.height=60;
+        const origCtx=ctx;
+        ctx=ofc.getContext('2d');
+        ctx.translate(30,30);
+        drawCharacter(0,0,idx,14,0,1,'normal',0,false);
+        ctx.globalCompositeOperation='source-atop';
         ctx.fillStyle='#111118';
-        // Draw the character shape as a black blob silhouette
-        const shape=CHARS[idx].shape;
-        if(shape==='cube'){ctx.fillRect(sx-sr,sy-sr,sr*2,sr*2);}
-        else if(shape==='ball'){ctx.beginPath();ctx.arc(sx,sy,sr,0,6.28);ctx.fill();}
-        else if(shape==='tire'){ctx.beginPath();ctx.arc(sx,sy,sr,0,6.28);ctx.fill();ctx.fillStyle='#0a0a12';ctx.beginPath();ctx.arc(sx,sy,sr*0.5,0,6.28);ctx.fill();}
-        else if(shape==='ghost'){ctx.beginPath();ctx.arc(sx,sy-sr*0.2,sr,0,Math.PI,true);ctx.lineTo(sx-sr,sy+sr*0.8);for(let wi=0;wi<4;wi++){const wx=sx-sr+wi*(sr*2/4)+sr*2/8;ctx.quadraticCurveTo(wx,sy+sr*1.1,wx+sr*2/8,sy+sr*0.8);}ctx.closePath();ctx.fill();}
-        else if(shape==='ninja'){ctx.beginPath();ctx.moveTo(sx,sy-sr);ctx.lineTo(sx+sr,sy+sr*0.6);ctx.lineTo(sx-sr,sy+sr*0.6);ctx.closePath();ctx.fill();ctx.beginPath();ctx.arc(sx,sy-sr*0.1,sr*0.7,0,6.28);ctx.fill();}
-        else if(shape==='stone'){ctx.beginPath();ctx.moveTo(sx,sy-sr);ctx.lineTo(sx+sr*0.9,sy-sr*0.3);ctx.lineTo(sx+sr,sy+sr*0.5);ctx.lineTo(sx+sr*0.5,sy+sr);ctx.lineTo(sx-sr*0.5,sy+sr);ctx.lineTo(sx-sr,sy+sr*0.5);ctx.lineTo(sx-sr*0.9,sy-sr*0.3);ctx.closePath();ctx.fill();}
-        else{ctx.beginPath();ctx.arc(sx,sy,sr,0,6.28);ctx.fill();}
+        ctx.fillRect(-30,-30,60,60);
+        ctx=origCtx;
+        ctx.drawImage(ofc,cx+charW/2-30,cy+charH/2-8-30);
         ctx.restore();
         // Lock icon
         ctx.fillStyle='#fff5';ctx.font='bold 14px monospace';ctx.textAlign='center';

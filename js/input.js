@@ -148,16 +148,16 @@ function handleInventoryChestTap(tapX,tapY){
 }
 function startInventoryChestOpen(){
   // Gacha probabilities:
-  // Character: 8%, Secret cosmetic (rare): 7%, Normal cosmetic: 10%,
-  // 500 coins: 5%, 100 coins: 15%, 50 coins: 25%, 30 coins: 30%
+  // Character: 12%, Secret cosmetic (rare): 10%, Normal cosmetic: 15%,
+  // 1000 coins: 5%, 200 coins: 13%, 100 coins: 20%, 60 coins: 25%
   const roll=Math.random();
   let reward;
-  if(roll<0.08){
-    // Character (8%)
+  if(roll<0.12){
+    // Character (12%)
     const ci=Math.floor(Math.random()*CHARS.length);
     reward={type:'char',charIdx:ci,isNew:!isCharUnlocked(ci),bonusCoins:0};
-  } else if(roll<0.15){
-    // Secret (rare) cosmetic item (7%)
+  } else if(roll<0.22){
+    // Secret (rare) cosmetic item (10%)
     const allRare=[];
     SHOP_ITEMS.skins.forEach(it=>{if(it.rarity==='rare')allRare.push({...it,tab:0});});
     SHOP_ITEMS.eyes.forEach(it=>{if(it.rarity==='rare')allRare.push({...it,tab:1});});
@@ -168,10 +168,10 @@ function startInventoryChestOpen(){
       ownedItems.push(ri.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));
       reward={type:'cosmetic',item:ri,isNew:true};
     } else {
-      reward={type:'coin',amount:500};
+      reward={type:'coin',amount:1000};
     }
-  } else if(roll<0.25){
-    // Normal cosmetic item (10%)
+  } else if(roll<0.37){
+    // Normal cosmetic item (15%)
     const allNormal=[];
     SHOP_ITEMS.skins.forEach(it=>{if(it.rarity!=='rare')allNormal.push({...it,tab:0});});
     SHOP_ITEMS.eyes.forEach(it=>{if(it.rarity!=='rare')allNormal.push({...it,tab:1});});
@@ -182,12 +182,12 @@ function startInventoryChestOpen(){
       ownedItems.push(ni.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));
       reward={type:'cosmetic',item:ni,isNew:true};
     } else {
-      reward={type:'coin',amount:100};
+      reward={type:'coin',amount:200};
     }
-  } else if(roll<0.30){reward={type:'coin',amount:500};}
-  else if(roll<0.45){reward={type:'coin',amount:100};}
-  else if(roll<0.70){reward={type:'coin',amount:50};}
-  else{reward={type:'coin',amount:30};}
+  } else if(roll<0.42){reward={type:'coin',amount:1000};}
+  else if(roll<0.55){reward={type:'coin',amount:200};}
+  else if(roll<0.75){reward={type:'coin',amount:100};}
+  else{reward={type:'coin',amount:60};}
   chestOpen.phase='waiting';chestOpen.t=0;
   chestOpen.charIdx=reward.type==='char'?reward.charIdx:-1;
   chestOpen.parts=[];chestOpen.reward=reward;
@@ -922,9 +922,10 @@ function handleShopTouch(tx,ty){
     const dlgW=Math.min(270,W-30),dlgH=260;
     const dlgX=W/2-dlgW/2,dlgY=H/2-dlgH/2;
     const btnW2=100,btnH2=36;
-    // Buy button
+    // Buy button (only respond if player can afford)
     if(tx>=W/2-btnW2-6&&tx<=W/2-6&&ty>=dlgY+dlgH-52&&ty<=dlgY+dlgH-52+btnH2){
       const item=shopConfirm.item,tab=shopConfirm.tab;
+      if(walletCoins<item.price){sfx('cancel');return;} // can't afford - ignore tap
       if(buyItem(item.id,item.price)){
         // Auto-equip
         if(tab===0)equipSkin(item.id);
@@ -939,8 +940,6 @@ function handleShopTouch(tx,ty){
         }
         shopPurchaseAnim={item,tab,t:0,parts};
         sfx('item');sfxFanfare();vibrate([10,5,15,5,10]);
-      } else {
-        sfx('hurt');vibrate(15);
       }
       shopConfirm=null;
       return;

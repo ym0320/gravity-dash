@@ -241,9 +241,12 @@ function trySpawnSpike(){
     const ceilHere=ceilPlats.find(p=>sx>=p.x&&sx<=p.x+p.w);
     if(!ceilHere){spikeCD=25+Math.floor(Math.random()*15);return;}
     spikeCD=80+Math.floor(Math.random()*60);
-    const sw=30+Math.random()*30;
     // Randomly choose floor or ceiling spike
     const isFloor=Math.random()<0.5;
+    // Clamp spike width to not exceed platform edges
+    const maxW=isFloor?(plat.x+plat.w-sx):(ceilHere.x+ceilHere.w-sx);
+    const sw=Math.min(30+Math.random()*30,Math.max(10,maxW));
+    if(sw<10){spikeCD=25;return;} // platform too narrow
     if(isFloor){
       spikes.push({x:sx,w:sw,h:H-plat.h,spikeH:22,phase:0,timer:0,state:'hidden',
         cycle:120+Math.floor(Math.random()*80),upTime:60+Math.floor(Math.random()*30),
