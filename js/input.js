@@ -20,7 +20,7 @@ function hitQuitBtn(px,py){return px>=W/2-80&&px<=W/2+80&&py>=H*0.56&&py<=H*0.56
 // Game over screen buttons (must match drawDead layout exactly)
 function deadBtnLayout(){
   const btnW2=Math.min(220,W-40),btnH2=38,btnX2=W/2-btnW2/2;
-  const cardY=H*0.24,cardH=210;
+  const cardY=H*0.24,cardH=210+(storedChests>0?56:0);
   let btnTop=cardY+cardH+12;
   const btns=[];
   if(!isPackMode){
@@ -970,10 +970,8 @@ function confirmShopTap(){
   if(idx>=items.length)return;
   const item=items[idx];
   if(ownsItem(item.id)){
-    if(tab===0){if(equippedSkin===item.id)unequipSkin();else equipSkin(item.id);}
-    else if(tab===1){if(equippedEyes===item.id)unequipEyes();else equipEyes(item.id);}
-    else{if(equippedEffect===item.id)unequipEffect();else equipEffect(item.id);}
-    sfx('select');vibrate(10);
+    // Already owned - do nothing (equip via cosmetic menu instead)
+    return;
   } else {
     // Block purchase of secret/rare items (gacha only)
     if(item.rarity==='rare'){
