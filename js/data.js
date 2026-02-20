@@ -1236,6 +1236,11 @@ let cosmeticScroll=0;
 // Shop purchase confirmation & gacha animation
 let shopConfirm=null; // {item, tab} when confirm dialog shown
 let shopPurchaseAnim=null; // {item, tab, t, parts} when purchase animation playing
+// Cosmetic equip confirmation
+let cosmeticConfirm=null; // {item, tab} when equip confirm dialog shown
+// Pending item tap (deferred to touchend to avoid scroll-tap conflict)
+let shopPendingTap=null; // {idx} set on touchstart, confirmed on touchend
+let cosmeticPendingTap=null; // {idx} set on touchstart, confirmed on touchend
 function ownsItem(id){return ownedItems.includes(id);}
 function buyItem(id,price){
   if(ownsItem(id)||walletCoins<price)return false;
