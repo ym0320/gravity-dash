@@ -849,14 +849,15 @@ function handleDebugTouch(tx,ty){
     }
     bbY+=bbH+bbGap;
   }
-  // Enemy buttons
+  // Enemy buttons (must match enemyTypes array in draw.js)
+  const debugEnemyIds=[0,1,2,3,4,5,6,8];
   bbY+=14;
-  for(let i=0;i<9;i++){
+  for(let i=0;i<debugEnemyIds.length;i++){
     if(tx>=bbX&&tx<=bbX+bbW&&ty>=bbY&&ty<=bbY+bbH){
       debugMenuOpen=false;debugBossRetry=false;
-      debugEnemyMode=true;debugEnemyType=i;debugEnemyCD=0;
+      debugEnemyMode=true;debugEnemyType=debugEnemyIds[i];debugEnemyCD=0;
       sfx('select');
-      window.testEnemy(i);
+      window.testEnemy(debugEnemyIds[i]);
       return;
     }
     bbY+=bbH+bbGap;

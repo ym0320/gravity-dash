@@ -104,7 +104,6 @@ function trySpawnEnemy(){
     const tr=Math.random();
     if(score>=600&&bossPhase.bossCount>=3&&tr<0.10) eType=8; // splitter (after 3rd boss)
     else if(score>=400&&bossPhase.bossCount>=2&&tr<0.15) eType=3; // bomber (after 2nd boss)
-    else if(score>=300&&bossPhase.bossCount>=1&&tr<0.13) eType=7; // shielder (after 1st boss)
     else if(score>=250&&bossPhase.bossCount>=1&&tr<0.18) eType=6; // dasher (after 1st boss)
     else if(score>=160&&tr<0.12) eType=5; // phantom (mid-late)
     else if(score>=140&&tr<0.15) eType=4; // vertical mover (mid-late)
@@ -153,15 +152,6 @@ function trySpawnEnemy(){
       enemies.push({x:ex,y:gd6===1?surfY-sz:surfY+sz,vy:0,gDir:gd6,walkSpd:0.3,sz:sz,alive:true,fr:Math.random()*100,type:6,shootT:999,
         patrolDir:-1,patrolOriginX:ex,patrolRange:25+Math.random()*20,
         dashState:'patrol',dashTimer:0,dashSpd:6+Math.random()*3,dashDir:-1,warnT:0});
-    } else if(eType===7){
-      // Shielder: walks with front shield, must stomp from above or hit from behind
-      const onCeil7=Math.random()<0.4;
-      const gd7=onCeil7?-1:1;
-      const surfY=gd7===1?H-plat.h:ceilSurfaceY(ex);
-      const sz=14;
-      enemies.push({x:ex,y:gd7===1?surfY-sz:surfY+sz,vy:0,gDir:gd7,walkSpd:0.25+Math.random()*0.3,sz:sz,alive:true,fr:Math.random()*100,type:7,shootT:999,
-        patrolDir:-1,patrolOriginX:ex,patrolRange:20+Math.random()*30,
-        shieldFacing:-1}); // shield faces left (toward player)
     } else if(eType===8){
       // Splitter: medium enemy that splits into 2 small ones when killed
       const onCeil8=Math.random()<0.4;
@@ -265,9 +255,10 @@ function trySpawnSpike(){
 function trySpawnFallingMtn(){
   if(fallingMtnCD>0){fallingMtnCD--;return;}
   if(bossPhase.active)return;
-  if(score<5000)return;
+  if(score<4000)return;
   // Find a gap (abyss) in floor platforms to place the falling floor over
-  const chance=Math.min(0.06,0.01+(score-5000)*0.0001);
+  // Starts at 4000, increases significantly from 4000-6000+
+  const chance=score>=6000?Math.min(0.12,0.04+(score-6000)*0.0002):Math.min(0.06,0.01+(score-4000)*0.0003);
   if(Math.random()<chance){
     // Look for gaps between platforms in the upcoming area
     let gapX=-1,gapW=0;
@@ -344,7 +335,10 @@ function trySpawnGravZone(){
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
   let doSpawn=false;
-  if(gravZoneChain>0&&gravZoneChain<gravZoneChainTarget){
+  if(gravRushPhase.active){
+    // Gravity rush phase: very high spawn rate, rapid zones
+    doSpawn=true;
+  } else if(gravZoneChain>0&&gravZoneChain<gravZoneChainTarget){
     doSpawn=true;
   } else {
     const chance=Math.min(0.04,0.008+(score-150)*0.0003);
@@ -356,7 +350,12 @@ function trySpawnGravZone(){
     // dir: 1=force down (blue), -1=force up (pink)
     const gdir=Math.random()<0.5?1:-1;
     gravZones.push({x:gx,w:gw,triggered:false,fadeT:0,dir:gdir});
-    if(gravZoneChain===0){
+    if(gravRushPhase.active){
+      // Gravity rush: rapid short gaps, count down
+      gravRushPhase.len--;
+      if(gravRushPhase.len<=0){gravRushPhase.active=false;gravRushPhase.cd=600+Math.floor(Math.random()*400);}
+      gravZoneCD=15+Math.floor(Math.random()*25); // very tight spacing
+    } else if(gravZoneChain===0){
       // Start new chain: determine count based on score
       let maxCount=1;
       if(score>=5000)maxCount=3;

@@ -4,6 +4,10 @@
 let platforms=[],ceilPlats=[];
 // Flip zone: forces player to switch between floor and ceiling
 let flipZone={active:false,type:0,len:0,cd:0,lastType:-1}; // type: 0=floor gap, 1=ceiling gap
+// Abyss phase: score 6000+, temporarily spawns massive gaps
+let abyssPhase={active:false,len:0,cd:0};
+// Gravity rush phase: score 5000+, temporarily spawns many gravity zones
+let gravRushPhase={active:false,len:0,cd:0};
 
 function generatePlatform(arr,isCeil,forceGap){
   const last=arr.length>0?arr[arr.length-1]:null;
@@ -21,11 +25,19 @@ function generatePlatform(arr,isCeil,forceGap){
     return;
   }
   // Gap (valleys): NONE until first boss defeated (bossCount>=1), then gradually increase
+  // After 4000: more gaps; during abyssPhase: extreme gaps
   let gap=0;
   if(bossPhase.bossCount>=1&&score>100){
-    const gc=Math.min(0.3,0.02+(score-100)*0.0015);
+    let gc=Math.min(0.3,0.02+(score-100)*0.0015);
+    let maxGap=Math.min(70,10+(score-100)*0.25);
+    if(score>=4000){
+      gc=Math.min(0.45,gc+0.08);
+      maxGap=Math.min(100,maxGap+20);
+    }
+    if(abyssPhase.active){
+      gc=0.7;maxGap=120;
+    }
     if(Math.random()<gc){
-      const maxGap=Math.min(70,10+(score-100)*0.25);
       gap=15+Math.random()*maxGap;
     }
   }
@@ -144,6 +156,8 @@ function reset(){
   djumpAvailable=!!ct().hasDjump;djumpUsed=false;ghostPhaseT=0;ghostInvis=false;
   coinCD=0;itemCD=0;enemyCD=0;flipCount=0;flipTimer=999;lastCoinCourse='';
   flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
+  abyssPhase={active:false,len:0,cd:0};
+  gravRushPhase={active:false,len:0,cd:0};
   bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:1000,lastBossScore:0,bossCount:0,bossType:'',noDamage:true};
   hp=HP_MAX+(ct().hpBonus||0);hurtT=0;
   curTheme=0;prevTheme=0;themeLerp=1;
@@ -192,6 +206,8 @@ function resetPackStage(pi,si){
   djumpAvailable=!!ct().hasDjump;djumpUsed=false;ghostPhaseT=0;ghostInvis=false;
   coinCD=0;itemCD=0;enemyCD=0;flipCount=0;flipTimer=999;lastCoinCourse='';
   flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
+  abyssPhase={active:false,len:0,cd:0};
+  gravRushPhase={active:false,len:0,cd:0};
   bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:99999,lastBossScore:0,bossCount:0};
   hp=HP_MAX+(ct().hpBonus||0);hurtT=0;
   curTheme=0;prevTheme=0;themeLerp=1;
