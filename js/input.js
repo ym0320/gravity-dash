@@ -430,27 +430,34 @@ canvas.addEventListener('touchend',e=>{
   if(state===ST.TITLE&&!longPressFired&&titleTouchPos){handleTitleTouch(titleTouchPos.x,titleTouchPos.y);titleTouchPos=null;return;}
   // Tutorial swipe & tap
   if(state===ST.TUTORIAL){
+    if(tutPhase!=='wait'||tutStep>=TUT_CHECKPOINTS.length){return;}
+    const cp=TUT_CHECKPOINTS[tutStep];
     const tt=e.changedTouches[0];const tdy=tt.clientY-touchStartY;
     if(touchMoved&&Math.abs(tdy)>30){
-      // Swipe detected in tutorial
-      if(tutStep===2&&tdy<0&&player.gDir===1){
-        // Flip UP
+      // Swipe in tutorial
+      if(cp.type==='flip_up'&&tdy<0&&player.gDir===1){
         player.gDir=-1;player.vy=-2;sfx('flip');vibrate(20);
         player.face='flip';setTimeout(()=>{if(player.alive)player.face='normal';},250);
         emitParts(player.x,player.y,10,tc('ply'),3,2.5);player.rotTarget-=Math.PI;
-        tutDone=true;
-      } else if(tutStep===3&&tdy>0&&player.gDir===-1){
-        // Flip DOWN
+        tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,1000);
+      } else if(cp.type==='flip_down'&&tdy>0&&player.gDir===-1){
         player.gDir=1;player.vy=2;sfx('flip');vibrate(20);
         player.face='flip';setTimeout(()=>{if(player.alive)player.face='normal';},250);
         emitParts(player.x,player.y,10,tc('ply'),3,2.5);player.rotTarget+=Math.PI;
-        tutDone=true;
-      }
-    } else if(!touchMoved){
-      // Tap in tutorial
-      if(tutStep===1&&player.grounded){
-        player.vy=player.gDir===1?-JUMP_POWER:JUMP_POWER;player.grounded=false;
-        sfx('jump');tutDone=true;
+        tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,1000);
+      } else if(cp.type==='double_flip'){
+        if(tdy<0&&player.gDir===1){
+          player.gDir=-1;player.vy=-4;sfx('flip');vibrate(20);player.grounded=false;
+          emitParts(player.x,player.y,10,tc('ply'),3,2.5);player.rotTarget-=Math.PI;
+          tutFlipCount++;
+        } else if(tdy>0&&player.gDir===-1){
+          player.gDir=1;player.vy=4;sfx('flip');vibrate(20);player.grounded=false;
+          emitParts(player.x,player.y,10,tc('ply'),3,2.5);player.rotTarget+=Math.PI;
+          tutFlipCount++;
+        }
+        if(tutFlipCount>=2){
+          tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,1200);
+        }
       }
     }
     return;
@@ -577,40 +584,41 @@ document.addEventListener('keydown',e=>{
     if(state===ST.PLAY){sfx('pause');state=ST.PAUSE;return;}
     if(state===ST.PAUSE){sfx('select');state=ST.PLAY;return;}
   }
-  // Login: Enter submits
-  if(state===ST.LOGIN&&e.code==='Enter'){
-    e.preventDefault();initAudio();
-    const name=(nameInput.value||'').trim();
-    if(name.length>=1){
-      playerName=name;localStorage.setItem('gd5username',playerName);
-      nameInput.style.opacity='0';nameInput.style.pointerEvents='none';nameInput.blur();loginNameActive=false;
-      sfx('select');
-      if(!tutorialDone){startTutorial();}else{state=ST.TITLE;switchBGM('title');}
-    }
-    return;
-  }
-  if(state===ST.LOGIN)return; // block other keys during login
+  if(state===ST.LOGIN)return; // login handled by HTML overlay
   // Tutorial keyboard
   if(state===ST.TUTORIAL){
     e.preventDefault();initAudio();
-    const step=TUT_STEPS[tutStep];
-    if(!step)return;
     if(e.code==='Escape'){tutorialDone=true;localStorage.setItem('gd5tutorialDone','1');state=ST.TITLE;switchBGM('title');return;}
-    if(tutDone){sfx('select');advanceTutStep();return;}
-    if(step.type==='tap_next'||step.type==='tap_finish'){sfx('select');tutDone=true;if(step.type==='tap_finish')advanceTutStep();return;}
-    if(step.type==='jump'&&(e.code==='Space'||e.code==='ArrowUp')&&player.grounded){
-      player.vy=player.gDir===1?-JUMP_POWER:JUMP_POWER;player.grounded=false;sfx('jump');tutDone=true;return;
+    if(tutPhase!=='wait'||tutStep>=TUT_CHECKPOINTS.length)return;
+    const cp=TUT_CHECKPOINTS[tutStep];
+    if(cp.type==='jump'&&(e.code==='Space'||e.code==='ArrowUp')&&player.grounded){
+      player.vy=player.gDir===1?-JUMP_POWER:JUMP_POWER;player.grounded=false;sfx('jump');
+      tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,800);return;
     }
-    if(step.type==='flip_up'&&e.code==='ArrowUp'&&player.gDir===1){
+    if(cp.type==='flip_up'&&e.code==='ArrowUp'&&player.gDir===1){
       player.gDir=-1;player.vy=-2;sfx('flip');vibrate(20);player.rotTarget-=Math.PI;
-      emitParts(player.x,player.y,10,tc('ply'),3,2.5);tutDone=true;return;
+      emitParts(player.x,player.y,10,tc('ply'),3,2.5);
+      tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,1000);return;
     }
-    if(step.type==='flip_down'&&e.code==='ArrowDown'&&player.gDir===-1){
+    if(cp.type==='flip_down'&&e.code==='ArrowDown'&&player.gDir===-1){
       player.gDir=1;player.vy=2;sfx('flip');vibrate(20);player.rotTarget+=Math.PI;
-      emitParts(player.x,player.y,10,tc('ply'),3,2.5);tutDone=true;return;
+      emitParts(player.x,player.y,10,tc('ply'),3,2.5);
+      tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,1000);return;
     }
-    if(step.type==='bomb'&&(e.code==='KeyB'||e.code==='KeyX')&&bombCount>0){useBomb();tutDone=true;return;}
-    if(step.type==='invincible'&&(e.code==='KeyV'||e.code==='KeyZ')&&invCount>0){useInvincible();tutDone=true;return;}
+    if(cp.type==='double_flip'){
+      if(e.code==='ArrowUp'&&player.gDir===1){
+        player.gDir=-1;player.vy=-4;sfx('flip');player.grounded=false;player.rotTarget-=Math.PI;
+        emitParts(player.x,player.y,10,tc('ply'),3,2.5);tutFlipCount++;
+      } else if(e.code==='ArrowDown'&&player.gDir===-1){
+        player.gDir=1;player.vy=4;sfx('flip');player.grounded=false;player.rotTarget+=Math.PI;
+        emitParts(player.x,player.y,10,tc('ply'),3,2.5);tutFlipCount++;
+      }
+      if(tutFlipCount>=2){tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,1200);}
+      return;
+    }
+    if(cp.type==='bomb'&&(e.code==='KeyB'||e.code==='KeyX')&&bombCount>0){
+      useBomb();tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,1200);return;
+    }
     return;
   }
   if(e.code==='Space'||e.code==='ArrowUp'){
@@ -970,122 +978,92 @@ function confirmCosmeticTap(){
   cosmeticConfirm={item,tab};sfx('select');
 }
 
-// ===== LOGIN TOUCH =====
-function handleLoginTouch(tx,ty){
-  // Name input field area
-  const fieldW=Math.min(240,W-60),fieldH=40;
-  const fieldX=W/2-fieldW/2,fieldY=H*0.42;
-  if(tx>=fieldX&&tx<=fieldX+fieldW&&ty>=fieldY&&ty<=fieldY+fieldH){
-    loginNameActive=true;
-    nameInput.style.opacity='1';nameInput.style.pointerEvents='auto';
-    nameInput.value=playerName||'';
-    nameInput.focus();sfx('click');
-    return;
-  }
-  // OK button
-  const btnW=Math.min(200,W-80),btnH=44;
-  const btnX=W/2-btnW/2,btnY=H*0.56;
-  if(tx>=btnX&&tx<=btnX+btnW&&ty>=btnY&&ty<=btnY+btnH){
-    const name=(nameInput.value||'').trim();
-    if(name.length>=1){
-      playerName=name;
-      localStorage.setItem('gd5username',playerName);
-      nameInput.style.opacity='0';nameInput.style.pointerEvents='none';
-      nameInput.blur();loginNameActive=false;
-      sfx('select');vibrate(15);
-      // Go to tutorial if first time
-      if(!tutorialDone){
-        startTutorial();
-      } else {
-        state=ST.TITLE;switchBGM('title');
-      }
-    } else {
-      sfx('hurt');vibrate(10);
-    }
-    return;
-  }
-  // Tap elsewhere closes keyboard
-  if(loginNameActive){
-    nameInput.blur();loginNameActive=false;
-    nameInput.style.opacity='0';nameInput.style.pointerEvents='none';
-  }
-}
-// Sync hidden input → playerName on each input event
+// ===== LOGIN (HTML overlay) =====
+function handleLoginTouch(tx,ty){return;} // Login handled by HTML overlay
 nameInput.addEventListener('input',()=>{
   let v=nameInput.value.replace(/[<>&"']/g,'').substring(0,12);
   nameInput.value=v;
+  loginBtn.classList.toggle('ready',v.trim().length>=1);
+});
+loginBtn.addEventListener('click',()=>{
+  initAudio();
+  const name=(nameInput.value||'').trim();
+  if(name.length<1){sfx('hurt');vibrate(10);return;}
+  playerName=name;localStorage.setItem('gd5username',playerName);
+  loginOverlay.classList.remove('active');
+  sfx('select');vibrate(15);
+  if(!tutorialDone){startTutorial();}
+  else{state=ST.TITLE;switchBGM('title');}
 });
 
-// ===== TUTORIAL =====
-const TUT_STEPS=[
-  {msg:'ようこそ GRAVITY DASH へ！',sub:'タップして次へ',type:'tap_next'},
-  {msg:'タップしてジャンプ！',sub:'画面をタップ',type:'jump'},
-  {msg:'上にスワイプで重力反転！',sub:'↑ スワイプ',type:'flip_up'},
-  {msg:'下にスワイプで戻ろう！',sub:'↓ スワイプ',type:'flip_down'},
-  {msg:'ボムで敵を一掃！',sub:'下のボムボタンをタップ',type:'bomb'},
-  {msg:'無敵で突き進め！',sub:'★ボタンをタップ',type:'invincible'},
-  {msg:'チュートリアル完了！',sub:'タップしてスタート！',type:'tap_finish'}
+// ===== TUTORIAL (course-based) =====
+const TUT_CHECKPOINTS=[
+  {dist:250,type:'jump',msg:'障害物をジャンプで\n飛び越えよう！',sub:'画面をタップ！',icon:'tap'},
+  {dist:950,type:'flip_up',msg:'重力を反転して\n天井へ移動！',sub:'上にスワイプ！',icon:'swipe_up'},
+  {dist:1700,type:'flip_down',msg:'重力を戻して\n地面へ！',sub:'下にスワイプ！',icon:'swipe_down'},
+  {dist:2350,type:'double_flip',msg:'空中で重力を\n2回切り替えよう！',sub:'↑スワイプ → ↓スワイプ',icon:'double'},
+  {dist:3000,type:'bomb',msg:'ボムで敵を\n一掃しよう！',sub:'ボムボタンをタップ！',icon:'bomb'},
 ];
+function buildTutorialCourse(){
+  tutCoursePlats=[];tutCourseCeil=[];tutCourseSpikes=[];
+  const floorY=H-GROUND_H;
+  // Floor platforms
+  tutCoursePlats.push({x:0,w:450,h:GROUND_H});
+  // Spike obstacle for jump
+  tutCourseSpikes.push({x:420,w:36,h:28});
+  tutCoursePlats.push({x:500,w:700,h:GROUND_H});
+  // Ceiling for flip-up section
+  tutCourseCeil.push({x:950,w:900,h:GROUND_H});
+  tutCoursePlats.push({x:1200,w:100,h:GROUND_H}); // small floor ledge
+  // Floor for flip-down and beyond
+  tutCoursePlats.push({x:1850,w:900,h:GROUND_H});
+  tutCourseCeil.push({x:1850,w:900,h:GROUND_H});
+  // Bomb section
+  tutCoursePlats.push({x:2900,w:800,h:GROUND_H});
+  tutCourseCeil.push({x:2900,w:800,h:GROUND_H});
+}
 function startTutorial(){
   reset();
   state=ST.TUTORIAL;
   tutStep=0;tutStepT=0;tutDone=false;tutEnemySpawned=false;
+  tutScrollX=0;tutSpeed=0.8;tutWaiting=false;
+  tutPhase='scroll';tutSuccessT=0;tutFlipCount=0;
   bombCount=0;invCount=0;
-  // Place player nicely
-  player.x=W*0.3;player.gDir=1;
-  player.y=H-GROUND_H-PLAYER_R;
-  speed=1.0; // slow speed for tutorial
+  buildTutorialCourse();
+  player.x=W*0.25;player.gDir=1;player.vy=0;
+  player.y=H-GROUND_H-PLAYER_R;player.grounded=true;
+  speed=0.8;
   switchBGM('title');
 }
-function advanceTutStep(){
-  tutStep++;tutStepT=0;tutDone=false;tutEnemySpawned=false;
-  if(tutStep>=TUT_STEPS.length){
-    // Tutorial complete
-    tutorialDone=true;
-    localStorage.setItem('gd5tutorialDone','1');
-    state=ST.TITLE;switchBGM('title');
-    return;
+function tutAdvance(){
+  tutPhase='scroll';tutSpeed=0.8;tutWaiting=false;
+  tutStep++;tutStepT=0;tutDone=false;tutEnemySpawned=false;tutFlipCount=0;
+  if(tutStep>=TUT_CHECKPOINTS.length){
+    tutorialDone=true;localStorage.setItem('gd5tutorialDone','1');
+    // Show completion briefly then go to title
+    tutPhase='transition';tutSuccessT=0;
+    setTimeout(()=>{state=ST.TITLE;switchBGM('title');},2000);
   }
-  // Setup for specific steps
-  const step=TUT_STEPS[tutStep];
-  if(step.type==='bomb'){bombCount=1;invCount=0;}
-  if(step.type==='invincible'){invCount=1;bombCount=0;}
 }
 function handleTutorialTouch(tx,ty){
-  const step=TUT_STEPS[tutStep];
-  if(!step)return;
-  // Skip button (top right)
+  // Skip button
   if(tx>=W-64&&tx<=W-8&&ty>=safeTop+4&&ty<=safeTop+28){
-    sfx('select');
-    tutorialDone=true;localStorage.setItem('gd5tutorialDone','1');
+    sfx('select');tutorialDone=true;localStorage.setItem('gd5tutorialDone','1');
     state=ST.TITLE;switchBGM('title');return;
   }
-  // After a step is done, tap advances to next
-  if(tutDone){sfx('select');advanceTutStep();return;}
-  // Step-specific input
-  if(step.type==='tap_next'||step.type==='tap_finish'){
-    sfx('select');tutDone=true;
-    if(step.type==='tap_finish'){advanceTutStep();}
+  if(tutPhase==='success'){return;} // wait for auto-advance
+  if(tutStep>=TUT_CHECKPOINTS.length)return;
+  const cp=TUT_CHECKPOINTS[tutStep];
+  if(tutPhase!=='wait')return; // only accept input when waiting
+  // Bomb: hit test on button
+  if(cp.type==='bomb'){
+    if(hitBombBtn(tx,ty)&&bombCount>0){useBomb();tutDone=true;tutPhase='success';tutSuccessT=0;sfx('item');setTimeout(tutAdvance,1200);}
     return;
   }
-  if(step.type==='jump'){
-    // Jump handled in touchend
-    return;
-  }
-  if(step.type==='flip_up'||step.type==='flip_down'){
-    // Swipe handled in touchend
-    return;
-  }
-  if(step.type==='bomb'){
-    if(hitBombBtn(tx,ty)&&bombCount>0){
-      useBomb();tutDone=true;
-    }
-    return;
-  }
-  if(step.type==='invincible'){
-    if(hitInvBtn(tx,ty)&&invCount>0){
-      useInvincible();tutDone=true;
-    }
+  // Jump: tap anywhere
+  if(cp.type==='jump'&&player.grounded){
+    player.vy=player.gDir===1?-JUMP_POWER:JUMP_POWER;player.grounded=false;
+    sfx('jump');tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,800);
     return;
   }
 }

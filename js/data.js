@@ -1047,18 +1047,32 @@ const ST={TITLE:0,PLAY:1,DEAD:2,PAUSE:3,STAGE_CLEAR:4,STAGE_SEL:5,COUNTDOWN:6,LO
 let playerName=localStorage.getItem('gd5username')||'';
 let tutorialDone=localStorage.getItem('gd5tutorialDone')==='1';
 let state=playerName?ST.TITLE:ST.LOGIN;
-// Login UI
-let loginT=0; // animation timer
-let loginCursorBlink=0;
-let loginNameActive=false; // whether the name input is focused
+// Login UI (HTML overlay)
+let loginT=0;
+const loginOverlay=document.getElementById('loginOverlay');
 const nameInput=document.getElementById('nameInput');
-// Tutorial
-let tutStep=0; // current tutorial step index
-let tutStepT=0; // timer within current step
-let tutDone=false; // current step completed
-let tutMsg=''; // current instruction text
-let tutMsgSub=''; // sub instruction
-let tutEnemySpawned=false; // whether tutorial enemies have been spawned
+const loginBtn=document.getElementById('loginBtn');
+if(!playerName)loginOverlay.classList.add('active');
+// Stars for login overlay
+(function(){const sc=loginOverlay.querySelector('.stars');
+  for(let i=0;i<30;i++){const s=document.createElement('div');s.className='star';
+    s.style.cssText='left:'+Math.random()*100+'%;top:'+Math.random()*100+'%;width:'+(1+Math.random()*2)+'px;height:'+(1+Math.random()*2)+'px;animation-delay:'+(Math.random()*3)+'s;animation-duration:'+(1.5+Math.random()*2)+'s';
+    sc.appendChild(s);}
+})();
+// Tutorial state
+let tutStep=0; // current checkpoint index
+let tutStepT=0; // frames at current checkpoint
+let tutDone=false; // current step action completed
+let tutEnemySpawned=false;
+let tutScrollX=0; // camera scroll offset
+let tutSpeed=0; // current scroll speed
+let tutWaiting=false; // stopped at checkpoint
+let tutPhase='scroll'; // 'scroll','wait','action','success','transition'
+let tutSuccessT=0;
+let tutFlipCount=0; // for double-flip step
+let tutCoursePlats=[]; // generated floor platforms for tutorial
+let tutCourseCeil=[]; // generated ceiling platforms
+let tutCourseSpikes=[]; // spike obstacles
 let countdownT=0; // countdown timer (frames, counts down from 180 = 3 seconds)
 let score=0,highScore=parseInt(localStorage.getItem('gd5hi')||'0');
 let newHi=false,speed=SPEED_INIT,frame=0,deadT=0,titleT=0;

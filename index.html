@@ -50,12 +50,42 @@
 :root{--sat:env(safe-area-inset-top);--sab:env(safe-area-inset-bottom)}
 html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#0a0a1a;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;position:fixed;top:0;left:0;right:0;bottom:0;overscroll-behavior:none;-webkit-text-size-adjust:100%}
 canvas{display:block;width:100%;height:100%}
+#loginOverlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:100;background:linear-gradient(180deg,#0a0a2e 0%,#1a1a4e 50%,#0f0f23 100%);flex-direction:column;align-items:center;justify-content:flex-start;padding-top:12vh;font-family:monospace;overflow:hidden}
+#loginOverlay.active{display:flex}
+#loginOverlay .stars{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden}
+#loginOverlay .star{position:absolute;background:#fff;border-radius:50%;animation:twinkle 2s infinite alternate}
+@keyframes twinkle{0%{opacity:0.2}100%{opacity:1}}
+@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes titlePulse{0%,100%{text-shadow:0 0 30px #00e5ff66,0 0 60px #00e5ff22}50%{text-shadow:0 0 50px #00e5ffaa,0 0 100px #00e5ff44}}
+#loginOverlay .title-gravity{font-size:clamp(36px,10vw,52px);font-weight:900;color:#00e5ff;text-align:center;letter-spacing:6px;animation:titlePulse 3s infinite;margin:0;line-height:1.1}
+#loginOverlay .title-dash{font-size:clamp(38px,11vw,56px);font-weight:900;color:#ff3860;text-align:center;letter-spacing:8px;text-shadow:0 0 40px #ff386088,0 4px 0 #cc2244;margin:0;line-height:1.1}
+#loginOverlay .subtitle{color:#fff6;font-size:11px;margin-top:6px;letter-spacing:2px}
+#loginOverlay .login-box{margin-top:5vh;display:flex;flex-direction:column;align-items:center;gap:12px;z-index:1}
+#loginOverlay .login-label{color:#ffd700;font-size:14px;font-weight:bold}
+#loginOverlay input{width:220px;height:44px;font-size:20px;text-align:center;background:#0a0a2e;color:#fff;border:2px solid #00e5ff;border-radius:10px;outline:none;font-family:monospace;padding:0 12px;caret-color:#00e5ff}
+#loginOverlay input:focus{border-color:#ffd700;box-shadow:0 0 20px #ffd70044}
+#loginOverlay input::placeholder{color:#fff3;font-size:14px}
+#loginOverlay .login-btn{width:220px;height:48px;background:linear-gradient(135deg,#00e5ff22,#00e5ff11);border:2px solid #00e5ff;border-radius:10px;color:#00e5ff;font-size:18px;font-weight:bold;font-family:monospace;cursor:pointer;transition:all 0.2s;letter-spacing:3px}
+#loginOverlay .login-btn:active{background:#00e5ff33;transform:scale(0.96)}
+#loginOverlay .login-btn.ready{border-color:#ffd700;color:#ffd700;box-shadow:0 0 24px #ffd70044;background:linear-gradient(135deg,#ffd70022,#ffd70011)}
+#loginOverlay .footer{position:absolute;bottom:4vh;color:#fff2;font-size:10px;letter-spacing:1px}
+#loginOverlay .deco-char{animation:floatY 2.5s ease-in-out infinite;margin-top:2vh}
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
-<input id="nameInput" type="text" maxlength="12" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-  style="position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);width:200px;height:36px;font-size:18px;text-align:center;background:#1a1a3a;color:#fff;border:2px solid #00e5ff;border-radius:8px;outline:none;opacity:0;pointer-events:none;z-index:10;font-family:monospace;padding:0 8px;">
+<div id="loginOverlay">
+  <div class="stars"></div>
+  <div class="title-gravity">GRAVITY</div>
+  <div class="title-dash">DASH</div>
+  <div class="subtitle">Gravity-Flip Action Runner</div>
+  <div class="login-box">
+    <div class="login-label">ユーザー名を入力</div>
+    <input id="nameInput" type="text" maxlength="12" placeholder="なまえ" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <button class="login-btn" id="loginBtn">はじめる</button>
+  </div>
+  <div class="footer">Gravity-Flip Action Runner</div>
+</div>
 <script src="js/data.js"></script>
 <script src="js/terrain.js"></script>
 <script src="js/spawning.js"></script>

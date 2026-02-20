@@ -30,45 +30,71 @@ function update(dt){
   }
 
   if(state===ST.LOGIN){
-    loginT+=0.03;loginCursorBlink+=0.06;
+    loginT+=0.03;
     stars.forEach(s=>{s.x-=s.sp*0.2;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
     return;
   }
   if(state===ST.TUTORIAL){
-    tutStepT++;
-    const step=TUT_STEPS[tutStep];
-    // Animate background
-    stars.forEach(s=>{s.x-=s.sp*speed*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
-    mtns.forEach(m=>{m.off-=m.sp*speed*0.15;if(m.off<-500)m.off+=500;});
-    // Physics for player
-    if(!player.grounded){
-      player.vy+=GRAVITY*player.gDir;
-      player.y+=player.vy;
-    }
-    // Floor/ceiling collision
-    const floorY2=H-GROUND_H-PLAYER_R;
-    const ceilY2=GROUND_H+PLAYER_R;
-    if(player.gDir===1&&player.y>=floorY2){player.y=floorY2;player.vy=0;player.grounded=true;}
-    if(player.gDir===-1&&player.y<=ceilY2){player.y=ceilY2;player.vy=0;player.grounded=true;}
-    // Smooth rotation
-    const rd=player.rotTarget-player.rot;
-    player.rot+=rd*0.15;
-    // Spawn tutorial enemies for bomb/invincible steps
-    if(step&&(step.type==='bomb'||step.type==='invincible')&&!tutEnemySpawned&&tutStepT>30){
-      tutEnemySpawned=true;
-      for(let i=0;i<4;i++){
-        const ey=H-GROUND_H-20-Math.random()*60;
-        enemies.push({x:W*0.5+i*50,y:ey,vy:0,gDir:1,sz:PLAYER_R*2,alive:true,type:0,
-          shootT:999,fr:Math.random()*100,boss:false});
+    frame++;tutStepT++;
+    if(tutPhase==='success')tutSuccessT++;
+    // Background scroll
+    const scrollSpd=tutPhase==='scroll'?tutSpeed:0;
+    stars.forEach(s=>{s.x-=s.sp*scrollSpd*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
+    mtns.forEach(m=>{m.off-=m.sp*scrollSpd*0.15;if(m.off<-500)m.off+=500;});
+    // Scroll camera
+    if(tutPhase==='scroll'){
+      tutScrollX+=scrollSpd;
+      if(tutStep<TUT_CHECKPOINTS.length){
+        const cp=TUT_CHECKPOINTS[tutStep];
+        if(tutScrollX>=cp.dist){
+          tutScrollX=cp.dist;tutPhase='wait';tutWaiting=true;tutStepT=0;
+          if(cp.type==='bomb')bombCount=1;
+        }
+      }
+      if(tutStep>=TUT_CHECKPOINTS.length&&tutPhase!=='transition'){
+        tutPhase='transition';tutSuccessT=0;
       }
     }
-    // Update enemy positions (keep them stationary for tutorial)
-    enemies.forEach(en=>{if(!en.alive)return;en.fr+=0.05;});
-    // Particles
+    // Player gravity physics
+    if(!player.grounded){player.vy+=GRAVITY*player.gDir;player.y+=player.vy;}
+    player.x=W*0.25;
+    // Platform collision (world-space)
+    const wpx=player.x+tutScrollX,tpr=PLAYER_R;
+    let onFloor2=false,onCeil2=false;
+    tutCoursePlats.forEach(p=>{
+      if(wpx>=p.x&&wpx<=p.x+p.w){
+        const surfY=H-p.h;
+        if(player.gDir===1&&player.y+tpr>=surfY&&player.vy>=0){
+          player.y=surfY-tpr;player.vy=0;player.grounded=true;onFloor2=true;
+        }
+      }
+    });
+    tutCourseCeil.forEach(p=>{
+      if(wpx>=p.x&&wpx<=p.x+p.w){
+        const surfY=p.h;
+        if(player.gDir===-1&&player.y-tpr<=surfY&&player.vy<=0){
+          player.y=surfY+tpr;player.vy=0;player.grounded=true;onCeil2=true;
+        }
+      }
+    });
+    if(player.gDir===1&&!onFloor2&&player.grounded)player.grounded=false;
+    if(player.gDir===-1&&!onCeil2&&player.grounded)player.grounded=false;
+    if(player.y>H+50){player.y=H-GROUND_H-tpr;player.vy=0;player.gDir=1;player.grounded=true;}
+    if(player.y<-50){player.y=GROUND_H+tpr;player.vy=0;player.gDir=-1;player.grounded=true;}
+    player.rot+=(player.rotTarget-player.rot)*0.15;
+    // Spawn enemies for bomb
+    if(tutStep<TUT_CHECKPOINTS.length&&TUT_CHECKPOINTS[tutStep].type==='bomb'&&tutPhase==='wait'&&!tutEnemySpawned){
+      tutEnemySpawned=true;
+      for(let i=0;i<5;i++){
+        const ex=tutScrollX+W*0.4+i*55;
+        enemies.push({x:ex-tutScrollX,y:H-GROUND_H-20-Math.random()*50,vy:0,gDir:1,sz:PLAYER_R*2,alive:true,type:0,
+          shootT:999,fr:Math.random()*100,boss:false,_worldX:ex});
+      }
+    }
+    enemies.forEach(en=>{if(!en.alive)return;en.fr+=0.05;if(en._worldX!==undefined)en.x=en._worldX-tutScrollX;});
     parts=parts.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.07;p.vx*=0.99;p.life--;return p.life>0;});
     pops=pops.filter(p=>{p.y-=1.2;p.life--;return p.life>0;});
     if(bombFlashT>0)bombFlashT--;
-    // Item effects (for invincible)
     if(itemEff.invincible>0)itemEff.invincible--;
     return;
   }
