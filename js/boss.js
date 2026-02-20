@@ -152,7 +152,7 @@ function spawnBossEnemies(){
       jumpVy:0,
       // Jump parameters - fast and hard to react to
       bigJumpPower:-(16+Math.min(bc-1,4)*1.5), // very fast jump
-      smallJumpPower:-(7+Math.min(bc-1,3)*0.5), // feint small jump
+      smallJumpPower:-(3+Math.min(bc-1,3)*0.3), // tiny feint hop
       onCeiling:false, // whether currently on ceiling
       flipEnabled:bc>=2, // can flip between floor/ceiling from bc>=2
       // Earthquake parameters
@@ -498,12 +498,16 @@ function updateBossPhase(){
         parts.push({x:g.x+(Math.random()-0.5)*g.sz,y:landY,vx:Math.cos(a)*s2,vy:Math.sin(a)*s2,
           life:25+Math.random()*20,ml:45,sz:Math.random()*5+2,col:['#8a7060','#a0906a','#c0b080'][i%3]});
       }
-      // Shockwave on both surfaces
-      const waveSpd=5+Math.min(bc-1,4)*0.5;
-      bullets.push({x:g.x,y:floorY2-6,vx:-waveSpd,vy:0,sz:12,life:80,shockwave:true,baseY:floorY2-6});
-      bullets.push({x:g.x,y:floorY2-6,vx:waveSpd,vy:0,sz:12,life:80,shockwave:true,baseY:floorY2-6});
-      bullets.push({x:g.x,y:ceilY2+6,vx:-waveSpd,vy:0,sz:12,life:80,shockwave:true,baseY:ceilY2+6});
-      bullets.push({x:g.x,y:ceilY2+6,vx:waveSpd,vy:0,sz:12,life:80,shockwave:true,baseY:ceilY2+6});
+      // Dust clouds on both surfaces (no fire)
+      for(let side=-1;side<=1;side+=2){
+        for(let k=0;k<6;k++){
+          const dx2=side*(20+k*30+Math.random()*20);
+          parts.push({x:g.x+dx2,y:floorY2,vx:side*2+Math.random(),vy:-1-Math.random()*3,
+            life:20+Math.random()*15,ml:35,sz:Math.random()*5+3,col:['#8a7060','#a09070','#c0b080'][k%3]});
+          parts.push({x:g.x+dx2,y:ceilY2,vx:side*2+Math.random(),vy:1+Math.random()*3,
+            life:20+Math.random()*15,ml:35,sz:Math.random()*5+3,col:['#8a7060','#a09070','#c0b080'][k%3]});
+        }
+      }
     };
     if(g.state==='enter'){
       g.x-=2;
@@ -691,11 +695,11 @@ function updateBossPhase(){
           if(g.hp<=0){bossGuardianDefeat(g);}
         } else {
           // Stomp check: depends on which surface guardian is on
+          // Stomping works in ANY state - always deals damage!
           const stomped=g.gDir===1
             ?(player.y+pr<g.y-g.sz*0.15&&player.vy>=0)
             :(player.y-pr>g.y+g.sz*0.15&&player.vy<=0);
-          // Can only stomp during charge state (vulnerable phase)
-          if(stomped&&g.state==='charge'){
+          if(stomped){
             g.hp--;g.hurtFlash=20;
             g.state='stunned';g.stunT=g.stunDuration;g.timer=0;g.jumpVy=0;
             player.vy=g.gDir===1?-JUMP_POWER*0.8:JUMP_POWER*0.8;player.grounded=false;
@@ -706,12 +710,6 @@ function updateBossPhase(){
             addPop(g.x,g.y-g.sz*g.gDir-10,'HP '+g.hp+'/'+g.maxHp,'#ffaa00');
             emitParts(g.x,g.y-g.sz*g.gDir,12,'#ffaa00',5,3);
             if(g.hp<=0){bossGuardianDefeat(g);}
-          } else if(stomped&&g.state!=='charge'){
-            player.vy=g.gDir===1?-JUMP_POWER*0.5:JUMP_POWER*0.5;player.grounded=false;
-            sfx('hurt');vibrate(15);shakeI=6;
-            addPop(g.x,g.y-g.sz*g.gDir-10,'BLOCKED!','#88ccff');
-            emitParts(g.x,g.y-g.sz*g.gDir,8,'#88ccff',3,2);
-            hurt();
           } else {
             hurt();
           }
@@ -1201,13 +1199,11 @@ function drawBossGuardian(en){
     ctx.beginPath();ctx.arc(0,s*0.8,s*1.5+Math.sin(t*3+1)*s*0.2,0,Math.PI);ctx.stroke();
     ctx.globalAlpha=1;
   }
-  // Charge indicator (vulnerable - green ring)
+  // Charge indicator (dust trail only, no text)
   if(en.state==='charge'){
-    const ca=0.4+Math.sin(t*3)*0.3;
-    ctx.globalAlpha=ca;ctx.strokeStyle='#44cc44';ctx.lineWidth=2;
+    const ca=0.3+Math.sin(t*3)*0.2;
+    ctx.globalAlpha=ca;ctx.strokeStyle='#4488cc';ctx.lineWidth=2;
     ctx.beginPath();ctx.arc(0,-s*0.3,s*0.9+Math.sin(t*2)*s*0.1,0,6.28);ctx.stroke();
-    ctx.fillStyle='#44cc44';ctx.font='bold 12px monospace';ctx.textAlign='center';
-    ctx.fillText('\u8E0F\u3081!',0,-s*1.2);
     ctx.globalAlpha=1;
   }
   // Sword attack indicator (slash arc)
@@ -1220,19 +1216,15 @@ function drawBossGuardian(en){
   }
   ctx.restore();
 }
-// === Boss enemy draw: charge type (also used for dodge type) ===
+// === Boss enemy draw: charge type ===
 function drawBossCharge(en){
+  if(en.bossType==='dodge'){drawBossDodge(en);return;}
   const s=en.sz,flip=en.gDir;
-  const isDodge=en.bossType==='dodge';
   ctx.save();ctx.translate(en.x,en.y);
   if(flip===-1)ctx.scale(1,-1);
-  // Armored rhino shape - dark metallic (dodge: orange tint)
+  // Armored rhino shape - dark metallic
   const gr=ctx.createRadialGradient(-s*0.1,0,s*0.1,-s*0.1,0,s);
-  if(isDodge){
-    gr.addColorStop(0,'#8a6a4a');gr.addColorStop(0.6,'#5a4a3a');gr.addColorStop(1,'#3a2a1a');
-  } else {
-    gr.addColorStop(0,'#6a7a8a');gr.addColorStop(0.6,'#3a4a5a');gr.addColorStop(1,'#1a2a3a');
-  }
+  gr.addColorStop(0,'#6a7a8a');gr.addColorStop(0.6,'#3a4a5a');gr.addColorStop(1,'#1a2a3a');
   ctx.fillStyle=gr;
   // Main body (angular armored shape)
   ctx.beginPath();
@@ -1247,12 +1239,10 @@ function drawBossCharge(en){
   ctx.strokeStyle='#8090a0';ctx.lineWidth=Math.max(1.5,s*0.04);
   ctx.beginPath();ctx.moveTo(-s*0.2,-s*0.6);ctx.lineTo(s*0.1,-s*0.2);ctx.lineTo(-s*0.2,s*0.2);ctx.stroke();
   ctx.beginPath();ctx.moveTo(s*0.2,-s*0.5);ctx.lineTo(s*0.5,-s*0.1);ctx.lineTo(s*0.2,s*0.3);ctx.stroke();
-  // Second armor layer (visible at larger sizes)
   if(s>40){
     ctx.strokeStyle='#6a7a8a';ctx.lineWidth=s*0.02;
     ctx.beginPath();ctx.moveTo(-s*0.5,-s*0.4);ctx.lineTo(-s*0.1,0);ctx.lineTo(-s*0.5,s*0.4);ctx.stroke();
     ctx.beginPath();ctx.moveTo(s*0.5,-s*0.35);ctx.lineTo(s*0.7,0);ctx.lineTo(s*0.5,s*0.35);ctx.stroke();
-    // Extra spikes
     ctx.fillStyle='#c0d0e0';
     ctx.beginPath();ctx.moveTo(-s*0.3,-s*0.8);ctx.lineTo(-s*0.4,-s*1.0);ctx.lineTo(-s*0.2,-s*0.75);ctx.closePath();ctx.fill();
     ctx.beginPath();ctx.moveTo(s*0.4,-s*0.7);ctx.lineTo(s*0.5,-s*0.95);ctx.lineTo(s*0.3,-s*0.65);ctx.closePath();ctx.fill();
@@ -1276,65 +1266,94 @@ function drawBossCharge(en){
     const px=s*0.7+Math.random()*s*0.4,py=(Math.random()-0.5)*s*0.5;
     ctx.beginPath();ctx.arc(px,py,s*0.1+Math.random()*s*0.1,0,6.28);ctx.fill();
   }
-  // Deadly spikes for dodge enemies - BOTH sides have spikes (untouchable!)
-  if(isDodge){
-    const spikeCount=7;
-    const spikeH=s*0.45;
-    const spikeW=s*0.18;
-    const pulse=0.7+Math.sin(en.fr*3)*0.3;
-    // Danger glow around entire body
-    ctx.shadowColor='#ff0000';ctx.shadowBlur=12*pulse;
-    ctx.strokeStyle='rgba(255,0,0,'+pulse*0.6+')';ctx.lineWidth=2;
+  ctx.restore();
+}
+// === Boss enemy draw: dodge type (sea urchin) ===
+function drawBossDodge(en){
+  const s=en.sz,t=en.fr;
+  const pulse=0.7+Math.sin(t*3)*0.3;
+  const breathe=1+Math.sin(t*2)*0.05; // subtle body pulsation
+  ctx.save();ctx.translate(en.x,en.y);
+  // Danger aura glow
+  ctx.shadowColor='#ff0000';ctx.shadowBlur=15*pulse;
+  // Spikes radiating in ALL directions (urchin style)
+  const spikeCount=14;
+  const spikeLen=s*0.7;
+  const spikeBase=s*0.12;
+  for(let i=0;i<spikeCount;i++){
+    const ang=(6.28/spikeCount)*i+Math.sin(t*1.5+i)*0.1; // slight wobble
+    const len=spikeLen*(0.85+Math.sin(t*2.5+i*1.7)*0.15);
+    const cx2=Math.cos(ang),sy2=Math.sin(ang);
+    // Spike gradient: dark base → red tip
+    const tipX=cx2*(s*0.55*breathe+len),tipY=sy2*(s*0.55*breathe+len);
+    const baseX=cx2*s*0.45*breathe,baseY=sy2*s*0.45*breathe;
+    const sgr=ctx.createLinearGradient(baseX,baseY,tipX,tipY);
+    sgr.addColorStop(0,'#444');sgr.addColorStop(0.3,'#666');sgr.addColorStop(0.7,'#cc2222');sgr.addColorStop(1,'#ff0000');
+    ctx.fillStyle=sgr;
+    // Triangular spike
+    const perpX=-sy2*spikeBase*0.5,perpY=cx2*spikeBase*0.5;
     ctx.beginPath();
-    ctx.moveTo(-s*0.9,-s*0.6);ctx.lineTo(s*0.9,-s*0.6);ctx.lineTo(s*0.9,s*0.6);ctx.lineTo(-s*0.9,s*0.6);ctx.closePath();
-    ctx.stroke();
-    ctx.shadowBlur=0;
-    // Top spikes - sharp jagged metallic
-    for(let i=0;i<spikeCount;i++){
-      const sx=-s*0.75+i*(s*1.5/(spikeCount-1));
-      const h=spikeH*(0.8+Math.sin(en.fr*2+i*1.2)*0.2);
-      // Dark steel base
-      const gr=ctx.createLinearGradient(sx,-s*0.5,sx,-s*0.5-h);
-      gr.addColorStop(0,'#666');gr.addColorStop(0.4,'#aaa');gr.addColorStop(0.7,'#ff4444');gr.addColorStop(1,'#ff0000');
-      ctx.fillStyle=gr;
-      ctx.beginPath();
-      ctx.moveTo(sx-spikeW*0.7,-s*0.5);
-      ctx.lineTo(sx-spikeW*0.15,-s*0.5-h*0.6);
-      ctx.lineTo(sx,-s*0.5-h);
-      ctx.lineTo(sx+spikeW*0.15,-s*0.5-h*0.6);
-      ctx.lineTo(sx+spikeW*0.7,-s*0.5);
-      ctx.closePath();ctx.fill();
-      // Glint on tip
-      ctx.fillStyle='rgba(255,255,255,'+pulse*0.8+')';
-      ctx.beginPath();ctx.arc(sx,-s*0.5-h+2,1.5,0,6.28);ctx.fill();
-    }
-    // Bottom spikes
-    for(let i=0;i<spikeCount;i++){
-      const sx=-s*0.75+i*(s*1.5/(spikeCount-1));
-      const h=spikeH*(0.8+Math.sin(en.fr*2+i*1.2+Math.PI)*0.2);
-      const gr=ctx.createLinearGradient(sx,s*0.5,sx,s*0.5+h);
-      gr.addColorStop(0,'#666');gr.addColorStop(0.4,'#aaa');gr.addColorStop(0.7,'#ff4444');gr.addColorStop(1,'#ff0000');
-      ctx.fillStyle=gr;
-      ctx.beginPath();
-      ctx.moveTo(sx-spikeW*0.7,s*0.5);
-      ctx.lineTo(sx-spikeW*0.15,s*0.5+h*0.6);
-      ctx.lineTo(sx,s*0.5+h);
-      ctx.lineTo(sx+spikeW*0.15,s*0.5+h*0.6);
-      ctx.lineTo(sx+spikeW*0.7,s*0.5);
-      ctx.closePath();ctx.fill();
-      ctx.fillStyle='rgba(255,255,255,'+pulse*0.8+')';
-      ctx.beginPath();ctx.arc(sx,s*0.5+h-2,1.5,0,6.28);ctx.fill();
-    }
-    // Danger zone glow strips
-    const glowA=0.15+Math.sin(en.fr*4)*0.1;
-    ctx.fillStyle='rgba(255,0,0,'+glowA+')';
-    ctx.fillRect(-s*0.8,-s*0.6,s*1.6,s*0.15);
-    ctx.fillRect(-s*0.8,s*0.45,s*1.6,s*0.15);
-    // Skull/warning icon in center
-    ctx.fillStyle='rgba(255,50,50,'+pulse*0.5+')';
-    ctx.font='bold '+(s*0.5)+'px monospace';ctx.textAlign='center';
-    ctx.fillText('\u2620',0,s*0.15);
+    ctx.moveTo(baseX+perpX,baseY+perpY);
+    ctx.lineTo(tipX,tipY);
+    ctx.lineTo(baseX-perpX,baseY-perpY);
+    ctx.closePath();ctx.fill();
+    // White glint on tip
+    ctx.fillStyle='rgba(255,255,255,'+pulse*0.7+')';
+    ctx.beginPath();ctx.arc(tipX,tipY,1.5,0,6.28);ctx.fill();
   }
+  // Secondary shorter spikes (between main ones)
+  for(let i=0;i<spikeCount;i++){
+    const ang=(6.28/spikeCount)*i+(3.14/spikeCount)+Math.sin(t*1.2+i*2)*0.08;
+    const len=spikeLen*0.5*(0.8+Math.sin(t*3+i*2.3)*0.2);
+    const cx2=Math.cos(ang),sy2=Math.sin(ang);
+    const tipX=cx2*(s*0.5*breathe+len),tipY=sy2*(s*0.5*breathe+len);
+    const baseX=cx2*s*0.4*breathe,baseY=sy2*s*0.4*breathe;
+    ctx.fillStyle='#883333';
+    ctx.beginPath();
+    const perpX=-sy2*spikeBase*0.3,perpY=cx2*spikeBase*0.3;
+    ctx.moveTo(baseX+perpX,baseY+perpY);
+    ctx.lineTo(tipX,tipY);
+    ctx.lineTo(baseX-perpX,baseY-perpY);
+    ctx.closePath();ctx.fill();
+  }
+  ctx.shadowBlur=0;
+  // Main body: dark spherical core
+  const bgr=ctx.createRadialGradient(-s*0.1,-s*0.1,s*0.05,0,0,s*0.55*breathe);
+  bgr.addColorStop(0,'#3a2020');bgr.addColorStop(0.4,'#2a1515');bgr.addColorStop(0.8,'#1a0a0a');bgr.addColorStop(1,'#100505');
+  ctx.fillStyle=bgr;
+  ctx.beginPath();ctx.arc(0,0,s*0.55*breathe,0,6.28);ctx.fill();
+  // Textured surface bumps
+  ctx.fillStyle='#2a1818';
+  for(let i=0;i<8;i++){
+    const ba=(6.28/8)*i+t*0.3,br2=s*0.35;
+    ctx.beginPath();ctx.arc(Math.cos(ba)*br2,Math.sin(ba)*br2,s*0.08,0,6.28);ctx.fill();
+  }
+  // Angry red eyes (two, slightly asymmetric)
+  const eyeGlow=pulse;
+  // Left eye
+  ctx.fillStyle='#ff0000';ctx.shadowColor='#ff0000';ctx.shadowBlur=10*eyeGlow;
+  ctx.beginPath();ctx.ellipse(-s*0.18,-s*0.08,s*0.13,s*0.09,0.15,0,6.28);ctx.fill();
+  // Right eye
+  ctx.beginPath();ctx.ellipse(s*0.12,-s*0.1,s*0.11,s*0.08,-0.15,0,6.28);ctx.fill();
+  // Dark angry pupils (slit-like)
+  ctx.shadowBlur=0;
+  ctx.fillStyle='#330000';
+  ctx.beginPath();ctx.ellipse(-s*0.18,-s*0.08,s*0.05,s*0.08,0.15,0,6.28);ctx.fill();
+  ctx.beginPath();ctx.ellipse(s*0.12,-s*0.1,s*0.04,s*0.07,-0.15,0,6.28);ctx.fill();
+  // White highlight dots in eyes
+  ctx.fillStyle='#ffaaaa';
+  ctx.beginPath();ctx.arc(-s*0.22,-s*0.12,s*0.03,0,6.28);ctx.fill();
+  ctx.beginPath();ctx.arc(s*0.08,-s*0.14,s*0.025,0,6.28);ctx.fill();
+  // Menacing mouth (jagged)
+  ctx.strokeStyle='#ff2222';ctx.lineWidth=Math.max(1.5,s*0.03);
+  ctx.beginPath();
+  ctx.moveTo(-s*0.2,s*0.1);ctx.lineTo(-s*0.1,s*0.16);ctx.lineTo(0,s*0.08);
+  ctx.lineTo(s*0.08,s*0.15);ctx.lineTo(s*0.15,s*0.1);
+  ctx.stroke();
+  // Danger pulse ring
+  const ringAlpha=0.15+Math.sin(t*4)*0.1;
+  ctx.strokeStyle='rgba(255,0,0,'+ringAlpha+')';ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(0,0,s*1.1+Math.sin(t*3)*s*0.1,0,6.28);ctx.stroke();
   ctx.restore();
 }
 // === Boss enemy draw: bruiser type (multi-stomp) ===

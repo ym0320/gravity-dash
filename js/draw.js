@@ -726,19 +726,6 @@ function drawBullet(b){
     ctx.fillStyle='#ff6600';ctx.shadowColor='#ff6600';ctx.shadowBlur=6;
     ctx.beginPath();ctx.arc(b.sz*0.3,-b.sz*1.8,2+Math.random()*2,0,6.28);ctx.fill();
     ctx.shadowBlur=0;
-  } else if(b.flameBullet){
-    // Guardian flame bullet - orange fire orb with trail
-    const fa=Math.min(1,b.life/15);
-    ctx.globalAlpha=fa;
-    ctx.shadowColor='#ff4400';ctx.shadowBlur=12;
-    ctx.fillStyle='#ff6600';ctx.beginPath();ctx.arc(0,0,b.sz,0,6.28);ctx.fill();
-    ctx.fillStyle='#ffdd00';ctx.beginPath();ctx.arc(0,0,b.sz*0.5,0,6.28);ctx.fill();
-    ctx.shadowBlur=0;
-    // Fire trail
-    ctx.fillStyle='#ff440066';
-    ctx.beginPath();ctx.arc(b.sz+4,0,b.sz*0.7,0,6.28);ctx.fill();
-    ctx.beginPath();ctx.arc(b.sz+10,0,b.sz*0.4,0,6.28);ctx.fill();
-    ctx.globalAlpha=1;
   } else if(b.wizBullet){
     // Wizard magic bullet - purple energy orb
     ctx.shadowColor='#aa44ff';ctx.shadowBlur=10;
