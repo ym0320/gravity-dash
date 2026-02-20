@@ -2160,7 +2160,9 @@ function drawTitle(){
       {id:3,name:'\u30DC\u30DE\u30FC',col:'#f59e0b'},
       {id:4,name:'\u30D0\u30A6\u30F3\u30B5\u30FC',col:'#a78bfa'},
       {id:5,name:'\u30D5\u30A1\u30F3\u30C8\u30E0',col:'#e879f9'},
-      {id:6,name:'\u30C0\u30C3\u30B7\u30E3\u30FC',col:'#ff4444'}
+      {id:6,name:'\u30C0\u30C3\u30B7\u30E3\u30FC',col:'#ff4444'},
+      {id:7,name:'\u30B7\u30FC\u30EB\u30C0\u30FC',col:'#4488ff'},
+      {id:8,name:'\u30B9\u30D7\u30EA\u30C3\u30BF\u30FC',col:'#88cc44'}
     ];
     enemyTypes.forEach(e=>{
       ctx.fillStyle=e.col+'22';rr(bbX,bbY,bbW,bbH,6);ctx.fill();
