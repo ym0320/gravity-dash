@@ -1708,19 +1708,7 @@ function drawUI(){
 
   // Speed and coins are shown in drawActionPanel (right side of panel)
 
-  // Active item bars (bottom-right, above action panel)
-  const activeItems=[];
-  if(itemEff.invincible>0)activeItems.push({n:'\u7121\u6575',c:'#ff00ff',t:itemEff.invincible,m:600});
-  if(itemEff.magnet>0)activeItems.push({n:'\u5438\u53CE',c:'#f59e0b',t:itemEff.magnet,m:600});
-  if(djumpAvailable&&!djumpUsed&&ct().hasDjump)activeItems.push({n:'2\u6BB5\u30B8\u30E3\u30F3\u30D7',c:'#ffaa00',t:1,m:1});
-
-  activeItems.forEach((d,i)=>{
-    const y=panelTop-10-i*18,x=W-8,bw=50,r=d.t/d.m;
-    ctx.textAlign='right';ctx.fillStyle=d.c;ctx.font='bold 9px monospace';ctx.fillText(d.n,x-bw-4,y+3);
-    ctx.fillStyle='#ffffff12';rr(x-bw,y-3,bw,7,3);ctx.fill();
-    ctx.fillStyle=d.c;rr(x-bw,y-3,bw*r,7,3);ctx.fill();
-    if(d.t<60){ctx.globalAlpha=Math.sin(frame*0.2)*0.5+0.5;ctx.fillStyle=d.c;rr(x-bw,y-3,bw*r,7,3);ctx.fill();ctx.globalAlpha=1;}
-  });
+  // Active item bars are drawn in drawActionPanel (right of score)
 }
 
 function drawActionPanel(){
@@ -1767,6 +1755,39 @@ function drawActionPanel(){
   ctx.fillText(score,12,py+30);
   ctx.fillStyle='#ffd70088';ctx.font='10px monospace';
   ctx.fillText('HI: '+highScore,12,py+44);
+
+  // Active item effect bars (right of score/hi-score)
+  const activeItems=[];
+  if(itemEff.invincible>0)activeItems.push({n:'\u7121\u6575',c:'#ff00ff',t:itemEff.invincible,m:600});
+  if(itemEff.magnet>0)activeItems.push({n:'\u5438\u53CE',c:'#f59e0b',t:itemEff.magnet,m:600});
+  if(activeItems.length>0){
+    ctx.font='bold 22px monospace';
+    const scoreW=ctx.measureText(''+score).width;
+    ctx.font='10px monospace';
+    const hiW=ctx.measureText('HI: '+highScore).width;
+    const barStartX=12+Math.max(scoreW,hiW)+12;
+    const bw=48,bh=8;
+    activeItems.forEach((d,i)=>{
+      const by=py+16+i*16;
+      const r=Math.max(0,Math.min(1,d.t/d.m));
+      // Label
+      ctx.textAlign='left';ctx.fillStyle=d.c;ctx.font='bold 9px monospace';
+      ctx.fillText(d.n,barStartX,by+7);
+      const labelW=ctx.measureText(d.n).width;
+      const bx=barStartX+labelW+4;
+      // Bar background
+      ctx.fillStyle='#ffffff18';rr(bx,by,bw,bh,3);ctx.fill();
+      // Bar fill
+      ctx.fillStyle=d.c+'cc';rr(bx,by,bw*r,bh,3);ctx.fill();
+      // Blink when low
+      if(d.t<90&&d.t>0){
+        ctx.globalAlpha=Math.sin(frame*0.2)*0.4+0.6;
+        ctx.fillStyle=d.c;rr(bx,by,bw*r,bh,3);ctx.fill();
+        ctx.globalAlpha=1;
+      }
+    });
+  }
+
   // Speed and coin display (right of score, left of bomb button)
   const infoX=W-btnSz-22;
   ctx.fillStyle='#8899aa';ctx.font='11px monospace';ctx.textAlign='right';

@@ -424,7 +424,7 @@ function updateBossPhase(){
       if(b.feintT<=0){b.state='charge';b.timer=0;}
     } else if(b.state==='invincible'){
       // Blinking invincible after being stomped, slowly retreating
-      b.invT--;
+      // invT is already decremented at line 406, no double-decrement
       b.x+=b.retreatVx*0.6;
       if(b.invT<=0){b.state='retreat';b.timer=0;}
     } else if(b.state==='retreat'){
@@ -437,26 +437,32 @@ function updateBossPhase(){
         b.state='charge';b.timer=0;b.feinted=false;
       }
     }
-    // Collision check (skip during invincible state)
+    // Collision check - AABB based (skip during bruiser invincibility)
     if(b.invT<=0){
-      const dx=player.x-b.x,dy=player.y-b.y;
-      const d=Math.sqrt(dx*dx+dy*dy);
-      // Head hitbox (inner) for stomp detection
-      const headHit=d<pr+b.sz*0.38;
-      // Body hitbox (outer) for damage contact - full body
-      const bodyHit=d<pr+b.sz*0.75;
-      if(headHit){
+      // Bruiser bounding box (matches visual: body -0.75sz to +0.5sz, width ±0.65sz)
+      const hw=b.sz*0.65;
+      const bL=b.x-hw,bR=b.x+hw;
+      const headEdge=b.y-b.sz*0.75*b.gDir;
+      const feetEdge=b.y+b.sz*0.5*b.gDir;
+      const minY=Math.min(headEdge,feetEdge),maxY=Math.max(headEdge,feetEdge);
+      // Player bounds
+      const pL=player.x-pr,pR=player.x+pr;
+      const pT=player.y-pr,pB=player.y+pr;
+      // AABB overlap test
+      if(pR>bL&&pL<bR&&pB>minY&&pT<maxY){
         if(itemEff.invincible>0){
+          // Invincible item: damage bruiser once then set invT
           b.hp--;b.hurtFlash=20;b.invT=60;b.state='invincible';b.timer=0;
           shakeI=8;sfx('bossHit');
           emitParts(b.x,b.y,15,'#ff00ff',4,3);
           if(b.hp<=0){bossBruiserDefeat(b);}
         } else {
-          // Stomp check: player must be well above bruiser top (gDir-aware)
-          const stomped=b.gDir===1
-            ?(player.y+pr<b.y-b.sz*0.15&&player.vy>=0&&player.gDir===1)
-            :(player.y-pr>b.y+b.sz*0.15&&player.vy<=0&&player.gDir===-1);
-          if(stomped){
+          // Stomp zone: top 35% of bruiser height (head side)
+          const stompLine=b.gDir===1?(b.y-b.sz*0.3):(b.y+b.sz*0.3);
+          const onHeadSide=b.gDir===1?(pB<stompLine):(pT>stompLine);
+          const falling=b.gDir===1?(player.vy>=0):(player.vy<=0);
+          if(onHeadSide&&falling){
+            // Stomp success (works even during player hurtT)
             b.hp--;b.hurtFlash=20;
             b.state='invincible';b.invT=60;b.timer=0;
             player.vy=b.gDir===1?-JUMP_POWER*0.8:JUMP_POWER*0.8;player.grounded=false;
@@ -465,16 +471,10 @@ function updateBossPhase(){
             addPop(b.x,b.y-b.sz*b.gDir-10,'HP '+b.hp+'/'+b.maxHp,'#ff3860');
             emitParts(b.x,b.y-b.sz*b.gDir,12,'#ff3860',5,3);
             if(b.hp<=0){bossBruiserDefeat(b);}
-          } else {
+          } else if(hurtT<=0){
+            // Body hit: damage player only if not hurt-invincible
             hurt();
           }
-        }
-      } else if(bodyHit){
-        // Body contact outside head: always damage (no stomp possible here)
-        if(itemEff.invincible>0){
-          shakeI=4;emitParts(b.x,b.y,8,'#ff00ff',3,2);
-        } else {
-          hurt();
         }
       }
     }
