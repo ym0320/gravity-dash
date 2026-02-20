@@ -6,6 +6,213 @@ function rr(x,y,w,h,r){
   ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
 }
 
+// ===== LOGIN SCREEN =====
+function drawLogin(){
+  // Animated title
+  const p=Math.sin(loginT)*0.04+1;
+  ctx.save();ctx.translate(W/2,H*0.14);ctx.scale(p,p);
+  ctx.shadowColor='#00e5ff44';ctx.shadowBlur=35;ctx.fillStyle='#00e5ff';
+  ctx.font='bold 40px monospace';ctx.textAlign='center';
+  ctx.fillText('GRAVITY',0,0);
+  ctx.shadowColor='#ff386044';ctx.fillStyle='#ff3860';
+  ctx.fillText('DASH',0,44);ctx.shadowBlur=0;
+  ctx.restore();
+
+  // Welcome message
+  ctx.fillStyle='#fff';ctx.font='bold 14px monospace';ctx.textAlign='center';
+  ctx.fillText('ようこそ！',W/2,H*0.30);
+  ctx.fillStyle='#fff8';ctx.font='12px monospace';
+  ctx.fillText('ユーザー名を入力してください',W/2,H*0.35);
+
+  // Name input field (canvas-drawn, synced with hidden input)
+  const fieldW=Math.min(240,W-60),fieldH=40;
+  const fieldX=W/2-fieldW/2,fieldY=H*0.42;
+  ctx.fillStyle='#1a1a3a';
+  rr(fieldX,fieldY,fieldW,fieldH,8);ctx.fill();
+  ctx.strokeStyle=loginNameActive?'#00e5ff':'#ffffff44';ctx.lineWidth=2;
+  rr(fieldX,fieldY,fieldW,fieldH,8);ctx.stroke();
+
+  // Display current name text
+  const dispName=nameInput.value||'';
+  if(dispName.length>0){
+    ctx.fillStyle='#fff';ctx.font='18px monospace';ctx.textAlign='center';
+    ctx.fillText(dispName,W/2,fieldY+26);
+  } else {
+    ctx.fillStyle='#ffffff44';ctx.font='14px monospace';ctx.textAlign='center';
+    ctx.fillText('タップして入力',W/2,fieldY+26);
+  }
+  // Blinking cursor
+  if(loginNameActive&&Math.sin(loginCursorBlink)>0){
+    const tw=ctx.measureText(dispName).width;
+    ctx.fillStyle='#00e5ff';
+    ctx.fillRect(W/2+tw/2+2,fieldY+8,2,24);
+  }
+
+  // Character preview (animated)
+  const charY=H*0.56;
+  drawCharacter(W/2,charY-30,selChar,20,Math.sin(loginT*0.7)*0.1,1,'normal',0,true);
+
+  // OK button
+  const btnW=Math.min(200,W-80),btnH=44;
+  const btnX=W/2-btnW/2,btnY=H*0.56;
+  const canSubmit=dispName.trim().length>=1;
+  ctx.fillStyle=canSubmit?'#00e5ff22':'#ffffff08';
+  rr(btnX,btnY,btnW,btnH,10);ctx.fill();
+  ctx.strokeStyle=canSubmit?'#00e5ff':'#ffffff22';ctx.lineWidth=2;
+  rr(btnX,btnY,btnW,btnH,10);ctx.stroke();
+  if(canSubmit){ctx.shadowColor='#00e5ff';ctx.shadowBlur=12;}
+  ctx.fillStyle=canSubmit?'#00e5ff':'#ffffff44';ctx.font='bold 16px monospace';ctx.textAlign='center';
+  ctx.fillText('はじめる',W/2,btnY+28);
+  ctx.shadowBlur=0;
+
+  // Footer
+  ctx.fillStyle='#ffffff22';ctx.font='10px monospace';ctx.textAlign='center';
+  ctx.fillText('Gravity-Flip Action Runner',W/2,H*0.92);
+}
+
+// ===== TUTORIAL =====
+function drawTutorial(){
+  // Draw game world (platforms, player)
+  drawPlatforms(platforms,true);
+  drawPlatforms(ceilPlats,false);
+
+  // Enemies
+  enemies.forEach(en=>{
+    if(!en.alive)return;
+    drawEnemy(en);
+  });
+
+  // Particles & pops
+  parts.forEach(pp=>{
+    ctx.globalAlpha=pp.life/pp.ml;ctx.fillStyle=pp.col;
+    ctx.beginPath();ctx.arc(pp.x,pp.y,pp.sz,0,6.28);ctx.fill();
+  });
+  ctx.globalAlpha=1;
+  pops.forEach(pp=>{ctx.globalAlpha=pp.life/40;ctx.fillStyle=pp.col;ctx.font='bold 14px monospace';ctx.textAlign='center';ctx.fillText(pp.txt,pp.x,pp.y);});
+  ctx.globalAlpha=1;
+
+  // Bomb flash
+  if(bombFlashT>0){
+    ctx.fillStyle='rgba(255,68,0,'+(bombFlashT/20*0.4)+')';
+    ctx.fillRect(0,0,W,H);
+  }
+  // Invincible effect
+  if(itemEff.invincible>0){
+    ctx.fillStyle='rgba(255,0,255,'+(0.05+Math.sin(frame*0.15)*0.03)+')';
+    ctx.fillRect(0,0,W,H);
+  }
+
+  // Player
+  if(player.alive){
+    const pr=PLAYER_R;
+    drawCharacter(player.x,player.y,selChar,pr,player.rot,1,player.face,0,true);
+  }
+
+  // Action panel (for bomb/invincible steps)
+  const step=TUT_STEPS[tutStep];
+  if(step&&(step.type==='bomb'||step.type==='invincible')){
+    drawActionPanel();
+  }
+
+  // Tutorial overlay
+  drawTutorialOverlay();
+}
+
+function drawTutorialOverlay(){
+  const step=TUT_STEPS[tutStep];
+  if(!step)return;
+
+  // Progress dots at top
+  const dotY=safeTop+16;
+  for(let i=0;i<TUT_STEPS.length;i++){
+    ctx.fillStyle=i<tutStep?'#00e5ff':i===tutStep?'#ffd700':'#ffffff33';
+    ctx.beginPath();ctx.arc(W/2+(i-3)*18,dotY,4,0,6.28);ctx.fill();
+  }
+
+  // Step counter
+  ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.textAlign='center';
+  ctx.fillText((tutStep+1)+' / '+TUT_STEPS.length,W/2,dotY+16);
+
+  // Main instruction box
+  const boxW=Math.min(280,W-30),boxH=tutDone?80:100;
+  const boxX=W/2-boxW/2,boxY=H*0.12;
+  ctx.fillStyle='rgba(0,0,0,0.75)';
+  rr(boxX,boxY,boxW,boxH,12);ctx.fill();
+  ctx.strokeStyle='#ffd70066';ctx.lineWidth=1.5;
+  rr(boxX,boxY,boxW,boxH,12);ctx.stroke();
+
+  // Message
+  const pulse=Math.sin(tutStepT*0.05)*0.1+1;
+  ctx.save();ctx.translate(W/2,boxY+30);ctx.scale(pulse,1);
+  ctx.fillStyle='#ffd700';ctx.font='bold 15px monospace';ctx.textAlign='center';
+  ctx.fillText(step.msg,0,0);
+  ctx.restore();
+
+  if(!tutDone){
+    // Sub instruction with animation
+    const subAlpha=Math.sin(tutStepT*0.08)*0.3+0.7;
+    ctx.globalAlpha=subAlpha;
+    ctx.fillStyle='#fff';ctx.font='12px monospace';ctx.textAlign='center';
+    ctx.fillText(step.sub,W/2,boxY+54);
+    ctx.globalAlpha=1;
+
+    // Visual hint arrows/icons
+    if(step.type==='jump'){
+      // Tap indicator (pulsing circle)
+      const tapY=player.y-50;
+      const r2=16+Math.sin(tutStepT*0.1)*4;
+      ctx.strokeStyle='#fff6';ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(player.x,tapY,r2,0,6.28);ctx.stroke();
+      ctx.fillStyle='#fff3';ctx.font='12px monospace';ctx.textAlign='center';
+      ctx.fillText('TAP',player.x,tapY+4);
+    } else if(step.type==='flip_up'){
+      // Arrow up
+      const ax=player.x,ay=player.y-30;
+      const bounce=Math.sin(tutStepT*0.1)*8;
+      ctx.strokeStyle='#00e5ff';ctx.lineWidth=3;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(ax,ay+20+bounce);ctx.lineTo(ax,ay-10+bounce);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(ax-8,ay-2+bounce);ctx.lineTo(ax,ay-14+bounce);ctx.lineTo(ax+8,ay-2+bounce);ctx.stroke();
+    } else if(step.type==='flip_down'){
+      const ax=player.x,ay=player.y+30;
+      const bounce=Math.sin(tutStepT*0.1)*8;
+      ctx.strokeStyle='#ff3860';ctx.lineWidth=3;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(ax,ay-20+bounce);ctx.lineTo(ax,ay+10+bounce);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(ax-8,ay+2+bounce);ctx.lineTo(ax,ay+14+bounce);ctx.lineTo(ax+8,ay+2+bounce);ctx.stroke();
+    } else if(step.type==='bomb'){
+      // Highlight bomb button
+      const b=itemBtnLayout();
+      const glow=Math.sin(tutStepT*0.1)*0.3+0.7;
+      ctx.strokeStyle='rgba(255,68,0,'+glow+')';ctx.lineWidth=3;
+      rr(b.bombX-4,b.y-4,b.sz+8,b.sz+8,12);ctx.stroke();
+    } else if(step.type==='invincible'){
+      // Highlight invincible button
+      const b=itemBtnLayout();
+      const glow=Math.sin(tutStepT*0.1)*0.3+0.7;
+      ctx.strokeStyle='rgba(255,0,255,'+glow+')';ctx.lineWidth=3;
+      rr(b.invX-4,b.y-4,b.sz+8,b.sz+8,12);ctx.stroke();
+    }
+  } else {
+    // Step completed - show success
+    ctx.fillStyle='#34d399';ctx.font='bold 13px monospace';ctx.textAlign='center';
+    const okPulse=Math.sin(tutStepT*0.15)*0.15+1;
+    ctx.save();ctx.translate(W/2,boxY+56);ctx.scale(okPulse,okPulse);
+    ctx.fillText('OK! タップで次へ',0,0);
+    ctx.restore();
+  }
+
+  // Skip button (top right)
+  ctx.fillStyle='#ffffff22';
+  rr(W-64,safeTop+4,56,24,6);ctx.fill();
+  ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.textAlign='center';
+  ctx.fillText('スキップ',W-36,safeTop+20);
+
+  // Player name display
+  if(playerName){
+    ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.textAlign='left';
+    ctx.fillText(playerName,8,safeTop+18);
+  }
+}
+
 // --- Menu icon drawing functions (canvas-drawn, no emoji) ---
 function drawIconPodium(cx,cy,col){
   // Podium / 表彰台: three blocks (1st tall center, 2nd left, 3rd right)
@@ -336,6 +543,10 @@ function draw(){
   mtns.forEach(m=>{ctx.globalAlpha=m.a;ctx.fillStyle=tc('line');ctx.beginPath();ctx.moveTo(-10,H*0.75);m.pts.forEach(p=>ctx.lineTo(p.x+m.off,H*0.75-p.h));ctx.lineTo(W+510+m.off,H*0.75);ctx.closePath();ctx.fill();});
   ctx.globalAlpha=1;
 
+  // Login screen
+  if(state===ST.LOGIN){drawLogin();ctx.restore();return;}
+  // Tutorial
+  if(state===ST.TUTORIAL){drawTutorial();ctx.restore();return;}
   // Title and stage select: draw early, before game objects, to avoid leftover stage bleed
   if(state===ST.TITLE){drawDemo();drawTitle();drawCharModal();drawInventory();drawShop();drawCosmeticMenu();ctx.restore();return;}
   if(state===ST.STAGE_SEL){drawStageSel();ctx.restore();return;}
@@ -1393,6 +1604,12 @@ function drawTitle(){
   ctx.fillStyle='#ffffff33';ctx.font='11px monospace';ctx.textAlign='center';
   ctx.fillText('Gravity-Flip Action Runner',W/2,H*0.18+72);
 
+  // Player name
+  if(playerName){
+    ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.textAlign='center';
+    ctx.fillText(playerName,W/2,H*0.18+86);
+  }
+
   // Wallet display
   ctx.fillStyle='#ffd700';ctx.font='bold 13px monospace';ctx.textAlign='center';
   ctx.fillText('\u25CF '+walletCoins,W/2,H*0.38);
@@ -1522,7 +1739,7 @@ function drawTitle(){
   // Settings panel overlay
   if(settingsOpen){
     ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,W,H);
-    const pw=Math.min(280,W-30),ph=200,px=W/2-pw/2,py=H/2-ph/2;
+    const pw=Math.min(280,W-30),ph=270,px=W/2-pw/2,py=H/2-ph/2;
     const panGr=ctx.createLinearGradient(px,py,px,py+ph);
     panGr.addColorStop(0,'rgba(15,15,40,0.97)');panGr.addColorStop(1,'rgba(8,8,25,0.97)');
     ctx.fillStyle=panGr;rr(px,py,pw,ph,14);ctx.fill();
@@ -1556,6 +1773,15 @@ function drawTitle(){
     ctx.fillStyle='#ff8600';ctx.beginPath();ctx.arc(knobX2,barY2+barH/2,5,0,6.28);ctx.fill();
     ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.textAlign='right';
     ctx.fillText(Math.round(sfxVol*100)+'%',slX+slW,slY2);
+    // Player name display
+    ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.textAlign='left';
+    ctx.fillText('\u30D7\u30EC\u30A4\u30E4\u30FC: '+playerName,slX,slY2+32);
+    // Tutorial replay button
+    const tutBtnY=slY2+44;
+    ctx.fillStyle='#ffd70022';rr(px+20,tutBtnY,pw-40,30,6);ctx.fill();
+    ctx.strokeStyle='#ffd70066';ctx.lineWidth=1;rr(px+20,tutBtnY,pw-40,30,6);ctx.stroke();
+    ctx.fillStyle='#ffd700';ctx.font='12px monospace';ctx.textAlign='center';
+    ctx.fillText('\u30C1\u30E5\u30FC\u30C8\u30EA\u30A2\u30EB\u3092\u3084\u308A\u76F4\u3059',W/2,tutBtnY+20);
     // Close button
     const closeY=py+ph-42;
     ctx.fillStyle='#00e5ff22';rr(W/2-60,closeY,120,32,8);ctx.fill();

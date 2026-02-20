@@ -1042,8 +1042,23 @@ let gotNewStars=0; // how many new stars obtained this clear
 let ambientParts=[];
 
 // ===== STATE =====
-const ST={TITLE:0,PLAY:1,DEAD:2,PAUSE:3,STAGE_CLEAR:4,STAGE_SEL:5,COUNTDOWN:6};
-let state=ST.TITLE;
+const ST={TITLE:0,PLAY:1,DEAD:2,PAUSE:3,STAGE_CLEAR:4,STAGE_SEL:5,COUNTDOWN:6,LOGIN:7,TUTORIAL:8};
+// Login & tutorial
+let playerName=localStorage.getItem('gd5username')||'';
+let tutorialDone=localStorage.getItem('gd5tutorialDone')==='1';
+let state=playerName?ST.TITLE:ST.LOGIN;
+// Login UI
+let loginT=0; // animation timer
+let loginCursorBlink=0;
+let loginNameActive=false; // whether the name input is focused
+const nameInput=document.getElementById('nameInput');
+// Tutorial
+let tutStep=0; // current tutorial step index
+let tutStepT=0; // timer within current step
+let tutDone=false; // current step completed
+let tutMsg=''; // current instruction text
+let tutMsgSub=''; // sub instruction
+let tutEnemySpawned=false; // whether tutorial enemies have been spawned
 let countdownT=0; // countdown timer (frames, counts down from 180 = 3 seconds)
 let score=0,highScore=parseInt(localStorage.getItem('gd5hi')||'0');
 let newHi=false,speed=SPEED_INIT,frame=0,deadT=0,titleT=0;

@@ -193,17 +193,22 @@ function startPackStageFromDead(){
 
 // Settings panel input helpers (must match drawTitle layout)
 function settingsLayout(){
-  const pw=Math.min(280,W-30),ph=200,px=W/2-pw/2,py=H/2-ph/2;
+  const pw=Math.min(280,W-30),ph=270,px=W/2-pw/2,py=H/2-ph/2;
   const slW=pw-50,slX=px+25,barX=slX+42,barW=slW-42;
   const slY1=py+52,slY2=slY1+44;
   const barH=10;
-  return{px,py,pw,ph,barX,barW,barY1:slY1-8,barY2:slY2-8,barH,closeY:py+ph-42};
+  const tutBtnY=slY2+44;
+  return{px,py,pw,ph,barX,barW,barY1:slY1-8,barY2:slY2-8,barH,tutBtnY,closeY:py+ph-42};
 }
 function hitSettingsGear(tx,ty){return tx>=W-44&&tx<=W-8&&ty>=safeTop+6&&ty<=safeTop+42;}
 function handleSettingsTouch(tx,ty){
   const s=settingsLayout();
   // Close button
   if(tx>=W/2-60&&tx<=W/2+60&&ty>=s.closeY&&ty<=s.closeY+32){sfx('click');settingsOpen=false;return true;}
+  // Tutorial replay button
+  if(tx>=s.px+20&&tx<=s.px+s.pw-20&&ty>=s.tutBtnY&&ty<=s.tutBtnY+30){
+    sfx('select');settingsOpen=false;startTutorial();return true;
+  }
   // BGM slider
   if(ty>=s.barY1-10&&ty<=s.barY1+s.barH+10&&tx>=s.barX-10&&tx<=s.barX+s.barW+10){
     draggingSlider='bgm';updateSliderDrag(tx);return true;
@@ -298,6 +303,10 @@ canvas.addEventListener('touchstart',e=>{
   // Settings panel intercepts all input when open
   if(settingsOpen){handleSettingsTouch(p.x,p.y);return;}
   if(state===ST.COUNTDOWN)return; // block input during countdown
+  // Login screen
+  if(state===ST.LOGIN){handleLoginTouch(p.x,p.y);return;}
+  // Tutorial
+  if(state===ST.TUTORIAL){handleTutorialTouch(p.x,p.y);return;}
   // Settings gear button on title screen
   if(state===ST.TITLE&&!charModal.show&&hitSettingsGear(p.x,p.y)){sfx('click');settingsOpen=true;return;}
   if(state===ST.STAGE_SEL){stageSelTouchY=t.clientY;stageSelDragging=false;handleStageSelTouch(p.x,p.y);return;}
@@ -419,6 +428,33 @@ canvas.addEventListener('touchend',e=>{
   }
   if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}
   if(state===ST.TITLE&&!longPressFired&&titleTouchPos){handleTitleTouch(titleTouchPos.x,titleTouchPos.y);titleTouchPos=null;return;}
+  // Tutorial swipe & tap
+  if(state===ST.TUTORIAL){
+    const tt=e.changedTouches[0];const tdy=tt.clientY-touchStartY;
+    if(touchMoved&&Math.abs(tdy)>30){
+      // Swipe detected in tutorial
+      if(tutStep===2&&tdy<0&&player.gDir===1){
+        // Flip UP
+        player.gDir=-1;player.vy=-2;sfx('flip');vibrate(20);
+        player.face='flip';setTimeout(()=>{if(player.alive)player.face='normal';},250);
+        emitParts(player.x,player.y,10,tc('ply'),3,2.5);player.rotTarget-=Math.PI;
+        tutDone=true;
+      } else if(tutStep===3&&tdy>0&&player.gDir===-1){
+        // Flip DOWN
+        player.gDir=1;player.vy=2;sfx('flip');vibrate(20);
+        player.face='flip';setTimeout(()=>{if(player.alive)player.face='normal';},250);
+        emitParts(player.x,player.y,10,tc('ply'),3,2.5);player.rotTarget+=Math.PI;
+        tutDone=true;
+      }
+    } else if(!touchMoved){
+      // Tap in tutorial
+      if(tutStep===1&&player.grounded){
+        player.vy=player.gDir===1?-JUMP_POWER:JUMP_POWER;player.grounded=false;
+        sfx('jump');tutDone=true;
+      }
+    }
+    return;
+  }
   if(state!==ST.PLAY||state===ST.PAUSE)return;
   const dt=Date.now()-touchStartT;
   const t=e.changedTouches[0];
@@ -470,6 +506,8 @@ canvas.addEventListener('mousedown',e=>{
   if(debugMenuOpen){handleDebugTouch(p.x,p.y);return;}
   if(settingsOpen){handleSettingsTouch(p.x,p.y);return;}
   if(state===ST.COUNTDOWN)return;
+  if(state===ST.LOGIN){handleLoginTouch(p.x,p.y);return;}
+  if(state===ST.TUTORIAL){handleTutorialTouch(p.x,p.y);return;}
   if(state===ST.TITLE&&!charModal.show&&hitSettingsGear(p.x,p.y)){sfx('click');settingsOpen=true;return;}
   if(state===ST.STAGE_SEL){handleStageSelTouch(p.x,p.y);return;}
   if(state===ST.STAGE_CLEAR&&stageClearT>60){
@@ -538,6 +576,42 @@ document.addEventListener('keydown',e=>{
     if(state===ST.STAGE_SEL){sfx('cancel');titleTouchPos=null;state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     if(state===ST.PLAY){sfx('pause');state=ST.PAUSE;return;}
     if(state===ST.PAUSE){sfx('select');state=ST.PLAY;return;}
+  }
+  // Login: Enter submits
+  if(state===ST.LOGIN&&e.code==='Enter'){
+    e.preventDefault();initAudio();
+    const name=(nameInput.value||'').trim();
+    if(name.length>=1){
+      playerName=name;localStorage.setItem('gd5username',playerName);
+      nameInput.style.opacity='0';nameInput.style.pointerEvents='none';nameInput.blur();loginNameActive=false;
+      sfx('select');
+      if(!tutorialDone){startTutorial();}else{state=ST.TITLE;switchBGM('title');}
+    }
+    return;
+  }
+  if(state===ST.LOGIN)return; // block other keys during login
+  // Tutorial keyboard
+  if(state===ST.TUTORIAL){
+    e.preventDefault();initAudio();
+    const step=TUT_STEPS[tutStep];
+    if(!step)return;
+    if(e.code==='Escape'){tutorialDone=true;localStorage.setItem('gd5tutorialDone','1');state=ST.TITLE;switchBGM('title');return;}
+    if(tutDone){sfx('select');advanceTutStep();return;}
+    if(step.type==='tap_next'||step.type==='tap_finish'){sfx('select');tutDone=true;if(step.type==='tap_finish')advanceTutStep();return;}
+    if(step.type==='jump'&&(e.code==='Space'||e.code==='ArrowUp')&&player.grounded){
+      player.vy=player.gDir===1?-JUMP_POWER:JUMP_POWER;player.grounded=false;sfx('jump');tutDone=true;return;
+    }
+    if(step.type==='flip_up'&&e.code==='ArrowUp'&&player.gDir===1){
+      player.gDir=-1;player.vy=-2;sfx('flip');vibrate(20);player.rotTarget-=Math.PI;
+      emitParts(player.x,player.y,10,tc('ply'),3,2.5);tutDone=true;return;
+    }
+    if(step.type==='flip_down'&&e.code==='ArrowDown'&&player.gDir===-1){
+      player.gDir=1;player.vy=2;sfx('flip');vibrate(20);player.rotTarget+=Math.PI;
+      emitParts(player.x,player.y,10,tc('ply'),3,2.5);tutDone=true;return;
+    }
+    if(step.type==='bomb'&&(e.code==='KeyB'||e.code==='KeyX')&&bombCount>0){useBomb();tutDone=true;return;}
+    if(step.type==='invincible'&&(e.code==='KeyV'||e.code==='KeyZ')&&invCount>0){useInvincible();tutDone=true;return;}
+    return;
   }
   if(e.code==='Space'||e.code==='ArrowUp'){
     e.preventDefault();initAudio();
@@ -894,4 +968,124 @@ function confirmCosmeticTap(){
   const item=ownedList[idx];
   // Show equip confirmation dialog
   cosmeticConfirm={item,tab};sfx('select');
+}
+
+// ===== LOGIN TOUCH =====
+function handleLoginTouch(tx,ty){
+  // Name input field area
+  const fieldW=Math.min(240,W-60),fieldH=40;
+  const fieldX=W/2-fieldW/2,fieldY=H*0.42;
+  if(tx>=fieldX&&tx<=fieldX+fieldW&&ty>=fieldY&&ty<=fieldY+fieldH){
+    loginNameActive=true;
+    nameInput.style.opacity='1';nameInput.style.pointerEvents='auto';
+    nameInput.value=playerName||'';
+    nameInput.focus();sfx('click');
+    return;
+  }
+  // OK button
+  const btnW=Math.min(200,W-80),btnH=44;
+  const btnX=W/2-btnW/2,btnY=H*0.56;
+  if(tx>=btnX&&tx<=btnX+btnW&&ty>=btnY&&ty<=btnY+btnH){
+    const name=(nameInput.value||'').trim();
+    if(name.length>=1){
+      playerName=name;
+      localStorage.setItem('gd5username',playerName);
+      nameInput.style.opacity='0';nameInput.style.pointerEvents='none';
+      nameInput.blur();loginNameActive=false;
+      sfx('select');vibrate(15);
+      // Go to tutorial if first time
+      if(!tutorialDone){
+        startTutorial();
+      } else {
+        state=ST.TITLE;switchBGM('title');
+      }
+    } else {
+      sfx('hurt');vibrate(10);
+    }
+    return;
+  }
+  // Tap elsewhere closes keyboard
+  if(loginNameActive){
+    nameInput.blur();loginNameActive=false;
+    nameInput.style.opacity='0';nameInput.style.pointerEvents='none';
+  }
+}
+// Sync hidden input → playerName on each input event
+nameInput.addEventListener('input',()=>{
+  let v=nameInput.value.replace(/[<>&"']/g,'').substring(0,12);
+  nameInput.value=v;
+});
+
+// ===== TUTORIAL =====
+const TUT_STEPS=[
+  {msg:'ようこそ GRAVITY DASH へ！',sub:'タップして次へ',type:'tap_next'},
+  {msg:'タップしてジャンプ！',sub:'画面をタップ',type:'jump'},
+  {msg:'上にスワイプで重力反転！',sub:'↑ スワイプ',type:'flip_up'},
+  {msg:'下にスワイプで戻ろう！',sub:'↓ スワイプ',type:'flip_down'},
+  {msg:'ボムで敵を一掃！',sub:'下のボムボタンをタップ',type:'bomb'},
+  {msg:'無敵で突き進め！',sub:'★ボタンをタップ',type:'invincible'},
+  {msg:'チュートリアル完了！',sub:'タップしてスタート！',type:'tap_finish'}
+];
+function startTutorial(){
+  reset();
+  state=ST.TUTORIAL;
+  tutStep=0;tutStepT=0;tutDone=false;tutEnemySpawned=false;
+  bombCount=0;invCount=0;
+  // Place player nicely
+  player.x=W*0.3;player.gDir=1;
+  player.y=H-GROUND_H-PLAYER_R;
+  speed=1.0; // slow speed for tutorial
+  switchBGM('title');
+}
+function advanceTutStep(){
+  tutStep++;tutStepT=0;tutDone=false;tutEnemySpawned=false;
+  if(tutStep>=TUT_STEPS.length){
+    // Tutorial complete
+    tutorialDone=true;
+    localStorage.setItem('gd5tutorialDone','1');
+    state=ST.TITLE;switchBGM('title');
+    return;
+  }
+  // Setup for specific steps
+  const step=TUT_STEPS[tutStep];
+  if(step.type==='bomb'){bombCount=1;invCount=0;}
+  if(step.type==='invincible'){invCount=1;bombCount=0;}
+}
+function handleTutorialTouch(tx,ty){
+  const step=TUT_STEPS[tutStep];
+  if(!step)return;
+  // Skip button (top right)
+  if(tx>=W-64&&tx<=W-8&&ty>=safeTop+4&&ty<=safeTop+28){
+    sfx('select');
+    tutorialDone=true;localStorage.setItem('gd5tutorialDone','1');
+    state=ST.TITLE;switchBGM('title');return;
+  }
+  // After a step is done, tap advances to next
+  if(tutDone){sfx('select');advanceTutStep();return;}
+  // Step-specific input
+  if(step.type==='tap_next'||step.type==='tap_finish'){
+    sfx('select');tutDone=true;
+    if(step.type==='tap_finish'){advanceTutStep();}
+    return;
+  }
+  if(step.type==='jump'){
+    // Jump handled in touchend
+    return;
+  }
+  if(step.type==='flip_up'||step.type==='flip_down'){
+    // Swipe handled in touchend
+    return;
+  }
+  if(step.type==='bomb'){
+    if(hitBombBtn(tx,ty)&&bombCount>0){
+      useBomb();tutDone=true;
+    }
+    return;
+  }
+  if(step.type==='invincible'){
+    if(hitInvBtn(tx,ty)&&invCount>0){
+      useInvincible();tutDone=true;
+    }
+    return;
+  }
 }

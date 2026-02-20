@@ -64,7 +64,7 @@ function checkMile(){
 let newHiEffT=0; // new highscore effect timer
 
 function useBomb(){
-  if(bombCount<=0||state!==ST.PLAY)return;
+  if(bombCount<=0||(state!==ST.PLAY&&state!==ST.TUTORIAL))return;
   bombCount--;sfx('bomb');vibrate([30,20,50]);shakeI=15;bombFlashT=20;
   // Kill all on-screen enemies
   let kills=0;
@@ -83,9 +83,10 @@ function useBomb(){
   for(let i=0;i<30;i++){const a=(6.28/30)*i;parts.push({x:player.x+Math.cos(a)*40,y:player.y+Math.sin(a)*40,vx:Math.cos(a)*5,vy:Math.sin(a)*5,life:30,ml:30,sz:4+Math.random()*3,col:['#ff4400','#ff6600','#ffaa00'][i%3]});}
 }
 function useInvincible(){
-  if(invCount<=0||state!==ST.PLAY)return;
+  if(invCount<=0||(state!==ST.PLAY&&state!==ST.TUTORIAL))return;
   invCount--;sfx('item');vibrate([20,10,30]);
-  itemEff.invincible=600;switchBGM('fever');
+  itemEff.invincible=state===ST.TUTORIAL?180:600;
+  if(state===ST.PLAY)switchBGM('fever');
   emitParts(player.x,player.y,15,'#ff00ff',4,3);
   addPop(player.x,player.y-30,'\u7121\u6575\u767A\u52D5!','#ff00ff');
 }
