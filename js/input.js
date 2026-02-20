@@ -211,6 +211,7 @@ function continueFromDeath(){
   bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:(Math.floor(dist/1000)+1)*1000,lastBossScore:score,bossCount:bossPhase.bossCount||0,bossType:'',noDamage:true};
   itemEff={invincible:0,magnet:0};bombCount=0;bombFlashT=0;invCount=0;
   djumpAvailable=!!ct().hasDjump;djumpUsed=false;ghostPhaseT=0;ghostInvis=false;
+  player._quakeStunned=false;player._quakeStunT=0;
   deadT=0;newHi=false;combo=0;comboT=0;comboDsp=0;comboDspT=0;airCombo=0;
   shakeX=0;shakeY=0;shakeI=0;flipCount=0;flipTimer=999;
   coinCD=0;itemCD=0;enemyCD=0;spikeCD=0;hillCD=0;floatCD=0;gravZoneCD=0;
@@ -998,11 +999,7 @@ function confirmShopTap(){
       addPop(W/2,H/2,'\u30AC\u30C1\u30E3\u9650\u5B9A!','#a855f7');
       return;
     }
-    if(walletCoins>=item.price){
-      shopConfirm={item,tab};sfx('select');
-    } else {
-      sfx('hurt');vibrate(15);
-    }
+    shopConfirm={item,tab};sfx('select');
   }
 }
 
