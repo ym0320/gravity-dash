@@ -184,12 +184,13 @@ const _SAMPLE_RANKING=(function(){
   return data;
 })();
 // Dynamic ranking data that includes the player's high score
-let RANKING_DATA=[];
+// Initialize with sample data only (highScore/playerName not yet defined at load time)
+let RANKING_DATA=_SAMPLE_RANKING.map((d,i)=>({...d,isPlayer:false,rank:i+1}));
 function rebuildRankingData(){
   const data=_SAMPLE_RANKING.map(d=>({...d,isPlayer:false}));
   // Insert player's high score if > 0
-  if(highScore>0){
-    const pName=playerName||'あなた';
+  if(typeof highScore!=='undefined'&&highScore>0){
+    const pName=(typeof playerName!=='undefined'&&playerName)||'\u3042\u306A\u305F';
     data.push({name:pName,charIdx:selChar,score:highScore,isPlayer:true});
   }
   data.sort((a,b)=>b.score-a.score);
@@ -197,7 +198,6 @@ function rebuildRankingData(){
   RANKING_DATA=data.slice(0,100);
   RANKING_DATA.forEach((d,i)=>d.rank=i+1);
 }
-rebuildRankingData();
 function initAudio(){
   if(audioCtx){
     if(audioCtx.state==='suspended')audioCtx.resume();
