@@ -6,210 +6,243 @@ function rr(x,y,w,h,r){
   ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
 }
 
-// ===== LOGIN SCREEN =====
-function drawLogin(){
-  // Animated title
-  const p=Math.sin(loginT)*0.04+1;
-  ctx.save();ctx.translate(W/2,H*0.14);ctx.scale(p,p);
-  ctx.shadowColor='#00e5ff44';ctx.shadowBlur=35;ctx.fillStyle='#00e5ff';
-  ctx.font='bold 40px monospace';ctx.textAlign='center';
-  ctx.fillText('GRAVITY',0,0);
-  ctx.shadowColor='#ff386044';ctx.fillStyle='#ff3860';
-  ctx.fillText('DASH',0,44);ctx.shadowBlur=0;
-  ctx.restore();
+// ===== LOGIN SCREEN (HTML overlay handles rendering) =====
+function drawLogin(){} // Login is HTML overlay, nothing to draw on canvas
 
-  // Welcome message
-  ctx.fillStyle='#fff';ctx.font='bold 14px monospace';ctx.textAlign='center';
-  ctx.fillText('ようこそ！',W/2,H*0.30);
-  ctx.fillStyle='#fff8';ctx.font='12px monospace';
-  ctx.fillText('ユーザー名を入力してください',W/2,H*0.35);
-
-  // Name input field (canvas-drawn, synced with hidden input)
-  const fieldW=Math.min(240,W-60),fieldH=40;
-  const fieldX=W/2-fieldW/2,fieldY=H*0.42;
-  ctx.fillStyle='#1a1a3a';
-  rr(fieldX,fieldY,fieldW,fieldH,8);ctx.fill();
-  ctx.strokeStyle=loginNameActive?'#00e5ff':'#ffffff44';ctx.lineWidth=2;
-  rr(fieldX,fieldY,fieldW,fieldH,8);ctx.stroke();
-
-  // Display current name text
-  const dispName=nameInput.value||'';
-  if(dispName.length>0){
-    ctx.fillStyle='#fff';ctx.font='18px monospace';ctx.textAlign='center';
-    ctx.fillText(dispName,W/2,fieldY+26);
-  } else {
-    ctx.fillStyle='#ffffff44';ctx.font='14px monospace';ctx.textAlign='center';
-    ctx.fillText('タップして入力',W/2,fieldY+26);
-  }
-  // Blinking cursor
-  if(loginNameActive&&Math.sin(loginCursorBlink)>0){
-    const tw=ctx.measureText(dispName).width;
-    ctx.fillStyle='#00e5ff';
-    ctx.fillRect(W/2+tw/2+2,fieldY+8,2,24);
-  }
-
-  // Character preview (animated)
-  const charY=H*0.56;
-  drawCharacter(W/2,charY-30,selChar,20,Math.sin(loginT*0.7)*0.1,1,'normal',0,true);
-
-  // OK button
-  const btnW=Math.min(200,W-80),btnH=44;
-  const btnX=W/2-btnW/2,btnY=H*0.56;
-  const canSubmit=dispName.trim().length>=1;
-  ctx.fillStyle=canSubmit?'#00e5ff22':'#ffffff08';
-  rr(btnX,btnY,btnW,btnH,10);ctx.fill();
-  ctx.strokeStyle=canSubmit?'#00e5ff':'#ffffff22';ctx.lineWidth=2;
-  rr(btnX,btnY,btnW,btnH,10);ctx.stroke();
-  if(canSubmit){ctx.shadowColor='#00e5ff';ctx.shadowBlur=12;}
-  ctx.fillStyle=canSubmit?'#00e5ff':'#ffffff44';ctx.font='bold 16px monospace';ctx.textAlign='center';
-  ctx.fillText('はじめる',W/2,btnY+28);
-  ctx.shadowBlur=0;
-
-  // Footer
-  ctx.fillStyle='#ffffff22';ctx.font='10px monospace';ctx.textAlign='center';
-  ctx.fillText('Gravity-Flip Action Runner',W/2,H*0.92);
-}
-
-// ===== TUTORIAL =====
+// ===== TUTORIAL (course-based) =====
 function drawTutorial(){
-  // Draw game world (platforms, player)
-  drawPlatforms(platforms,true);
-  drawPlatforms(ceilPlats,false);
-
+  // Draw tutorial course platforms relative to scroll
+  ctx.save();
+  // Floor platforms
+  tutCoursePlats.forEach(p=>{
+    const sx=p.x-tutScrollX;
+    if(sx+p.w<-20||sx>W+20)return;
+    const surfY=H-p.h;
+    const gr=ctx.createLinearGradient(0,surfY,0,H);
+    gr.addColorStop(0,tc('gnd'));gr.addColorStop(1,tc('gnd2'));
+    ctx.fillStyle=gr;ctx.fillRect(sx,surfY,p.w,p.h+10);
+    ctx.fillStyle=tc('line');ctx.fillRect(sx,surfY,p.w,3);
+  });
+  // Ceiling platforms
+  tutCourseCeil.forEach(p=>{
+    const sx=p.x-tutScrollX;
+    if(sx+p.w<-20||sx>W+20)return;
+    const gr=ctx.createLinearGradient(0,0,0,p.h);
+    gr.addColorStop(0,tc('gnd2'));gr.addColorStop(1,tc('gnd'));
+    ctx.fillStyle=gr;ctx.fillRect(sx,-10,p.w,p.h+10);
+    ctx.fillStyle=tc('line');ctx.fillRect(sx,p.h,p.w,3);
+  });
+  // Spikes
+  tutCourseSpikes.forEach(sp=>{
+    const sx=sp.x-tutScrollX;
+    if(sx+sp.w<-20||sx>W+20)return;
+    const by=H-GROUND_H;
+    ctx.fillStyle='#ff4444';
+    // Triangle spikes
+    for(let i=0;i<3;i++){
+      const tx=sx+i*(sp.w/3);
+      ctx.beginPath();
+      ctx.moveTo(tx,by);ctx.lineTo(tx+sp.w/6,by-sp.h);ctx.lineTo(tx+sp.w/3,by);
+      ctx.closePath();ctx.fill();
+    }
+  });
   // Enemies
-  enemies.forEach(en=>{
-    if(!en.alive)return;
-    drawEnemy(en);
-  });
-
+  enemies.forEach(en=>{if(!en.alive)return;drawEnemy(en);});
   // Particles & pops
-  parts.forEach(pp=>{
-    ctx.globalAlpha=pp.life/pp.ml;ctx.fillStyle=pp.col;
-    ctx.beginPath();ctx.arc(pp.x,pp.y,pp.sz,0,6.28);ctx.fill();
-  });
+  parts.forEach(pp=>{ctx.globalAlpha=pp.life/pp.ml;ctx.fillStyle=pp.col;ctx.beginPath();ctx.arc(pp.x,pp.y,pp.sz,0,6.28);ctx.fill();});
   ctx.globalAlpha=1;
   pops.forEach(pp=>{ctx.globalAlpha=pp.life/40;ctx.fillStyle=pp.col;ctx.font='bold 14px monospace';ctx.textAlign='center';ctx.fillText(pp.txt,pp.x,pp.y);});
   ctx.globalAlpha=1;
-
   // Bomb flash
-  if(bombFlashT>0){
-    ctx.fillStyle='rgba(255,68,0,'+(bombFlashT/20*0.4)+')';
-    ctx.fillRect(0,0,W,H);
-  }
-  // Invincible effect
-  if(itemEff.invincible>0){
-    ctx.fillStyle='rgba(255,0,255,'+(0.05+Math.sin(frame*0.15)*0.03)+')';
-    ctx.fillRect(0,0,W,H);
-  }
-
+  if(bombFlashT>0){ctx.fillStyle='rgba(255,68,0,'+(bombFlashT/20*0.4)+')';ctx.fillRect(0,0,W,H);}
   // Player
   if(player.alive){
-    const pr=PLAYER_R;
-    drawCharacter(player.x,player.y,selChar,pr,player.rot,1,player.face,0,true);
+    drawCharacter(player.x,player.y,selChar,PLAYER_R,player.rot,1,player.face,0,true);
   }
-
-  // Action panel (for bomb/invincible steps)
-  const step=TUT_STEPS[tutStep];
-  if(step&&(step.type==='bomb'||step.type==='invincible')){
+  // Action panel for bomb step
+  if(tutStep<TUT_CHECKPOINTS.length&&TUT_CHECKPOINTS[tutStep].type==='bomb'&&tutPhase==='wait'){
     drawActionPanel();
   }
-
-  // Tutorial overlay
+  ctx.restore();
+  // Tutorial overlay UI
   drawTutorialOverlay();
 }
 
 function drawTutorialOverlay(){
-  const step=TUT_STEPS[tutStep];
-  if(!step)return;
-
-  // Progress dots at top
-  const dotY=safeTop+16;
-  for(let i=0;i<TUT_STEPS.length;i++){
-    ctx.fillStyle=i<tutStep?'#00e5ff':i===tutStep?'#ffd700':'#ffffff33';
-    ctx.beginPath();ctx.arc(W/2+(i-3)*18,dotY,4,0,6.28);ctx.fill();
+  if(tutStep>=TUT_CHECKPOINTS.length){
+    // Completion screen
+    const sc=Math.min(1,tutSuccessT/30);
+    ctx.fillStyle='rgba(0,0,0,'+(0.6*sc)+')';ctx.fillRect(0,0,W,H);
+    ctx.save();ctx.translate(W/2,H*0.35);const ps=1+Math.sin(tutSuccessT*0.08)*0.05;ctx.scale(ps,ps);
+    ctx.fillStyle='#ffd700';ctx.font='bold 28px monospace';ctx.textAlign='center';
+    ctx.fillText('チュートリアル完了！',0,0);ctx.restore();
+    ctx.fillStyle='#fff';ctx.font='14px monospace';ctx.textAlign='center';
+    ctx.fillText('さあ、冒険を始めよう！',W/2,H*0.48);
+    return;
   }
+  const cp=TUT_CHECKPOINTS[tutStep];
 
-  // Step counter
+  // Progress bar at top
+  const barW=W-40,barH=6,barX=20,barY=safeTop+10;
+  ctx.fillStyle='#ffffff15';rr(barX,barY,barW,barH,3);ctx.fill();
+  const prog=(tutStep+(tutPhase==='scroll'?(tutScrollX-(tutStep>0?TUT_CHECKPOINTS[tutStep-1].dist:0))/(cp.dist-(tutStep>0?TUT_CHECKPOINTS[tutStep-1].dist:0)):1))/TUT_CHECKPOINTS.length;
+  ctx.fillStyle='#00e5ff';rr(barX,barY,barW*Math.min(1,prog),barH,3);ctx.fill();
+  // Step dots
+  for(let i=0;i<TUT_CHECKPOINTS.length;i++){
+    const dx=barX+barW*(i+1)/TUT_CHECKPOINTS.length;
+    ctx.fillStyle=i<tutStep?'#00e5ff':i===tutStep?'#ffd700':'#ffffff44';
+    ctx.beginPath();ctx.arc(dx,barY+3,5,0,6.28);ctx.fill();
+  }
   ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.textAlign='center';
-  ctx.fillText((tutStep+1)+' / '+TUT_STEPS.length,W/2,dotY+16);
+  ctx.fillText((tutStep+1)+'/'+TUT_CHECKPOINTS.length,W/2,barY+20);
 
-  // Main instruction box
-  const boxW=Math.min(280,W-30),boxH=tutDone?80:100;
-  const boxX=W/2-boxW/2,boxY=H*0.12;
-  ctx.fillStyle='rgba(0,0,0,0.75)';
-  rr(boxX,boxY,boxW,boxH,12);ctx.fill();
-  ctx.strokeStyle='#ffd70066';ctx.lineWidth=1.5;
-  rr(boxX,boxY,boxW,boxH,12);ctx.stroke();
-
-  // Message
-  const pulse=Math.sin(tutStepT*0.05)*0.1+1;
-  ctx.save();ctx.translate(W/2,boxY+30);ctx.scale(pulse,1);
-  ctx.fillStyle='#ffd700';ctx.font='bold 15px monospace';ctx.textAlign='center';
-  ctx.fillText(step.msg,0,0);
-  ctx.restore();
-
-  if(!tutDone){
-    // Sub instruction with animation
-    const subAlpha=Math.sin(tutStepT*0.08)*0.3+0.7;
-    ctx.globalAlpha=subAlpha;
-    ctx.fillStyle='#fff';ctx.font='12px monospace';ctx.textAlign='center';
-    ctx.fillText(step.sub,W/2,boxY+54);
+  // Instruction display (only when waiting or success)
+  if(tutPhase==='wait'||tutPhase==='success'){
+    // Large instruction box
+    const boxW=Math.min(300,W-20),boxH=110;
+    const boxX=W/2-boxW/2,boxY=H*0.08;
+    // Animated entry
+    const entry=Math.min(1,tutStepT/20);
+    ctx.globalAlpha=entry;
+    ctx.fillStyle='rgba(0,0,0,0.8)';
+    rr(boxX,boxY,boxW,boxH,14);ctx.fill();
+    ctx.strokeStyle=tutPhase==='success'?'#34d399':'#ffd700';ctx.lineWidth=2;
+    rr(boxX,boxY,boxW,boxH,14);ctx.stroke();
     ctx.globalAlpha=1;
 
-    // Visual hint arrows/icons
-    if(step.type==='jump'){
-      // Tap indicator (pulsing circle)
-      const tapY=player.y-50;
-      const r2=16+Math.sin(tutStepT*0.1)*4;
-      ctx.strokeStyle='#fff6';ctx.lineWidth=2;
-      ctx.beginPath();ctx.arc(player.x,tapY,r2,0,6.28);ctx.stroke();
-      ctx.fillStyle='#fff3';ctx.font='12px monospace';ctx.textAlign='center';
-      ctx.fillText('TAP',player.x,tapY+4);
-    } else if(step.type==='flip_up'){
-      // Arrow up
-      const ax=player.x,ay=player.y-30;
-      const bounce=Math.sin(tutStepT*0.1)*8;
-      ctx.strokeStyle='#00e5ff';ctx.lineWidth=3;ctx.lineCap='round';
-      ctx.beginPath();ctx.moveTo(ax,ay+20+bounce);ctx.lineTo(ax,ay-10+bounce);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(ax-8,ay-2+bounce);ctx.lineTo(ax,ay-14+bounce);ctx.lineTo(ax+8,ay-2+bounce);ctx.stroke();
-    } else if(step.type==='flip_down'){
-      const ax=player.x,ay=player.y+30;
-      const bounce=Math.sin(tutStepT*0.1)*8;
-      ctx.strokeStyle='#ff3860';ctx.lineWidth=3;ctx.lineCap='round';
-      ctx.beginPath();ctx.moveTo(ax,ay-20+bounce);ctx.lineTo(ax,ay+10+bounce);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(ax-8,ay+2+bounce);ctx.lineTo(ax,ay+14+bounce);ctx.lineTo(ax+8,ay+2+bounce);ctx.stroke();
-    } else if(step.type==='bomb'){
-      // Highlight bomb button
-      const b=itemBtnLayout();
-      const glow=Math.sin(tutStepT*0.1)*0.3+0.7;
-      ctx.strokeStyle='rgba(255,68,0,'+glow+')';ctx.lineWidth=3;
-      rr(b.bombX-4,b.y-4,b.sz+8,b.sz+8,12);ctx.stroke();
-    } else if(step.type==='invincible'){
-      // Highlight invincible button
-      const b=itemBtnLayout();
-      const glow=Math.sin(tutStepT*0.1)*0.3+0.7;
-      ctx.strokeStyle='rgba(255,0,255,'+glow+')';ctx.lineWidth=3;
-      rr(b.invX-4,b.y-4,b.sz+8,b.sz+8,12);ctx.stroke();
+    if(tutPhase==='success'){
+      // Success message
+      const sp=1+Math.sin(tutSuccessT*0.15)*0.08;
+      ctx.save();ctx.translate(W/2,boxY+45);ctx.scale(sp,sp);
+      ctx.fillStyle='#34d399';ctx.font='bold 24px monospace';ctx.textAlign='center';
+      ctx.fillText('OK!',0,0);ctx.restore();
+      ctx.fillStyle='#34d399aa';ctx.font='12px monospace';ctx.textAlign='center';
+      ctx.fillText('次のステップへ...',W/2,boxY+80);
+    } else {
+      // Main message (supports \n)
+      const lines=cp.msg.split('\n');
+      const fontSize=18;
+      ctx.fillStyle='#ffd700';ctx.font='bold '+fontSize+'px monospace';ctx.textAlign='center';
+      const startY=boxY+32+(lines.length===1?8:0);
+      lines.forEach((line,i)=>{
+        const pulse=1+Math.sin(tutStepT*0.06)*0.04;
+        ctx.save();ctx.translate(W/2,startY+i*24);ctx.scale(pulse,pulse);
+        ctx.fillText(line,0,0);ctx.restore();
+      });
+      // Sub instruction (animated)
+      const subY=boxY+76+(lines.length===1?8:0);
+      const subPulse=Math.sin(tutStepT*0.1)*0.3+0.7;
+      ctx.globalAlpha=0.5+subPulse*0.5;
+      ctx.fillStyle='#fff';ctx.font='bold 14px monospace';
+      ctx.fillText(cp.sub,W/2,subY);
+      ctx.globalAlpha=1;
+
+      // Big visual guide icons
+      drawTutorialGuide(cp);
     }
-  } else {
-    // Step completed - show success
-    ctx.fillStyle='#34d399';ctx.font='bold 13px monospace';ctx.textAlign='center';
-    const okPulse=Math.sin(tutStepT*0.15)*0.15+1;
-    ctx.save();ctx.translate(W/2,boxY+56);ctx.scale(okPulse,okPulse);
-    ctx.fillText('OK! タップで次へ',0,0);
-    ctx.restore();
   }
 
-  // Skip button (top right)
-  ctx.fillStyle='#ffffff22';
-  rr(W-64,safeTop+4,56,24,6);ctx.fill();
+  // Skip button
+  ctx.fillStyle='#ffffff22';rr(W-64,safeTop+4,56,24,6);ctx.fill();
   ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.textAlign='center';
   ctx.fillText('スキップ',W-36,safeTop+20);
+}
 
-  // Player name display
-  if(playerName){
-    ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.textAlign='left';
-    ctx.fillText(playerName,8,safeTop+18);
+function drawTutorialGuide(cp){
+  const px=player.x,py=player.y;
+  const t=tutStepT;
+
+  if(cp.icon==='tap'){
+    // Big pulsing hand/finger tap icon
+    const cy=py-60;
+    const r=20+Math.sin(t*0.12)*8;
+    const a=0.4+Math.sin(t*0.12)*0.3;
+    // Ripple rings
+    for(let i=0;i<3;i++){
+      const rr2=r+i*15+((t*2+i*20)%45);
+      const ra=Math.max(0,0.4-rr2/80);
+      ctx.strokeStyle='rgba(255,215,0,'+ra+')';ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(px,cy,rr2,0,6.28);ctx.stroke();
+    }
+    // Center circle
+    ctx.fillStyle='rgba(255,215,0,'+a+')';
+    ctx.beginPath();ctx.arc(px,cy,r,0,6.28);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='bold 16px monospace';ctx.textAlign='center';
+    ctx.fillText('TAP',px,cy+6);
+    // Bouncing arrow down to player
+    const arrowY=cy+r+8+Math.sin(t*0.15)*6;
+    ctx.strokeStyle='#ffd700';ctx.lineWidth=3;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(px,arrowY);ctx.lineTo(px,arrowY+16);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(px-6,arrowY+10);ctx.lineTo(px,arrowY+18);ctx.lineTo(px+6,arrowY+10);ctx.stroke();
+  } else if(cp.icon==='swipe_up'){
+    // Big upward swipe gesture
+    const cx=px+60,cy=H*0.55;
+    const offset=Math.sin(t*0.08)*20-10;
+    // Hand/finger trail going up
+    ctx.strokeStyle='#00e5ff';ctx.lineWidth=5;ctx.lineCap='round';
+    ctx.globalAlpha=0.8;
+    ctx.beginPath();ctx.moveTo(cx,cy+40+offset);ctx.lineTo(cx,cy-40+offset);ctx.stroke();
+    // Big arrow head
+    ctx.beginPath();
+    ctx.moveTo(cx-14,cy-20+offset);ctx.lineTo(cx,cy-50+offset);ctx.lineTo(cx+14,cy-20+offset);
+    ctx.stroke();
+    ctx.globalAlpha=1;
+    // Glow trail
+    const grd=ctx.createLinearGradient(cx,cy+40+offset,cx,cy-40+offset);
+    grd.addColorStop(0,'rgba(0,229,255,0)');grd.addColorStop(1,'rgba(0,229,255,0.3)');
+    ctx.fillStyle=grd;ctx.fillRect(cx-8,cy-40+offset,16,80);
+  } else if(cp.icon==='swipe_down'){
+    // Big downward swipe gesture
+    const cx=px+60,cy=H*0.45;
+    const offset=Math.sin(t*0.08)*20+10;
+    ctx.strokeStyle='#ff3860';ctx.lineWidth=5;ctx.lineCap='round';
+    ctx.globalAlpha=0.8;
+    ctx.beginPath();ctx.moveTo(cx,cy-40+offset);ctx.lineTo(cx,cy+40+offset);ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx-14,cy+20+offset);ctx.lineTo(cx,cy+50+offset);ctx.lineTo(cx+14,cy+20+offset);
+    ctx.stroke();
+    ctx.globalAlpha=1;
+    const grd=ctx.createLinearGradient(cx,cy-40+offset,cx,cy+40+offset);
+    grd.addColorStop(0,'rgba(255,56,96,0)');grd.addColorStop(1,'rgba(255,56,96,0.3)');
+    ctx.fillStyle=grd;ctx.fillRect(cx-8,cy-40+offset,16,80);
+  } else if(cp.icon==='double'){
+    // Two arrows: up then down, animated sequence
+    const cx=px+70,phase=(t*0.05)%2;
+    // Up arrow (first action)
+    const upA=phase<1?0.9:0.25;
+    ctx.globalAlpha=upA;
+    ctx.strokeStyle='#00e5ff';ctx.lineWidth=4;ctx.lineCap='round';
+    const uy=H*0.4+Math.sin(t*0.1)*8;
+    ctx.beginPath();ctx.moveTo(cx-20,uy+25);ctx.lineTo(cx-20,uy-15);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx-30,uy-5);ctx.lineTo(cx-20,uy-20);ctx.lineTo(cx-10,uy-5);ctx.stroke();
+    ctx.fillStyle='#00e5ff';ctx.font='bold 11px monospace';ctx.textAlign='center';
+    ctx.fillText(tutFlipCount>=1?'✓':'①↑',cx-20,uy+42);
+    // Down arrow (second action)
+    const dnA=phase>=1?0.9:0.25;
+    ctx.globalAlpha=dnA;
+    ctx.strokeStyle='#ff3860';ctx.lineWidth=4;
+    const dy=H*0.4+Math.sin(t*0.1+1)*8;
+    ctx.beginPath();ctx.moveTo(cx+20,dy-15);ctx.lineTo(cx+20,dy+25);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx+10,dy+15);ctx.lineTo(cx+20,dy+30);ctx.lineTo(cx+30,dy+15);ctx.stroke();
+    ctx.fillStyle='#ff3860';ctx.font='bold 11px monospace';
+    ctx.fillText(tutFlipCount>=2?'✓':'②↓',cx+20,dy+48);
+    ctx.globalAlpha=1;
+  } else if(cp.icon==='bomb'){
+    // Highlight bomb button with big pulsing glow
+    const b=itemBtnLayout();
+    const glow=Math.sin(t*0.1)*0.4+0.6;
+    // Large glow ring
+    for(let i=0;i<3;i++){
+      const rr2=30+i*10+((t*2)%20);
+      const ra=Math.max(0,0.5-rr2/60);
+      ctx.strokeStyle='rgba(255,68,0,'+ra*glow+')';ctx.lineWidth=3;
+      ctx.beginPath();ctx.arc(b.bombX+b.sz/2,b.y+b.sz/2,rr2,0,6.28);ctx.stroke();
+    }
+    // Arrow pointing to button
+    const arrowX=b.bombX+b.sz/2,arrowY=b.y-20+Math.sin(t*0.12)*8;
+    ctx.strokeStyle='#ff4400';ctx.lineWidth=3;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(arrowX,arrowY-20);ctx.lineTo(arrowX,arrowY);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(arrowX-6,arrowY-6);ctx.lineTo(arrowX,arrowY+2);ctx.lineTo(arrowX+6,arrowY-6);ctx.stroke();
   }
 }
 
