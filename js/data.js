@@ -662,6 +662,17 @@ function sfx(type){
         spn.type='triangle';spn.frequency.setValueAtTime(160,t);spn.frequency.exponentialRampToValueAtTime(60,t+0.1);
         spng.gain.setValueAtTime(0.06,t);spng.gain.exponentialRampToValueAtTime(0.001,t+0.12);spn.start(t);spn.stop(t+0.14);}
         break;
+      case'bounce':
+        // Bouncy repel: short rubbery boing sound
+        o.type='sine';o.frequency.setValueAtTime(350,t);o.frequency.exponentialRampToValueAtTime(700,t+0.06);
+        o.frequency.exponentialRampToValueAtTime(250,t+0.15);
+        g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+        o.start(t);o.stop(t+0.2);
+        {const bo1=audioCtx.createOscillator(),bo1g=audioCtx.createGain();bo1.connect(bo1g);bo1g.connect(sfxGain);
+        bo1.type='triangle';bo1.frequency.setValueAtTime(500,t);bo1.frequency.exponentialRampToValueAtTime(900,t+0.04);
+        bo1.frequency.exponentialRampToValueAtTime(300,t+0.12);
+        bo1g.gain.setValueAtTime(0.08,t);bo1g.gain.exponentialRampToValueAtTime(0.001,t+0.14);bo1.start(t);bo1.stop(t+0.16);}
+        break;
       case'guardianJump':
         // Heavy launch: deep thud + rising tone
         o.type='sine';o.frequency.setValueAtTime(100,t);o.frequency.exponentialRampToValueAtTime(300,t+0.15);
@@ -1312,39 +1323,39 @@ const COIN_SW_R=12,COIN_SW_COL='#4488ff';
 // ===== SHOP SYSTEM =====
 const SHOP_ITEMS={
   skins:[
-    {id:'skin_red',name:'\u30ec\u30c3\u30c9',col:'#ff4444',col2:'#cc2222',price:30,desc:'\u60c5\u71b1\u306e\u8d64'},
-    {id:'skin_gold',name:'\u30b4\u30fc\u30eb\u30c9',col:'#ffd700',col2:'#cc9900',price:80,desc:'\u8f1d\u304f\u9ec4\u91d1'},
-    {id:'skin_pink',name:'\u30d4\u30f3\u30af',col:'#ff69b4',col2:'#cc4488',price:50,desc:'\u304b\u308f\u3044\u3044\u30d4\u30f3\u30af'},
-    {id:'skin_emerald',name:'\u30a8\u30e1\u30e9\u30eb\u30c9',col:'#50c878',col2:'#2a9d5c',price:60,desc:'\u5b9d\u77f3\u306e\u7dd1'},
-    {id:'skin_ice',name:'\u30a2\u30a4\u30b9',col:'#88ddff',col2:'#55aadd',price:40,desc:'\u6c37\u306e\u30d6\u30eb\u30fc'},
-    {id:'skin_shadow',name:'\u30b7\u30e3\u30c9\u30a6',col:'#2a2a3e',col2:'#111122',price:120,desc:'\u6f06\u9ed2\u306e\u95c7'},
-    {id:'skin_sunset',name:'\u30b5\u30f3\u30bb\u30c3\u30c8',col:'#ff6b35',col2:'#cc4411',price:70,desc:'\u5915\u713c\u3051\u306e\u30aa\u30ec\u30f3\u30b8'},
-    {id:'skin_galaxy',name:'\u30ae\u30e3\u30e9\u30af\u30b7\u30fc',col:'#7b2fbe',col2:'#4a1a7a',price:150,desc:'\u5b87\u5b99\u306e\u7d2b',rarity:'rare'},
-    {id:'skin_chrome',name:'\u30af\u30ed\u30e0',col:'#c0c0c0',col2:'#888888',price:100,desc:'\u30e1\u30bf\u30ea\u30c3\u30af\u30b7\u30eb\u30d0\u30fc'},
-    {id:'skin_rainbow',name:'\u30ec\u30a4\u30f3\u30dc\u30fc',col:'rainbow',col2:'rainbow',price:300,desc:'\u8679\u8272\u306b\u5149\u308b\uff01',rarity:'rare'},
+    {id:'skin_red',name:'\u30ec\u30c3\u30c9',col:'#ff4444',col2:'#cc2222',price:150,desc:'\u60c5\u71b1\u306e\u8d64'},
+    {id:'skin_gold',name:'\u30b4\u30fc\u30eb\u30c9',col:'#ffd700',col2:'#cc9900',price:500,desc:'\u8f1d\u304f\u9ec4\u91d1'},
+    {id:'skin_pink',name:'\u30d4\u30f3\u30af',col:'#ff69b4',col2:'#cc4488',price:250,desc:'\u304b\u308f\u3044\u3044\u30d4\u30f3\u30af'},
+    {id:'skin_emerald',name:'\u30a8\u30e1\u30e9\u30eb\u30c9',col:'#50c878',col2:'#2a9d5c',price:300,desc:'\u5b9d\u77f3\u306e\u7dd1'},
+    {id:'skin_ice',name:'\u30a2\u30a4\u30b9',col:'#88ddff',col2:'#55aadd',price:200,desc:'\u6c37\u306e\u30d6\u30eb\u30fc'},
+    {id:'skin_shadow',name:'\u30b7\u30e3\u30c9\u30a6',col:'#2a2a3e',col2:'#111122',price:800,desc:'\u6f06\u9ed2\u306e\u95c7'},
+    {id:'skin_sunset',name:'\u30b5\u30f3\u30bb\u30c3\u30c8',col:'#ff6b35',col2:'#cc4411',price:400,desc:'\u5915\u713c\u3051\u306e\u30aa\u30ec\u30f3\u30b8'},
+    {id:'skin_galaxy',name:'\u30ae\u30e3\u30e9\u30af\u30b7\u30fc',col:'#7b2fbe',col2:'#4a1a7a',price:1000,desc:'\u5b87\u5b99\u306e\u7d2b',rarity:'rare'},
+    {id:'skin_chrome',name:'\u30af\u30ed\u30e0',col:'#c0c0c0',col2:'#888888',price:600,desc:'\u30e1\u30bf\u30ea\u30c3\u30af\u30b7\u30eb\u30d0\u30fc'},
+    {id:'skin_rainbow',name:'\u30ec\u30a4\u30f3\u30dc\u30fc',col:'rainbow',col2:'rainbow',price:1500,desc:'\u8679\u8272\u306b\u5149\u308b\uff01',rarity:'rare'},
   ],
   eyes:[
-    {id:'eye_smile',name:'\u30b9\u30de\u30a4\u30eb\u30a2\u30a4',type:'smile',price:30,desc:'\u306b\u3063\u3053\u308a\u7b11\u9854'},
-    {id:'eye_angry',name:'\u30a2\u30f3\u30b0\u30ea\u30fc\u30a2\u30a4',type:'angry',price:35,desc:'\u6012\u308a\u306e\u8868\u60c5'},
-    {id:'eye_star',name:'\u30b9\u30bf\u30fc\u30a2\u30a4',type:'star',price:60,desc:'\u661f\u5f62\u306e\u77b3'},
-    {id:'eye_heart',name:'\u30cf\u30fc\u30c8\u30a2\u30a4',type:'heart',price:50,desc:'\u30cf\u30fc\u30c8\u578b\u306e\u77b3'},
-    {id:'eye_fire',name:'\u30d5\u30a1\u30a4\u30a2\u30a2\u30a4',type:'fire',price:80,desc:'\u71c3\u3048\u308b\u8d64\u3044\u76ee'},
-    {id:'eye_cat',name:'\u30ad\u30e3\u30c3\u30c8\u30a2\u30a4',type:'cat',price:40,desc:'\u7e26\u9577\u306e\u732b\u76ee'},
-    {id:'eye_spiral',name:'\u30b0\u30eb\u30b0\u30eb\u30a2\u30a4',type:'spiral',price:70,desc:'\u6e26\u5dfb\u304d\u306e\u76ee'},
-    {id:'eye_cyber',name:'\u30b5\u30a4\u30d0\u30fc\u30a2\u30a4',type:'cyber',price:100,desc:'\u96fb\u5b50\u306e\u77b3'},
-    {id:'eye_diamond',name:'\u30c0\u30a4\u30a2\u30a2\u30a4',type:'diamond',price:120,desc:'\u30c0\u30a4\u30e4\u306e\u8f1d\u304d',rarity:'rare'},
-    {id:'eye_void',name:'\u30f4\u30a9\u30a4\u30c9\u30a2\u30a4',type:'void',price:200,desc:'\u865a\u7121\u306e\u6f06\u9ed2',rarity:'rare'},
+    {id:'eye_smile',name:'\u30b9\u30de\u30a4\u30eb\u30a2\u30a4',type:'smile',price:150,desc:'\u306b\u3063\u3053\u308a\u7b11\u9854'},
+    {id:'eye_angry',name:'\u30a2\u30f3\u30b0\u30ea\u30fc\u30a2\u30a4',type:'angry',price:200,desc:'\u6012\u308a\u306e\u8868\u60c5'},
+    {id:'eye_star',name:'\u30b9\u30bf\u30fc\u30a2\u30a4',type:'star',price:350,desc:'\u661f\u5f62\u306e\u77b3'},
+    {id:'eye_heart',name:'\u30cf\u30fc\u30c8\u30a2\u30a4',type:'heart',price:300,desc:'\u30cf\u30fc\u30c8\u578b\u306e\u77b3'},
+    {id:'eye_fire',name:'\u30d5\u30a1\u30a4\u30a2\u30a2\u30a4',type:'fire',price:500,desc:'\u71c3\u3048\u308b\u8d64\u3044\u76ee'},
+    {id:'eye_cat',name:'\u30ad\u30e3\u30c3\u30c8\u30a2\u30a4',type:'cat',price:200,desc:'\u7e26\u9577\u306e\u732b\u76ee'},
+    {id:'eye_spiral',name:'\u30b0\u30eb\u30b0\u30eb\u30a2\u30a4',type:'spiral',price:400,desc:'\u6e26\u5dfb\u304d\u306e\u76ee'},
+    {id:'eye_cyber',name:'\u30b5\u30a4\u30d0\u30fc\u30a2\u30a4',type:'cyber',price:600,desc:'\u96fb\u5b50\u306e\u77b3'},
+    {id:'eye_diamond',name:'\u30c0\u30a4\u30a2\u30a2\u30a4',type:'diamond',price:800,desc:'\u30c0\u30a4\u30e4\u306e\u8f1d\u304d',rarity:'rare'},
+    {id:'eye_void',name:'\u30f4\u30a9\u30a4\u30c9\u30a2\u30a4',type:'void',price:1200,desc:'\u865a\u7121\u306e\u6f06\u9ed2',rarity:'rare'},
   ],
   effects:[
-    {id:'fx_sparkle',name:'\u30ad\u30e9\u30ad\u30e9',type:'sparkle',price:80,desc:'\u5149\u306e\u7c92\u5b50\u304c\u821e\u3046'},
-    {id:'fx_fire_aura',name:'\u708e\u30aa\u30fc\u30e9',type:'fire_aura',price:120,desc:'\u8d64\u3044\u708e\u306e\u30aa\u30fc\u30e9'},
-    {id:'fx_ice_aura',name:'\u6c37\u30aa\u30fc\u30e9',type:'ice_aura',price:120,desc:'\u9752\u3044\u6c37\u306e\u30aa\u30fc\u30e9'},
-    {id:'fx_electric',name:'\u96fb\u6483',type:'electric',price:150,desc:'\u96fb\u6c17\u304c\u8d70\u308b'},
-    {id:'fx_hearts',name:'\u30cf\u30fc\u30c8',type:'hearts',price:60,desc:'\u30cf\u30fc\u30c8\u304c\u6d6e\u304b\u3076'},
-    {id:'fx_shadow',name:'\u30c0\u30fc\u30af\u30aa\u30fc\u30e9',type:'shadow',price:180,desc:'\u95c7\u306e\u30aa\u30fc\u30e9',rarity:'rare'},
-    {id:'fx_rainbow',name:'\u30ec\u30a4\u30f3\u30dc\u30fc\u30aa\u30fc\u30e9',type:'rainbow',price:250,desc:'\u8679\u8272\u306b\u5149\u308b\u30aa\u30fc\u30e9',rarity:'rare'},
-    {id:'fx_sakura',name:'\u685c\u5439\u96ea',type:'sakura',price:100,desc:'\u685c\u306e\u82b1\u3073\u3089\u304c\u821e\u3046'},
-    {id:'fx_star_trail',name:'\u661f\u306e\u8ecc\u8de1',type:'star_trail',price:200,desc:'\u661f\u304c\u6d41\u308c\u308b\u8ecc\u8de1',rarity:'rare'},
+    {id:'fx_sparkle',name:'\u30ad\u30e9\u30ad\u30e9',type:'sparkle',price:400,desc:'\u5149\u306e\u7c92\u5b50\u304c\u821e\u3046'},
+    {id:'fx_fire_aura',name:'\u708e\u30aa\u30fc\u30e9',type:'fire_aura',price:700,desc:'\u8d64\u3044\u708e\u306e\u30aa\u30fc\u30e9'},
+    {id:'fx_ice_aura',name:'\u6c37\u30aa\u30fc\u30e9',type:'ice_aura',price:700,desc:'\u9752\u3044\u6c37\u306e\u30aa\u30fc\u30e9'},
+    {id:'fx_electric',name:'\u96fb\u6483',type:'electric',price:900,desc:'\u96fb\u6c17\u304c\u8d70\u308b'},
+    {id:'fx_hearts',name:'\u30cf\u30fc\u30c8',type:'hearts',price:300,desc:'\u30cf\u30fc\u30c8\u304c\u6d6e\u304b\u3076'},
+    {id:'fx_shadow',name:'\u30c0\u30fc\u30af\u30aa\u30fc\u30e9',type:'shadow',price:1000,desc:'\u95c7\u306e\u30aa\u30fc\u30e9',rarity:'rare'},
+    {id:'fx_rainbow',name:'\u30ec\u30a4\u30f3\u30dc\u30fc\u30aa\u30fc\u30e9',type:'rainbow',price:1500,desc:'\u8679\u8272\u306b\u5149\u308b\u30aa\u30fc\u30e9',rarity:'rare'},
+    {id:'fx_sakura',name:'\u685c\u5439\u96ea',type:'sakura',price:500,desc:'\u685c\u306e\u82b1\u3073\u3089\u304c\u821e\u3046'},
+    {id:'fx_star_trail',name:'\u661f\u306e\u8ecc\u8de1',type:'star_trail',price:1200,desc:'\u661f\u304c\u6d41\u308c\u308b\u8ecc\u8de1',rarity:'rare'},
   ]
 };
 // Shop state

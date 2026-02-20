@@ -695,14 +695,24 @@ function update(dt){
       if(!en.boss) en.patrolOriginX-=speed; // keep origin scrolling with terrain (not for boss)
       if(en.x>en.patrolOriginX+en.patrolRange) en.patrolDir=-1;
       if(en.x<en.patrolOriginX-en.patrolRange) en.patrolDir=1;
-      // Keep on surface or fall off cliff
+      // Edge detection: reverse direction if about to walk off platform
       if(en.gDir===1){
         const sy=floorSurfaceY(en.x);
-        if(sy<H+100){en.y=sy-en.sz;en.vy=0;}
+        const aheadSy=floorSurfaceY(en.x+en.patrolDir*(en.sz+4));
+        if(sy<H+100){
+          en.y=sy-en.sz;en.vy=0;
+          // If the ground ahead is a void or much lower, reverse direction
+          if(aheadSy>H+100||aheadSy>sy+30) en.patrolDir*=-1;
+        }
         else{en.vy=(en.vy||0)+GRAVITY;en.y+=en.vy;}
       }else{
         const sy=ceilSurfaceY(en.x);
-        if(sy>-100){en.y=sy+en.sz;en.vy=0;}
+        const aheadSy=ceilSurfaceY(en.x+en.patrolDir*(en.sz+4));
+        if(sy>-100){
+          en.y=sy+en.sz;en.vy=0;
+          // If the ceiling ahead is a void or much higher, reverse direction
+          if(aheadSy<-100||aheadSy<sy-30) en.patrolDir*=-1;
+        }
         else{en.vy=(en.vy||0)-GRAVITY;en.y+=en.vy;}
       }
     } else if(en.type===3){
@@ -757,9 +767,15 @@ function update(dt){
     } else if(en.type===6){
       // Dasher: patrol → warn → dash → cooldown → patrol
       en.patrolOriginX-=speed;
-      const sy=floorSurfaceY(en.x);
-      if(sy<H+100){en.y=sy-en.sz;en.vy=0;}
-      else{en.vy=(en.vy||0)+GRAVITY;en.y+=en.vy;}
+      if(en.gDir===1){
+        const sy=floorSurfaceY(en.x);
+        if(sy<H+100){en.y=sy-en.sz;en.vy=0;}
+        else{en.vy=(en.vy||0)+GRAVITY;en.y+=en.vy;}
+      } else {
+        const sy=ceilSurfaceY(en.x);
+        if(sy>-100){en.y=sy+en.sz;en.vy=0;}
+        else{en.vy=(en.vy||0)-GRAVITY;en.y+=en.vy;}
+      }
       const dxP=player.x-en.x;
       if(en.dashState==='patrol'){
         en.x+=en.patrolDir*en.walkSpd*esm;

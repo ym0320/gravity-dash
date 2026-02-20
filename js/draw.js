@@ -3073,7 +3073,7 @@ function drawDead(){
 
   // Main result card
   const cardW=Math.min(270,W-30),cardX=W/2-cardW/2;
-  const cardY=H*0.24,cardH=210;
+  const cardY=H*0.24,cardH=210+(storedChests>0?56:0);
   const cardGr=ctx.createLinearGradient(cardX,cardY,cardX,cardY+cardH);
   cardGr.addColorStop(0,'rgba(10,10,30,0.92)');cardGr.addColorStop(1,'rgba(5,5,20,0.92)');
   ctx.fillStyle=cardGr;rr(cardX,cardY,cardW,cardH,14);ctx.fill();
@@ -3491,9 +3491,7 @@ function drawShop(){
       ctx.fillText('\u88C5\u5099\u4E2D',mX+mW-16,iy+20);
     } else if(owned){
       ctx.fillStyle='#34d399';ctx.font='bold 11px monospace';
-      ctx.fillText('\u6240\u6709',mX+mW-16,iy+20);
-      ctx.fillStyle='#fff6';ctx.font='9px monospace';
-      ctx.fillText('\u30BF\u30C3\u30D7\u3067\u88C5\u5099',mX+mW-16,iy+34);
+      ctx.fillText('\u6240\u6709',mX+mW-16,iy+27);
     } else {
       ctx.fillStyle=walletCoins>=item.price?'#ffd700':'#ff4444';ctx.font='bold 12px monospace';
       ctx.fillText('\u25CF '+item.price,mX+mW-16,iy+20);

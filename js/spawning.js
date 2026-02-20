@@ -112,23 +112,29 @@ function trySpawnEnemy(){
 
     if(eType===4){
       // Vertical mover: bounces between floor and ceiling
-      const surfY=H-plat.h;
+      const onCeil4=Math.random()<0.3;
+      const gd4=onCeil4?-1:1;
+      const surfY=gd4===1?H-plat.h:ceilSurfaceY(ex);
       const sz=14;
-      enemies.push({x:ex,y:surfY-sz,vy:-2.5-Math.random()*1.5,gDir:1,walkSpd:0,sz:sz,alive:true,fr:Math.random()*100,type:4,shootT:999,
-        moveDir:-1,moveSpd:2.5+Math.random()*1.5,pauseT:0});
+      enemies.push({x:ex,y:gd4===1?surfY-sz:surfY+sz,vy:gd4===1?(-2.5-Math.random()*1.5):(2.5+Math.random()*1.5),gDir:gd4,walkSpd:0,sz:sz,alive:true,fr:Math.random()*100,type:4,shootT:999,
+        moveDir:gd4===1?-1:1,moveSpd:2.5+Math.random()*1.5,pauseT:0});
     } else if(eType===5){
       // Phantom: floats in air, periodically becomes invisible
-      const surfY=H-plat.h;
-      const flyY=surfY-50-Math.random()*60;
+      const onCeil5=Math.random()<0.3;
+      const gd5=onCeil5?-1:1;
+      const surfY=gd5===1?H-plat.h:ceilSurfaceY(ex);
+      const flyY=gd5===1?surfY-50-Math.random()*60:surfY+50+Math.random()*60;
       const sz=13;
-      enemies.push({x:ex,y:flyY,vy:0,gDir:1,walkSpd:0,sz:sz,alive:true,fr:Math.random()*100,type:5,shootT:999,
+      enemies.push({x:ex,y:flyY,vy:0,gDir:gd5,walkSpd:0,sz:sz,alive:true,fr:Math.random()*100,type:5,shootT:999,
         baseY:flyY,flyPhase:Math.random()*6.28,flyAmp:15+Math.random()*15,
         visTimer:0,visCycle:90+Math.floor(Math.random()*60),visible:true,fadeT:0});
     } else if(eType===2){
       // Flying enemy: spawns in the air between floor and ceiling
-      const surfY=H-plat.h;
-      const flyY=surfY-60-Math.random()*80;
-      enemies.push({x:ex,y:flyY,vy:0,gDir:1,walkSpd:0,sz:sz,alive:true,fr:Math.random()*100,type:2,shootT:999,
+      const onCeil2=Math.random()<0.3;
+      const gd2=onCeil2?-1:1;
+      const surfY=gd2===1?H-plat.h:ceilSurfaceY(ex);
+      const flyY=gd2===1?surfY-60-Math.random()*80:surfY+60+Math.random()*80;
+      enemies.push({x:ex,y:flyY,vy:0,gDir:gd2,walkSpd:0,sz:sz,alive:true,fr:Math.random()*100,type:2,shootT:999,
         baseY:flyY,flyPhase:Math.random()*6.28,flyAmp:20+Math.random()*25});
     } else if(eType===3){
       // Bomber (Hammer Bros style): stationary, throws bombs in an arc
@@ -138,9 +144,11 @@ function trySpawnEnemy(){
         patrolDir:1,patrolOriginX:ex,patrolRange:15+Math.random()*20});
     } else if(eType===6){
       // Dasher: walks slowly, then charges at player when close
-      const surfY=H-plat.h;
+      const onCeil6=Math.random()<0.3;
+      const gd6=onCeil6?-1:1;
+      const surfY=gd6===1?H-plat.h:ceilSurfaceY(ex);
       const sz=14;
-      enemies.push({x:ex,y:surfY-sz,vy:0,gDir:1,walkSpd:0.3,sz:sz,alive:true,fr:Math.random()*100,type:6,shootT:999,
+      enemies.push({x:ex,y:gd6===1?surfY-sz:surfY+sz,vy:0,gDir:gd6,walkSpd:0.3,sz:sz,alive:true,fr:Math.random()*100,type:6,shootT:999,
         patrolDir:-1,patrolOriginX:ex,patrolRange:25+Math.random()*20,
         dashState:'patrol',dashTimer:0,dashSpd:6+Math.random()*3,dashDir:-1,warnT:0});
     } else {
