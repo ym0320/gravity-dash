@@ -268,10 +268,14 @@ function update(dt){
   // Physics
   flipTimer++;
   const pr=PLAYER_R*ct().sizeMul;
-  const grav=GRAVITY*player.gDir*ct().gravMul;
-  player.vy+=grav;
-  player.vy=Math.max(-14,Math.min(14,player.vy));
-
+  // Quake stun: completely freeze player (no gravity, no movement)
+  if(player._quakeStunned){
+    player.vy=0;
+  } else {
+    const grav=GRAVITY*player.gDir*ct().gravMul;
+    player.vy+=grav;
+    player.vy=Math.max(-14,Math.min(14,player.vy));
+  }
   player.y+=player.vy;
 
   // Ground collision
