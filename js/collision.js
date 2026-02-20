@@ -72,6 +72,9 @@ function useBomb(){
   enemies.forEach(en=>{
     if(en.alive&&en.x>-30&&en.x<W+30){
       en.alive=false;kills++;
+      const bon=Math.floor(10+Math.min(score*0.1,20));
+      dist+=bon;
+      addPop(en.x,en.y-en.sz*en.gDir,'+'+bon,'#ff4400');
       emitParts(en.x,en.y,12,'#ff4400',4,3);
     }
   });

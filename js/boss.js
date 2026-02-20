@@ -151,9 +151,11 @@ function spawnBossEnemies(){
       state:'enter',
       timer:0,stunT:0,hurtFlash:0,invT:0,
       jumpVy:0,
-      // Jump parameters - lower arc, easier to read
-      bigJumpPower:-(10+Math.min(bc-1,4)*1.0), // moderate jump height
-      smallJumpPower:0, // unused (feint removed)
+      // Jump parameters - irregular height/timing, faster at higher phases
+      bigJumpBase:10+Math.min(bc-1,4)*1.0, // base jump power (randomized each jump)
+      bigJumpVariance:3+Math.min(bc-1,3)*0.5, // random range added to base
+      jumpPrepBase:Math.max(4,12-Math.min(bc-1,4)*2), // base prep time (shorter at higher bc)
+      jumpPrepVariance:Math.max(3,10-Math.min(bc-1,3)*2), // random extra prep frames
       onCeiling:false, // whether currently on ceiling
       flipEnabled:bc>=2, // can flip between floor/ceiling from bc>=2
       // Earthquake parameters
@@ -464,7 +466,7 @@ function updateBossPhase(){
             emitParts(b.x,b.y-b.sz*b.gDir,12,'#ff3860',5,3);
             if(b.hp<=0){bossBruiserDefeat(b);}
           } else {
-            takeDamage(player.x,player.y);
+            hurt();
           }
         }
       } else if(bodyHit){
@@ -533,18 +535,25 @@ function updateBossPhase(){
       snapToSurface();
       if(g.x<=W*0.65){
         g.state='jumpPrep';g.timer=0;g.feintsDone=0;
-        g.feintCount=0; // no feints
+        g.feintCount=0;g._jumpPrepTarget=0;
       }
     } else if(g.state==='jumpPrep'){
-      // Brief crouch before jumping (no feint - always real jump)
+      // Brief crouch before jumping - irregular timing (shorter at higher phases)
       snapToSurface();
       g.x+=(Math.random()-0.5)*1.0; // shake telegraph
-      if(g.timer>=8){
+      // Random prep duration (set once when entering this state)
+      if(!g._jumpPrepTarget){
+        g._jumpPrepTarget=g.jumpPrepBase+Math.floor(Math.random()*g.jumpPrepVariance);
+      }
+      if(g.timer>=g._jumpPrepTarget){
+        g._jumpPrepTarget=0;
         // Always real big jump! Optionally flip to other surface
         const willFlip=g.flipEnabled&&Math.random()<0.45;
         g._jumpFlip=willFlip;
         g.state='bigJump';g.timer=0;
-        g.jumpVy=g.bigJumpPower*g.gDir; // always jump away from current surface
+        // Irregular jump height each time
+        const jumpPow=g.bigJumpBase+Math.random()*g.bigJumpVariance;
+        g.jumpVy=-jumpPow*g.gDir; // always jump away from current surface
         sfx('guardianJump');shakeI=5;vibrate(10);
         const dustY=g.gDir===1?floorY2:ceilY2;
         emitParts(g.x,dustY,8,'#8a7060',4,2);
@@ -677,7 +686,7 @@ function updateBossPhase(){
       snapToSurface();
       if(g.timer>=35||g.x>=W*0.65){
         g.state='jumpPrep';g.timer=0;g.feintsDone=0;
-        g.feintCount=0; // no feints
+        g.feintCount=0;g._jumpPrepTarget=0;
       }
     } else if(g.state==='stunned'){
       g.stunT--;
@@ -690,7 +699,7 @@ function updateBossPhase(){
       const dx2=homeX-g.x;
       g.x+=Math.sign(dx2)*Math.min(Math.abs(dx2),g.retreatSpd);
       snapToSurface();
-      if(g.invT<=0){g.state='jumpPrep';g.timer=0;g.feintsDone=0;g.feintCount=0;}
+      if(g.invT<=0){g.state='jumpPrep';g.timer=0;g.feintsDone=0;g.feintCount=0;g._jumpPrepTarget=0;}
     }
     // Player quake stun countdown - complete freeze (no movement, no gravity change)
     if(player._quakeStunT>0){
@@ -809,17 +818,24 @@ function updateBossPhase(){
       w.castT++;
       w.y+=Math.sin(w.fr)*0.3;
       if(w.castT===30){
+        // Phase 3+: 1.5x bullets
+        const bulletMul=bc>=3?1.5:1;
         if(w.castType===0){
-          for(let i=0;i<8;i++){
-            const a=i*Math.PI/4;
+          const ringCount=Math.round(8*bulletMul);
+          for(let i=0;i<ringCount;i++){
+            const a=i*Math.PI*2/ringCount;
             bullets.push({x:w.x,y:w.y,vx:Math.cos(a)*3,vy:Math.sin(a)*3,sz:5,life:999,wizBullet:true});
           }
         } else {
-          for(let i=-1;i<=1;i++){
+          const waveHalf=Math.floor(1*bulletMul); // 1 → 1 at bc<3, 1.5→1 at bc>=3 (rounded up below)
+          const waveCount=Math.round(3*bulletMul); // 3 → 4-5
+          const waveSpread=(waveCount-1)/2;
+          for(let i=0;i<waveCount;i++){
+            const si=i-waveSpread;
             const dx=player.x-w.x,dy=player.y-w.y;
             const d=Math.sqrt(dx*dx+dy*dy)||1;
             const spd=3.5;
-            const spread=i*0.3;
+            const spread=si*0.25;
             bullets.push({x:w.x,y:w.y,vx:dx/d*spd+Math.cos(Math.atan2(dy,dx)+Math.PI/2)*spread*spd,
               vy:dy/d*spd+Math.sin(Math.atan2(dy,dx)+Math.PI/2)*spread*spd,sz:6,life:999,wizBullet:true});
           }
