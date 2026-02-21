@@ -310,8 +310,10 @@ function handleSettingsTouch(tx,ty){
       // Clear all gd5 localStorage keys so auto-reconnect doesn't trigger
       const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gd5'))keys.push(k);}
       keys.forEach(k=>localStorage.removeItem(k));
-      // Sign out from Firebase then reload to login screen
-      if(typeof fbSignOut==='function'){fbSignOut().finally(()=>location.reload());}
+      // Guest users: delete Firestore data before sign out
+      if(fbLoginMethod==='anonymous'&&typeof fbDeleteUserData==='function'){
+        fbDeleteUserData().finally(()=>location.reload());
+      } else if(typeof fbSignOut==='function'){fbSignOut().finally(()=>location.reload());}
       else{location.reload();}
       return true;
     }

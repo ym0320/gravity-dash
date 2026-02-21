@@ -2151,8 +2151,14 @@ function drawTitle(){
     } else {
       ctx.fillStyle='#ff860044';rr(px+20,logoutBtnY,pw-40,30,6);ctx.fill();
       ctx.strokeStyle='#ff8600';ctx.lineWidth=2;rr(px+20,logoutBtnY,pw-40,30,6);ctx.stroke();
-      ctx.fillStyle='#ff8600';ctx.font='bold 12px monospace';ctx.textAlign='center';
-      ctx.fillText('\u672C\u5F53\u306B\u30ED\u30B0\u30A2\u30A6\u30C8\uFF1F',W/2,logoutBtnY+20);
+      ctx.fillStyle='#ff8600';ctx.textAlign='center';
+      if(fbLoginMethod==='anonymous'){
+        ctx.font='bold 10px monospace';
+        ctx.fillText('\u30B2\u30B9\u30C8\u306E\u70BA\u30C7\u30FC\u30BF\u304C\u6D88\u3048\u307E\u3059',W/2,logoutBtnY+20);
+      } else {
+        ctx.font='bold 12px monospace';
+        ctx.fillText('\u672C\u5F53\u306B\u30ED\u30B0\u30A2\u30A6\u30C8\uFF1F',W/2,logoutBtnY+20);
+      }
     }
     // Login method indicator
     const methodY=logoutBtnY+34;
