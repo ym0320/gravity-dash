@@ -99,7 +99,9 @@ function handleInventoryChestTap(tapX,tapY){
       localStorage.setItem('gd5chestTotal',totalChestsOpened.toString());
       storedChests=0;localStorage.setItem('gd5storedChests','0');
       chestOpen.phase='batchDone';chestOpen.t=0;chestOpen.parts=[];
+      chestOpen._lastRevealIdx=-1;
       chestBatchMode=false;
+      if(typeof fbSaveUserData==='function')fbSaveUserData();
       sfx('select');sfxChestOpen();vibrate([30,20,40,20,80]);shakeI=15;
       return true;
     }
@@ -114,6 +116,7 @@ function handleInventoryChestTap(tapX,tapY){
     chestOpen.phase='wobble';chestOpen.t=0;sfx('select');vibrate(15);
     totalChestsOpened++;localStorage.setItem('gd5chestTotal',totalChestsOpened.toString());
     storedChests--;localStorage.setItem('gd5storedChests',storedChests.toString());
+    if(typeof fbSaveUserData==='function')fbSaveUserData();
     return true;
   }
   if(chestOpen.phase==='done'){
@@ -138,11 +141,22 @@ function handleInventoryChestTap(tapX,tapY){
     } else {
       chestOpen.phase='none';chestOpen.t=0;chestOpen.parts=[];chestOpen.reward=null;
       if(deadChestOpen){deadChestOpen=false;}
+      if(typeof fbSaveUserData==='function')fbSaveUserData();
     }
     sfx('click');
     return true;
   }
   if(chestOpen.phase==='batchDone'){
+    // Only allow close after all cards revealed (calculate total reveal time)
+    const n2=chestBatchResults.length;
+    const bd2=n2>20?6:n2>10?8:12;
+    let ct2=12;
+    chestBatchResults.forEach(r2=>{
+      const rar2=r2&&r2.type==='cosmetic'&&r2.item?r2.item.rarity:null;
+      const inc2=r2&&r2.type==='char'&&r2.isNew;
+      ct2+=bd2+(rar2==='super_rare'?40:rar2==='rare'?20:inc2?15:0);
+    });
+    if(chestOpen.t<ct2)return true; // block tap during reveal
     chestOpen.phase='none';chestOpen.t=0;chestOpen.parts=[];chestOpen.reward=null;
     chestBatchResults=[];
     if(deadChestOpen){deadChestOpen=false;}
