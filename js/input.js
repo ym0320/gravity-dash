@@ -380,20 +380,9 @@ function handleSettingsTouch(tx,ty){
   if(tx>=s.px+20&&tx<=s.px+s.pw-20&&ty>=s.resetBtnY&&ty<=s.resetBtnY+30){
     confirmModal={type:'reset',step:0};sfx('hurt');vibrate(20);return true;
   }
-  // Logout button - Google users skip confirmation, guests get modal
+  // Logout button - always show confirmation modal
   if(tx>=s.px+20&&tx<=s.px+s.pw-20&&ty>=s.logoutBtnY&&ty<=s.logoutBtnY+30){
-    if(fbLoginMethod==='google'||fbLoginMethod==='twitter'){
-      // Google/Twitter users: logout immediately without confirmation
-      sfx('cancel');vibrate(30);
-      confirmModal=null;settingsOpen=false;
-      fbSynced=false;clearTimeout(_fbSaveTimer);
-      const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gd5'))keys.push(k);}
-      keys.forEach(k=>localStorage.removeItem(k));
-      if(typeof fbSignOut==='function'){fbSignOut().finally(()=>location.reload());}
-      else{location.reload();}
-    } else {
-      confirmModal={type:'logout',step:0};sfx('hurt');vibrate(15);
-    }
+    confirmModal={type:'logout',step:0};sfx('hurt');vibrate(15);
     return true;
   }
   // BGM slider
