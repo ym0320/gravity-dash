@@ -1968,7 +1968,11 @@ function drawTitle(){
   ctx.fillText('\u8FD1\u65E5\u516C\u958B',sbx+btnW/2,btnY+34);
 
   ctx.fillStyle='#667';ctx.font='10px monospace';ctx.textAlign='center';
-  ctx.fillText('\u30BF\u30C3\u30D7=\u30B8\u30E3\u30F3\u30D7 / \u30B9\u30EF\u30A4\u30D7=\u91CD\u529B\u53CD\u8EE2',W/2,H*0.93);
+  ctx.fillText('\u30BF\u30C3\u30D7=\u30B8\u30E3\u30F3\u30D7 / \u30B9\u30EF\u30A4\u30D7=\u91CD\u529B\u53CD\u8EE2',W/2,H*0.90);
+  // PC controls
+  ctx.fillStyle='#556';ctx.font='9px monospace';
+  ctx.fillText('PC: Space=\u30B8\u30E3\u30F3\u30D7 / \u77E2\u5370\u30AD\u30FC,\u30AF\u30EA\u30C3\u30AF=\u91CD\u529B',W/2,H*0.90+14);
+  ctx.fillText('PC: \u53F3\u30AF\u30EA\u30C3\u30AF,B=\u30A2\u30A4\u30C6\u30E0',W/2,H*0.90+26);
 
   // Ranking button (top left, row 1)
   ctx.fillStyle='#ffffff14';rr(8,safeTop+6,36,36,8);ctx.fill();
