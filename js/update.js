@@ -150,13 +150,22 @@ function update(dt){
           if(chestOpen.reward.isNew){
             unlockCharFromChest(chestOpen.reward.charIdx);
           } else {
-            chestOpen.reward.bonusCoins=50;
-            walletCoins+=50;localStorage.setItem('gd5wallet',walletCoins.toString());
+            chestOpen.reward.bonusCoins=500;
+            walletCoins+=500;localStorage.setItem('gd5wallet',walletCoins.toString());
+          }
+        }
+        if(chestOpen.reward&&chestOpen.reward.type==='cosmetic'){
+          if(chestOpen.reward.item.rarity==='super_rare'){
+            sfxSuperRare();shakeI=30;vibrate([50,20,70,30,90,40,120]);
+          }
+          if(!chestOpen.reward.isNew){
+            walletCoins+=300;localStorage.setItem('gd5wallet',walletCoins.toString());
           }
         }
       }
       else if(chestOpen.phase==='reveal'){
-        const revealLen=chestOpen.reward&&chestOpen.reward.type==='char'?140:90;
+        const revealLen=chestOpen.reward&&chestOpen.reward.type==='char'?140:
+          (chestOpen.reward&&chestOpen.reward.type==='cosmetic'&&chestOpen.reward.item&&chestOpen.reward.item.rarity==='super_rare')?160:90;
         if(chestOpen.t>=revealLen){
           if(chestBatchMode){
             // Auto-advance in batch mode: collect result and open next
@@ -198,11 +207,20 @@ function update(dt){
         if(chestOpen.reward&&chestOpen.reward.type==='char'){
           sfxSuperRare();shakeI=25;vibrate([40,20,60,30,80,40,100]);
           if(chestOpen.reward.isNew){unlockCharFromChest(chestOpen.reward.charIdx);}
-          else{chestOpen.reward.bonusCoins=50;walletCoins+=50;localStorage.setItem('gd5wallet',walletCoins.toString());}
+          else{chestOpen.reward.bonusCoins=500;walletCoins+=500;localStorage.setItem('gd5wallet',walletCoins.toString());}
+        }
+        if(chestOpen.reward&&chestOpen.reward.type==='cosmetic'){
+          if(chestOpen.reward.item.rarity==='super_rare'){
+            sfxSuperRare();shakeI=30;vibrate([50,20,70,30,90,40,120]);
+          }
+          if(!chestOpen.reward.isNew){
+            walletCoins+=300;localStorage.setItem('gd5wallet',walletCoins.toString());
+          }
         }
       }
       else if(chestOpen.phase==='reveal'){
-        const revealLen=chestOpen.reward&&chestOpen.reward.type==='char'?140:90;
+        const revealLen=chestOpen.reward&&chestOpen.reward.type==='char'?140:
+          (chestOpen.reward&&chestOpen.reward.type==='cosmetic'&&chestOpen.reward.item&&chestOpen.reward.item.rarity==='super_rare')?160:90;
         if(chestOpen.t>=revealLen){chestOpen.phase='done';chestOpen.t=0;}
       }
     }

@@ -131,45 +131,59 @@ function handleInventoryChestTap(tapX,tapY){
 }
 function startInventoryChestOpen(){
   // Gacha probabilities:
-  // Character: 15%, Secret cosmetic (rare): 10%, Normal cosmetic: 15%,
-  // 1000 coins: 5%, 200 coins: 13%, 100 coins: 20%, 60 coins: 22%
+  // Super Rare: 5%, Character: 15%, Secret (rare): 10%, Normal: 15%,
+  // 1000 coins: 5%, 200 coins: 13%, 100 coins: 17%, 60 coins: 20%
   const roll=Math.random();
   let reward;
-  if(roll<0.15){
+  if(roll<0.05){
+    // Super Rare cosmetic (5%)
+    const allSR=[];
+    SHOP_ITEMS.skins.forEach(it=>{if(it.rarity==='super_rare')allSR.push({...it,tab:0});});
+    SHOP_ITEMS.eyes.forEach(it=>{if(it.rarity==='super_rare')allSR.push({...it,tab:1});});
+    SHOP_ITEMS.effects.forEach(it=>{if(it.rarity==='super_rare')allSR.push({...it,tab:2});});
+    if(allSR.length>0){
+      const ri=allSR[Math.floor(Math.random()*allSR.length)];
+      const isNew=!ownsItem(ri.id);
+      if(isNew){ownedItems.push(ri.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));}
+      reward={type:'cosmetic',item:ri,isNew:isNew,bonusCoins:isNew?0:300};
+    } else {
+      reward={type:'coin',amount:1000};
+    }
+  } else if(roll<0.20){
     // Character (15%)
     const ci=Math.floor(Math.random()*CHARS.length);
     reward={type:'char',charIdx:ci,isNew:!isCharUnlocked(ci),bonusCoins:0};
-  } else if(roll<0.25){
-    // Secret (rare) cosmetic item (10%)
+  } else if(roll<0.30){
+    // Secret (rare) cosmetic item (10%) - duplicates allowed
     const allRare=[];
     SHOP_ITEMS.skins.forEach(it=>{if(it.rarity==='rare')allRare.push({...it,tab:0});});
     SHOP_ITEMS.eyes.forEach(it=>{if(it.rarity==='rare')allRare.push({...it,tab:1});});
     SHOP_ITEMS.effects.forEach(it=>{if(it.rarity==='rare')allRare.push({...it,tab:2});});
-    const unownedRare=allRare.filter(it=>!ownsItem(it.id));
-    if(unownedRare.length>0){
-      const ri=unownedRare[Math.floor(Math.random()*unownedRare.length)];
-      ownedItems.push(ri.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));
-      reward={type:'cosmetic',item:ri,isNew:true};
+    if(allRare.length>0){
+      const ri=allRare[Math.floor(Math.random()*allRare.length)];
+      const isNew=!ownsItem(ri.id);
+      if(isNew){ownedItems.push(ri.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));}
+      reward={type:'cosmetic',item:ri,isNew:isNew,bonusCoins:isNew?0:300};
     } else {
       reward={type:'coin',amount:1000};
     }
-  } else if(roll<0.40){
-    // Normal cosmetic item (15%)
+  } else if(roll<0.45){
+    // Normal cosmetic item (15%) - duplicates allowed
     const allNormal=[];
-    SHOP_ITEMS.skins.forEach(it=>{if(it.rarity!=='rare')allNormal.push({...it,tab:0});});
-    SHOP_ITEMS.eyes.forEach(it=>{if(it.rarity!=='rare')allNormal.push({...it,tab:1});});
-    SHOP_ITEMS.effects.forEach(it=>{if(it.rarity!=='rare')allNormal.push({...it,tab:2});});
-    const unownedNormal=allNormal.filter(it=>!ownsItem(it.id));
-    if(unownedNormal.length>0){
-      const ni=unownedNormal[Math.floor(Math.random()*unownedNormal.length)];
-      ownedItems.push(ni.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));
-      reward={type:'cosmetic',item:ni,isNew:true};
+    SHOP_ITEMS.skins.forEach(it=>{if(!it.rarity)allNormal.push({...it,tab:0});});
+    SHOP_ITEMS.eyes.forEach(it=>{if(!it.rarity)allNormal.push({...it,tab:1});});
+    SHOP_ITEMS.effects.forEach(it=>{if(!it.rarity)allNormal.push({...it,tab:2});});
+    if(allNormal.length>0){
+      const ni=allNormal[Math.floor(Math.random()*allNormal.length)];
+      const isNew=!ownsItem(ni.id);
+      if(isNew){ownedItems.push(ni.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));}
+      reward={type:'cosmetic',item:ni,isNew:isNew,bonusCoins:isNew?0:300};
     } else {
       reward={type:'coin',amount:200};
     }
-  } else if(roll<0.45){reward={type:'coin',amount:1000};}
-  else if(roll<0.58){reward={type:'coin',amount:200};}
-  else if(roll<0.78){reward={type:'coin',amount:100};}
+  } else if(roll<0.50){reward={type:'coin',amount:1000};}
+  else if(roll<0.63){reward={type:'coin',amount:200};}
+  else if(roll<0.80){reward={type:'coin',amount:100};}
   else{reward={type:'coin',amount:60};}
   chestOpen.phase='waiting';chestOpen.t=0;
   chestOpen.charIdx=reward.type==='char'?reward.charIdx:-1;

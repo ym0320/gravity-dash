@@ -1320,13 +1320,14 @@ const SHOP_ITEMS={
     {id:'skin_sunset',name:'\u30b5\u30f3\u30bb\u30c3\u30c8',col:'#ff6b35',col2:'#cc4411',price:8000,desc:'\u5915\u713c\u3051\u306e\u30aa\u30ec\u30f3\u30b8'},
     {id:'skin_galaxy',name:'\u30ae\u30e3\u30e9\u30af\u30b7\u30fc',col:'#7b2fbe',col2:'#4a1a7a',price:20000,desc:'\u5b87\u5b99\u306e\u7d2b',rarity:'rare'},
     {id:'skin_chrome',name:'\u30af\u30ed\u30e0',col:'#c0c0c0',col2:'#888888',price:12000,desc:'\u30e1\u30bf\u30ea\u30c3\u30af\u30b7\u30eb\u30d0\u30fc'},
-    {id:'skin_rainbow',name:'\u30ec\u30a4\u30f3\u30dc\u30fc',col:'rainbow',col2:'rainbow',price:30000,desc:'\u8679\u8272\u306b\u5149\u308b\uff01',rarity:'rare'},
+    {id:'skin_rainbow',name:'\u30ec\u30a4\u30f3\u30dc\u30fc',col:'rainbow',col2:'rainbow',price:30000,desc:'\u8679\u8272\u306b\u5149\u308b\uff01',rarity:'super_rare'},
     {id:'skin_plasma',name:'\u30d7\u30e9\u30ba\u30de',col:'#ff00ff',col2:'#aa00aa',price:24000,desc:'\u30d7\u30e9\u30ba\u30de\u30a8\u30cd\u30eb\u30ae\u30fc',rarity:'rare'},
     {id:'skin_void',name:'\u30f4\u30a9\u30a4\u30c9',col:'#0a0a1a',col2:'#000005',price:40000,desc:'\u865a\u7121\u306e\u6f06\u9ed2',rarity:'rare'},
+    {id:'skin_skeleton',name:'\u30b9\u30b1\u30eb\u30c8\u30f3',col:'skeleton',col2:'skeleton',price:50000,desc:'\u900f\u304d\u901a\u308b\u5e7b\u5f71',rarity:'super_rare'},
   ],
   eyes:[
     {id:'eye_smile',name:'\u30b9\u30de\u30a4\u30eb\u30a2\u30a4',type:'smile',price:3000,desc:'\u306b\u3063\u3053\u308a\u7b11\u9854'},
-    {id:'eye_angry',name:'\u30a2\u30f3\u30b0\u30ea\u30fc\u30a2\u30a4',type:'angry',price:4000,desc:'\u6012\u308a\u306e\u8868\u60c5'},
+    {id:'eye_angry',name:'\u30a2\u30f3\u30b0\u30ea\u30fc\u30a2\u30a4',type:'angry',price:12000,desc:'\ud83d\udca2 \u304b\u308f\u3044\u3044\u6012\u308a\u9854',rarity:'rare'},
     {id:'eye_star',name:'\u30b9\u30bf\u30fc\u30a2\u30a4',type:'star',price:7000,desc:'\u661f\u5f62\u306e\u77b3'},
     {id:'eye_heart',name:'\u30cf\u30fc\u30c8\u30a2\u30a4',type:'heart',price:6000,desc:'\u30cf\u30fc\u30c8\u578b\u306e\u77b3'},
     {id:'eye_fire',name:'\u30d5\u30a1\u30a4\u30a2\u30a2\u30a4',type:'fire',price:10000,desc:'\u71c3\u3048\u308b\u8d64\u3044\u76ee'},
@@ -1350,6 +1351,7 @@ const SHOP_ITEMS={
     {id:'fx_star_trail',name:'\u661f\u306e\u8ecc\u8de1',type:'star_trail',price:24000,desc:'\u661f\u304c\u6d41\u308c\u308b\u8ecc\u8de1',rarity:'rare'},
     {id:'fx_plasma_trail',name:'\u30d7\u30e9\u30ba\u30de\u30c8\u30ec\u30a4\u30eb',type:'plasma_trail',price:32000,desc:'\u30d7\u30e9\u30ba\u30de\u306e\u8ecc\u8de1',rarity:'rare'},
     {id:'fx_void_aura',name:'\u30f4\u30a9\u30a4\u30c9\u30aa\u30fc\u30e9',type:'void_aura',price:40000,desc:'\u865a\u7121\u306e\u30aa\u30fc\u30e9',rarity:'rare'},
+    {id:'fx_celestial',name:'\u30bb\u30ec\u30b9\u30c6\u30a3\u30a2\u30eb',type:'celestial',price:60000,desc:'\u5929\u754c\u306e\u795e\u8056\u306a\u30aa\u30fc\u30e9',rarity:'super_rare'},
   ]
 };
 // Shop state
@@ -1394,5 +1396,5 @@ function unequipEffect(){equippedEffect='';localStorage.setItem('gd5eqFx','');if
 function getEquippedSkinData(){if(!equippedSkin)return null;return SHOP_ITEMS.skins.find(s=>s.id===equippedSkin)||null;}
 function getEquippedEyesData(){if(!equippedEyes)return null;return SHOP_ITEMS.eyes.find(e=>e.id===equippedEyes)||null;}
 function getEquippedEffectData(){if(!equippedEffect)return null;return SHOP_ITEMS.effects.find(e=>e.id===equippedEffect)||null;}
-// Sort shop items: normal first, then secrets (rare) at bottom
-function shopSorted(arr){return arr.slice().sort((a,b)=>(a.rarity==='rare'?1:0)-(b.rarity==='rare'?1:0));}
+// Sort shop items: normal first, then rare, then super_rare at bottom
+function shopSorted(arr){const rVal=r=>r==='super_rare'?2:r==='rare'?1:0;return arr.slice().sort((a,b)=>rVal(a.rarity)-rVal(b.rarity));}
