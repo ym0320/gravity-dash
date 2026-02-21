@@ -311,6 +311,9 @@ function fbFindAndMigrateByName(name) {
     .catch(e => { console.warn('[Firebase] Migration error:', e); return null; });
 }
 
+// --- Force save (callable from other files) ---
+function fbForceSave() { _fbDirty = true; _fbDoSave(); }
+
 // --- Firestore: delete user data (for data reset) ---
 function fbDeleteUserData() {
   if (!fbDb || !fbUser) return Promise.resolve();
