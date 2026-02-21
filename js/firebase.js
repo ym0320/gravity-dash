@@ -77,6 +77,14 @@ if (fbAuth) {
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true }).catch(() => {});
           }
+          // Force initial save for new users (so they appear in users collection)
+          const pn = playerName || localStorage.getItem('gd5username');
+          if (!data && pn) {
+            if (!playerName) playerName = pn;
+            _fbDirty = true;
+            _fbDoSave();
+            console.log('[Firebase] Initial save for new user:', pn);
+          }
           console.log('[Firebase] Sync complete');
         }).catch(() => { fbSynced = true; });
       }
@@ -130,7 +138,9 @@ function _fbDoSave() {
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   _fbDirty = false; // reset after saving
+  console.log('[Firebase] Saving user data for', uid, 'name:', data.name, 'score:', data.highScore);
   fbDb.collection('users').doc(uid).set(data, { merge: true })
+    .then(() => console.log('[Firebase] User data saved OK'))
     .catch(e => console.warn('[Firebase] Save error:', e));
   // Update ranking entry with high-score cosmetics
   if (highScore > 0) {
@@ -234,6 +244,7 @@ function fbLoadRankings() {
           eqSkin: d.eqSkin || '', eqEyes: d.eqEyes || '', eqFx: d.eqFx || '',
           isPlayer: doc.id === fbUser.uid });
       });
+      console.log('[Firebase] Rankings loaded:', arr.length, 'entries', arr.map(a => a.name + ':' + a.score));
       _fbRankCache = arr;
       _fbRankCacheT = now;
       return arr;

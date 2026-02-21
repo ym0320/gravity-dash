@@ -310,14 +310,24 @@ function trySpawnCoinSwitch(){
 function trySpawnMovingHill(){
   if(hillCD>0){hillCD--;return;}
   if(bossPhase.bossCount<2||bossPhase.active)return; // only after 2nd boss defeated
-  const plat=findEdgeSpawnPlat();
-  if(!plat)return;
   const chance=Math.min(0.1,0.02+(score-120)*0.001);
   if(Math.random()<chance){
+    // Find a gap (abyss) in floor platforms to place the moving hill over
+    let gapX=-1,gapW=0;
+    for(let i=0;i<platforms.length-1;i++){
+      const p1=platforms[i],p2=platforms[i+1];
+      const gStart=p1.x+p1.w;
+      const gEnd=p2.x;
+      const gap=gEnd-gStart;
+      if(gap>=50&&gStart>W-50&&gStart<W+200){
+        gapX=gStart;gapW=gap;break;
+      }
+    }
+    if(gapX<0){hillCD=30+Math.floor(Math.random()*15);return;}
     hillCD=120+Math.floor(Math.random()*80);
-    const hx=Math.max(W+10,plat.x);
-    const hw=60+Math.random()*50;
-    const baseH=plat.h;
+    const hw=Math.min(gapW*0.7,60+Math.random()*50);
+    const hx=gapX+(gapW-hw)/2; // center in gap
+    const baseH=GROUND_H;
     const ampH=25+Math.random()*30;
     movingHills.push({x:hx,w:hw,baseH:baseH,ampH:ampH,phase:Math.random()*6.28,spd:0.03+Math.random()*0.02});
   } else {

@@ -2122,12 +2122,7 @@ function drawTitle(){
   ctx.fillStyle='#ffffff33';ctx.font='9px monospace';
   ctx.fillText('\u8FD1\u65E5\u516C\u958B',sbx+btnW/2,btnY+34);
 
-  ctx.fillStyle='#667';ctx.font='10px monospace';ctx.textAlign='center';
-  ctx.fillText('\u30BF\u30C3\u30D7=\u30B8\u30E3\u30F3\u30D7 / \u30B9\u30EF\u30A4\u30D7=\u91CD\u529B\u53CD\u8EE2',W/2,H*0.90);
-  // PC controls
-  ctx.fillStyle='#556';ctx.font='9px monospace';
-  ctx.fillText('PC: Space=\u30B8\u30E3\u30F3\u30D7 / \u77E2\u5370\u30AD\u30FC,\u30AF\u30EA\u30C3\u30AF=\u91CD\u529B',W/2,H*0.90+14);
-  ctx.fillText('PC: \u53F3\u30AF\u30EA\u30C3\u30AF,B=\u30A2\u30A4\u30C6\u30E0',W/2,H*0.90+26);
+  // Controls info removed – now accessible via settings panel ❓ button
 
   // Ranking button (top left, row 1)
   ctx.fillStyle='#ffffff14';rr(8,safeTop+6,36,36,8);ctx.fill();
@@ -2161,7 +2156,12 @@ function drawTitle(){
   // Settings gear button (top right)
   ctx.fillStyle='#ffffff14';rr(W-44,safeTop+6,36,36,8);ctx.fill();
   ctx.fillStyle='#fff6';ctx.font='18px monospace';ctx.textAlign='center';
-  ctx.fillText('\u2699',W-26,safeTop+30);
+  ctx.fillText('\u2699\uFE0F',W-26,safeTop+30);
+  // Help button (top right, below settings)
+  ctx.fillStyle='#ffffff14';rr(W-44,safeTop+44,36,36,8);ctx.fill();
+  ctx.strokeStyle='#4488ff44';ctx.lineWidth=1;rr(W-44,safeTop+44,36,36,8);ctx.stroke();
+  ctx.fillStyle='#4488ff';ctx.font='16px monospace';ctx.textAlign='center';
+  ctx.fillText('\u2753',W-26,safeTop+67);
 
   // Settings panel overlay
   if(settingsOpen){
@@ -2250,8 +2250,13 @@ function drawTitle(){
       ctx.fillStyle='#ff0000';ctx.font='bold 12px monospace';ctx.textAlign='center';
       ctx.fillText('\u6700\u7D42\u78BA\u8A8D: \u30BF\u30C3\u30D7\u3067\u5B8C\u5168\u524A\u9664',W/2,resetBtnY+20);
     }
+    // Login method indicator (above logout button)
+    const methodY=resetBtnY+42;
+    ctx.fillStyle='#fff3';ctx.font='9px monospace';ctx.textAlign='center';
+    const methodStr=fbLoginMethod==='google'?'Google\u30A2\u30AB\u30A6\u30F3\u30C8':fbLoginMethod==='anonymous'?'\u30B2\u30B9\u30C8\u30ED\u30B0\u30A4\u30F3':'';
+    if(methodStr)ctx.fillText(methodStr,W/2,methodY);
     // Logout button
-    const logoutBtnY=resetBtnY+38;
+    const logoutBtnY=methodY+8;
     if(!logoutConfirm){
       ctx.fillStyle='#ff860022';rr(px+20,logoutBtnY,pw-40,30,6);ctx.fill();
       ctx.strokeStyle='#ff860066';ctx.lineWidth=1;rr(px+20,logoutBtnY,pw-40,30,6);ctx.stroke();
@@ -2269,11 +2274,6 @@ function drawTitle(){
         ctx.fillText('\u672C\u5F53\u306B\u30ED\u30B0\u30A2\u30A6\u30C8\uFF1F',W/2,logoutBtnY+20);
       }
     }
-    // Login method indicator
-    const methodY=logoutBtnY+34;
-    ctx.fillStyle='#fff3';ctx.font='9px monospace';ctx.textAlign='center';
-    const methodStr=fbLoginMethod==='google'?'Google\u30A2\u30AB\u30A6\u30F3\u30C8':fbLoginMethod==='anonymous'?'\u30B2\u30B9\u30C8\u30ED\u30B0\u30A4\u30F3':'';
-    if(methodStr)ctx.fillText(methodStr,W/2,methodY);
     // Close button
     const closeY=py+ph-42;
     ctx.fillStyle='#00e5ff22';rr(W/2-60,closeY,120,32,8);ctx.fill();
@@ -2333,6 +2333,66 @@ function drawTitle(){
       ctx.fillStyle=borderCol;ctx.font='bold 13px monospace';
       ctx.fillText(confirmModal.step===0?'\u524A\u9664\u3059\u308B':'\u5B8C\u5168\u306B\u524A\u9664',confirmX2+btnW2/2,btnY2+26);
     }
+  }
+
+  // Help (操作方法) overlay
+  if(helpOpen){
+    ctx.fillStyle='rgba(0,0,0,0.85)';ctx.fillRect(0,0,W,H);
+    const hw=Math.min(300,W-20),hh=380,hx=W/2-hw/2,hy=H/2-hh/2;
+    const hGr=ctx.createLinearGradient(hx,hy,hx,hy+hh);
+    hGr.addColorStop(0,'rgba(10,10,40,0.98)');hGr.addColorStop(1,'rgba(5,5,20,0.98)');
+    ctx.fillStyle=hGr;rr(hx,hy,hw,hh,14);ctx.fill();
+    ctx.strokeStyle='#4488ff44';ctx.lineWidth=1.5;rr(hx,hy,hw,hh,14);ctx.stroke();
+    // Title
+    ctx.fillStyle='#4488ff';ctx.font='bold 16px monospace';ctx.textAlign='center';
+    ctx.fillText('\u2753 \u64CD\u4F5C\u65B9\u6CD5',W/2,hy+28);
+    const lx=hx+16,rx=hx+hw-16;
+    let ly=hy+54;
+    // Mobile section
+    ctx.fillStyle='#00e5ff';ctx.font='bold 12px monospace';ctx.textAlign='left';
+    ctx.fillText('\uD83D\uDCF1 \u30B9\u30DE\u30DB / \u30BF\u30D6\u30EC\u30C3\u30C8',lx,ly);
+    ly+=22;
+    ctx.fillStyle='#fffa';ctx.font='11px monospace';
+    const mobileHelp=[
+      ['\u30BF\u30C3\u30D7','\u30B8\u30E3\u30F3\u30D7'],
+      ['\u4E0A\u30B9\u30EF\u30A4\u30D7','\u91CD\u529B\u3092\u4E0A\u306B\u53CD\u8EE2'],
+      ['\u4E0B\u30B9\u30EF\u30A4\u30D7','\u91CD\u529B\u3092\u4E0B\u306B\u53CD\u8EE2'],
+      ['\u30A2\u30A4\u30C6\u30E0\u30DC\u30BF\u30F3','\u30A2\u30A4\u30C6\u30E0\u4F7F\u7528'],
+      ['\u9577\u62BC\u3057','\u30AD\u30E3\u30E9\u30AF\u30BF\u30FC\u9078\u629E']
+    ];
+    for(const[k,v]of mobileHelp){
+      ctx.fillStyle='#fffa';ctx.textAlign='left';ctx.fillText(k,lx+8,ly);
+      ctx.fillStyle='#fff6';ctx.textAlign='right';ctx.fillText(v,rx-4,ly);
+      ly+=18;
+    }
+    ly+=10;
+    // PC section
+    ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';ctx.textAlign='left';
+    ctx.fillText('\uD83D\uDDA5 PC / \u30AD\u30FC\u30DC\u30FC\u30C9',lx,ly);
+    ly+=22;
+    ctx.font='11px monospace';
+    const pcHelp=[
+      ['Space','\u30B8\u30E3\u30F3\u30D7'],
+      ['\u2191 / \u30AF\u30EA\u30C3\u30AF\u4E0A\u534A\u5206','\u91CD\u529B\u3092\u4E0A\u306B'],
+      ['\u2193 / \u30AF\u30EA\u30C3\u30AF\u4E0B\u534A\u5206','\u91CD\u529B\u3092\u4E0B\u306B'],
+      ['\u53F3\u30AF\u30EA\u30C3\u30AF / B','\u30A2\u30A4\u30C6\u30E0\u4F7F\u7528'],
+      ['Esc','\u30DD\u30FC\u30BA / \u9589\u3058\u308B']
+    ];
+    for(const[k,v]of pcHelp){
+      ctx.fillStyle='#fffa';ctx.textAlign='left';ctx.fillText(k,lx+8,ly);
+      ctx.fillStyle='#fff6';ctx.textAlign='right';ctx.fillText(v,rx-4,ly);
+      ly+=18;
+    }
+    ly+=12;
+    // Tips
+    ctx.fillStyle='#ff386088';ctx.font='bold 10px monospace';ctx.textAlign='center';
+    ctx.fillText('\u203B \u91CD\u529B\u53CD\u8EE2\u3067\u5929\u4E95\u3092\u8D70\u308C\u308B\uFF01',W/2,ly);
+    // Close button
+    const hCloseY=hy+hh-42;
+    ctx.fillStyle='#4488ff22';rr(W/2-50,hCloseY,100,32,8);ctx.fill();
+    ctx.strokeStyle='#4488ff';ctx.lineWidth=1;rr(W/2-50,hCloseY,100,32,8);ctx.stroke();
+    ctx.fillStyle='#4488ff';ctx.font='bold 13px monospace';ctx.textAlign='center';
+    ctx.fillText('\u9589\u3058\u308B',W/2,hCloseY+22);
   }
 
   // Ranking modal overlay

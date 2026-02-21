@@ -157,6 +157,7 @@ let nameEditMode=false; // true when editing username in settings
 let nameEditBuf=''; // buffer for name being edited
 let logoutConfirm=false; // true when logout confirm shown
 let confirmModal=null; // {type:'reset'|'logout', step:0} - modal confirmation overlay
+let helpOpen=false; // true when help/controls overlay is shown
 let rankingOpen=false;
 let rankingScroll=0;
 let rankingScrollTarget=0;

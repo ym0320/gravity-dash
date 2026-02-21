@@ -167,12 +167,12 @@ function handleInventoryChestTap(tapX,tapY){
 }
 function startInventoryChestOpen(){
   // Gacha probabilities:
-  // Super Rare: 5%, Character: 15%, Secret (rare): 10%, Normal: 15%,
-  // 1000 coins: 5%, 200 coins: 13%, 100 coins: 17%, 60 coins: 20%
+  // Super Rare: 2%, Character: 15%, Secret (rare): 10%, Normal: 15%,
+  // 1000 coins: 5%, 200 coins: 13%, 100 coins: 20%, 60 coins: 20%
   const roll=Math.random();
   let reward;
-  if(roll<0.05){
-    // Super Rare cosmetic (5%)
+  if(roll<0.02){
+    // Super Rare cosmetic (2%)
     const allSR=[];
     SHOP_ITEMS.skins.forEach(it=>{if(it.rarity==='super_rare')allSR.push({...it,tab:0});});
     SHOP_ITEMS.eyes.forEach(it=>{if(it.rarity==='super_rare')allSR.push({...it,tab:1});});
@@ -185,11 +185,11 @@ function startInventoryChestOpen(){
     } else {
       reward={type:'coin',amount:1000};
     }
-  } else if(roll<0.20){
+  } else if(roll<0.17){
     // Character (15%)
     const ci=Math.floor(Math.random()*CHARS.length);
     reward={type:'char',charIdx:ci,isNew:!isCharUnlocked(ci),bonusCoins:0};
-  } else if(roll<0.30){
+  } else if(roll<0.27){
     // Secret (rare) cosmetic item (10%) - duplicates allowed
     const allRare=[];
     SHOP_ITEMS.skins.forEach(it=>{if(it.rarity==='rare')allRare.push({...it,tab:0});});
@@ -203,7 +203,7 @@ function startInventoryChestOpen(){
     } else {
       reward={type:'coin',amount:1000};
     }
-  } else if(roll<0.45){
+  } else if(roll<0.42){
     // Normal cosmetic item (15%) - duplicates allowed
     const allNormal=[];
     SHOP_ITEMS.skins.forEach(it=>{if(!it.rarity)allNormal.push({...it,tab:0});});
@@ -217,8 +217,8 @@ function startInventoryChestOpen(){
     } else {
       reward={type:'coin',amount:200};
     }
-  } else if(roll<0.50){reward={type:'coin',amount:1000};}
-  else if(roll<0.63){reward={type:'coin',amount:200};}
+  } else if(roll<0.47){reward={type:'coin',amount:1000};}
+  else if(roll<0.60){reward={type:'coin',amount:200};}
   else if(roll<0.80){reward={type:'coin',amount:100};}
   else{reward={type:'coin',amount:60};}
   chestOpen.phase='waiting';chestOpen.t=0;
@@ -258,6 +258,16 @@ function startPackStageFromDead(){
   state=ST.PLAY;resetPackStage(currentPackIdx,currentPackStageIdx);switchBGM('play');
 }
 
+// Help overlay touch handler
+function handleHelpTouch(tx,ty){
+  const hw=Math.min(300,W-20),hh=380,hx=W/2-hw/2,hy=H/2-hh/2;
+  const hCloseY=hy+hh-42;
+  // Close button
+  if(tx>=W/2-50&&tx<=W/2+50&&ty>=hCloseY&&ty<=hCloseY+32){sfx('click');helpOpen=false;return;}
+  // Tap anywhere outside the modal closes it
+  if(tx<hx||tx>hx+hw||ty<hy||ty>hy+hh){sfx('cancel');helpOpen=false;return;}
+}
+
 // Settings panel input helpers (must match drawTitle layout)
 function settingsLayout(){
   const pw=Math.min(280,W-30),ph=500,px=W/2-pw/2,py=H/2-ph/2;
@@ -267,10 +277,12 @@ function settingsLayout(){
   const nameY=slY2+28;
   const tutBtnY=nameY+22;
   const resetBtnY=tutBtnY+38;
-  const logoutBtnY=resetBtnY+38;
+  const methodY=resetBtnY+42;
+  const logoutBtnY=methodY+8;
   return{px,py,pw,ph,slX,barX,barW,barY1:slY1-8,barY2:slY2-8,barH,nameY,tutBtnY,resetBtnY,logoutBtnY,closeY:py+ph-42};
 }
 function hitSettingsGear(tx,ty){return tx>=W-44&&tx<=W-8&&ty>=safeTop+6&&ty<=safeTop+42;}
+function hitHelpBtn(tx,ty){return tx>=W-44&&tx<=W-8&&ty>=safeTop+44&&ty<=safeTop+80;}
 function handleConfirmModalTouch(tx,ty){
   if(!confirmModal)return false;
   const mW=Math.min(280,W-40),mH=220;
@@ -485,6 +497,8 @@ canvas.addEventListener('touchstart',e=>{
   const t=e.touches[0];
   const p=canvasXY(t.clientX,t.clientY);
   touchStartY=t.clientY;touchStartX=t.clientX;touchStartT=Date.now();touchMoved=false;touchBtnUsed=false;
+  // Help overlay intercepts all input when open
+  if(helpOpen){handleHelpTouch(p.x,p.y);return;}
   // Ranking modal intercepts all input when open
   if(rankingOpen){handleRankingTouch(p.x,p.y);return;}
   // Settings panel intercepts all input when open
@@ -496,6 +510,8 @@ canvas.addEventListener('touchstart',e=>{
   if(state===ST.TUTORIAL){handleTutorialTouch(p.x,p.y);return;}
   // Settings gear button on title screen
   if(state===ST.TITLE&&!charModal.show&&hitSettingsGear(p.x,p.y)){sfx('click');settingsOpen=true;return;}
+  // Help button on title screen
+  if(state===ST.TITLE&&!charModal.show&&hitHelpBtn(p.x,p.y)){sfx('select');helpOpen=true;return;}
   if(state===ST.STAGE_SEL){stageSelTouchY=t.clientY;stageSelDragging=false;handleStageSelTouch(p.x,p.y);return;}
   if(state===ST.STAGE_CLEAR&&stageClearT>60){
     sfx('click');state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;
@@ -601,7 +617,7 @@ canvas.addEventListener('touchend',e=>{
     if(draggingSlider==='sfx')sfx('coin'); // preview SE at new volume
     draggingSlider=null;return;
   }
-  if(settingsOpen||rankingOpen||inventoryOpen)return;
+  if(helpOpen||settingsOpen||rankingOpen||inventoryOpen)return;
   // Shop/cosmetic: confirm pending item taps if user didn't scroll
   if(shopOpen){
     if(!touchMoved&&shopPendingTap){confirmShopTap();}
@@ -709,12 +725,14 @@ canvas.addEventListener('mousedown',e=>{
     return;
   }
   const p=canvasXY(e.clientX,e.clientY);
+  if(helpOpen){handleHelpTouch(p.x,p.y);return;}
   if(rankingOpen){handleRankingTouch(p.x,p.y);return;}
   if(settingsOpen){handleSettingsTouch(p.x,p.y);return;}
   if(state===ST.COUNTDOWN)return;
   if(state===ST.LOGIN){handleLoginTouch(p.x,p.y);return;}
   if(state===ST.TUTORIAL){handleTutorialTouch(p.x,p.y);return;}
   if(state===ST.TITLE&&!charModal.show&&hitSettingsGear(p.x,p.y)){sfx('click');settingsOpen=true;return;}
+  if(state===ST.TITLE&&!charModal.show&&hitHelpBtn(p.x,p.y)){sfx('select');helpOpen=true;return;}
   if(state===ST.STAGE_SEL){handleStageSelTouch(p.x,p.y);return;}
   if(state===ST.STAGE_CLEAR&&stageClearT>60){
     sfx('click');state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;
@@ -782,6 +800,7 @@ canvas.addEventListener('mouseup',()=>{
   draggingSlider=null;
 });
 document.addEventListener('keydown',e=>{
+  if(helpOpen){if(e.code==='Escape'){helpOpen=false;sfx('cancel');}e.preventDefault();return;}
   if(rankingOpen){if(e.code==='Escape'){rankingOpen=false;sfx('cancel');}e.preventDefault();return;}
   if(settingsOpen){if(e.code==='Escape'){if(confirmModal){confirmModal=null;sfx('cancel');}else if(nameEditMode){nameEditMode=false;}else{settingsOpen=false;logoutConfirm=false;resetConfirmStep=0;}sfx('cancel');e.preventDefault();}if(!nameEditMode){e.preventDefault();}return;}
   if(e.code==='Escape'){
@@ -1170,8 +1189,19 @@ function _finishLogin(name){
   playerName=name;localStorage.setItem('gd5username',playerName);
   loginOverlay.classList.remove('active');
   sfx('select');vibrate(15);
-  fbSynced=true; // new user – no cloud data to merge, allow save
-  fbSaveUserData();
+  // Force save – retry until fbUser and fbSynced are ready
+  // (onAuthStateChanged may still be processing)
+  const _doInitialSave=()=>{
+    if(fbUser&&fbSynced){
+      _fbDirty=true;_fbDoSave();
+      console.log('[Firebase] Initial save triggered for',name);
+    } else {
+      setTimeout(_doInitialSave,200);
+    }
+  };
+  // Set synced true in case onAuthStateChanged hasn't run yet
+  fbSynced=true;
+  _doInitialSave();
   if(!tutorialDone){startTutorial();}
   else{state=ST.TITLE;switchBGM('title');}
 }

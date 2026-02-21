@@ -571,9 +571,8 @@ function update(dt){
     fm.x-=speed;
     if(fm.state==='idle'){
       const surfY2=H-fm.curH;
-      const onMtn=player.x+pr>fm.x&&player.x-pr<fm.x+fm.w&&player.y+pr>=surfY2-5&&player.y+pr<=surfY2+15&&player.vy>=0;
-      const nearMtn=Math.abs(player.x-(fm.x+fm.w/2))<fm.triggerDist+fm.w/2&&player.y>surfY2-60;
-      if(onMtn||nearMtn){fm.state='shaking';fm.shakeT=60;}
+      // Auto-trigger when visible on screen (before player reaches it)
+      if(fm.x<W+20){fm.state='shaking';fm.shakeT=60;}
       if(player.gDir===1&&player.x+pr>fm.x&&player.x-pr<fm.x+fm.w){
         if(player.y+pr>=surfY2&&player.y+pr<surfY2+12&&player.vy>=0){
           player.y=surfY2-pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;djumpAvailable=true;
@@ -866,28 +865,32 @@ function update(dt){
           for(let si=0;si<2;si++){
             const sdir=si===0?-1:1;
             enemies.push({x:en.x+sdir*10,y:en.y,vy:en.gDir===1?-4:4,gDir:en.gDir,
-              walkSpd:0,sz:9,alive:true,fr:Math.random()*100,type:9,shootT:999,
-              bounceVy:en.gDir===1?-3.5:3.5,patrolOriginX:en.x+sdir*10,
-              splitVx:sdir*0.8});
+              walkSpd:sdir*(1.5+Math.random()*1.0),sz:9,alive:true,fr:Math.random()*100,type:9,shootT:999,
+              bounceVy:en.gDir===1?-3.5:3.5,patrolOriginX:en.x+sdir*10,lifeT:180+Math.floor(Math.random()*60)});
           }
           sfx('shoot');emitParts(en.x,en.y,10,'#88cc44',4,3);
           addPop(en.x,en.y-en.sz*en.gDir-10,'\u5206\u88C2!','#88cc44');
         }
       }
     } else if(en.type===9){
-      // Mini slime (from splitter): bounces, drifts laterally slower than scroll
+      // Mini slime (from splitter): bounces left/right, then falls off after lifeT
       const grav=GRAVITY*en.gDir;
       en.vy+=grav;
       en.y+=en.vy;
-      en.x+=(en.splitVx||0);
+      en.x+=en.walkSpd; // drift sideways
       en.patrolOriginX-=speed;
-      if(en.gDir===1){
-        const sy=floorSurfaceY(en.x);
-        if(en.y+en.sz>=sy&&sy<H+100){en.y=sy-en.sz;en.vy=en.bounceVy;}
-      } else {
-        const sy=ceilSurfaceY(en.x);
-        if(en.y-en.sz<=sy&&sy>-100){en.y=sy+en.sz;en.vy=en.bounceVy;}
+      if(en.lifeT!==undefined)en.lifeT--;
+      const expired=en.lifeT!==undefined&&en.lifeT<=0;
+      if(!expired){
+        if(en.gDir===1){
+          const sy=floorSurfaceY(en.x);
+          if(en.y+en.sz>=sy&&sy<H+100){en.y=sy-en.sz;en.vy=en.bounceVy;}
+        } else {
+          const sy=ceilSurfaceY(en.x);
+          if(en.y-en.sz<=sy&&sy>-100){en.y=sy+en.sz;en.vy=en.bounceVy;}
+        }
       }
+      // expired: no ground collision → falls off screen
     } else {
       // Default movement (type 1 cannon and legacy)
       en.x-=en.walkSpd*esm;
