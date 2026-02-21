@@ -1189,19 +1189,18 @@ function _finishLogin(name){
   playerName=name;localStorage.setItem('gd5username',playerName);
   loginOverlay.classList.remove('active');
   sfx('select');vibrate(15);
-  // Force save – retry until fbUser and fbSynced are ready
-  // (onAuthStateChanged may still be processing)
+  // Queue initial save – fbSaveUserData handles pending if sync not ready yet
+  if(typeof fbSaveUserData==='function')fbSaveUserData();
+  // Also retry with fbForceSave once fbUser+fbSynced are ready (covers edge cases)
   const _doInitialSave=()=>{
     if(fbUser&&fbSynced){
-      _fbDirty=true;_fbDoSave();
+      if(typeof fbForceSave==='function')fbForceSave();
       console.log('[Firebase] Initial save triggered for',name);
     } else {
-      setTimeout(_doInitialSave,200);
+      setTimeout(_doInitialSave,300);
     }
   };
-  // Set synced true in case onAuthStateChanged hasn't run yet
-  fbSynced=true;
-  _doInitialSave();
+  setTimeout(_doInitialSave,500);
   if(!tutorialDone){startTutorial();}
   else{state=ST.TITLE;switchBGM('title');}
 }

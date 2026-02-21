@@ -26,6 +26,7 @@ let fbUser = null;   // current firebase.User
 let fbReady = false; // auth state resolved at least once
 let fbCloudData = null;
 let fbSynced = false; // true after cloud merge completes (blocks saves until ready)
+let _fbLastSyncedUid = ''; // uid of last successfully synced user (prevent duplicate syncs)
 let fbLoginMethod = localStorage.getItem('gd5loginMethod') || ''; // 'google' | 'anonymous' | ''
 let _fbGoogleLoginInProgress = false; // true while Google login handler is running
 let _fbDirty = false; // true when local state has changed and needs saving
@@ -61,6 +62,9 @@ if (fbAuth) {
       // If Google login handler is active, let it handle everything
       if (_fbGoogleLoginInProgress) {
         console.log('[Firebase] Google login in progress – skipping auto-sync');
+      } else if (_fbLastSyncedUid === user.uid && fbSynced) {
+        // Same user already synced – skip redundant sync to avoid race conditions
+        console.log('[Firebase] Already synced for', user.uid, '– skipping');
       } else {
         // Merge cloud data on sign-in to stay in sync
         fbSynced = false;
@@ -68,6 +72,7 @@ if (fbAuth) {
         fbLoadUserData().then(data => {
           if (data && data.name) fbMergeCloudData(data);
           fbSynced = true;
+          _fbLastSyncedUid = user.uid;
           // Update ranking entry with current cosmetics
           if (highScore > 0 && playerName) {
             const rc = rankChar >= 0 ? rankChar : selChar || 0;
@@ -85,8 +90,18 @@ if (fbAuth) {
             _fbDoSave();
             console.log('[Firebase] Initial save for new user:', pn);
           }
+          // Flush any saves that were queued while syncing
+          if (_fbPendingSave) {
+            _fbPendingSave = false;
+            console.log('[Firebase] Flushing pending save after sync');
+            _fbDirty = true;
+            _fbDoSave();
+          }
           console.log('[Firebase] Sync complete');
-        }).catch(() => { fbSynced = true; });
+        }).catch(() => {
+          fbSynced = true;
+          if (_fbPendingSave) { _fbPendingSave = false; _fbDirty = true; _fbDoSave(); }
+        });
       }
     } else {
       console.log('[Firebase] No user');
@@ -107,14 +122,16 @@ if (fbAuth) {
 
 // --- Firestore: save user data (debounced) ---
 let _fbSaveTimer = null;
+let _fbPendingSave = false; // true when save was requested but fbSynced was false
 function fbSaveUserData() {
-  if (!fbDb || !fbUser || !fbSynced) return;
+  if (!fbDb || !fbUser) return;
   _fbDirty = true; // mark that local state has changed
+  if (!fbSynced) { _fbPendingSave = true; return; } // queue for after sync
   clearTimeout(_fbSaveTimer);
   _fbSaveTimer = setTimeout(_fbDoSave, 1200);
 }
 function _fbDoSave() {
-  if (!fbDb || !fbUser || !fbSynced || !_fbDirty) return;
+  if (!fbDb || !fbUser || !_fbDirty) return;
   const uid = fbUser.uid;
   const data = {
     name: playerName || '',
@@ -312,7 +329,11 @@ function fbFindAndMigrateByName(name) {
 }
 
 // --- Force save (callable from other files) ---
-function fbForceSave() { _fbDirty = true; _fbDoSave(); }
+function fbForceSave() {
+  _fbDirty = true;
+  if (fbSynced) { _fbDoSave(); }
+  else { _fbPendingSave = true; } // will flush after sync completes
+}
 
 // --- Firestore: delete user data (for data reset) ---
 function fbDeleteUserData() {
