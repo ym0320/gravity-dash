@@ -166,7 +166,8 @@ function rebuildRankingData(){
   // Insert player's high score if > 0
   if(typeof highScore!=='undefined'&&highScore>0){
     const pName=(typeof playerName!=='undefined'&&playerName)||'\u3042\u306A\u305F';
-    data.push({name:pName,charIdx:selChar||0,score:highScore,eqSkin:equippedSkin||'',eqEyes:equippedEyes||'',eqFx:equippedEffect||'',isPlayer:true});
+    const rc=rankChar>=0?rankChar:selChar||0;
+    data.push({name:pName,charIdx:rc,score:highScore,eqSkin:rankSkin||'',eqEyes:rankEyes||'',eqFx:rankFx||'',isPlayer:true});
   }
   data.sort((a,b)=>b.score-a.score);
   RANKING_DATA=data.slice(0,100);

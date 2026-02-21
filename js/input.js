@@ -686,6 +686,8 @@ canvas.addEventListener('mousemove',e=>{
   if(draggingSlider){const p=canvasXY(e.clientX,e.clientY);updateSliderDrag(p.x);}
 });
 canvas.addEventListener('mouseup',()=>{
+  if(shopOpen&&shopPendingTap){confirmShopTap();}
+  else if(cosmeticMenuOpen&&cosmeticPendingTap){confirmCosmeticTap();}
   if(draggingSlider==='sfx')sfx('coin');
   draggingSlider=null;
 });
