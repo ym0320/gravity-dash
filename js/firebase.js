@@ -123,10 +123,27 @@ if (fbAuth) {
 // --- Firestore: save user data (debounced) ---
 var _fbSaveTimer = null;
 var _fbPendingSave = false; // true when save was requested but fbSynced was false
+var _fbPendingRetryTimer = null;
 function fbSaveUserData() {
   if (!fbDb || !fbUser) return;
   _fbDirty = true; // mark that local state has changed
-  if (!fbSynced) { _fbPendingSave = true; return; } // queue for after sync
+  if (!fbSynced) {
+    _fbPendingSave = true;
+    // Retry after delay in case sync completes
+    if (!_fbPendingRetryTimer) {
+      _fbPendingRetryTimer = setTimeout(function _retryPending() {
+        _fbPendingRetryTimer = null;
+        if (_fbPendingSave && fbSynced) {
+          _fbPendingSave = false;
+          console.log('[Firebase] Flushing pending save (retry timer)');
+          _fbDoSave();
+        } else if (_fbPendingSave) {
+          _fbPendingRetryTimer = setTimeout(_retryPending, 500);
+        }
+      }, 500);
+    }
+    return;
+  }
   clearTimeout(_fbSaveTimer);
   _fbSaveTimer = setTimeout(_fbDoSave, 1200);
 }
@@ -174,7 +191,7 @@ function _fbDoSave() {
   }
 }
 // Force-flush on page hide / unload; re-sync on page visible (title only)
-function _fbFlushSave() { clearTimeout(_fbSaveTimer); _fbDoSave(); }
+function _fbFlushSave() { clearTimeout(_fbSaveTimer); _fbPendingSave=false; _fbDoSave(); }
 function _fbResync() {
   if (!fbDb || !fbUser || !fbSynced) return;
   // Only re-sync on title screen so in-game progress is not overwritten
