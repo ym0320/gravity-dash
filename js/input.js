@@ -131,15 +131,15 @@ function handleInventoryChestTap(tapX,tapY){
 }
 function startInventoryChestOpen(){
   // Gacha probabilities:
-  // Character: 12%, Secret cosmetic (rare): 10%, Normal cosmetic: 15%,
-  // 1000 coins: 5%, 200 coins: 13%, 100 coins: 20%, 60 coins: 25%
+  // Character: 15%, Secret cosmetic (rare): 10%, Normal cosmetic: 15%,
+  // 1000 coins: 5%, 200 coins: 13%, 100 coins: 20%, 60 coins: 22%
   const roll=Math.random();
   let reward;
-  if(roll<0.12){
-    // Character (12%)
+  if(roll<0.15){
+    // Character (15%)
     const ci=Math.floor(Math.random()*CHARS.length);
     reward={type:'char',charIdx:ci,isNew:!isCharUnlocked(ci),bonusCoins:0};
-  } else if(roll<0.22){
+  } else if(roll<0.25){
     // Secret (rare) cosmetic item (10%)
     const allRare=[];
     SHOP_ITEMS.skins.forEach(it=>{if(it.rarity==='rare')allRare.push({...it,tab:0});});
@@ -153,7 +153,7 @@ function startInventoryChestOpen(){
     } else {
       reward={type:'coin',amount:1000};
     }
-  } else if(roll<0.37){
+  } else if(roll<0.40){
     // Normal cosmetic item (15%)
     const allNormal=[];
     SHOP_ITEMS.skins.forEach(it=>{if(it.rarity!=='rare')allNormal.push({...it,tab:0});});
@@ -167,9 +167,9 @@ function startInventoryChestOpen(){
     } else {
       reward={type:'coin',amount:200};
     }
-  } else if(roll<0.42){reward={type:'coin',amount:1000};}
-  else if(roll<0.55){reward={type:'coin',amount:200};}
-  else if(roll<0.75){reward={type:'coin',amount:100};}
+  } else if(roll<0.45){reward={type:'coin',amount:1000};}
+  else if(roll<0.58){reward={type:'coin',amount:200};}
+  else if(roll<0.78){reward={type:'coin',amount:100};}
   else{reward={type:'coin',amount:60};}
   chestOpen.phase='waiting';chestOpen.t=0;
   chestOpen.charIdx=reward.type==='char'?reward.charIdx:-1;
