@@ -90,6 +90,7 @@ function unlockCharFromChest(idx){
   unlockedChars.push(idx);
   localStorage.setItem('gd5unlocked',JSON.stringify(unlockedChars));
   unlockCelebT=120;unlockCelebChar=idx;
+  if(typeof fbSaveUserData==='function')fbSaveUserData();
   return true;
 }
 
@@ -1409,14 +1410,15 @@ function buyItem(id,price){
   if(ownsItem(id)||walletCoins<price)return false;
   walletCoins-=price;localStorage.setItem('gd5wallet',walletCoins.toString());
   ownedItems.push(id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));
+  if(typeof fbSaveUserData==='function')fbSaveUserData();
   return true;
 }
-function equipSkin(id){equippedSkin=id;localStorage.setItem('gd5eqSkin',id);}
-function equipEyes(id){equippedEyes=id;localStorage.setItem('gd5eqEyes',id);}
-function equipEffect(id){equippedEffect=id;localStorage.setItem('gd5eqFx',id);}
-function unequipSkin(){equippedSkin='';localStorage.setItem('gd5eqSkin','');}
-function unequipEyes(){equippedEyes='';localStorage.setItem('gd5eqEyes','');}
-function unequipEffect(){equippedEffect='';localStorage.setItem('gd5eqFx','');}
+function equipSkin(id){equippedSkin=id;localStorage.setItem('gd5eqSkin',id);if(typeof fbSaveUserData==='function')fbSaveUserData();}
+function equipEyes(id){equippedEyes=id;localStorage.setItem('gd5eqEyes',id);if(typeof fbSaveUserData==='function')fbSaveUserData();}
+function equipEffect(id){equippedEffect=id;localStorage.setItem('gd5eqFx',id);if(typeof fbSaveUserData==='function')fbSaveUserData();}
+function unequipSkin(){equippedSkin='';localStorage.setItem('gd5eqSkin','');if(typeof fbSaveUserData==='function')fbSaveUserData();}
+function unequipEyes(){equippedEyes='';localStorage.setItem('gd5eqEyes','');if(typeof fbSaveUserData==='function')fbSaveUserData();}
+function unequipEffect(){equippedEffect='';localStorage.setItem('gd5eqFx','');if(typeof fbSaveUserData==='function')fbSaveUserData();}
 function getEquippedSkinData(){if(!equippedSkin)return null;return SHOP_ITEMS.skins.find(s=>s.id===equippedSkin)||null;}
 function getEquippedEyesData(){if(!equippedEyes)return null;return SHOP_ITEMS.eyes.find(e=>e.id===equippedEyes)||null;}
 function getEquippedEffectData(){if(!equippedEffect)return null;return SHOP_ITEMS.effects.find(e=>e.id===equippedEffect)||null;}
