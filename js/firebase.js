@@ -82,13 +82,15 @@ if (fbAuth) {
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true }).catch(e => console.error('[Firebase] ranking update error:', e));
           }
-          // Force initial save for new users (so they appear in users collection)
+          // Ensure user exists in Firestore (covers both new users and
+          // existing users who were never saved due to the old undefined bug)
           const pn = playerName || localStorage.getItem('gd5username');
-          if (!data && pn) {
+          if (pn) {
             if (!playerName) playerName = pn;
             _fbDirty = true;
             _fbDoSave();
-            console.log('[Firebase] Initial save for new user:', pn);
+            if (!data) console.log('[Firebase] Initial save for new user:', pn);
+            else console.log('[Firebase] Re-save for existing user:', pn);
           }
           // Flush any saves that were queued while syncing
           if (_fbPendingSave) {
