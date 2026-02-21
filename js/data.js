@@ -1396,5 +1396,5 @@ function unequipEffect(){equippedEffect='';localStorage.setItem('gd5eqFx','');if
 function getEquippedSkinData(){if(!equippedSkin)return null;return SHOP_ITEMS.skins.find(s=>s.id===equippedSkin)||null;}
 function getEquippedEyesData(){if(!equippedEyes)return null;return SHOP_ITEMS.eyes.find(e=>e.id===equippedEyes)||null;}
 function getEquippedEffectData(){if(!equippedEffect)return null;return SHOP_ITEMS.effects.find(e=>e.id===equippedEffect)||null;}
-// Sort shop items: normal first, then secrets (rare) at bottom
-function shopSorted(arr){return arr.slice().sort((a,b)=>(a.rarity==='rare'?1:0)-(b.rarity==='rare'?1:0));}
+// Sort shop items: normal first, then rare, then super_rare at bottom
+function shopSorted(arr){const rVal=r=>r==='super_rare'?2:r==='rare'?1:0;return arr.slice().sort((a,b)=>rVal(a.rarity)-rVal(b.rarity));}
