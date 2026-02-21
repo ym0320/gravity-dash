@@ -153,14 +153,6 @@ let resetConfirmStep=0; // 0=none, 1=first confirm, 2=second confirm
 let nameEditMode=false; // true when editing username in settings
 let nameEditBuf=''; // buffer for name being edited
 let logoutConfirm=false; // true when logout confirm shown
-let debugMenuOpen=false;
-let debugBossBc=1;
-let debugEnemyMode=false;
-let debugEnemyType=-1;
-let debugEnemyCD=0;
-let debugLastBossType='';
-let debugBossRetry=false;
-let debugBossVictoryT=0; // >0 when debug boss defeated, shows victory overlay
 let rankingOpen=false;
 let rankingScroll=0;
 let rankingScrollTarget=0;
@@ -171,7 +163,8 @@ function rebuildRankingData(){
   // Insert player's high score if > 0
   if(typeof highScore!=='undefined'&&highScore>0){
     const pName=(typeof playerName!=='undefined'&&playerName)||'\u3042\u306A\u305F';
-    data.push({name:pName,charIdx:selChar,score:highScore,isPlayer:true});
+    const rc=rankChar>=0?rankChar:(selChar||0);
+    data.push({name:pName,charIdx:rc,score:highScore,eqSkin:rankSkin||'',eqEyes:rankEyes||'',eqFx:rankFx||'',isPlayer:true});
   }
   data.sort((a,b)=>b.score-a.score);
   RANKING_DATA=data.slice(0,100);
@@ -990,17 +983,6 @@ const ITEMS=[
   {name:'\u30B9\u30ED\u30FC',desc:'\u30B9\u30ED\u30FC\u30E2\u30FC\u30B7\u30E7\u30F3',col:'#a855f7',icon:'\u25F7',dur:600},
 ];
 
-// ===== DEBUG ENEMY TYPES (single source of truth for debug menu) =====
-const DEBUG_ENEMY_TYPES=[
-  {id:0,name:'\u30A6\u30A9\u30FC\u30AB\u30FC',col:'#34d399'},
-  {id:1,name:'\u30AD\u30E3\u30CE\u30F3',col:'#ef4444'},
-  {id:2,name:'\u30D5\u30E9\u30A4\u30E4\u30FC',col:'#60a5fa'},
-  {id:3,name:'\u30DC\u30DE\u30FC',col:'#f59e0b'},
-  {id:4,name:'\u30D0\u30A6\u30F3\u30B5\u30FC',col:'#a78bfa'},
-  {id:5,name:'\u30D5\u30A1\u30F3\u30C8\u30E0',col:'#e879f9'},
-  {id:6,name:'\u30C0\u30C3\u30B7\u30E3\u30FC',col:'#ff4444'},
-  {id:8,name:'\u30B9\u30D7\u30EA\u30C3\u30BF\u30FC',col:'#88cc44'},
-];
 
 // ===== STAGE MODE =====
 let gameMode='endless'; // 'endless' or 'stage'
@@ -1106,6 +1088,11 @@ let tutFreezePlayer=false; // freeze player mid-air during double-flip
 let screenFadeIn=0; // white overlay fade-in timer for screen transitions
 let countdownT=0; // countdown timer (frames, counts down from 180 = 3 seconds)
 let score=0,highScore=parseInt(localStorage.getItem('gd5hi')||'0');
+// Ranking cosmetics: captured at time of high score
+let rankChar=parseInt(localStorage.getItem('gd5rankChar')||'-1');
+let rankSkin=localStorage.getItem('gd5rankSkin')||'';
+let rankEyes=localStorage.getItem('gd5rankEyes')||'';
+let rankFx=localStorage.getItem('gd5rankFx')||'';
 let newHi=false,speed=SPEED_INIT,frame=0,deadT=0,titleT=0;
 let combo=0,comboT=0,comboDsp=0,comboDspT=0;
 let airCombo=0; // aerial enemy kill combo (resets on grounded)
@@ -1389,6 +1376,11 @@ function buyItem(id,price){
   ownedItems.push(id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));
   if(typeof fbSaveUserData==='function')fbSaveUserData();
   return true;
+}
+function captureRankCosmetics(){
+  rankChar=selChar||0;rankSkin=equippedSkin||'';rankEyes=equippedEyes||'';rankFx=equippedEffect||'';
+  localStorage.setItem('gd5rankChar',rankChar.toString());localStorage.setItem('gd5rankSkin',rankSkin);
+  localStorage.setItem('gd5rankEyes',rankEyes);localStorage.setItem('gd5rankFx',rankFx);
 }
 function equipSkin(id){equippedSkin=id;localStorage.setItem('gd5eqSkin',id);if(typeof fbSaveUserData==='function')fbSaveUserData();}
 function equipEyes(id){equippedEyes=id;localStorage.setItem('gd5eqEyes',id);if(typeof fbSaveUserData==='function')fbSaveUserData();}

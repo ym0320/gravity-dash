@@ -13,7 +13,6 @@ function update(dt){
   pops=pops.filter(p=>{p.y-=1.2;p.life--;return p.life>0;});
 
   if(state===ST.PAUSE)return; // freeze everything while paused
-  if(debugBossVictoryT>0){debugBossVictoryT++;return;} // freeze during debug boss victory
 
   if(state===ST.COUNTDOWN){
     countdownT--;
@@ -407,7 +406,7 @@ function update(dt){
     }
     trySpawnCoins();
     trySpawnItem();
-    if(debugEnemyMode){debugSpawnEnemy();}else{trySpawnEnemy();}
+    trySpawnEnemy();
     trySpawnFloatPlat();
     trySpawnSpike();
     trySpawnMovingHill();
@@ -415,7 +414,7 @@ function update(dt){
     trySpawnFallingMtn();
     trySpawnCoinSwitch();
     // Boss phase trigger
-    if(!bossPhase.active&&dist>=bossPhase.nextAt&&!debugEnemyMode){
+    if(!bossPhase.active&&dist>=bossPhase.nextAt){
       startBossPhase();
     }
     updateBossPhase();
