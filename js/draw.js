@@ -830,47 +830,6 @@ function draw(){
   if(state===ST.DEAD){drawDead();if(deadChestOpen&&chestOpen.phase!=='none')drawChestOpen();}
   if(state===ST.PAUSE)drawPause();
   if(state===ST.STAGE_CLEAR)drawStageClear();
-  // Debug boss victory overlay
-  if(debugBossVictoryT>0){
-    const fadeIn=Math.min(1,debugBossVictoryT/30);
-    ctx.fillStyle='rgba(0,0,0,'+(0.75*fadeIn)+')';ctx.fillRect(0,0,W,H);
-    // Gold particles
-    for(let i=0;i<15;i++){
-      const sx=(Math.sin(i*4.1+debugBossVictoryT*0.02)*0.4+0.5)*W;
-      const sy=(Math.cos(i*2.7+debugBossVictoryT*0.015)*0.4+0.3)*H;
-      const sa=Math.sin(debugBossVictoryT*0.08+i)*0.3+0.3;
-      ctx.fillStyle='rgba(255,215,0,'+sa*fadeIn+')';
-      ctx.beginPath();ctx.arc(sx,sy,2+Math.sin(i+debugBossVictoryT*0.05),0,6.28);ctx.fill();
-    }
-    // Title
-    const ps=1+Math.sin(debugBossVictoryT*0.04)*0.03;
-    ctx.save();ctx.translate(W/2,H*0.30);ctx.scale(ps*fadeIn,ps*fadeIn);
-    ctx.fillStyle='#ffd700';ctx.font='bold 24px monospace';ctx.textAlign='center';
-    ctx.shadowColor='#ffd700';ctx.shadowBlur=20;
-    ctx.fillText('BOSS DEFEATED!',0,0);
-    ctx.shadowBlur=0;ctx.restore();
-    ctx.fillStyle='#fff8';ctx.font='12px monospace';ctx.textAlign='center';
-    ctx.fillText((debugLastBossType||'').toUpperCase()+' Lv.'+debugBossBc,W/2,H*0.36);
-    // Buttons (show after fade in)
-    if(debugBossVictoryT>30){
-      const btnA=Math.min(1,(debugBossVictoryT-30)/20);
-      ctx.globalAlpha=btnA;
-      const bw=160,bh=40,bx=W/2-bw/2;
-      // Retry button
-      const retryY=H*0.50;
-      ctx.fillStyle='#ff386022';rr(bx,retryY,bw,bh,10);ctx.fill();
-      ctx.strokeStyle='#ff3860';ctx.lineWidth=2;rr(bx,retryY,bw,bh,10);ctx.stroke();
-      ctx.fillStyle='#ff3860';ctx.font='bold 14px monospace';ctx.textAlign='center';
-      ctx.fillText('\u30EA\u30C8\u30E9\u30A4',W/2,retryY+26);
-      // Home button
-      const homeY=H*0.60;
-      ctx.fillStyle='#00e5ff22';rr(bx,homeY,bw,bh,10);ctx.fill();
-      ctx.strokeStyle='#00e5ff';ctx.lineWidth=2;rr(bx,homeY,bw,bh,10);ctx.stroke();
-      ctx.fillStyle='#00e5ff';ctx.font='bold 14px monospace';ctx.textAlign='center';
-      ctx.fillText('\u30DB\u30FC\u30E0\u306B\u623B\u308B',W/2,homeY+26);
-      ctx.globalAlpha=1;
-    }
-  }
   ctx.restore();
 }
 
@@ -2043,12 +2002,6 @@ function drawTitle(){
   ctx.fillStyle='#a855f7';ctx.font='16px monospace';ctx.textAlign='center';
   ctx.fillText('\uD83D\uDC57',26,safeTop+143);
 
-  // Debug button (top right, left of settings)
-  ctx.fillStyle='#ff386014';rr(W-84,safeTop+6,36,36,8);ctx.fill();
-  ctx.strokeStyle='#ff386044';ctx.lineWidth=1;rr(W-84,safeTop+6,36,36,8);ctx.stroke();
-  ctx.fillStyle='#ff3860aa';ctx.font='bold 9px monospace';ctx.textAlign='center';
-  ctx.fillText('DEBUG',W-66,safeTop+28);
-
   // Settings gear button (top right)
   ctx.fillStyle='#ffffff14';rr(W-44,safeTop+6,36,36,8);ctx.fill();
   ctx.fillStyle='#fff6';ctx.font='18px monospace';ctx.textAlign='center';
@@ -2171,61 +2124,6 @@ function drawTitle(){
     ctx.strokeStyle='#00e5ff';ctx.lineWidth=1;rr(W/2-60,closeY,120,32,8);ctx.stroke();
     ctx.fillStyle='#00e5ff';ctx.font='bold 13px monospace';ctx.textAlign='center';
     ctx.fillText('\u9589\u3058\u308B',W/2,closeY+22);
-  }
-
-  // Debug test panel
-  if(debugMenuOpen){
-    ctx.fillStyle='rgba(0,0,0,0.85)';ctx.fillRect(0,0,W,H);
-    ctx.fillStyle='#ff3860';ctx.font='bold 16px monospace';ctx.textAlign='center';
-    ctx.fillText('DEBUG MENU',W/2,safeTop+36);
-    // Difficulty selector
-    ctx.fillStyle='#fff8';ctx.font='11px monospace';
-    ctx.fillText('\u96E3\u6613\u5EA6: '+debugBossBc,W/2,safeTop+54);
-    const bcBtnW=36,bcBtnH=26;
-    const bcY=safeTop+60;
-    ctx.fillStyle='#ffffff18';rr(W/2-60,bcY,bcBtnW,bcBtnH,6);ctx.fill();
-    ctx.strokeStyle='#fff4';ctx.lineWidth=1;rr(W/2-60,bcY,bcBtnW,bcBtnH,6);ctx.stroke();
-    ctx.fillStyle='#fff';ctx.font='bold 14px monospace';ctx.fillText('-',W/2-42,bcY+19);
-    ctx.fillStyle='#ffffff18';rr(W/2+24,bcY,bcBtnW,bcBtnH,6);ctx.fill();
-    ctx.strokeStyle='#fff4';ctx.lineWidth=1;rr(W/2+24,bcY,bcBtnW,bcBtnH,6);ctx.stroke();
-    ctx.fillStyle='#fff';ctx.fillText('+',W/2+42,bcY+19);
-    // Boss section
-    ctx.fillStyle='#ff3860aa';ctx.font='bold 11px monospace';
-    ctx.fillText('--- BOSS ---',W/2,bcY+bcBtnH+14);
-    const bosses=[
-      {id:'guardian',name:'\u30AC\u30FC\u30C7\u30A3\u30A2\u30F3',col:'#4488cc'},
-      {id:'bruiser',name:'\u30D6\u30EB\u30FC\u30B6\u30FC',col:'#9333ea'},
-      {id:'wizard',name:'\u30A6\u30A3\u30B6\u30FC\u30C9',col:'#aa44ff'},
-      {id:'dodge',name:'\u30C9\u30C3\u30B8',col:'#8a6a4a'}
-    ];
-    const bbW=Math.min(180,W-40),bbH=32,bbGap=5;
-    const bbX=W/2-bbW/2;
-    let bbY=bcY+bcBtnH+22;
-    bosses.forEach(b=>{
-      ctx.fillStyle=b.col+'22';rr(bbX,bbY,bbW,bbH,6);ctx.fill();
-      ctx.strokeStyle=b.col;ctx.lineWidth=1.5;rr(bbX,bbY,bbW,bbH,6);ctx.stroke();
-      ctx.fillStyle=b.col;ctx.font='bold 12px monospace';ctx.textAlign='center';
-      ctx.fillText(b.name,W/2,bbY+22);
-      bbY+=bbH+bbGap;
-    });
-    // Enemy section
-    bbY+=6;
-    ctx.fillStyle='#34d399aa';ctx.font='bold 11px monospace';
-    ctx.fillText('--- \u30B6\u30B3\u654C ---',W/2,bbY);
-    bbY+=8;
-    DEBUG_ENEMY_TYPES.forEach(e=>{
-      ctx.fillStyle=e.col+'22';rr(bbX,bbY,bbW,bbH,6);ctx.fill();
-      ctx.strokeStyle=e.col;ctx.lineWidth=1.5;rr(bbX,bbY,bbW,bbH,6);ctx.stroke();
-      ctx.fillStyle=e.col;ctx.font='bold 12px monospace';ctx.textAlign='center';
-      ctx.fillText(e.name,W/2,bbY+22);
-      bbY+=bbH+bbGap;
-    });
-    // Close button
-    const clY=bbY+6;
-    ctx.fillStyle='#ffffff12';rr(W/2-50,clY,100,30,8);ctx.fill();
-    ctx.strokeStyle='#fff4';ctx.lineWidth=1;rr(W/2-50,clY,100,30,8);ctx.stroke();
-    ctx.fillStyle='#fff8';ctx.font='bold 12px monospace';
-    ctx.fillText('\u9589\u3058\u308B',W/2,clY+20);
   }
 
   // Ranking modal overlay

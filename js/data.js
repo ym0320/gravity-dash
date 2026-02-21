@@ -153,14 +153,6 @@ let resetConfirmStep=0; // 0=none, 1=first confirm, 2=second confirm
 let nameEditMode=false; // true when editing username in settings
 let nameEditBuf=''; // buffer for name being edited
 let logoutConfirm=false; // true when logout confirm shown
-let debugMenuOpen=false;
-let debugBossBc=1;
-let debugEnemyMode=false;
-let debugEnemyType=-1;
-let debugEnemyCD=0;
-let debugLastBossType='';
-let debugBossRetry=false;
-let debugBossVictoryT=0; // >0 when debug boss defeated, shows victory overlay
 let rankingOpen=false;
 let rankingScroll=0;
 let rankingScrollTarget=0;
@@ -990,17 +982,6 @@ const ITEMS=[
   {name:'\u30B9\u30ED\u30FC',desc:'\u30B9\u30ED\u30FC\u30E2\u30FC\u30B7\u30E7\u30F3',col:'#a855f7',icon:'\u25F7',dur:600},
 ];
 
-// ===== DEBUG ENEMY TYPES (single source of truth for debug menu) =====
-const DEBUG_ENEMY_TYPES=[
-  {id:0,name:'\u30A6\u30A9\u30FC\u30AB\u30FC',col:'#34d399'},
-  {id:1,name:'\u30AD\u30E3\u30CE\u30F3',col:'#ef4444'},
-  {id:2,name:'\u30D5\u30E9\u30A4\u30E4\u30FC',col:'#60a5fa'},
-  {id:3,name:'\u30DC\u30DE\u30FC',col:'#f59e0b'},
-  {id:4,name:'\u30D0\u30A6\u30F3\u30B5\u30FC',col:'#a78bfa'},
-  {id:5,name:'\u30D5\u30A1\u30F3\u30C8\u30E0',col:'#e879f9'},
-  {id:6,name:'\u30C0\u30C3\u30B7\u30E3\u30FC',col:'#ff4444'},
-  {id:8,name:'\u30B9\u30D7\u30EA\u30C3\u30BF\u30FC',col:'#88cc44'},
-];
 
 // ===== STAGE MODE =====
 let gameMode='endless'; // 'endless' or 'stage'

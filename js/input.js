@@ -60,26 +60,9 @@ function handleDeadBtn(btnId){
   } else if(btnId==='restart'){
     sfx('click');
     if(isPackMode){startPackStageFromDead();return;}
-    if(debugBossRetry&&debugLastBossType){
-      // Debug: restart boss fight directly
-      gameMode='endless';isPackMode=false;reset();
-      state=ST.PLAY;switchBGM('play');
-      bossPhase.bossCount=Math.max(0,debugBossBc-1);
-      bossPhase._forceType=debugLastBossType;
-      startBossPhase();bossPhase.prepare=1;
-      return;
-    }
-    if(debugEnemyMode&&debugEnemyType>=0){
-      // Debug: restart enemy test directly
-      gameMode='endless';isPackMode=false;reset();
-      state=ST.PLAY;switchBGM('play');
-      debugEnemyCD=0;
-      return;
-    }
     startCountdown('endless');
   } else if(btnId==='title'){
     sfx('cancel');titleTouchPos=null; // prevent stale touch from triggering title actions
-    debugBossRetry=false;debugEnemyMode=false;debugEnemyType=-1;
     if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');}
     else{state=ST.TITLE;switchBGM('title');}
   }
@@ -425,33 +408,8 @@ canvas.addEventListener('touchstart',e=>{
   const t=e.touches[0];
   const p=canvasXY(t.clientX,t.clientY);
   touchStartY=t.clientY;touchStartX=t.clientX;touchStartT=Date.now();touchMoved=false;touchBtnUsed=false;
-  // Debug boss victory overlay
-  if(debugBossVictoryT>30){
-    const bw=160,bh=40,bx=W/2-bw/2;
-    const retryY=H*0.50,homeY=H*0.60;
-    if(p.x>=bx&&p.x<=bx+bw&&p.y>=retryY&&p.y<=retryY+bh){
-      // Retry boss
-      sfx('click');debugBossVictoryT=0;
-      gameMode='endless';isPackMode=false;reset();
-      state=ST.PLAY;switchBGM('play');
-      bossPhase.bossCount=Math.max(0,debugBossBc-1);
-      bossPhase._forceType=debugLastBossType;
-      startBossPhase();bossPhase.prepare=1;
-      return;
-    }
-    if(p.x>=bx&&p.x<=bx+bw&&p.y>=homeY&&p.y<=homeY+bh){
-      // Go home
-      sfx('cancel');debugBossVictoryT=0;
-      debugBossRetry=false;debugEnemyMode=false;debugEnemyType=-1;
-      state=ST.TITLE;switchBGM('title');
-      return;
-    }
-    return; // block other input while victory overlay is shown
-  }
   // Ranking modal intercepts all input when open
   if(rankingOpen){handleRankingTouch(p.x,p.y);return;}
-  // Debug menu intercepts all input when open
-  if(debugMenuOpen){handleDebugTouch(p.x,p.y);return;}
   // Settings panel intercepts all input when open
   if(settingsOpen){handleSettingsTouch(p.x,p.y);return;}
   if(state===ST.COUNTDOWN)return; // block input during countdown
@@ -667,7 +625,6 @@ canvas.addEventListener('mousedown',e=>{
   initAudio();
   const p=canvasXY(e.clientX,e.clientY);
   if(rankingOpen){handleRankingTouch(p.x,p.y);return;}
-  if(debugMenuOpen){handleDebugTouch(p.x,p.y);return;}
   if(settingsOpen){handleSettingsTouch(p.x,p.y);return;}
   if(state===ST.COUNTDOWN)return;
   if(state===ST.LOGIN){handleLoginTouch(p.x,p.y);return;}
@@ -733,7 +690,6 @@ canvas.addEventListener('mouseup',()=>{
 });
 document.addEventListener('keydown',e=>{
   if(rankingOpen){if(e.code==='Escape'){rankingOpen=false;sfx('cancel');}e.preventDefault();return;}
-  if(debugMenuOpen){if(e.code==='Escape'){debugMenuOpen=false;sfx('cancel');}e.preventDefault();return;}
   if(settingsOpen){if(e.code==='Escape'){if(nameEditMode){nameEditMode=false;}else{settingsOpen=false;logoutConfirm=false;resetConfirmStep=0;}sfx('cancel');e.preventDefault();}if(!nameEditMode){e.preventDefault();}return;}
   if(e.code==='Escape'){
     e.preventDefault();
@@ -838,10 +794,6 @@ function getCharGridIdx(tx,ty){
   return -1;
 }
 function handleTitleTouch(tx,ty){
-  // Debug button (top right, left of settings gear)
-  if(tx>=W-84&&tx<=W-48&&ty>=safeTop+6&&ty<=safeTop+42){
-    debugMenuOpen=true;sfx('select');return;
-  }
   // Ranking button (top-left, row 1)
   if(tx>=8&&tx<=44&&ty>=safeTop+6&&ty<=safeTop+42){
     rebuildRankingData();if(typeof fbRefreshRankings==='function')fbRefreshRankings();rankingOpen=true;rankingScroll=0;rankingScrollTarget=0;sfx('select');return;
@@ -899,50 +851,6 @@ function handleTitleTouch(tx,ty){
   // Stage mode button (disabled - coming soon)
   if(tx>=sbx&&tx<=sbx+btnW&&ty>=btnY&&ty<=btnY+btnH){
     sfx('cancel');vibrate(10);return;
-  }
-}
-function handleDebugTouch(tx,ty){
-  const bcBtnW=36,bcBtnH=26;
-  const bcY=safeTop+60;
-  // - button
-  if(tx>=W/2-60&&tx<=W/2-60+bcBtnW&&ty>=bcY&&ty<=bcY+bcBtnH){
-    debugBossBc=Math.max(1,debugBossBc-1);sfx('click');return;
-  }
-  // + button
-  if(tx>=W/2+24&&tx<=W/2+24+bcBtnW&&ty>=bcY&&ty<=bcY+bcBtnH){
-    debugBossBc=Math.min(10,debugBossBc+1);sfx('click');return;
-  }
-  // Boss buttons
-  const bosses=['guardian','bruiser','wizard','dodge'];
-  const bbW=Math.min(180,W-40),bbH=32,bbGap=5;
-  const bbX=W/2-bbW/2;
-  let bbY=bcY+bcBtnH+22;
-  for(let i=0;i<bosses.length;i++){
-    if(tx>=bbX&&tx<=bbX+bbW&&ty>=bbY&&ty<=bbY+bbH){
-      debugMenuOpen=false;debugEnemyMode=false;debugEnemyType=-1;
-      debugBossRetry=true;debugLastBossType=bosses[i];
-      sfx('select');
-      window.testBoss(bosses[i],debugBossBc);
-      return;
-    }
-    bbY+=bbH+bbGap;
-  }
-  // Enemy buttons (driven by DEBUG_ENEMY_TYPES from data.js)
-  bbY+=14;
-  for(let i=0;i<DEBUG_ENEMY_TYPES.length;i++){
-    if(tx>=bbX&&tx<=bbX+bbW&&ty>=bbY&&ty<=bbY+bbH){
-      debugMenuOpen=false;debugBossRetry=false;
-      debugEnemyMode=true;debugEnemyType=DEBUG_ENEMY_TYPES[i].id;debugEnemyCD=0;
-      sfx('select');
-      window.testEnemy(DEBUG_ENEMY_TYPES[i].id);
-      return;
-    }
-    bbY+=bbH+bbGap;
-  }
-  // Close button
-  const clY=bbY+6;
-  if(tx>=W/2-50&&tx<=W/2+50&&ty>=clY&&ty<=clY+30){
-    debugMenuOpen=false;sfx('cancel');return;
   }
 }
 function handleRankingTouch(tx,ty){

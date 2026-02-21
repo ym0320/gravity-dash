@@ -39,9 +39,7 @@ function spawnBossEnemies(){
   bossPhase.dodgeKills=0;
   // Randomly choose boss type: 4 types equally likely (25% each)
   let bossType;
-  if(bossPhase._forceType){
-    bossType=bossPhase._forceType;bossPhase._forceType=null;
-  } else {
+  {
     const roll=Math.random();
     if(roll<0.25) bossType='wizard';
     else if(roll<0.50) bossType='bruiser';
@@ -246,11 +244,7 @@ function updateBossPhase(){
     }
     if(bossPhase.rewardT>=180){
       bossPhase.active=false;bossPhase.reward=false;
-      if(debugBossRetry){
-        debugBossVictoryT=1; // show victory overlay with retry/home
-      } else {
-        if(itemEff.invincible<=0)switchBGM('play');
-      }
+      if(itemEff.invincible<=0)switchBGM('play');
     }
     return;
   }
@@ -1553,78 +1547,3 @@ function drawBossBruiser(en){
 
 function addPop(x,y,txt,col){pops.push({x,y,txt,col,life:45,ml:45});}
 
-// Debug: force-start a specific boss from browser console
-// Usage: testBoss('guardian')  testBoss('bruiser')  testBoss('wizard')  testBoss('dodge')
-// Optional 2nd arg = bossCount difficulty (default 1)
-window.testBoss=function(type,bc){
-  if(!['dodge','bruiser','wizard','guardian'].includes(type)){
-    console.log('Usage: testBoss("guardian") / "bruiser" / "wizard" / "dodge"');return;
-  }
-  debugEnemyMode=false;debugEnemyType=-1;
-  // Start a game if not playing
-  if(state!==ST.PLAY){
-    gameMode='endless';isPackMode=false;reset();
-    state=ST.PLAY;switchBGM('play');
-  }
-  // Set boss count for difficulty scaling
-  if(bc!==undefined) bossPhase.bossCount=Math.max(0,bc-1);
-  // Force the boss type via flag (read by spawnBossEnemies)
-  bossPhase._forceType=type;
-  startBossPhase();
-  bossPhase.prepare=1; // skip prepare countdown (spawns next frame)
-  console.log('Boss "'+type+'" starting! (bc='+bossPhase.bossCount+')');
-};
-// Debug: test enemy types with continuous spawning
-window.testEnemy=function(eType){
-  debugEnemyMode=true;debugEnemyType=eType;debugEnemyCD=0;
-  if(state!==ST.PLAY){
-    gameMode='endless';isPackMode=false;reset();
-    state=ST.PLAY;switchBGM('play');
-  }
-  bossPhase.active=false; // clear any boss phase
-  enemies=[];bullets=[];
-  console.log('Enemy type '+eType+' test mode active');
-};
-// Called from update loop to continuously spawn debug enemies
-function debugSpawnEnemy(){
-  if(!debugEnemyMode||debugEnemyType<0)return;
-  if(state!==ST.PLAY)return;
-  debugEnemyCD--;
-  if(debugEnemyCD>0)return;
-  debugEnemyCD=50; // spawn every 50 frames (~0.8s)
-  const floorY=H-GROUND_H;
-  const ceilY2=GROUND_H;
-  const ex=W+20;
-  const sz=13;
-  const eType=debugEnemyType;
-  if(eType===0){
-    enemies.push({x:ex,y:floorY-sz,vy:0,gDir:1,walkSpd:0.3+Math.random()*0.4,sz:sz,alive:true,fr:Math.random()*100,type:0,shootT:999,
-      patrolDir:1,patrolOriginX:ex,patrolRange:30+Math.random()*40});
-  } else if(eType===1){
-    enemies.push({x:ex,y:floorY-sz,vy:0,gDir:1,walkSpd:0.15+Math.random()*0.2,sz:sz,alive:true,fr:Math.random()*100,type:1,shootT:60+Math.floor(Math.random()*60)});
-  } else if(eType===2){
-    const flyY=floorY-60-Math.random()*80;
-    enemies.push({x:ex,y:flyY,vy:0,gDir:1,walkSpd:0,sz:sz,alive:true,fr:Math.random()*100,type:2,shootT:999,
-      baseY:flyY,flyPhase:Math.random()*6.28,flyAmp:20+Math.random()*25});
-  } else if(eType===3){
-    enemies.push({x:ex,y:floorY-sz-2,vy:0,gDir:1,walkSpd:0.1,sz:sz+2,alive:true,fr:Math.random()*100,type:3,
-      shootT:90+Math.floor(Math.random()*40),bombCD:90+Math.floor(Math.random()*40),
-      patrolDir:1,patrolOriginX:ex,patrolRange:15+Math.random()*20});
-  } else if(eType===4){
-    enemies.push({x:ex,y:floorY-14,vy:-2.5-Math.random()*1.5,gDir:1,walkSpd:0,sz:14,alive:true,fr:Math.random()*100,type:4,shootT:999,
-      moveDir:-1,moveSpd:2.5+Math.random()*1.5,pauseT:0});
-  } else if(eType===5){
-    const flyY=floorY-50-Math.random()*60;
-    enemies.push({x:ex,y:flyY,vy:0,gDir:1,walkSpd:0,sz:sz,alive:true,fr:Math.random()*100,type:5,shootT:999,
-      baseY:flyY,flyPhase:Math.random()*6.28,flyAmp:15+Math.random()*15,
-      visTimer:0,visCycle:90+Math.floor(Math.random()*60),visible:true,fadeT:0});
-  } else if(eType===6){
-    enemies.push({x:ex,y:floorY-14,vy:0,gDir:1,walkSpd:0.3,sz:14,alive:true,fr:Math.random()*100,type:6,shootT:999,
-      patrolDir:-1,patrolOriginX:ex,patrolRange:25+Math.random()*20,
-      dashState:'patrol',dashTimer:0,dashSpd:6+Math.random()*3,dashDir:-1,warnT:0});
-  } else if(eType===8){
-    enemies.push({x:ex,y:floorY-16,vy:0,gDir:1,walkSpd:0.2+Math.random()*0.3,sz:16,alive:true,fr:Math.random()*100,type:8,shootT:999,
-      patrolDir:1,patrolOriginX:ex,patrolRange:25+Math.random()*35,
-      splitDone:false});
-  }
-}
