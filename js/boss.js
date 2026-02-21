@@ -920,7 +920,7 @@ function updateBossPhase(){
     if(hp<maxHp()){hp++;addPop(player.x,player.y-40,'HP +1','#ff3860');}
     const bonus=30+bossPhase.total*5;
     walletCoins+=bonus;localStorage.setItem('gd5wallet',walletCoins.toString());
-    totalCoins+=bonus;
+    totalCoins+=bonus;fbSaveUserData();
     addPop(W/2,H*0.45,'+'+bonus+' COINS!','#ffd700');
     for(let i=0;i<40;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*4,vy:1+Math.random()*4,life:80+Math.random()*40,ml:120,sz:Math.random()*5+3,col:['#ffd700','#ffaa00','#fff4b0'][i%3]});
     // Spawn treasure chest falling from above (50% chance)

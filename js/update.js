@@ -320,6 +320,7 @@ function update(dt){
       totalStars=getTotalStars();
       const reward=10+starsThisRun*5+(gotNewStars>0?10:0);
       walletCoins+=reward;localStorage.setItem('gd5wallet',walletCoins.toString());
+      fbSaveUserData();
       switchBGM('title');
       for(let i=0;i<30;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*3,vy:1+Math.random()*3,life:60+Math.random()*40,ml:100,sz:Math.random()*5+2,col:['#ffd700','#00e5ff','#ff3860','#34d399','#a855f7'][i%5]});
     }

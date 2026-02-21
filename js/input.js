@@ -251,12 +251,13 @@ function handleSettingsTouch(tx,ty){
     } else if(resetConfirmStep===1){
       resetConfirmStep=2;sfx('hurt');vibrate(30);return true;
     } else if(resetConfirmStep===2){
-      // Clear all game data
+      // Clear all game data (local + cloud)
       const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gd5'))keys.push(k);}
       keys.forEach(k=>localStorage.removeItem(k));
       sfx('bomb');vibrate(50);
       resetConfirmStep=0;settingsOpen=false;
-      location.reload();
+      if(typeof fbDeleteUserData==='function'){fbDeleteUserData().finally(()=>location.reload());}
+      else{location.reload();}
       return true;
     }
   }
@@ -766,7 +767,7 @@ function handleTitleTouch(tx,ty){
   }
   // Ranking button (top-left, row 1)
   if(tx>=8&&tx<=44&&ty>=safeTop+6&&ty<=safeTop+42){
-    rebuildRankingData();rankingOpen=true;rankingScroll=0;rankingScrollTarget=0;sfx('select');return;
+    rebuildRankingData();if(typeof fbRefreshRankings==='function')fbRefreshRankings();rankingOpen=true;rankingScroll=0;rankingScrollTarget=0;sfx('select');return;
   }
   // Inventory button (top-left, row 2)
   if(tx>=8&&tx<=44&&ty>=safeTop+44&&ty<=safeTop+80){
@@ -1075,15 +1076,76 @@ nameInput.addEventListener('input',()=>{
   nameInput.value=v;
   loginBtn.classList.toggle('ready',v.trim().length>=1);
 });
+// Helper: finish login and enter the game
+function _finishLogin(name){
+  playerName=name;localStorage.setItem('gd5username',playerName);
+  loginOverlay.classList.remove('active');
+  sfx('select');vibrate(15);
+  fbSaveUserData();
+  if(!tutorialDone){startTutorial();}
+  else{state=ST.TITLE;switchBGM('title');}
+}
+// Guest login (anonymous auth + username)
 loginBtn.addEventListener('click',()=>{
   initAudio();
   const name=(nameInput.value||'').trim();
   if(name.length<1){sfx('hurt');vibrate(10);return;}
-  playerName=name;localStorage.setItem('gd5username',playerName);
-  loginOverlay.classList.remove('active');
-  sfx('select');vibrate(15);
-  if(!tutorialDone){startTutorial();}
-  else{state=ST.TITLE;switchBGM('title');}
+  loginBtn.disabled=true;
+  fbSignInAnonymous().then(()=>{
+    _finishLogin(name);
+  }).catch(()=>{
+    // Firebase unavailable – continue with local-only
+    _finishLogin(name);
+  }).finally(()=>{loginBtn.disabled=false;});
+});
+// Google Sign-In
+const googleBtn=document.getElementById('googleBtn');
+if(googleBtn){
+  googleBtn.addEventListener('click',()=>{
+    initAudio();
+    googleBtn.disabled=true;
+    fbSignInGoogle().then(cred=>{
+      const user=cred.user;
+      // Load cloud data to check for existing name
+      return fbLoadUserData().then(data=>{
+        if(data&&data.name){
+          // Returning user – restore all data
+          fbMergeCloudData(data);
+          loginOverlay.classList.remove('active');
+          sfx('select');vibrate(15);
+          if(!tutorialDone){startTutorial();}
+          else{state=ST.TITLE;switchBGM('title');}
+        } else {
+          // New Google user – use Google display name or ask
+          const gName=(user.displayName||'').replace(/[<>&"']/g,'').substring(0,12).trim();
+          if(gName){
+            _finishLogin(gName);
+          } else {
+            // No display name – let them type one
+            nameInput.focus();
+          }
+        }
+      });
+    }).catch(e=>{
+      console.warn('[Firebase] Google sign-in error:',e);
+      sfx('hurt');vibrate(10);
+    }).finally(()=>{googleBtn.disabled=false;});
+  });
+}
+// Auto-login for returning Firebase users (check on page load)
+fbOnReady(user=>{
+  if(user&&!playerName){
+    // Returning user on new device – try to restore data
+    fbLoadUserData().then(data=>{
+      if(data&&data.name){
+        initAudio();
+        fbMergeCloudData(data);
+        loginOverlay.classList.remove('active');
+        if(!tutorialDone){startTutorial();}
+        else{state=ST.TITLE;switchBGM('title');}
+      }
+    });
+  }
 });
 
 // ===== TUTORIAL (course-based) =====
