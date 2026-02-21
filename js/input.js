@@ -294,33 +294,30 @@ function handleConfirmModalTouch(tx,ty){
   if(tx>=cancelX&&tx<=cancelX+btnW&&ty>=btnY&&ty<=btnY+btnH){
     sfx('cancel');confirmModal=null;return true;
   }
-  // Confirm button (step 0 = first confirm, step 1 = final delete)
+  // Confirm button
   if(tx>=confirmX&&tx<=confirmX+btnW&&ty>=btnY&&ty<=btnY+btnH){
-    if(confirmModal.step===0){
-      confirmModal.step=1;sfx('hurt');vibrate(30);return true;
+    if(confirmModal.type==='reset'){
+      // Reset: 2-step confirmation
+      if(confirmModal.step===0){confirmModal.step=1;sfx('hurt');vibrate(30);return true;}
+      const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gd5'))keys.push(k);}
+      keys.forEach(k=>localStorage.removeItem(k));
+      sfx('bomb');vibrate(50);
+      confirmModal=null;settingsOpen=false;
+      if(typeof fbDeleteUserData==='function'){fbDeleteUserData().finally(()=>location.reload());}
+      else{location.reload();}
     } else {
-      // Execute action
-      if(confirmModal.type==='reset'){
-        const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gd5'))keys.push(k);}
-        keys.forEach(k=>localStorage.removeItem(k));
-        sfx('bomb');vibrate(50);
-        confirmModal=null;settingsOpen=false;
-        if(typeof fbDeleteUserData==='function'){fbDeleteUserData().finally(()=>location.reload());}
-        else{location.reload();}
-      } else {
-        sfx('cancel');vibrate(30);
-        confirmModal=null;settingsOpen=false;
-        fbSynced=false;
-        clearTimeout(_fbSaveTimer);
-        const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gd5'))keys.push(k);}
-        keys.forEach(k=>localStorage.removeItem(k));
-        if(fbLoginMethod==='anonymous'&&typeof fbDeleteUserData==='function'){
-          fbDeleteUserData().finally(()=>location.reload());
-        } else if(typeof fbSignOut==='function'){fbSignOut().finally(()=>location.reload());}
-        else{location.reload();}
-      }
-      return true;
+      // Logout: single confirmation
+      sfx('cancel');vibrate(30);
+      confirmModal=null;settingsOpen=false;
+      fbSynced=false;clearTimeout(_fbSaveTimer);
+      const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gd5'))keys.push(k);}
+      keys.forEach(k=>localStorage.removeItem(k));
+      if(fbLoginMethod==='anonymous'&&typeof fbDeleteUserData==='function'){
+        fbDeleteUserData().finally(()=>location.reload());
+      } else if(typeof fbSignOut==='function'){fbSignOut().finally(()=>location.reload());}
+      else{location.reload();}
     }
+    return true;
   }
   // Tap outside modal = close
   if(tx<mX||tx>mX+mW||ty<mY||ty>mY+mH){

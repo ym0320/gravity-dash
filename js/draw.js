@@ -2331,7 +2331,8 @@ function drawTitle(){
       ctx.fillStyle=cBg;rr(confirmX2,btnY2,btnW2,btnH2,8);ctx.fill();
       ctx.strokeStyle=borderCol;ctx.lineWidth=2;rr(confirmX2,btnY2,btnW2,btnH2,8);ctx.stroke();
       ctx.fillStyle=borderCol;ctx.font='bold 13px monospace';
-      ctx.fillText(confirmModal.step===0?'\u524A\u9664\u3059\u308B':'\u5B8C\u5168\u306B\u524A\u9664',confirmX2+btnW2/2,btnY2+26);
+      const cLabel=confirmModal.type==='logout'?'\u30ED\u30B0\u30A2\u30A6\u30C8':confirmModal.step===0?'\u524A\u9664\u3059\u308B':'\u5B8C\u5168\u306B\u524A\u9664';
+      ctx.fillText(cLabel,confirmX2+btnW2/2,btnY2+26);
     }
   }
 
