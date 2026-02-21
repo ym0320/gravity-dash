@@ -1842,9 +1842,6 @@ function drawDemo(){
     ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='center';
     ctx.fillText(d.comboN+' COMBO!',d.px,d.py-pr-15);
   }
-  // Demo score display
-  ctx.globalAlpha=0.25;ctx.fillStyle='#fff';ctx.font='bold 16px monospace';ctx.textAlign='right';
-  ctx.fillText(d.score,W-14,safeTop+24);
   ctx.restore();ctx.globalAlpha=1;
 }
 
