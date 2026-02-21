@@ -1,6 +1,8 @@
 'use strict';
 const canvas=document.getElementById('game');
 const ctx=canvas.getContext('2d');
+const gameWrap=document.getElementById('gameWrap');
+const MAX_W=430;
 let W,H,safeTop=0,safeBot=0;
 function resize(){
   const dpr=Math.min(window.devicePixelRatio||1,2);
@@ -10,7 +12,7 @@ function resize(){
     vw=Math.round(window.visualViewport.width);
     vh=Math.round(window.visualViewport.height);
   }
-  W=vw||window.innerWidth||390;
+  W=Math.min(vw||window.innerWidth||390,MAX_W);
   H=vh||window.innerHeight||844;
   // Safe area insets for notch/home bar
   const cs=getComputedStyle(document.documentElement);

@@ -48,9 +48,11 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--sat:env(safe-area-inset-top);--sab:env(safe-area-inset-bottom)}
-html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#0a0a1a;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;position:fixed;top:0;left:0;right:0;bottom:0;overscroll-behavior:none;-webkit-text-size-adjust:100%}
+html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#000;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;position:fixed;top:0;left:0;right:0;bottom:0;overscroll-behavior:none;-webkit-text-size-adjust:100%}
+body{display:flex;justify-content:center}
+#gameWrap{width:100%;max-width:430px;height:100%;height:100dvh;position:relative;overflow:hidden;background:#0a0a1a}
 canvas{display:block;width:100%;height:100%}
-#loginOverlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:100;background:linear-gradient(180deg,#0a0a2e 0%,#1a1a4e 50%,#0f0f23 100%);flex-direction:column;align-items:center;justify-content:flex-start;padding-top:12vh;font-family:monospace;overflow:hidden}
+#loginOverlay{display:none;position:absolute;top:0;left:0;width:100%;height:100%;z-index:100;background:linear-gradient(180deg,#0a0a2e 0%,#1a1a4e 50%,#0f0f23 100%);flex-direction:column;align-items:center;justify-content:flex-start;padding-top:12vh;font-family:monospace;overflow:hidden}
 #loginOverlay.active{display:flex}
 #loginOverlay .stars{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden}
 #loginOverlay .star{position:absolute;background:#fff;border-radius:50%;animation:twinkle 2s infinite alternate}
@@ -77,6 +79,7 @@ canvas{display:block;width:100%;height:100%}
 </style>
 </head>
 <body>
+<div id="gameWrap">
 <canvas id="game"></canvas>
 <div id="loginOverlay">
   <div class="stars"></div>
@@ -93,19 +96,20 @@ canvas{display:block;width:100%;height:100%}
   </div>
   <div class="footer">Gravity-Flip Action Runner</div>
 </div>
+</div>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
-<script src="js/data.js?v=2"></script>
-<script src="js/firebase.js?v=2"></script>
-<script src="js/terrain.js?v=2"></script>
-<script src="js/spawning.js?v=2"></script>
-<script src="js/boss.js?v=2"></script>
-<script src="js/helpers.js?v=2"></script>
-<script src="js/input.js?v=2"></script>
-<script src="js/collision.js?v=2"></script>
-<script src="js/update.js?v=2"></script>
-<script src="js/draw.js?v=2"></script>
-<script src="js/main.js?v=2"></script>
+<script src="js/data.js?v=3"></script>
+<script src="js/firebase.js?v=3"></script>
+<script src="js/terrain.js?v=3"></script>
+<script src="js/spawning.js?v=3"></script>
+<script src="js/boss.js?v=3"></script>
+<script src="js/helpers.js?v=3"></script>
+<script src="js/input.js?v=3"></script>
+<script src="js/collision.js?v=3"></script>
+<script src="js/update.js?v=3"></script>
+<script src="js/draw.js?v=3"></script>
+<script src="js/main.js?v=3"></script>
 </body>
 </html>
