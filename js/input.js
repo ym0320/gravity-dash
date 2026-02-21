@@ -340,6 +340,12 @@ function handleSettingsTouch(tx,ty){
       const newName=nameEditBuf.trim();
       if(newName.length<1){sfx('hurt');vibrate(10);return true;}
       if(newName===playerName){nameEditMode=false;sfx('click');return true;}
+      // NG word check
+      if(typeof ngCheck==='function'&&ngCheck(newName)){
+        sfx('hurt');vibrate(15);
+        addPop(W/2,H/2,'\u3053\u306E\u540D\u524D\u306F\u4F7F\u7528\u3067\u304D\u307E\u305B\u3093','#ff3860');
+        return true;
+      }
       // Check name uniqueness then save
       fbCheckNameExists(newName).then(taken=>{
         if(taken){
@@ -1217,6 +1223,11 @@ loginBtn.addEventListener('click',()=>{
   initAudio();
   const name=(nameInput.value||'').trim();
   if(name.length<1){sfx('hurt');vibrate(10);return;}
+  // NG word check
+  if(typeof ngCheck==='function'&&ngCheck(name)){
+    nameError.textContent='この名前は使用できません';
+    sfx('hurt');vibrate(10);return;
+  }
   nameError.textContent='';
   loginBtn.disabled=true;
   // If already signed in with Google, try to migrate existing data by name
