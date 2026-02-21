@@ -28,6 +28,7 @@ let fbCloudData = null;
 let fbSynced = false; // true after cloud merge completes (blocks saves until ready)
 let fbLoginMethod = localStorage.getItem('gd5loginMethod') || ''; // 'google' | 'anonymous' | ''
 let _fbGoogleLoginInProgress = false; // true while Google login handler is running
+let _fbDirty = false; // true when local state has changed and needs saving
 
 // --- Auth helpers ---
 function fbSignInAnonymous() {
@@ -99,11 +100,12 @@ if (fbAuth) {
 let _fbSaveTimer = null;
 function fbSaveUserData() {
   if (!fbDb || !fbUser || !fbSynced) return;
+  _fbDirty = true; // mark that local state has changed
   clearTimeout(_fbSaveTimer);
   _fbSaveTimer = setTimeout(_fbDoSave, 1200);
 }
 function _fbDoSave() {
-  if (!fbDb || !fbUser || !fbSynced) return;
+  if (!fbDb || !fbUser || !fbSynced || !_fbDirty) return;
   const uid = fbUser.uid;
   const data = {
     name: playerName || '',
@@ -122,6 +124,7 @@ function _fbDoSave() {
     packProgress: packProgress || {},
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
+  _fbDirty = false; // reset after saving
   fbDb.collection('users').doc(uid).set(data, { merge: true })
     .catch(e => console.warn('[Firebase] Save error:', e));
   // Update ranking entry with current cosmetics
@@ -165,6 +168,7 @@ function fbLoadUserData(uid) {
 // Cloud is authoritative – always overwrite local with cloud values
 function fbMergeCloudData(data) {
   if (!data) return;
+  _fbDirty = false; // cloud data merged – no local changes to save
   // Name
   if (data.name) { playerName = data.name; localStorage.setItem('gd5username', playerName); }
   // Cloud wins for all numeric values
