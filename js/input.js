@@ -235,10 +235,56 @@ function settingsLayout(){
   return{px,py,pw,ph,slX,barX,barW,barY1:slY1-8,barY2:slY2-8,barH,nameY,tutBtnY,resetBtnY,logoutBtnY,closeY:py+ph-42};
 }
 function hitSettingsGear(tx,ty){return tx>=W-44&&tx<=W-8&&ty>=safeTop+6&&ty<=safeTop+42;}
+function handleConfirmModalTouch(tx,ty){
+  if(!confirmModal)return false;
+  const mW=Math.min(280,W-40),mH=220;
+  const mX=W/2-mW/2,mY=H/2-mH/2;
+  const btnW=(mW-60)/2,btnH=40;
+  const cancelX=mX+15,confirmX=mX+mW-15-btnW;
+  const btnY=mY+mH-60;
+  // Cancel button
+  if(tx>=cancelX&&tx<=cancelX+btnW&&ty>=btnY&&ty<=btnY+btnH){
+    sfx('cancel');confirmModal=null;return true;
+  }
+  // Confirm button (step 0 = first confirm, step 1 = final delete)
+  if(tx>=confirmX&&tx<=confirmX+btnW&&ty>=btnY&&ty<=btnY+btnH){
+    if(confirmModal.step===0){
+      confirmModal.step=1;sfx('hurt');vibrate(30);return true;
+    } else {
+      // Execute action
+      if(confirmModal.type==='reset'){
+        const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gd5'))keys.push(k);}
+        keys.forEach(k=>localStorage.removeItem(k));
+        sfx('bomb');vibrate(50);
+        confirmModal=null;settingsOpen=false;
+        if(typeof fbDeleteUserData==='function'){fbDeleteUserData().finally(()=>location.reload());}
+        else{location.reload();}
+      } else {
+        sfx('cancel');vibrate(30);
+        confirmModal=null;settingsOpen=false;
+        fbSynced=false;
+        clearTimeout(_fbSaveTimer);
+        const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gd5'))keys.push(k);}
+        keys.forEach(k=>localStorage.removeItem(k));
+        if(fbLoginMethod==='anonymous'&&typeof fbDeleteUserData==='function'){
+          fbDeleteUserData().finally(()=>location.reload());
+        } else if(typeof fbSignOut==='function'){fbSignOut().finally(()=>location.reload());}
+        else{location.reload();}
+      }
+      return true;
+    }
+  }
+  // Tap outside modal = close
+  if(tx<mX||tx>mX+mW||ty<mY||ty>mY+mH){
+    sfx('cancel');confirmModal=null;return true;
+  }
+  return true; // absorb all touches while modal is open
+}
 function handleSettingsTouch(tx,ty){
+  if(confirmModal){return handleConfirmModalTouch(tx,ty);}
   const s=settingsLayout();
   // Close button
-  if(tx>=W/2-60&&tx<=W/2+60&&ty>=s.closeY&&ty<=s.closeY+32){sfx('click');settingsOpen=false;resetConfirmStep=0;nameEditMode=false;logoutConfirm=false;return true;}
+  if(tx>=W/2-60&&tx<=W/2+60&&ty>=s.closeY&&ty<=s.closeY+32){sfx('click');settingsOpen=false;resetConfirmStep=0;nameEditMode=false;logoutConfirm=false;confirmModal=null;return true;}
   // Name change button / OK button
   if(nameEditMode){
     // OK button (right side of input)
@@ -276,44 +322,13 @@ function handleSettingsTouch(tx,ty){
   if(tx>=s.px+20&&tx<=s.px+s.pw-20&&ty>=s.tutBtnY&&ty<=s.tutBtnY+30){
     sfx('select');settingsOpen=false;resetConfirmStep=0;nameEditMode=false;logoutConfirm=false;startTutorial();return true;
   }
-  // Data reset button
+  // Data reset button - opens modal
   if(tx>=s.px+20&&tx<=s.px+s.pw-20&&ty>=s.resetBtnY&&ty<=s.resetBtnY+30){
-    if(resetConfirmStep===0){
-      resetConfirmStep=1;sfx('hurt');vibrate(20);return true;
-    } else if(resetConfirmStep===1){
-      resetConfirmStep=2;sfx('hurt');vibrate(30);return true;
-    } else if(resetConfirmStep===2){
-      // Clear all game data (local + cloud)
-      const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gd5'))keys.push(k);}
-      keys.forEach(k=>localStorage.removeItem(k));
-      sfx('bomb');vibrate(50);
-      resetConfirmStep=0;settingsOpen=false;
-      if(typeof fbDeleteUserData==='function'){fbDeleteUserData().finally(()=>location.reload());}
-      else{location.reload();}
-      return true;
-    }
+    confirmModal={type:'reset',step:0};sfx('hurt');vibrate(20);return true;
   }
-  // Logout button
+  // Logout button - opens modal
   if(tx>=s.px+20&&tx<=s.px+s.pw-20&&ty>=s.logoutBtnY&&ty<=s.logoutBtnY+30){
-    if(!logoutConfirm){
-      logoutConfirm=true;sfx('hurt');vibrate(15);return true;
-    } else {
-      // Perform logout: clear local data first to prevent _fbFlushSave from re-saving
-      sfx('cancel');vibrate(30);
-      logoutConfirm=false;settingsOpen=false;
-      // Block further saves
-      fbSynced=false;
-      clearTimeout(_fbSaveTimer);
-      // Clear all gd5 localStorage keys so auto-reconnect doesn't trigger
-      const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gd5'))keys.push(k);}
-      keys.forEach(k=>localStorage.removeItem(k));
-      // Guest users: delete Firestore data before sign out
-      if(fbLoginMethod==='anonymous'&&typeof fbDeleteUserData==='function'){
-        fbDeleteUserData().finally(()=>location.reload());
-      } else if(typeof fbSignOut==='function'){fbSignOut().finally(()=>location.reload());}
-      else{location.reload();}
-      return true;
-    }
+    confirmModal={type:'logout',step:0};sfx('hurt');vibrate(15);return true;
   }
   // BGM slider
   if(ty>=s.barY1-10&&ty<=s.barY1+s.barH+10&&tx>=s.barX-10&&tx<=s.barX+s.barW+10){
@@ -720,7 +735,7 @@ canvas.addEventListener('mouseup',()=>{
 });
 document.addEventListener('keydown',e=>{
   if(rankingOpen){if(e.code==='Escape'){rankingOpen=false;sfx('cancel');}e.preventDefault();return;}
-  if(settingsOpen){if(e.code==='Escape'){if(nameEditMode){nameEditMode=false;}else{settingsOpen=false;logoutConfirm=false;resetConfirmStep=0;}sfx('cancel');e.preventDefault();}if(!nameEditMode){e.preventDefault();}return;}
+  if(settingsOpen){if(e.code==='Escape'){if(confirmModal){confirmModal=null;sfx('cancel');}else if(nameEditMode){nameEditMode=false;}else{settingsOpen=false;logoutConfirm=false;resetConfirmStep=0;}sfx('cancel');e.preventDefault();}if(!nameEditMode){e.preventDefault();}return;}
   if(e.code==='Escape'){
     e.preventDefault();
     if(state===ST.STAGE_SEL){sfx('cancel');titleTouchPos=null;state=ST.TITLE;isPackMode=false;switchBGM('title');return;}

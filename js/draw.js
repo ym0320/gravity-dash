@@ -2280,6 +2280,59 @@ function drawTitle(){
     ctx.strokeStyle='#00e5ff';ctx.lineWidth=1;rr(W/2-60,closeY,120,32,8);ctx.stroke();
     ctx.fillStyle='#00e5ff';ctx.font='bold 13px monospace';ctx.textAlign='center';
     ctx.fillText('\u9589\u3058\u308B',W/2,closeY+22);
+    // Confirm modal overlay
+    if(confirmModal){
+      ctx.fillStyle='rgba(0,0,0,0.75)';ctx.fillRect(0,0,W,H);
+      const mW2=Math.min(280,W-40),mH2=220;
+      const mX2=W/2-mW2/2,mY2=H/2-mH2/2;
+      // Modal box
+      ctx.fillStyle='#1a1a2e';rr(mX2,mY2,mW2,mH2,14);ctx.fill();
+      const borderCol=confirmModal.type==='reset'?'#ff4444':'#ff8600';
+      ctx.strokeStyle=borderCol;ctx.lineWidth=2;rr(mX2,mY2,mW2,mH2,14);ctx.stroke();
+      // Icon
+      ctx.font='32px monospace';ctx.textAlign='center';
+      ctx.fillStyle=borderCol;
+      ctx.fillText(confirmModal.type==='reset'?'\u26A0':'\u{1F6AA}',W/2,mY2+44);
+      // Title
+      ctx.font='bold 16px monospace';ctx.fillStyle='#fff';
+      ctx.fillText(confirmModal.type==='reset'?'\u30C7\u30FC\u30BF\u521D\u671F\u5316':'\u30ED\u30B0\u30A2\u30A6\u30C8',W/2,mY2+72);
+      // Description
+      ctx.font='12px monospace';ctx.fillStyle='#fff8';
+      if(confirmModal.step===0){
+        if(confirmModal.type==='reset'){
+          ctx.fillText('\u5168\u3066\u306E\u30C7\u30FC\u30BF\u304C\u524A\u9664\u3055\u308C\u307E\u3059',W/2,mY2+100);
+          ctx.fillText('\u3053\u306E\u64CD\u4F5C\u306F\u53D6\u308A\u6D88\u305B\u307E\u305B\u3093',W/2,mY2+118);
+        } else {
+          if(fbLoginMethod==='anonymous'){
+            ctx.fillText('\u30B2\u30B9\u30C8\u306E\u70BA\u30C7\u30FC\u30BF\u304C\u6D88\u3048\u307E\u3059',W/2,mY2+100);
+            ctx.fillText('\u3053\u306E\u64CD\u4F5C\u306F\u53D6\u308A\u6D88\u305B\u307E\u305B\u3093',W/2,mY2+118);
+          } else {
+            ctx.fillText('\u30ED\u30B0\u30A2\u30A6\u30C8\u3057\u307E\u3059\u304B\uFF1F',W/2,mY2+100);
+            ctx.fillText('\u30C7\u30FC\u30BF\u306F\u4FDD\u6301\u3055\u308C\u307E\u3059',W/2,mY2+118);
+          }
+        }
+      } else {
+        ctx.fillStyle='#ff4444';ctx.font='bold 13px monospace';
+        ctx.fillText('\u672C\u5F53\u306B\u5B9F\u884C\u3057\u307E\u3059\u304B\uFF1F',W/2,mY2+100);
+        ctx.fillStyle='#ff444488';ctx.font='11px monospace';
+        ctx.fillText('\u3053\u306E\u64CD\u4F5C\u306F\u5143\u306B\u623B\u305B\u307E\u305B\u3093',W/2,mY2+118);
+      }
+      // Buttons
+      const btnW2=(mW2-60)/2,btnH2=40;
+      const cancelX2=mX2+15,confirmX2=mX2+mW2-15-btnW2;
+      const btnY2=mY2+mH2-60;
+      // Cancel
+      ctx.fillStyle='#ffffff11';rr(cancelX2,btnY2,btnW2,btnH2,8);ctx.fill();
+      ctx.strokeStyle='#ffffff44';ctx.lineWidth=1;rr(cancelX2,btnY2,btnW2,btnH2,8);ctx.stroke();
+      ctx.fillStyle='#fff';ctx.font='bold 13px monospace';ctx.textAlign='center';
+      ctx.fillText('\u3084\u3081\u308B',cancelX2+btnW2/2,btnY2+26);
+      // Confirm
+      const cBg=confirmModal.step===0?borderCol+'44':(Math.sin(Date.now()*0.01)*0.15+0.35>0.4?borderCol+'88':borderCol+'44');
+      ctx.fillStyle=cBg;rr(confirmX2,btnY2,btnW2,btnH2,8);ctx.fill();
+      ctx.strokeStyle=borderCol;ctx.lineWidth=2;rr(confirmX2,btnY2,btnW2,btnH2,8);ctx.stroke();
+      ctx.fillStyle=borderCol;ctx.font='bold 13px monospace';
+      ctx.fillText(confirmModal.step===0?'\u524A\u9664\u3059\u308B':'\u5B8C\u5168\u306B\u524A\u9664',confirmX2+btnW2/2,btnY2+26);
+    }
   }
 
   // Ranking modal overlay

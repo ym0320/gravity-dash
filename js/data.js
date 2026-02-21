@@ -156,6 +156,7 @@ let resetConfirmStep=0; // 0=none, 1=first confirm, 2=second confirm
 let nameEditMode=false; // true when editing username in settings
 let nameEditBuf=''; // buffer for name being edited
 let logoutConfirm=false; // true when logout confirm shown
+let confirmModal=null; // {type:'reset'|'logout', step:0} - modal confirmation overlay
 let rankingOpen=false;
 let rankingScroll=0;
 let rankingScrollTarget=0;
@@ -179,12 +180,12 @@ function initAudio(){
     return;
   }
   try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();
-    bgmGain=audioCtx.createGain();bgmGain.gain.value=0.07*bgmVol;bgmGain.connect(audioCtx.destination);
+    bgmGain=audioCtx.createGain();bgmGain.gain.value=0.15*bgmVol;bgmGain.connect(audioCtx.destination);
     sfxGain=audioCtx.createGain();sfxGain.gain.value=sfxVol;sfxGain.connect(audioCtx.destination);
     switchBGM('title');
   }catch(e){}
 }
-function setBgmVol(v){bgmVol=v;localStorage.setItem('gd5bgmVol',v.toString());if(bgmGain)bgmGain.gain.value=0.07*v;}
+function setBgmVol(v){bgmVol=v;localStorage.setItem('gd5bgmVol',v.toString());if(bgmGain)bgmGain.gain.value=0.15*v;}
 function setSfxVol(v){sfxVol=v;localStorage.setItem('gd5sfxVol',v.toString());if(sfxGain)sfxGain.gain.value=v;}
 
 // Helper: create oscillator routed through bgmGain
