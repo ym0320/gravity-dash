@@ -99,7 +99,9 @@ function handleInventoryChestTap(tapX,tapY){
       localStorage.setItem('gd5chestTotal',totalChestsOpened.toString());
       storedChests=0;localStorage.setItem('gd5storedChests','0');
       chestOpen.phase='batchDone';chestOpen.t=0;chestOpen.parts=[];
+      chestOpen._lastRevealIdx=-1;
       chestBatchMode=false;
+      if(typeof fbSaveUserData==='function')fbSaveUserData();
       sfx('select');sfxChestOpen();vibrate([30,20,40,20,80]);shakeI=15;
       return true;
     }
@@ -114,6 +116,7 @@ function handleInventoryChestTap(tapX,tapY){
     chestOpen.phase='wobble';chestOpen.t=0;sfx('select');vibrate(15);
     totalChestsOpened++;localStorage.setItem('gd5chestTotal',totalChestsOpened.toString());
     storedChests--;localStorage.setItem('gd5storedChests',storedChests.toString());
+    if(typeof fbSaveUserData==='function')fbSaveUserData();
     return true;
   }
   if(chestOpen.phase==='done'){
@@ -138,11 +141,22 @@ function handleInventoryChestTap(tapX,tapY){
     } else {
       chestOpen.phase='none';chestOpen.t=0;chestOpen.parts=[];chestOpen.reward=null;
       if(deadChestOpen){deadChestOpen=false;}
+      if(typeof fbSaveUserData==='function')fbSaveUserData();
     }
     sfx('click');
     return true;
   }
   if(chestOpen.phase==='batchDone'){
+    // Only allow close after all cards revealed (calculate total reveal time)
+    const n2=chestBatchResults.length;
+    const bd2=n2>20?6:n2>10?8:12;
+    let ct2=12;
+    chestBatchResults.forEach(r2=>{
+      const rar2=r2&&r2.type==='cosmetic'&&r2.item?r2.item.rarity:null;
+      const inc2=r2&&r2.type==='char'&&r2.isNew;
+      ct2+=bd2+(rar2==='super_rare'?40:rar2==='rare'?20:inc2?15:0);
+    });
+    if(chestOpen.t<ct2)return true; // block tap during reveal
     chestOpen.phase='none';chestOpen.t=0;chestOpen.parts=[];chestOpen.reward=null;
     chestBatchResults=[];
     if(deadChestOpen){deadChestOpen=false;}
@@ -348,9 +362,21 @@ function handleSettingsTouch(tx,ty){
   if(tx>=s.px+20&&tx<=s.px+s.pw-20&&ty>=s.resetBtnY&&ty<=s.resetBtnY+30){
     confirmModal={type:'reset',step:0};sfx('hurt');vibrate(20);return true;
   }
-  // Logout button - opens modal
+  // Logout button - Google users skip confirmation, guests get modal
   if(tx>=s.px+20&&tx<=s.px+s.pw-20&&ty>=s.logoutBtnY&&ty<=s.logoutBtnY+30){
-    confirmModal={type:'logout',step:0};sfx('hurt');vibrate(15);return true;
+    if(fbLoginMethod==='google'){
+      // Google users: logout immediately without confirmation
+      sfx('cancel');vibrate(30);
+      confirmModal=null;settingsOpen=false;
+      fbSynced=false;clearTimeout(_fbSaveTimer);
+      const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gd5'))keys.push(k);}
+      keys.forEach(k=>localStorage.removeItem(k));
+      if(typeof fbSignOut==='function'){fbSignOut().finally(()=>location.reload());}
+      else{location.reload();}
+    } else {
+      confirmModal={type:'logout',step:0};sfx('hurt');vibrate(15);
+    }
+    return true;
   }
   // BGM slider
   if(ty>=s.barY1-10&&ty<=s.barY1+s.barH+10&&tx>=s.barX-10&&tx<=s.barX+s.barW+10){

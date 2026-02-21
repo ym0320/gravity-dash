@@ -3331,134 +3331,238 @@ function drawChestOpen(){
     ctx.globalAlpha=1;
   }
   else if(p==='batchDone'){
-    // === BATCH OPEN SUMMARY - CARD FORMAT ===
-    ctx.fillStyle='#ffd700';ctx.font='bold 16px monospace';ctx.textAlign='center';
-    ctx.fillText('\u5168\u958B\u5C01\u7D50\u679C',cx,mY+30);
-    ctx.fillStyle='#fff6';ctx.font='11px monospace';
-    ctx.fillText(chestBatchResults.length+' \u500B\u958B\u5C01',cx,mY+48);
+    // === SEQUENTIAL CARD REVEAL ===
+    // Header (clear spacing)
+    ctx.fillStyle='#ffd700';ctx.font='bold 15px monospace';ctx.textAlign='center';
+    ctx.fillText('\u5168\u958B\u5C01\u7D50\u679C',cx,mY+24);
+    ctx.fillStyle='#fff6';ctx.font='10px monospace';
+    ctx.fillText(chestBatchResults.length+' \u500B\u958B\u5C01',cx,mY+40);
 
-    // Sort results: super_rare > rare > char > normal cosmetic > coin (high first)
+    // Sort: rarest LAST for dramatic buildup
     const sorted=[...chestBatchResults].sort((a,b)=>{
       const rank=r=>{
-        if(!r)return 99;
-        if(r.type==='cosmetic'&&r.item&&r.item.rarity==='super_rare')return 0;
-        if(r.type==='char'&&r.isNew)return 1;
-        if(r.type==='cosmetic'&&r.item&&r.item.rarity==='rare')return 2;
-        if(r.type==='char')return 3;
-        if(r.type==='cosmetic')return 4;
-        if(r.type==='coin')return 5+(1000-r.amount)/1000;
-        return 9;
+        if(!r)return 0;
+        if(r.type==='coin')return 1+(1000-(r.amount||0))/10000;
+        if(r.type==='cosmetic'&&r.item&&!r.item.rarity)return 3;
+        if(r.type==='char'&&!r.isNew)return 4;
+        if(r.type==='char'&&r.isNew)return 5;
+        if(r.type==='cosmetic'&&r.item&&r.item.rarity==='rare')return 6;
+        if(r.type==='cosmetic'&&r.item&&r.item.rarity==='super_rare')return 7;
+        return 2;
       };
       return rank(a)-rank(b);
     });
 
+    // Calculate reveal timing per card (faster for many chests)
+    const n=sorted.length;
+    const baseDur=n>20?6:n>10?8:12;
+    let cumT=12;
+    const revInfo=sorted.map((rw2)=>{
+      const rar=rw2&&rw2.type==='cosmetic'&&rw2.item?rw2.item.rarity:null;
+      const isNewChar=rw2&&rw2.type==='char'&&rw2.isNew;
+      const dur=baseDur+(rar==='super_rare'?40:rar==='rare'?20:isNewChar?15:0);
+      const info={start:cumT,dur:dur};
+      cumT+=dur;
+      return info;
+    });
+    const totalRevealT=cumT;
+    const allRevealed=t>=totalRevealT;
+
     // Card grid layout
-    const cols=4,cardW=62,cardH=68,gap=4;
+    const cols=4,cardW=62,cardH=76,gap=4;
     const gridW=cols*cardW+(cols-1)*gap;
     const startX=cx-gridW/2;
-    const startY=mY+60;
-    const maxRows=Math.floor((mY+mH-50-startY)/(cardH+gap));
-    const maxCards=cols*maxRows;
+    const startY=mY+50;
+    const visH=mH-50-(allRevealed?56:24);
+
+    // Total coins
     let totalCoinsGot=0;
     chestBatchResults.forEach(r=>{if(r&&r.type==='coin')totalCoinsGot+=r.amount;
       if(r&&r.type==='char'&&!r.isNew)totalCoinsGot+=500;
       if(r&&r.type==='cosmetic'&&!r.isNew)totalCoinsGot+=300;});
 
-    // Draw each card with entrance animation
-    const fadeIn=Math.min(t/30,1);
+    // Auto-scroll to keep current revealing card visible
+    let currentIdx=-1;
+    for(let i=0;i<revInfo.length;i++){
+      if(t>=revInfo[i].start)currentIdx=i;
+    }
+    const curRow=currentIdx>=0?Math.floor(currentIdx/cols):0;
+    const totalRows=Math.ceil(n/cols);
+    const contentH=totalRows*(cardH+gap);
+    const targetScr=Math.max(0,curRow*(cardH+gap)-visH+cardH+16);
+    const maxScr=Math.max(0,contentH-visH);
+    const scrollY=Math.min(targetScr,maxScr);
+
+    // Trigger reveal effects for newly revealed cards
+    if(chestOpen._lastRevealIdx===undefined)chestOpen._lastRevealIdx=-1;
+    for(let i=chestOpen._lastRevealIdx+1;i<=currentIdx&&i<n;i++){
+      const ri=revInfo[i];
+      if(t>=ri.start+Math.min(ri.dur*0.4,10)){
+        chestOpen._lastRevealIdx=i;
+        const rw2=sorted[i];
+        const rar=rw2&&rw2.type==='cosmetic'&&rw2.item?rw2.item.rarity:null;
+        if(rar==='super_rare'){
+          shakeI=20;vibrate([30,20,50,20,70]);
+          if(typeof sfxSuperRare==='function')sfxSuperRare();
+          for(let pp=0;pp<16;pp++){
+            const a2=Math.random()*6.28;
+            chestOpen.parts.push({x:cx+Math.cos(a2)*30,y:mY+mH*0.4+Math.sin(a2)*30,
+              vx:Math.cos(a2)*4,vy:Math.sin(a2)*4-1,life:35,ml:35,
+              sz:Math.random()*5+2,col:['#ffd700','#fff','#ffaa00'][pp%3],g:0.06});
+          }
+        } else if(rar==='rare'){
+          shakeI=10;vibrate([15,10,20]);sfx('bossHit');
+          for(let pp=0;pp<10;pp++){
+            const a2=Math.random()*6.28;
+            chestOpen.parts.push({x:cx+Math.cos(a2)*25,y:mY+mH*0.4+Math.sin(a2)*25,
+              vx:Math.cos(a2)*3,vy:Math.sin(a2)*3-1,life:28,ml:28,
+              sz:Math.random()*4+1.5,col:['#a855f7','#d4a8ff','#fff'][pp%3],g:0.05});
+          }
+        } else if(rw2&&rw2.type==='char'&&rw2.isNew){
+          shakeI=6;vibrate(15);sfx('gstompHeavy');
+          for(let pp=0;pp<6;pp++){
+            const a2=Math.random()*6.28;
+            chestOpen.parts.push({x:cx+Math.cos(a2)*20,y:mY+mH*0.4+Math.sin(a2)*20,
+              vx:Math.cos(a2)*2,vy:Math.sin(a2)*2-1,life:22,ml:22,
+              sz:Math.random()*3+1,col:['#ff88cc','#ffaadd','#fff'][pp%3],g:0.04});
+          }
+        }
+      }
+    }
+
+    // Draw card grid (clipped)
+    ctx.save();
+    ctx.beginPath();ctx.rect(mX+1,startY,mW-2,visH);ctx.clip();
+
     sorted.forEach((rw2,i)=>{
-      if(!rw2||i>=maxCards)return;
+      if(!rw2)return;
+      const ri=revInfo[i];
+      const cardT=t-ri.start;
+      if(cardT<0)return; // not yet
+      const progress=Math.min(cardT/ri.dur,1);
       const col2=i%cols,row2=Math.floor(i/cols);
       const cardX=startX+col2*(cardW+gap);
-      const cardDelay=i*2;
-      const cardAlpha=Math.min(Math.max((t-cardDelay)/15,0),1);
-      if(cardAlpha<=0)return;
-      const cardY2=startY+row2*(cardH+gap);
-      ctx.save();ctx.globalAlpha=cardAlpha;
+      const cardY2=startY+row2*(cardH+gap)-scrollY;
+      if(cardY2+cardH<startY-10||cardY2>startY+visH+10)return;
+
+      const rar=rw2.type==='cosmetic'&&rw2.item?rw2.item.rarity:null;
+      const isNewChar=rw2.type==='char'&&rw2.isNew;
+
+      // Scale pop-in animation
+      const scale=progress<0.25?progress/0.25:1+(1-Math.min((progress-0.25)/0.15,1))*0.08;
+      ctx.save();
+      ctx.translate(cardX+cardW/2,cardY2+cardH/2);
+      ctx.scale(Math.min(scale,1.08),Math.min(scale,1.08));
+      ctx.translate(-(cardX+cardW/2),-(cardY2+cardH/2));
 
       // Card bg & border based on rarity
-      let borderCol='#445',bgCol='#ffffff08';
-      let glowCol=null,lw=1;
-      if(rw2.type==='cosmetic'&&rw2.item&&rw2.item.rarity==='super_rare'){
-        borderCol='#ffd700';bgCol='#ffd70025';glowCol='#ffd70040';lw=2;
-      } else if(rw2.type==='cosmetic'&&rw2.item&&rw2.item.rarity==='rare'){
-        borderCol='#a855f7';bgCol='#a855f720';lw=1.5;
+      let borderCol='#445',bgCol='#ffffff08',glowCol=null,lw2=1;
+      if(rar==='super_rare'){
+        borderCol='#ffd700';bgCol='#ffd70025';glowCol='#ffd70050';lw2=2;
+      } else if(rar==='rare'){
+        borderCol='#a855f7';bgCol='#a855f720';glowCol='#a855f730';lw2=1.5;
       } else if(rw2.type==='char'){
-        borderCol=rw2.isNew?'#ff88cc':'#ff88cc88';bgCol='#ff88cc15';
+        borderCol=isNewChar?'#ff88cc':'#ff88cc88';bgCol='#ff88cc15';
       } else if(rw2.type==='coin'){
         borderCol=rw2.amount>=1000?'#ffd700':'#ffd70066';bgCol='#ffd70010';
       }
 
-      // Glow for super rare
-      if(glowCol){
-        const glow=ctx.createRadialGradient(cardX+cardW/2,cardY2+cardH/2,5,cardX+cardW/2,cardY2+cardH/2,cardW);
+      // Flash effect during reveal for rare/super_rare
+      if(progress<0.6&&(rar==='super_rare'||rar==='rare')){
+        const flashA=(1-progress/0.6)*0.6;
+        const fc=rar==='super_rare'?'rgba(255,215,0,'+flashA+')':'rgba(168,85,247,'+flashA+')';
+        ctx.fillStyle=fc;rr(cardX-6,cardY2-6,cardW+12,cardH+12,10);ctx.fill();
+      }
+
+      // Glow for special items
+      if(glowCol&&progress>0.3){
+        const glow=ctx.createRadialGradient(cardX+cardW/2,cardY2+cardH/2,5,cardX+cardW/2,cardY2+cardH/2,cardW*0.9);
         glow.addColorStop(0,glowCol);glow.addColorStop(1,'transparent');
-        ctx.fillStyle=glow;ctx.fillRect(cardX-10,cardY2-10,cardW+20,cardH+20);
+        ctx.fillStyle=glow;ctx.fillRect(cardX-12,cardY2-12,cardW+24,cardH+24);
       }
 
       ctx.fillStyle=bgCol;rr(cardX,cardY2,cardW,cardH,6);ctx.fill();
-      ctx.strokeStyle=borderCol;ctx.lineWidth=lw;rr(cardX,cardY2,cardW,cardH,6);ctx.stroke();
+      ctx.strokeStyle=borderCol;ctx.lineWidth=lw2;rr(cardX,cardY2,cardW,cardH,6);ctx.stroke();
 
-      const ccx2=cardX+cardW/2;
-      ctx.textAlign='center';
+      // Card content (fade in after pop)
+      const contentA=Math.max(0,Math.min((progress-0.2)/0.3,1));
+      if(contentA>0){
+        ctx.globalAlpha=contentA;
+        const ccx2=cardX+cardW/2;
+        ctx.textAlign='center';
 
-      if(rw2.type==='coin'){
-        // Coin icon
-        ctx.fillStyle='#ffd700';ctx.font='bold 18px monospace';
-        ctx.fillText('\u25CF',ccx2,cardY2+24);
-        ctx.fillStyle='#ffd700';ctx.font='bold 11px monospace';
-        ctx.fillText('+'+rw2.amount,ccx2,cardY2+42);
-        ctx.fillStyle='#fff4';ctx.font='8px monospace';
-        ctx.fillText('\u30b3\u30a4\u30f3',ccx2,cardY2+54);
-      } else if(rw2.type==='char'){
-        drawCharacter(ccx2,cardY2+22,rw2.charIdx,9,0,1,'happy',0);
-        const cname=CHARS[rw2.charIdx]?CHARS[rw2.charIdx].name:'???';
-        const sname=cname.length>4?cname.substring(0,4)+'..':cname;
-        ctx.fillStyle='#fff';ctx.font='8px monospace';
-        ctx.fillText(sname,ccx2,cardY2+42);
-        ctx.fillStyle=rw2.isNew?'#34d399':'#ffaa00';ctx.font='bold 9px monospace';
-        ctx.fillText(rw2.isNew?'NEW!':'+500',ccx2,cardY2+56);
-      } else if(rw2.type==='cosmetic'){
-        const rar2=rw2.item?rw2.item.rarity:null;
-        // Rarity badge
-        if(rar2==='super_rare'){
-          ctx.fillStyle='#ffd700';ctx.font='bold 10px monospace';
-          ctx.fillText('\u2605\u2605',ccx2,cardY2+16);
-        } else if(rar2==='rare'){
-          ctx.fillStyle='#a855f7';ctx.font='bold 10px monospace';
-          ctx.fillText('\u2605',ccx2,cardY2+16);
-        } else {
-          ctx.fillStyle='#88aacc';ctx.font='9px monospace';
-          ctx.fillText('\u30b3\u30b9\u30e1',ccx2,cardY2+16);
+        if(rw2.type==='coin'){
+          ctx.fillStyle='#ffd700';ctx.font='bold 16px monospace';
+          ctx.fillText('\u25CF',ccx2,cardY2+22);
+          ctx.fillStyle='#ffd700';ctx.font='bold 11px monospace';
+          ctx.fillText('+'+rw2.amount,ccx2,cardY2+40);
+          ctx.fillStyle='#fff4';ctx.font='8px monospace';
+          ctx.fillText('\u30b3\u30a4\u30f3',ccx2,cardY2+52);
+        } else if(rw2.type==='char'){
+          drawCharacter(ccx2,cardY2+24,rw2.charIdx,10,0,1,'happy',0);
+          const cname=CHARS[rw2.charIdx]?CHARS[rw2.charIdx].name:'???';
+          const sname=cname.length>4?cname.substring(0,4)+'..':cname;
+          ctx.fillStyle='#fff';ctx.font='8px monospace';
+          ctx.fillText(sname,ccx2,cardY2+46);
+          ctx.fillStyle=isNewChar?'#34d399':'#ffaa00';ctx.font='bold 9px monospace';
+          ctx.fillText(isNewChar?'NEW!':'+500',ccx2,cardY2+60);
+        } else if(rw2.type==='cosmetic'&&rw2.item){
+          const tab2=rw2.item.tab;
+          // Rarity badge at top
+          if(rar==='super_rare'){
+            ctx.fillStyle='#ffd700';ctx.font='bold 9px monospace';
+            ctx.fillText('\u2605\u2605 S.RARE',ccx2,cardY2+12);
+          } else if(rar==='rare'){
+            ctx.fillStyle='#a855f7';ctx.font='bold 9px monospace';
+            ctx.fillText('\u2605 RARE',ccx2,cardY2+12);
+          }
+          // Actual cosmetic preview
+          const pvY=cardY2+(rar?26:20);
+          if(tab2===0){
+            // Skin: draw character with skin applied
+            ctx.save();
+            const origSk=equippedSkin;equippedSkin=rw2.item.id;
+            drawCharacter(ccx2,pvY,selChar,10,0,1,'normal',0,true);
+            equippedSkin=origSk;
+            ctx.restore();
+          } else if(tab2===1){
+            // Eyes: draw eye preview
+            drawEyePreview(ccx2,pvY,rw2.item.type,8);
+          } else if(tab2===2){
+            // Effect: draw character with effect
+            drawCharacter(ccx2,pvY,selChar,8,0,1,'normal',0,true);
+            drawPlayerEffect(ccx2,pvY,8,rw2.item.type,0.8);
+          }
+          // Item name
+          const iname=rw2.item.name||'???';
+          const siname=iname.length>5?iname.substring(0,5)+'..':iname;
+          ctx.fillStyle='#fff';ctx.font='8px monospace';ctx.textAlign='center';
+          ctx.fillText(siname,ccx2,cardY2+(rar?48:42));
+          ctx.fillStyle=rw2.isNew?'#34d399':'#ffaa00';ctx.font='bold 9px monospace';
+          ctx.fillText(rw2.isNew?(rar==='super_rare'?'S.RARE!':'NEW!'):'+300',ccx2,cardY2+(rar?62:56));
         }
-        // Item name
-        const iname=rw2.item?rw2.item.name:'???';
-        const siname=iname.length>5?iname.substring(0,5)+'..':iname;
-        ctx.fillStyle='#fff';ctx.font='8px monospace';
-        ctx.fillText(siname,ccx2,cardY2+34);
-        ctx.fillStyle=rw2.isNew?'#34d399':'#ffaa00';ctx.font='bold 9px monospace';
-        ctx.fillText(rw2.isNew?(rar2==='super_rare'?'S.RARE!':'NEW!'):'+300',ccx2,cardY2+50);
+        ctx.globalAlpha=1;
       }
       ctx.restore();
     });
+    ctx.restore(); // end clip
 
-    // Overflow indicator
-    if(sorted.length>maxCards){
-      ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.textAlign='center';
-      ctx.fillText('...+'+(sorted.length-maxCards)+'\u4EF6',cx,startY+maxRows*(cardH+gap)+12);
+    // Footer: total coins + close (after all revealed)
+    if(allRevealed){
+      if(totalCoinsGot>0){
+        ctx.fillStyle='#ffd700';ctx.font='bold 13px monospace';ctx.textAlign='center';
+        ctx.fillText('\u5408\u8A08 +'+totalCoinsGot+' \u30b3\u30a4\u30f3',cx,mY+mH-38);
+      }
+      const ta2=0.4+Math.sin(t*0.1)*0.3;
+      ctx.globalAlpha=ta2;ctx.fillStyle='#fff6';ctx.font='12px monospace';ctx.textAlign='center';
+      ctx.fillText('\u30BF\u30C3\u30D7\u3067\u9589\u3058\u308B',cx,mY+mH-16);
+      ctx.globalAlpha=1;
+    } else {
+      // Show progress during reveal
+      const revealedCount=currentIdx+1;
+      ctx.fillStyle='#fff4';ctx.font='10px monospace';ctx.textAlign='center';
+      ctx.fillText(revealedCount+'/'+n+' \u958B\u5C01\u4E2D...',cx,mY+mH-16);
     }
-
-    // Total coins at bottom
-    if(totalCoinsGot>0){
-      ctx.fillStyle='#ffd700';ctx.font='bold 13px monospace';ctx.textAlign='center';
-      ctx.fillText('\u5408\u8A08 +'+totalCoinsGot+' \u30b3\u30a4\u30f3',cx,mY+mH-40);
-    }
-
-    // Tap to close
-    const ta2=0.4+Math.sin(t*0.1)*0.3;
-    ctx.globalAlpha=ta2;ctx.fillStyle='#fff6';ctx.font='12px monospace';ctx.textAlign='center';
-    ctx.fillText('\u30BF\u30C3\u30D7\u3067\u9589\u3058\u308B',cx,mY+mH-18);
-    ctx.globalAlpha=1;
     // Sparkles
     if(t%5===0){
       const a=Math.random()*6.28,r2=40+Math.random()*40;
@@ -3989,29 +4093,25 @@ function drawShop(){
       ctx.fillStyle=sCol3;ctx.font='9px monospace';
       ctx.fillText('\u5B9D\u7BB1\u304B\u3089\u51FA\u73FE',mX+mW-16,iy+34);
     } else {
-    // Preview
+    // Preview: show actual character with cosmetic applied
     if(shopTab===0){
-      // Skin color swatch (border as filled ring to avoid clip bleed)
-      ctx.fillStyle=item.col2==='rainbow'?'#888':item.col2;
-      ctx.beginPath();ctx.arc(mX+33,iy+rowH/2,14,0,6.28);ctx.fill();
-      if(item.col==='rainbow'){
-        const rg=ctx.createLinearGradient(mX+20,iy+10,mX+46,iy+36);
-        rg.addColorStop(0,'#ff0000');rg.addColorStop(0.33,'#00ff00');rg.addColorStop(0.66,'#0000ff');rg.addColorStop(1,'#ff0000');
-        ctx.fillStyle=rg;
-        ctx.beginPath();ctx.arc(mX+33,iy+rowH/2,12,0,6.28);ctx.fill();
-      } else if(item.col==='skeleton'){
-        ctx.fillStyle='rgba(255,255,255,0.06)';ctx.beginPath();ctx.arc(mX+33,iy+rowH/2,12,0,6.28);ctx.fill();
-        ctx.strokeStyle='rgba(255,255,255,0.85)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(mX+33,iy+rowH/2,12,0,6.28);ctx.stroke();
-      } else {
-        ctx.fillStyle=item.col;
-        ctx.beginPath();ctx.arc(mX+33,iy+rowH/2,12,0,6.28);ctx.fill();
-      }
+      // Skin: draw mini character with this skin
+      ctx.save();
+      const origSk=equippedSkin;equippedSkin=item.id;
+      drawCharacter(mX+33,iy+rowH/2,selChar,12,0,1,'normal',0,true);
+      equippedSkin=origSk;
+      ctx.restore();
     } else if(shopTab===1){
-      drawEyePreview(mX+33,iy+rowH/2,item.type,10);
+      // Eyes: draw character with these eyes
+      ctx.save();
+      const origEy=equippedEyes;equippedEyes=item.id;
+      drawCharacter(mX+33,iy+rowH/2,selChar,12,0,1,'normal',0,true);
+      equippedEyes=origEy;
+      ctx.restore();
     } else {
-      ctx.fillStyle='#fff';ctx.font='20px monospace';ctx.textAlign='center';
-      const fxIcons={sparkle:'\u2728',fire_aura:'\uD83D\uDD25',ice_aura:'\u2744',electric:'\u26A1',hearts:'\u2665',shadow:'\uD83C\uDF11',rainbow:'\uD83C\uDF08',sakura:'\uD83C\uDF38',star_trail:'\u2B50',plasma_trail:'\uD83D\uDD2E',void_aura:'\u26AB',celestial:'\u2726'};
-      ctx.fillText(fxIcons[item.type]||'?',mX+33,iy+rowH/2+7);
+      // Effect: draw character with this effect
+      drawCharacter(mX+33,iy+rowH/2,selChar,10,0,1,'normal',0,true);
+      drawPlayerEffect(mX+33,iy+rowH/2,10,item.type,0.7);
     }
     // Name & desc
     ctx.fillStyle='#fff';ctx.font='bold 12px monospace';ctx.textAlign='left';
@@ -4206,13 +4306,23 @@ function drawCosmeticMenu(){
     // Preview
     if(!isNone){
       if(cosmeticTab===0){
-        if(item.col==='rainbow'){const rg=ctx.createLinearGradient(mX+20,iy+8,mX+46,iy+34);rg.addColorStop(0,'#ff0000');rg.addColorStop(0.33,'#00ff00');rg.addColorStop(0.66,'#0000ff');rg.addColorStop(1,'#ff0000');ctx.fillStyle=rg;ctx.beginPath();ctx.arc(mX+33,iy+rowH/2,11,0,6.28);ctx.fill();}
-        else if(item.col==='skeleton'){ctx.fillStyle='rgba(255,255,255,0.06)';ctx.beginPath();ctx.arc(mX+33,iy+rowH/2,11,0,6.28);ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.85)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(mX+33,iy+rowH/2,11,0,6.28);ctx.stroke();}
-        else{ctx.fillStyle=item.col;ctx.beginPath();ctx.arc(mX+33,iy+rowH/2,11,0,6.28);ctx.fill();}
+        // Skin: draw mini character with this skin
+        ctx.save();
+        const origSk2=equippedSkin;equippedSkin=item.id;
+        drawCharacter(mX+33,iy+rowH/2,selChar,11,0,1,'normal',0,true);
+        equippedSkin=origSk2;
+        ctx.restore();
+      } else if(cosmeticTab===1){
+        // Eyes: draw character with these eyes
+        ctx.save();
+        const origEy2=equippedEyes;equippedEyes=item.id;
+        drawCharacter(mX+33,iy+rowH/2,selChar,11,0,1,'normal',0,true);
+        equippedEyes=origEy2;
+        ctx.restore();
       } else {
-        ctx.fillStyle='#fff';ctx.font='18px monospace';ctx.textAlign='center';
-        if(cosmeticTab===1){drawEyePreview(mX+33,iy+rowH/2,item.type,9);}
-        else{const fxIcons={sparkle:'\u2728',fire_aura:'\uD83D\uDD25',ice_aura:'\u2744',electric:'\u26A1',hearts:'\u2665',shadow:'\uD83C\uDF11',rainbow:'\uD83C\uDF08',sakura:'\uD83C\uDF38',star_trail:'\u2B50',plasma_trail:'\uD83D\uDD2E',void_aura:'\u26AB',celestial:'\u2726'};ctx.fillText(fxIcons[item.type]||'?',mX+33,iy+rowH/2+6);}
+        // Effect: draw character with this effect
+        drawCharacter(mX+33,iy+rowH/2,selChar,9,0,1,'normal',0,true);
+        drawPlayerEffect(mX+33,iy+rowH/2,9,item.type,0.7);
       }
     } else {
       ctx.fillStyle='#fff4';ctx.font='18px monospace';ctx.textAlign='center';
