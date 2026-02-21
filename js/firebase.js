@@ -41,6 +41,11 @@ function fbSignInGoogle() {
   const provider = new firebase.auth.GoogleAuthProvider();
   return fbAuth.signInWithPopup(provider);
 }
+function fbSignInTwitter() {
+  if (!fbAuth) return Promise.reject('no-firebase');
+  const provider = new firebase.auth.TwitterAuthProvider();
+  return fbAuth.signInWithPopup(provider);
+}
 function fbSignOut() {
   if (!fbAuth) return Promise.resolve();
   return fbAuth.signOut();
@@ -56,7 +61,8 @@ if (fbAuth) {
     const wasReady = fbReady;
     fbReady = true;
     if (user) {
-      fbLoginMethod = user.isAnonymous ? 'anonymous' : 'google';
+      fbLoginMethod = user.isAnonymous ? 'anonymous' :
+        (user.providerData && user.providerData.some(p => p.providerId === 'twitter.com')) ? 'twitter' : 'google';
       localStorage.setItem('gd5loginMethod', fbLoginMethod);
       if (_fbGoogleLoginInProgress) {
         // Google login handler manages sync

@@ -382,8 +382,8 @@ function handleSettingsTouch(tx,ty){
   }
   // Logout button - Google users skip confirmation, guests get modal
   if(tx>=s.px+20&&tx<=s.px+s.pw-20&&ty>=s.logoutBtnY&&ty<=s.logoutBtnY+30){
-    if(fbLoginMethod==='google'){
-      // Google users: logout immediately without confirmation
+    if(fbLoginMethod==='google'||fbLoginMethod==='twitter'){
+      // Google/Twitter users: logout immediately without confirmation
       sfx('cancel');vibrate(30);
       confirmModal=null;settingsOpen=false;
       fbSynced=false;clearTimeout(_fbSaveTimer);
@@ -1315,6 +1315,58 @@ if(googleBtn){
       _fbGoogleLoginInProgress=false;
       sfx('hurt');vibrate(10);
     }).finally(()=>{googleBtn.disabled=false;});
+  });
+}
+// Twitter Sign-In
+const twitterBtn=document.getElementById('twitterBtn');
+if(twitterBtn){
+  twitterBtn.addEventListener('click',()=>{
+    initAudio();
+    twitterBtn.disabled=true;
+    _fbGoogleLoginInProgress=true;
+    fbSignInTwitter().then(cred=>{
+      const user=cred.user;
+      fbUser=user;
+      return fbLoadUserData(user.uid).then(data=>{
+        if(data&&data.name){
+          fbMergeCloudData(data);
+          fbSynced=true;
+          _fbGoogleLoginInProgress=false;
+          fbSaveUserData();
+          loginOverlay.classList.remove('active');
+          sfx('select');vibrate(15);
+          if(!tutorialDone){startTutorial();}
+          else{state=ST.TITLE;switchBGM('title');}
+          return;
+        }
+        const localName=playerName||localStorage.getItem('gd5username')||'';
+        if(localName){
+          return fbFindAndMigrateByName(localName).then(migrated=>{
+            if(migrated&&migrated.name){
+              fbMergeCloudData(migrated);
+              fbSynced=true;
+              _fbGoogleLoginInProgress=false;
+              fbSaveUserData();
+              loginOverlay.classList.remove('active');
+              sfx('select');vibrate(15);
+              if(!tutorialDone){startTutorial();}
+              else{state=ST.TITLE;switchBGM('title');}
+            } else {
+              fbSynced=true;
+              _fbGoogleLoginInProgress=false;
+              _finishLogin(localName);
+            }
+          });
+        }
+        _fbGoogleLoginInProgress=false;
+        fbSynced=true;
+        nameInput.focus();
+      });
+    }).catch(e=>{
+      console.warn('[Firebase] Twitter sign-in error:',e);
+      _fbGoogleLoginInProgress=false;
+      sfx('hurt');vibrate(10);
+    }).finally(()=>{twitterBtn.disabled=false;});
   });
 }
 // Auto-login for returning Firebase users (check on page load)

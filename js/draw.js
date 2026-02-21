@@ -2253,7 +2253,7 @@ function drawTitle(){
     // Login method indicator (above logout button)
     const methodY=resetBtnY+42;
     ctx.fillStyle='#fff3';ctx.font='9px monospace';ctx.textAlign='center';
-    const methodStr=fbLoginMethod==='google'?'Google\u30A2\u30AB\u30A6\u30F3\u30C8':fbLoginMethod==='anonymous'?'\u30B2\u30B9\u30C8\u30ED\u30B0\u30A4\u30F3':'';
+    const methodStr=fbLoginMethod==='google'?'Google\u30A2\u30AB\u30A6\u30F3\u30C8':fbLoginMethod==='twitter'?'X\u30A2\u30AB\u30A6\u30F3\u30C8':fbLoginMethod==='anonymous'?'\u30B2\u30B9\u30C8\u30ED\u30B0\u30A4\u30F3':'';
     if(methodStr)ctx.fillText(methodStr,W/2,methodY);
     // Logout button
     const logoutBtnY=methodY+8;
