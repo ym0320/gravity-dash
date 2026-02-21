@@ -163,7 +163,8 @@ function rebuildRankingData(){
   // Insert player's high score if > 0
   if(typeof highScore!=='undefined'&&highScore>0){
     const pName=(typeof playerName!=='undefined'&&playerName)||'\u3042\u306A\u305F';
-    data.push({name:pName,charIdx:selChar,score:highScore,isPlayer:true});
+    const rc=rankChar>=0?rankChar:(selChar||0);
+    data.push({name:pName,charIdx:rc,score:highScore,eqSkin:rankSkin||'',eqEyes:rankEyes||'',eqFx:rankFx||'',isPlayer:true});
   }
   data.sort((a,b)=>b.score-a.score);
   RANKING_DATA=data.slice(0,100);
@@ -1087,6 +1088,11 @@ let tutFreezePlayer=false; // freeze player mid-air during double-flip
 let screenFadeIn=0; // white overlay fade-in timer for screen transitions
 let countdownT=0; // countdown timer (frames, counts down from 180 = 3 seconds)
 let score=0,highScore=parseInt(localStorage.getItem('gd5hi')||'0');
+// Ranking cosmetics: captured at time of high score
+let rankChar=parseInt(localStorage.getItem('gd5rankChar')||'-1');
+let rankSkin=localStorage.getItem('gd5rankSkin')||'';
+let rankEyes=localStorage.getItem('gd5rankEyes')||'';
+let rankFx=localStorage.getItem('gd5rankFx')||'';
 let newHi=false,speed=SPEED_INIT,frame=0,deadT=0,titleT=0;
 let combo=0,comboT=0,comboDsp=0,comboDspT=0;
 let airCombo=0; // aerial enemy kill combo (resets on grounded)
@@ -1370,6 +1376,11 @@ function buyItem(id,price){
   ownedItems.push(id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));
   if(typeof fbSaveUserData==='function')fbSaveUserData();
   return true;
+}
+function captureRankCosmetics(){
+  rankChar=selChar||0;rankSkin=equippedSkin||'';rankEyes=equippedEyes||'';rankFx=equippedEffect||'';
+  localStorage.setItem('gd5rankChar',rankChar.toString());localStorage.setItem('gd5rankSkin',rankSkin);
+  localStorage.setItem('gd5rankEyes',rankEyes);localStorage.setItem('gd5rankFx',rankFx);
 }
 function equipSkin(id){equippedSkin=id;localStorage.setItem('gd5eqSkin',id);if(typeof fbSaveUserData==='function')fbSaveUserData();}
 function equipEyes(id){equippedEyes=id;localStorage.setItem('gd5eqEyes',id);if(typeof fbSaveUserData==='function')fbSaveUserData();}
