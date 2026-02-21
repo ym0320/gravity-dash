@@ -74,13 +74,13 @@ if (fbAuth) {
           fbSynced = true;
           _fbLastSyncedUid = user.uid;
           // Update ranking entry with current cosmetics
-          if (highScore > 0 && playerName) {
+          if (playerName) {
             const rc = rankChar >= 0 ? rankChar : selChar || 0;
             fbDb.collection('rankings').doc(user.uid).set({
-              name: playerName, charIdx: rc, score: highScore,
+              name: playerName, charIdx: rc, score: highScore || 0,
               eqSkin: rankSkin || '', eqEyes: rankEyes || '', eqFx: rankFx || '',
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true }).catch(() => {});
+            }, { merge: true }).catch(e => console.error('[Firebase] ranking update error:', e));
           }
           // Force initial save for new users (so they appear in users collection)
           const pn = playerName || localStorage.getItem('gd5username');
@@ -148,6 +148,7 @@ function fbSaveUserData() {
   _fbSaveTimer = setTimeout(_fbDoSave, 1200);
 }
 function _fbDoSave() {
+  console.log('[Firebase] _fbDoSave called: fbDb=', !!fbDb, 'fbUser=', !!fbUser, 'dirty=', _fbDirty, 'synced=', fbSynced);
   if (!fbDb || !fbUser || !_fbDirty) return;
   const uid = fbUser.uid;
   const data = {
@@ -172,22 +173,26 @@ function _fbDoSave() {
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   _fbDirty = false; // reset after saving
-  console.log('[Firebase] Saving user data for', uid, 'name:', data.name, 'score:', data.highScore);
+  console.log('[Firebase] Writing users/' + uid, 'name:', data.name, 'score:', data.highScore);
   fbDb.collection('users').doc(uid).set(data, { merge: true })
-    .then(() => console.log('[Firebase] User data saved OK'))
-    .catch(e => console.warn('[Firebase] Save error:', e));
-  // Update ranking entry with high-score cosmetics
-  if (highScore > 0) {
+    .then(() => console.log('[Firebase] users/' + uid + ' saved OK'))
+    .catch(e => console.error('[Firebase] users/ SAVE FAILED:', e));
+  // Update ranking entry – always save if name exists (even score 0 for visibility)
+  if (playerName) {
+    const sc = highScore || 0;
     const rc = rankChar >= 0 ? rankChar : selChar || 0;
+    console.log('[Firebase] Writing rankings/' + uid, 'name:', playerName, 'score:', sc);
     fbDb.collection('rankings').doc(uid).set({
-      name: playerName || '',
+      name: playerName,
       charIdx: rc,
-      score: highScore,
+      score: sc,
       eqSkin: rankSkin || '',
       eqEyes: rankEyes || '',
       eqFx: rankFx || '',
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true }).catch(e => console.warn('[Firebase] Ranking save error:', e));
+    }, { merge: true })
+      .then(() => console.log('[Firebase] rankings/' + uid + ' saved OK'))
+      .catch(e => console.error('[Firebase] rankings/ SAVE FAILED:', e));
   }
 }
 // Force-flush on page hide / unload; re-sync on page visible (title only)
