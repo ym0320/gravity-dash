@@ -1932,19 +1932,24 @@ function drawTitle(){
       rr(cx,cy,charW,charH,6);ctx.fill();
 
       if(locked){
-        // Secret: exact character silhouette in black using offscreen canvas
-        ctx.save();ctx.globalAlpha=0.6;
-        const ofc=document.createElement('canvas');
-        ofc.width=60;ofc.height=60;
-        const origCtx=ctx;
-        ctx=ofc.getContext('2d');
-        ctx.translate(30,30);
-        drawCharacter(0,0,idx,14,0,1,'normal',0,false);
-        ctx.globalCompositeOperation='source-atop';
+        // Secret: character silhouette drawn directly (no ctx reassignment)
+        ctx.save();ctx.globalAlpha=0.5;
+        const scx=cx+charW/2,scy=cy+charH/2-8,sr=14;
         ctx.fillStyle='#111118';
-        ctx.fillRect(-30,-30,60,60);
-        ctx=origCtx;
-        ctx.drawImage(ofc,cx+charW/2-30,cy+charH/2-8-30);
+        switch(ch.shape){
+          case'cube':rr(scx-sr,scy-sr,sr*2,sr*2,sr*0.3);ctx.fill();break;
+          case'ball':ctx.beginPath();ctx.arc(scx,scy,sr,0,6.28);ctx.fill();break;
+          case'tire':ctx.beginPath();ctx.arc(scx,scy,sr,0,6.28);ctx.fill();break;
+          case'ghost':ctx.beginPath();ctx.arc(scx,scy-sr*0.15,sr,Math.PI,0);ctx.lineTo(scx+sr,scy+sr);
+            for(let gi=0;gi<4;gi++){const bx=sr-gi*(sr*2/4)-sr*2/8;ctx.quadraticCurveTo(scx+bx+sr/8,scy+sr-sr*0.35,scx+bx-sr/8,scy+sr);}
+            ctx.closePath();ctx.fill();break;
+          case'ninja':rr(scx-sr,scy-sr,sr*2,sr*2,sr*0.25);ctx.fill();break;
+          case'stone':ctx.beginPath();ctx.moveTo(scx-sr*0.5,scy-sr*0.9);ctx.lineTo(scx+sr*0.4,scy-sr*0.85);
+            ctx.lineTo(scx+sr*0.85,scy-sr*0.3);ctx.lineTo(scx+sr*0.9,scy+sr*0.3);ctx.lineTo(scx+sr*0.5,scy+sr*0.85);
+            ctx.lineTo(scx-sr*0.3,scy+sr*0.9);ctx.lineTo(scx-sr*0.85,scy+sr*0.4);ctx.lineTo(scx-sr*0.9,scy-sr*0.2);
+            ctx.closePath();ctx.fill();break;
+          default:ctx.beginPath();ctx.arc(scx,scy,sr,0,6.28);ctx.fill();
+        }
         ctx.restore();
         // Lock icon
         ctx.fillStyle='#fff5';ctx.font='bold 14px monospace';ctx.textAlign='center';
@@ -2052,7 +2057,7 @@ function drawTitle(){
   // Settings panel overlay
   if(settingsOpen){
     ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,W,H);
-    const pw=Math.min(280,W-30),ph=330,px=W/2-pw/2,py=H/2-ph/2;
+    const pw=Math.min(280,W-30),ph=500,px=W/2-pw/2,py=H/2-ph/2;
     const panGr=ctx.createLinearGradient(px,py,px,py+ph);
     panGr.addColorStop(0,'rgba(15,15,40,0.97)');panGr.addColorStop(1,'rgba(8,8,25,0.97)');
     ctx.fillStyle=panGr;rr(px,py,pw,ph,14);ctx.fill();
@@ -2086,11 +2091,33 @@ function drawTitle(){
     ctx.fillStyle='#ff8600';ctx.beginPath();ctx.arc(knobX2,barY2+barH/2,5,0,6.28);ctx.fill();
     ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.textAlign='right';
     ctx.fillText(Math.round(sfxVol*100)+'%',slX+slW,slY2);
-    // Player name display
+    // Player name display + edit button
+    const nameY=slY2+28;
     ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.textAlign='left';
-    ctx.fillText('\u30D7\u30EC\u30A4\u30E4\u30FC: '+playerName,slX,slY2+32);
+    ctx.fillText('\u30D7\u30EC\u30A4\u30E4\u30FC',slX,nameY);
+    if(nameEditMode){
+      // Editing: show input box
+      ctx.fillStyle='#0a0a2e';rr(slX+54,nameY-14,pw-100,22,4);ctx.fill();
+      ctx.strokeStyle='#ffd700';ctx.lineWidth=1.5;rr(slX+54,nameY-14,pw-100,22,4);ctx.stroke();
+      const blink=Math.floor(Date.now()/500)%2===0?'|':'';
+      ctx.fillStyle='#fff';ctx.font='12px monospace';ctx.textAlign='left';
+      ctx.fillText(nameEditBuf+blink,slX+60,nameY);
+      // OK button
+      ctx.fillStyle='#00e5ff22';rr(slX+pw-42,nameY-14,36,22,4);ctx.fill();
+      ctx.strokeStyle='#00e5ff';ctx.lineWidth=1;rr(slX+pw-42,nameY-14,36,22,4);ctx.stroke();
+      ctx.fillStyle='#00e5ff';ctx.font='bold 10px monospace';ctx.textAlign='center';
+      ctx.fillText('OK',slX+pw-24,nameY);
+    } else {
+      // Display name + change button
+      ctx.fillStyle='#fff';ctx.font='12px monospace';ctx.textAlign='left';
+      ctx.fillText(playerName,slX+54,nameY);
+      ctx.fillStyle='#ffd70022';rr(slX+pw-72,nameY-14,66,22,4);ctx.fill();
+      ctx.strokeStyle='#ffd70066';ctx.lineWidth=1;rr(slX+pw-72,nameY-14,66,22,4);ctx.stroke();
+      ctx.fillStyle='#ffd700';ctx.font='10px monospace';ctx.textAlign='center';
+      ctx.fillText('\u5909\u66F4',slX+pw-39,nameY);
+    }
     // Tutorial replay button
-    const tutBtnY=slY2+44;
+    const tutBtnY=nameY+22;
     ctx.fillStyle='#ffd70022';rr(px+20,tutBtnY,pw-40,30,6);ctx.fill();
     ctx.strokeStyle='#ffd70066';ctx.lineWidth=1;rr(px+20,tutBtnY,pw-40,30,6);ctx.stroke();
     ctx.fillStyle='#ffd700';ctx.font='12px monospace';ctx.textAlign='center';
@@ -2114,6 +2141,24 @@ function drawTitle(){
       ctx.fillStyle='#ff0000';ctx.font='bold 12px monospace';ctx.textAlign='center';
       ctx.fillText('\u6700\u7D42\u78BA\u8A8D: \u30BF\u30C3\u30D7\u3067\u5B8C\u5168\u524A\u9664',W/2,resetBtnY+20);
     }
+    // Logout button
+    const logoutBtnY=resetBtnY+38;
+    if(!logoutConfirm){
+      ctx.fillStyle='#ff860022';rr(px+20,logoutBtnY,pw-40,30,6);ctx.fill();
+      ctx.strokeStyle='#ff860066';ctx.lineWidth=1;rr(px+20,logoutBtnY,pw-40,30,6);ctx.stroke();
+      ctx.fillStyle='#ff8600';ctx.font='12px monospace';ctx.textAlign='center';
+      ctx.fillText('\u30ED\u30B0\u30A2\u30A6\u30C8',W/2,logoutBtnY+20);
+    } else {
+      ctx.fillStyle='#ff860044';rr(px+20,logoutBtnY,pw-40,30,6);ctx.fill();
+      ctx.strokeStyle='#ff8600';ctx.lineWidth=2;rr(px+20,logoutBtnY,pw-40,30,6);ctx.stroke();
+      ctx.fillStyle='#ff8600';ctx.font='bold 12px monospace';ctx.textAlign='center';
+      ctx.fillText('\u672C\u5F53\u306B\u30ED\u30B0\u30A2\u30A6\u30C8\uFF1F',W/2,logoutBtnY+20);
+    }
+    // Login method indicator
+    const methodY=logoutBtnY+34;
+    ctx.fillStyle='#fff3';ctx.font='9px monospace';ctx.textAlign='center';
+    const methodStr=fbLoginMethod==='google'?'Google\u30A2\u30AB\u30A6\u30F3\u30C8':fbLoginMethod==='anonymous'?'\u30B2\u30B9\u30C8\u30ED\u30B0\u30A4\u30F3':'';
+    if(methodStr)ctx.fillText(methodStr,W/2,methodY);
     // Close button
     const closeY=py+ph-42;
     ctx.fillStyle='#00e5ff22';rr(W/2-60,closeY,120,32,8);ctx.fill();
@@ -2238,9 +2283,14 @@ function drawTitle(){
         ctx.fillStyle=rank<=10?'#fff8':'#fff4';ctx.font=(rank<=10?'bold ':'')+'11px monospace';ctx.textAlign='left';
         ctx.fillText(String(rank),rx+(rank<10?4:0),ry+22);
       }
-      // Character icon (exact drawCharacter with actual shape)
+      // Character icon with per-player cosmetics
       const cix=mX+42,ciy=ry+16;
-      drawCharacter(cix,ciy,entry.charIdx,9,0,1,'normal',0);
+      const _rkSkin=equippedSkin,_rkEyes=equippedEyes,_rkFx=equippedEffect;
+      equippedSkin=entry.eqSkin||'';equippedEyes=entry.eqEyes||'';equippedEffect=entry.eqFx||'';
+      const rkFxData=getEquippedEffectData();
+      if(rkFxData)drawPlayerEffect(cix,ciy,9,rkFxData.type,1);
+      drawCharacter(cix,ciy,entry.charIdx,9,0,1,'normal',0,true);
+      equippedSkin=_rkSkin;equippedEyes=_rkEyes;equippedEffect=_rkFx;
       // Name
       const nameX=mX+58;
       if(entry.isPlayer){ctx.fillStyle='#00e5ff';ctx.font='bold 12px monospace';}

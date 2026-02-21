@@ -188,6 +188,7 @@ function spawnBossEnemies(){
       teleportT:0,teleportTarget:{x:0,y:0},
       alpha:1,
       rushDir:1,rushT:0,rushReady:false,rushTargetX:0,rushTargetY:0,
+      lastAction:'rush', // start with cast first
       homeX:W*0.65,homeY:H*0.35+Math.random()*(H*0.3) // floating home position
     };
     bossPhase.wizard=wizard;
@@ -762,15 +763,16 @@ function updateBossPhase(){
       w.x+=(w.homeX-w.x)*0.05;
       w.y=w.homeY+Math.sin(w.fr*0.4)*8;
       if(w.timer>=70){
-        // 55% rush (dash at player), 45% cast (shoot)
-        if(Math.random()<0.55){
+        // Alternate: always cast after rush, always rush after cast
+        if(w.lastAction==='cast'){
           w.state='rush';w.timer=0;w.rushT=0;w.rushReady=false;
-          // Save home and target player's current position
           w.rushTargetX=player.x;
           w.rushTargetY=player.y;
           w.rushDir=player.gDir;
+          w.lastAction='rush';
         } else {
           w.state='cast';w.timer=0;w.castType=Math.floor(Math.random()*2);w.castT=0;
+          w.lastAction='cast';
         }
       }
     } else if(w.state==='rush'){
@@ -821,23 +823,22 @@ function updateBossPhase(){
         // Phase 3+: 1.5x bullets
         const bulletMul=bc>=3?1.5:1;
         if(w.castType===0){
-          const ringCount=Math.round(8*bulletMul);
+          const ringCount=Math.round(10*bulletMul);
           for(let i=0;i<ringCount;i++){
             const a=i*Math.PI*2/ringCount;
-            bullets.push({x:w.x,y:w.y,vx:Math.cos(a)*3,vy:Math.sin(a)*3,sz:5,life:999,wizBullet:true});
+            bullets.push({x:w.x,y:w.y,vx:Math.cos(a)*2.5,vy:Math.sin(a)*2.5,sz:7,life:999,wizBullet:true});
           }
         } else {
-          const waveHalf=Math.floor(1*bulletMul); // 1 → 1 at bc<3, 1.5→1 at bc>=3 (rounded up below)
-          const waveCount=Math.round(3*bulletMul); // 3 → 4-5
+          const waveCount=Math.round(5*bulletMul); // 5 → 7-8
           const waveSpread=(waveCount-1)/2;
           for(let i=0;i<waveCount;i++){
             const si=i-waveSpread;
             const dx=player.x-w.x,dy=player.y-w.y;
             const d=Math.sqrt(dx*dx+dy*dy)||1;
-            const spd=3.5;
-            const spread=si*0.25;
+            const spd=3;
+            const spread=si*0.2;
             bullets.push({x:w.x,y:w.y,vx:dx/d*spd+Math.cos(Math.atan2(dy,dx)+Math.PI/2)*spread*spd,
-              vy:dy/d*spd+Math.sin(Math.atan2(dy,dx)+Math.PI/2)*spread*spd,sz:6,life:999,wizBullet:true});
+              vy:dy/d*spd+Math.sin(Math.atan2(dy,dx)+Math.PI/2)*spread*spd,sz:8,life:999,wizBullet:true});
           }
         }
         sfx('shoot');
@@ -923,8 +924,8 @@ function updateBossPhase(){
     totalCoins+=bonus;fbSaveUserData();
     addPop(W/2,H*0.45,'+'+bonus+' COINS!','#ffd700');
     for(let i=0;i<40;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*4,vy:1+Math.random()*4,life:80+Math.random()*40,ml:120,sz:Math.random()*5+3,col:['#ffd700','#ffaa00','#fff4b0'][i%3]});
-    // Spawn treasure chest falling from above (50% chance)
-    if(Math.random()<0.5){
+    // Spawn treasure chest falling from above (100%)
+    if(true){
       bossChests++;
       chestFall={active:true,x:player.x,y:-40,vy:0,sparkT:0,gotT:0};
     }

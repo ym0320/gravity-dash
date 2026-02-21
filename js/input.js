@@ -227,22 +227,57 @@ function startPackStageFromDead(){
 
 // Settings panel input helpers (must match drawTitle layout)
 function settingsLayout(){
-  const pw=Math.min(280,W-30),ph=330,px=W/2-pw/2,py=H/2-ph/2;
+  const pw=Math.min(280,W-30),ph=500,px=W/2-pw/2,py=H/2-ph/2;
   const slW=pw-50,slX=px+25,barX=slX+42,barW=slW-42;
   const slY1=py+52,slY2=slY1+44;
   const barH=10;
-  const tutBtnY=slY2+44;
+  const nameY=slY2+28;
+  const tutBtnY=nameY+22;
   const resetBtnY=tutBtnY+38;
-  return{px,py,pw,ph,barX,barW,barY1:slY1-8,barY2:slY2-8,barH,tutBtnY,resetBtnY,closeY:py+ph-42};
+  const logoutBtnY=resetBtnY+38;
+  return{px,py,pw,ph,slX,barX,barW,barY1:slY1-8,barY2:slY2-8,barH,nameY,tutBtnY,resetBtnY,logoutBtnY,closeY:py+ph-42};
 }
 function hitSettingsGear(tx,ty){return tx>=W-44&&tx<=W-8&&ty>=safeTop+6&&ty<=safeTop+42;}
 function handleSettingsTouch(tx,ty){
   const s=settingsLayout();
   // Close button
-  if(tx>=W/2-60&&tx<=W/2+60&&ty>=s.closeY&&ty<=s.closeY+32){sfx('click');settingsOpen=false;resetConfirmStep=0;return true;}
+  if(tx>=W/2-60&&tx<=W/2+60&&ty>=s.closeY&&ty<=s.closeY+32){sfx('click');settingsOpen=false;resetConfirmStep=0;nameEditMode=false;logoutConfirm=false;return true;}
+  // Name change button / OK button
+  if(nameEditMode){
+    // OK button (right side of input)
+    if(tx>=s.px+s.pw-42&&tx<=s.px+s.pw&&ty>=s.nameY-14&&ty<=s.nameY+8){
+      const newName=nameEditBuf.trim();
+      if(newName.length<1){sfx('hurt');vibrate(10);return true;}
+      if(newName===playerName){nameEditMode=false;sfx('click');return true;}
+      // Check name uniqueness then save
+      fbCheckNameExists(newName).then(taken=>{
+        if(taken){
+          sfx('hurt');vibrate(15);
+          addPop(W/2,H/2,'\u3053\u306E\u540D\u524D\u306F\u4F7F\u308F\u308C\u3066\u3044\u307E\u3059','#ff3860');
+        } else {
+          playerName=newName;localStorage.setItem('gd5username',playerName);
+          nameEditMode=false;sfx('select');vibrate(10);
+          addPop(W/2,H/2,'\u540D\u524D\u3092\u5909\u66F4\u3057\u307E\u3057\u305F','#00e5ff');
+          if(typeof fbSaveUserData==='function')fbSaveUserData();
+        }
+      });
+      return true;
+    }
+    // Tap on input area - keep in edit mode (let keyboard handle input)
+    return true;
+  } else {
+    // "変更" button
+    if(tx>=s.px+s.pw-72&&tx<=s.px+s.pw-6&&ty>=s.nameY-14&&ty<=s.nameY+8){
+      nameEditMode=true;nameEditBuf=playerName||'';
+      sfx('click');
+      // Show virtual keyboard by creating temporary input
+      _showNameEditKeyboard();
+      return true;
+    }
+  }
   // Tutorial replay button
   if(tx>=s.px+20&&tx<=s.px+s.pw-20&&ty>=s.tutBtnY&&ty<=s.tutBtnY+30){
-    sfx('select');settingsOpen=false;resetConfirmStep=0;startTutorial();return true;
+    sfx('select');settingsOpen=false;resetConfirmStep=0;nameEditMode=false;logoutConfirm=false;startTutorial();return true;
   }
   // Data reset button
   if(tx>=s.px+20&&tx<=s.px+s.pw-20&&ty>=s.resetBtnY&&ty<=s.resetBtnY+30){
@@ -261,6 +296,26 @@ function handleSettingsTouch(tx,ty){
       return true;
     }
   }
+  // Logout button
+  if(tx>=s.px+20&&tx<=s.px+s.pw-20&&ty>=s.logoutBtnY&&ty<=s.logoutBtnY+30){
+    if(!logoutConfirm){
+      logoutConfirm=true;sfx('hurt');vibrate(15);return true;
+    } else {
+      // Perform logout: clear local data first to prevent _fbFlushSave from re-saving
+      sfx('cancel');vibrate(30);
+      logoutConfirm=false;settingsOpen=false;
+      // Block further saves
+      fbSynced=false;
+      clearTimeout(_fbSaveTimer);
+      // Clear all gd5 localStorage keys so auto-reconnect doesn't trigger
+      const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gd5'))keys.push(k);}
+      keys.forEach(k=>localStorage.removeItem(k));
+      // Sign out from Firebase then reload to login screen
+      if(typeof fbSignOut==='function'){fbSignOut().finally(()=>location.reload());}
+      else{location.reload();}
+      return true;
+    }
+  }
   // BGM slider
   if(ty>=s.barY1-10&&ty<=s.barY1+s.barH+10&&tx>=s.barX-10&&tx<=s.barX+s.barW+10){
     draggingSlider='bgm';updateSliderDrag(tx);return true;
@@ -269,7 +324,27 @@ function handleSettingsTouch(tx,ty){
   if(ty>=s.barY2-10&&ty<=s.barY2+s.barH+10&&tx>=s.barX-10&&tx<=s.barX+s.barW+10){
     draggingSlider='sfx';updateSliderDrag(tx);return true;
   }
+  // Tap anywhere else resets confirm states
+  logoutConfirm=false;resetConfirmStep=0;
   return false;
+}
+// Virtual keyboard for name editing (mobile)
+let _nameEditInput=null;
+function _showNameEditKeyboard(){
+  if(_nameEditInput)_nameEditInput.remove();
+  const inp=document.createElement('input');
+  inp.type='text';inp.maxLength=12;inp.value=nameEditBuf;
+  inp.style.cssText='position:fixed;top:-100px;left:0;opacity:0;font-size:16px;';
+  document.body.appendChild(inp);
+  inp.focus();
+  _nameEditInput=inp;
+  inp.addEventListener('input',()=>{
+    nameEditBuf=inp.value.replace(/[<>&"']/g,'').substring(0,12);
+    inp.value=nameEditBuf;
+  });
+  inp.addEventListener('blur',()=>{
+    setTimeout(()=>{if(_nameEditInput===inp){_nameEditInput.remove();_nameEditInput=null;}},100);
+  });
 }
 function updateSliderDrag(tx){
   const s=settingsLayout();
@@ -657,7 +732,7 @@ canvas.addEventListener('mouseup',()=>{
 document.addEventListener('keydown',e=>{
   if(rankingOpen){if(e.code==='Escape'){rankingOpen=false;sfx('cancel');}e.preventDefault();return;}
   if(debugMenuOpen){if(e.code==='Escape'){debugMenuOpen=false;sfx('cancel');}e.preventDefault();return;}
-  if(settingsOpen){if(e.code==='Escape'){settingsOpen=false;sfx('cancel');}e.preventDefault();return;}
+  if(settingsOpen){if(e.code==='Escape'){if(nameEditMode){nameEditMode=false;}else{settingsOpen=false;logoutConfirm=false;resetConfirmStep=0;}sfx('cancel');}e.preventDefault();return;}
   if(e.code==='Escape'){
     e.preventDefault();
     if(state===ST.STAGE_SEL){sfx('cancel');titleTouchPos=null;state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
@@ -1075,28 +1150,59 @@ nameInput.addEventListener('input',()=>{
   let v=nameInput.value.replace(/[<>&"']/g,'').substring(0,12);
   nameInput.value=v;
   loginBtn.classList.toggle('ready',v.trim().length>=1);
+  const ne=document.getElementById('nameError');if(ne)ne.textContent='';
 });
 // Helper: finish login and enter the game
 function _finishLogin(name){
   playerName=name;localStorage.setItem('gd5username',playerName);
   loginOverlay.classList.remove('active');
   sfx('select');vibrate(15);
+  fbSynced=true; // new user – no cloud data to merge, allow save
   fbSaveUserData();
   if(!tutorialDone){startTutorial();}
   else{state=ST.TITLE;switchBGM('title');}
 }
 // Guest login (anonymous auth + username)
+const nameError=document.getElementById('nameError');
 loginBtn.addEventListener('click',()=>{
   initAudio();
   const name=(nameInput.value||'').trim();
   if(name.length<1){sfx('hurt');vibrate(10);return;}
+  nameError.textContent='';
   loginBtn.disabled=true;
-  fbSignInAnonymous().then(()=>{
-    _finishLogin(name);
-  }).catch(()=>{
-    // Firebase unavailable – continue with local-only
-    _finishLogin(name);
-  }).finally(()=>{loginBtn.disabled=false;});
+  // If already signed in with Google, try to migrate existing data by name
+  if(fbUser&&!fbUser.isAnonymous){
+    fbFindAndMigrateByName(name).then(migrated=>{
+      if(migrated){
+        // Found and migrated old data to Google UID
+        fbMergeCloudData(migrated);
+        fbSynced=true;
+        loginOverlay.classList.remove('active');
+        sfx('select');vibrate(15);
+        if(!tutorialDone){startTutorial();}
+        else{state=ST.TITLE;switchBGM('title');}
+      } else {
+        // No existing data with this name – create new
+        fbSynced=true;
+        _finishLogin(name);
+      }
+    }).finally(()=>{loginBtn.disabled=false;});
+    return;
+  }
+  // Guest login – check name uniqueness
+  fbCheckNameExists(name).then(taken=>{
+    if(taken){
+      nameError.textContent='この名前は使われています';
+      sfx('hurt');vibrate(10);
+      loginBtn.disabled=false;
+      return;
+    }
+    fbSignInAnonymous().then(()=>{
+      _finishLogin(name);
+    }).catch(()=>{
+      _finishLogin(name);
+    }).finally(()=>{loginBtn.disabled=false;});
+  });
 });
 // Google Sign-In
 const googleBtn=document.getElementById('googleBtn');
@@ -1104,30 +1210,53 @@ if(googleBtn){
   googleBtn.addEventListener('click',()=>{
     initAudio();
     googleBtn.disabled=true;
+    _fbGoogleLoginInProgress=true;
     fbSignInGoogle().then(cred=>{
       const user=cred.user;
-      // Load cloud data to check for existing name
-      return fbLoadUserData().then(data=>{
+      fbUser=user;
+      // Step 1: Check if this Google UID already has data
+      return fbLoadUserData(user.uid).then(data=>{
         if(data&&data.name){
-          // Returning user – restore all data
+          // Returning Google user – restore
           fbMergeCloudData(data);
+          fbSynced=true;
+          _fbGoogleLoginInProgress=false;
+          fbSaveUserData(); // update ranking with current cosmetics
           loginOverlay.classList.remove('active');
           sfx('select');vibrate(15);
           if(!tutorialDone){startTutorial();}
           else{state=ST.TITLE;switchBGM('title');}
-        } else {
-          // New Google user – use Google display name or ask
-          const gName=(user.displayName||'').replace(/[<>&"']/g,'').substring(0,12).trim();
-          if(gName){
-            _finishLogin(gName);
-          } else {
-            // No display name – let them type one
-            nameInput.focus();
-          }
+          return;
         }
+        // Step 2: No data under Google UID – try local name
+        const localName=playerName||localStorage.getItem('gd5username')||'';
+        if(localName){
+          return fbFindAndMigrateByName(localName).then(migrated=>{
+            if(migrated&&migrated.name){
+              fbMergeCloudData(migrated);
+              fbSynced=true;
+              _fbGoogleLoginInProgress=false;
+              fbSaveUserData(); // update ranking with current cosmetics
+              loginOverlay.classList.remove('active');
+              sfx('select');vibrate(15);
+              if(!tutorialDone){startTutorial();}
+              else{state=ST.TITLE;switchBGM('title');}
+            } else {
+              // Local name exists but no cloud data – keep name, save to Google UID
+              fbSynced=true;
+              _fbGoogleLoginInProgress=false;
+              _finishLogin(localName);
+            }
+          });
+        }
+        // Step 3: Completely new – show name input
+        _fbGoogleLoginInProgress=false;
+        fbSynced=true;
+        nameInput.focus();
       });
     }).catch(e=>{
       console.warn('[Firebase] Google sign-in error:',e);
+      _fbGoogleLoginInProgress=false;
       sfx('hurt');vibrate(10);
     }).finally(()=>{googleBtn.disabled=false;});
   });

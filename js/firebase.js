@@ -25,7 +25,9 @@ const fbDb   = FB_ENABLED ? firebase.firestore() : null;
 let fbUser = null;   // current firebase.User
 let fbReady = false; // auth state resolved at least once
 let fbCloudData = null;
+let fbSynced = false; // true after cloud merge completes (blocks saves until ready)
 let fbLoginMethod = localStorage.getItem('gd5loginMethod') || ''; // 'google' | 'anonymous' | ''
+let _fbGoogleLoginInProgress = false; // true while Google login handler is running
 
 // --- Auth helpers ---
 function fbSignInAnonymous() {
@@ -55,12 +57,26 @@ if (fbAuth) {
       console.log('[Firebase] Signed in:', user.uid, user.isAnonymous ? '(guest)' : '(Google)');
       fbLoginMethod = user.isAnonymous ? 'anonymous' : 'google';
       localStorage.setItem('gd5loginMethod', fbLoginMethod);
-      // If existing local user just auto-connected, upload their data
-      if (localStorage.getItem('gd5username') && !localStorage.getItem('gd5fbSynced')) {
-        console.log('[Firebase] Uploading existing local data to cloud...');
-        localStorage.setItem('gd5fbSynced', '1');
-        // Delay slightly to ensure all data.js globals are initialized
-        setTimeout(() => { _fbDoSave(); console.log('[Firebase] Initial sync complete'); }, 500);
+      // If Google login handler is active, let it handle everything
+      if (_fbGoogleLoginInProgress) {
+        console.log('[Firebase] Google login in progress – skipping auto-sync');
+      } else {
+        // Merge cloud data on sign-in to stay in sync
+        fbSynced = false;
+        console.log('[Firebase] Syncing with cloud...');
+        fbLoadUserData().then(data => {
+          if (data && data.name) fbMergeCloudData(data);
+          fbSynced = true;
+          // Update ranking entry with current cosmetics
+          if (highScore > 0 && playerName) {
+            fbDb.collection('rankings').doc(user.uid).set({
+              name: playerName, charIdx: selChar || 0, score: highScore,
+              eqSkin: equippedSkin || '', eqEyes: equippedEyes || '', eqFx: equippedEffect || '',
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true }).catch(() => {});
+          }
+          console.log('[Firebase] Sync complete');
+        }).catch(() => { fbSynced = true; });
       }
     } else {
       console.log('[Firebase] No user');
@@ -82,12 +98,12 @@ if (fbAuth) {
 // --- Firestore: save user data (debounced) ---
 let _fbSaveTimer = null;
 function fbSaveUserData() {
-  if (!fbDb || !fbUser) return;
+  if (!fbDb || !fbUser || !fbSynced) return;
   clearTimeout(_fbSaveTimer);
   _fbSaveTimer = setTimeout(_fbDoSave, 1200);
 }
 function _fbDoSave() {
-  if (!fbDb || !fbUser) return;
+  if (!fbDb || !fbUser || !fbSynced) return;
   const uid = fbUser.uid;
   const data = {
     name: playerName || '',
@@ -114,34 +130,49 @@ function _fbDoSave() {
       name: playerName || '',
       charIdx: selChar || 0,
       score: highScore,
+      eqSkin: equippedSkin || '',
+      eqEyes: equippedEyes || '',
+      eqFx: equippedEffect || '',
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true }).catch(e => console.warn('[Firebase] Ranking save error:', e));
   }
 }
-// Force-flush on page hide / unload
+// Force-flush on page hide / unload; re-sync on page visible (title only)
 function _fbFlushSave() { clearTimeout(_fbSaveTimer); _fbDoSave(); }
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') _fbFlushSave(); });
+function _fbResync() {
+  if (!fbDb || !fbUser || !fbSynced) return;
+  // Only re-sync on title screen so in-game progress is not overwritten
+  if (typeof state !== 'undefined' && state !== ST.TITLE) return;
+  fbLoadUserData().then(data => { if (data) fbMergeCloudData(data); });
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') _fbFlushSave();
+  else if (document.visibilityState === 'visible') _fbResync();
+});
 window.addEventListener('beforeunload', _fbFlushSave);
 
 // --- Firestore: load user data ---
-function fbLoadUserData() {
-  if (!fbDb || !fbUser) return Promise.resolve(null);
-  return fbDb.collection('users').doc(fbUser.uid).get()
+// Optional uid parameter to load a specific user's data (e.g. right after Google sign-in)
+function fbLoadUserData(uid) {
+  const id = uid || (fbUser ? fbUser.uid : null);
+  if (!fbDb || !id) return Promise.resolve(null);
+  return fbDb.collection('users').doc(id).get()
     .then(doc => doc.exists ? doc.data() : null)
     .catch(e => { console.warn('[Firebase] Load error:', e); return null; });
 }
 
 // --- Merge cloud data into local state ---
+// Cloud is authoritative – always overwrite local with cloud values
 function fbMergeCloudData(data) {
   if (!data) return;
   // Name
   if (data.name) { playerName = data.name; localStorage.setItem('gd5username', playerName); }
-  // Prefer whichever is higher/more for numeric values
-  if ((data.highScore || 0) > highScore) { highScore = data.highScore; localStorage.setItem('gd5hi', highScore.toString()); }
-  if ((data.wallet || 0) > walletCoins) { walletCoins = data.wallet; localStorage.setItem('gd5wallet', walletCoins.toString()); }
-  if ((data.plays || 0) > played) { played = data.plays; localStorage.setItem('gd5plays', played.toString()); }
-  if ((data.chestTotal || 0) > totalChestsOpened) { totalChestsOpened = data.chestTotal; localStorage.setItem('gd5chestTotal', totalChestsOpened.toString()); }
-  if ((data.storedChests || 0) > storedChests) { storedChests = data.storedChests; localStorage.setItem('gd5storedChests', storedChests.toString()); }
+  // Cloud wins for all numeric values
+  if (data.highScore !== undefined) { highScore = data.highScore; localStorage.setItem('gd5hi', highScore.toString()); }
+  if (data.wallet !== undefined) { walletCoins = data.wallet; localStorage.setItem('gd5wallet', walletCoins.toString()); }
+  if (data.plays !== undefined) { played = data.plays; localStorage.setItem('gd5plays', played.toString()); }
+  if (data.chestTotal !== undefined) { totalChestsOpened = data.chestTotal; localStorage.setItem('gd5chestTotal', totalChestsOpened.toString()); }
+  if (data.storedChests !== undefined) { storedChests = data.storedChests; localStorage.setItem('gd5storedChests', storedChests.toString()); }
   // Merge arrays (union)
   if (data.unlocked && data.unlocked.length) {
     unlockedChars = [...new Set([...unlockedChars, ...data.unlocked])];
@@ -184,7 +215,9 @@ function fbLoadRankings() {
       const arr = [];
       snap.forEach(doc => {
         const d = doc.data();
-        arr.push({ name: d.name || '???', charIdx: d.charIdx || 0, score: d.score || 0, isPlayer: doc.id === fbUser.uid });
+        arr.push({ name: d.name || '???', charIdx: d.charIdx || 0, score: d.score || 0,
+          eqSkin: d.eqSkin || '', eqEyes: d.eqEyes || '', eqFx: d.eqFx || '',
+          isPlayer: doc.id === fbUser.uid });
       });
       _fbRankCache = arr;
       _fbRankCacheT = now;
@@ -200,12 +233,55 @@ function fbRefreshRankings() {
     const data = cloud.map(d => ({ ...d }));
     // Ensure the player appears
     if (!data.some(d => d.isPlayer) && highScore > 0) {
-      data.push({ name: playerName || 'あなた', charIdx: selChar, score: highScore, isPlayer: true });
+      data.push({ name: playerName || 'あなた', charIdx: selChar, score: highScore,
+        eqSkin: equippedSkin || '', eqEyes: equippedEyes || '', eqFx: equippedEffect || '', isPlayer: true });
     }
     data.sort((a, b) => b.score - a.score);
     RANKING_DATA = data.slice(0, 100);
     RANKING_DATA.forEach((d, i) => d.rank = i + 1);
   });
+}
+
+// --- Firestore: check if name is already taken (by another user) ---
+function fbCheckNameExists(name) {
+  if (!fbDb) return Promise.resolve(false);
+  return fbDb.collection('users').where('name', '==', name).limit(1).get()
+    .then(snap => {
+      if (snap.empty) return false;
+      let taken = false;
+      snap.forEach(doc => { if (doc.id !== (fbUser ? fbUser.uid : '')) taken = true; });
+      return taken;
+    })
+    .catch(e => { console.warn('[Firebase] Name check error:', e); return false; });
+}
+
+// --- Firestore: find user data by name and migrate to current Google UID ---
+// Used when Google login has no data but an old anonymous account exists
+function fbFindAndMigrateByName(name) {
+  if (!fbDb || !fbUser) return Promise.resolve(null);
+  return fbDb.collection('users').where('name', '==', name).limit(1).get()
+    .then(snap => {
+      if (snap.empty) return null;
+      let found = null;
+      let oldDocId = null;
+      snap.forEach(doc => { found = doc.data(); oldDocId = doc.id; });
+      if (!found) return null;
+      const newUid = fbUser.uid;
+      if (oldDocId === newUid) return found;
+      console.log('[Firebase] Migrating data from', oldDocId, 'to', newUid);
+      // Copy data to Google UID
+      return fbDb.collection('users').doc(newUid).set(found, { merge: true }).then(() => {
+        // Migrate ranking entry
+        return fbDb.collection('rankings').doc(oldDocId).get().then(rdoc => {
+          if (rdoc.exists) {
+            return fbDb.collection('rankings').doc(newUid).set(rdoc.data(), { merge: true }).then(() => {
+              fbDb.collection('rankings').doc(oldDocId).delete().catch(() => {});
+            });
+          }
+        });
+      }).then(() => found);
+    })
+    .catch(e => { console.warn('[Firebase] Migration error:', e); return null; });
 }
 
 // --- Firestore: delete user data (for data reset) ---

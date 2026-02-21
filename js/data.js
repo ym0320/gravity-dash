@@ -150,6 +150,9 @@ let bgmVol=parseFloat(localStorage.getItem('gd5bgmVol')||'0.7');
 let sfxVol=parseFloat(localStorage.getItem('gd5sfxVol')||'0.7');
 let settingsOpen=false;
 let resetConfirmStep=0; // 0=none, 1=first confirm, 2=second confirm
+let nameEditMode=false; // true when editing username in settings
+let nameEditBuf=''; // buffer for name being edited
+let logoutConfirm=false; // true when logout confirm shown
 let debugMenuOpen=false;
 let debugBossBc=1;
 let debugEnemyMode=false;
@@ -161,42 +164,16 @@ let debugBossVictoryT=0; // >0 when debug boss defeated, shows victory overlay
 let rankingOpen=false;
 let rankingScroll=0;
 let rankingScrollTarget=0;
-// Generate 100 sample ranking entries
-const SAMPLE_NAMES=[
-  'TaKuMi','YuKi_Gamer','SoRa_Run','HaRuKa','KaZuMa','AoI_Pro','ReN_X','MiYu','ShOtA','AkIrA',
-  'NoA_Speed','RiKu_JP','SaKuRa','KoTaRo','HiNaTa','YuMa','MeI_Chan','TaIgA','IcHiKa','RyU_King',
-  'MoMo_Dash','SoTa','AiRi','YuItO','MaO_Star','KaNaTa','HiMaRi','RuI_Fast','CoCoRo','TaIcHi',
-  'NaNaMi','YuSeI','SeNa_Go','HaYaTo','TsUkAsA','MiSaKi','RyOmA','KoKoNa','SoRaX2','IbUkI',
-  'AkAnE_FF','ToMa','NiKo_Run','ShIoN','YuZuKi','KeNtO','HoNoKa','AsAhI','EmI_Chan','YuGa',
-  'DaIkI_99','MaHiRo','SuZu','RaN_MVP','ItSuKi','AkArI','TaKeTo','YuMe_Go','HaRuTo','MiU_JP',
-  'KaEdE_X','SoMa','ChIhIrO','KeI_Fast','RiHo','DaIcHi','NaNa_Pro','YuKiTo','SaRa_GG','KoSeI',
-  'MiZuKi','TaKuYa','RiSa_Top','SoRa_Ace','KaHo','ReN_Pro2','AyUmI','YuTa','MaI_Star','RuKa',
-  'KoUkI','SaToMi','YuKi_777','ToMoYa','MiKu_Ace','KeNsHiN','NaNaKo','SeIjI','AkI_Rush','YuI_JP',
-  'TaKaSe','RiNtArO','MoE_Chan','SoUtA','HaRuNa','DaN_King','ChIsAtO','YuRi','ToShI_X','HaYaMi'
-];
-// Base sample data (generated once, seeded by fixed pattern)
-const _SAMPLE_RANKING=(function(){
-  const data=[];
-  // Use deterministic pseudo-random based on index for consistency
-  for(let i=0;i<100;i++){
-    const sc=Math.max(100,Math.floor(12800*(1-i*0.009)-(((i*7+13)*31)%200)));
-    data.push({name:SAMPLE_NAMES[i],charIdx:i%CHARS.length,score:sc});
-  }
-  data.sort((a,b)=>b.score-a.score);
-  return data;
-})();
-// Dynamic ranking data that includes the player's high score
-// Initialize with sample data only (highScore/playerName not yet defined at load time)
-let RANKING_DATA=_SAMPLE_RANKING.map((d,i)=>({...d,isPlayer:false,rank:i+1}));
+// Dynamic ranking data (cloud only, no sample data)
+let RANKING_DATA=[];
 function rebuildRankingData(){
-  const data=_SAMPLE_RANKING.map(d=>({...d,isPlayer:false}));
+  const data=[];
   // Insert player's high score if > 0
   if(typeof highScore!=='undefined'&&highScore>0){
     const pName=(typeof playerName!=='undefined'&&playerName)||'\u3042\u306A\u305F';
     data.push({name:pName,charIdx:selChar,score:highScore,isPlayer:true});
   }
   data.sort((a,b)=>b.score-a.score);
-  // Keep top 100
   RANKING_DATA=data.slice(0,100);
   RANKING_DATA.forEach((d,i)=>d.rank=i+1);
 }
