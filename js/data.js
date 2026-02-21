@@ -1089,6 +1089,7 @@ let tutCourseCeil=[]; // generated ceiling platforms
 let tutCourseSpikes=[]; // spike obstacles
 let tutWarpT=0; // warp transition timer (0=inactive, >0=animating)
 let tutWarpPhase=''; // 'welcome','warp' - welcome screen then warp animation
+let tutIsIntro=false; // true when showing intro before tutorial gameplay
 let tutFreezePlayer=false; // freeze player mid-air during double-flip
 let screenFadeIn=0; // white overlay fade-in timer for screen transitions
 let countdownT=0; // countdown timer (frames, counts down from 180 = 3 seconds)

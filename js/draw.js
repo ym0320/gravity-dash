@@ -87,8 +87,8 @@ function drawTutorialOverlay(){
       const ps=1+Math.sin(tutWarpT*0.06)*0.04;ctx.scale(ps*fadeIn,ps*fadeIn);
       ctx.fillStyle='#ffd700';ctx.font='bold 26px monospace';ctx.textAlign='center';
       ctx.shadowColor='#ffd700';ctx.shadowBlur=20;
-      ctx.fillText('ようこそ',0,-20);
-      ctx.fillText('冒険の世界へ！',0,16);
+      ctx.fillText(tutIsIntro?'チュートリアル':'ようこそ',0,-20);
+      ctx.fillText(tutIsIntro?'操作を覚えよう！':'冒険の世界へ！',0,16);
       ctx.shadowBlur=0;ctx.restore();
       // Tap prompt (blink)
       if(tutWarpT>30){

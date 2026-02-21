@@ -41,8 +41,14 @@ function update(dt){
     if(tutWarpPhase==='welcome'||tutWarpPhase==='warp'){
       tutWarpT++;
       if(tutWarpPhase==='warp'&&tutWarpT>150){
-        state=ST.TITLE;switchBGM('title');tutWarpPhase='';tutWarpT=0;
-        screenFadeIn=90; // 1.5s white fade-out revealing title
+        if(tutIsIntro){
+          // Intro done – start actual tutorial gameplay
+          tutWarpPhase='';tutWarpT=0;tutIsIntro=false;
+          screenFadeIn=30;
+        } else {
+          state=ST.TITLE;switchBGM('title');tutWarpPhase='';tutWarpT=0;
+          screenFadeIn=90;
+        }
       }
       return;
     }
