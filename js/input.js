@@ -621,8 +621,16 @@ canvas.addEventListener('touchend',e=>{
 },{passive:false});
 
 // Keyboard / Mouse support
+// Prevent right-click context menu on canvas
+canvas.addEventListener('contextmenu',e=>{e.preventDefault();});
 canvas.addEventListener('mousedown',e=>{
   initAudio();
+  // Right click: use bomb during gameplay
+  if(e.button===2){
+    e.preventDefault();
+    if(state===ST.PLAY){useBomb();}
+    return;
+  }
   const p=canvasXY(e.clientX,e.clientY);
   if(rankingOpen){handleRankingTouch(p.x,p.y);return;}
   if(settingsOpen){handleSettingsTouch(p.x,p.y);return;}
@@ -667,18 +675,11 @@ canvas.addEventListener('mousedown',e=>{
     const btnId=hitDeadBtn(p.x,p.y);
     if(btnId)handleDeadBtn(btnId);
   }
-  else if(state===ST.PLAY&&player.grounded&&!player._quakeStunned){
-    const jp=JUMP_POWER*ct().jumpMul;
-    player.vy=-jp*player.gDir;player.grounded=false;djumpUsed=false;
-    sfx('jump');vibrate(10);
-    emitParts(player.x,player.y+PLAYER_R*player.gDir,6,tc('ply'),2.5,2);
-  }
-  else if(state===ST.PLAY&&djumpAvailable&&!djumpUsed&&!player._quakeStunned){
-    djumpUsed=true;djumpAvailable=false;
-    const jp=JUMP_POWER*ct().jumpMul*0.85;
-    player.vy=-jp*player.gDir;
-    sfx('jump');vibrate(10);
-    emitParts(player.x,player.y,8,'#ffaa00',3,2.5);
+  // Left click during gameplay: gravity flip (toggle)
+  else if(state===ST.PLAY&&player.canFlip&&!player._quakeStunned){
+    flipCount++;flipTimer=0;
+    if(player.gDir===1){player.gDir=-1;player.vy=-2;totalFlips++;player.canFlip=flipCount<ct().maxFlip;sfx('flip');vibrate(20);player.rotTarget-=Math.PI;emitParts(player.x,player.y,10,tc('ply'),3,2.5);}
+    else{player.gDir=1;player.vy=2;totalFlips++;player.canFlip=flipCount<ct().maxFlip;sfx('flip');vibrate(20);player.rotTarget+=Math.PI;emitParts(player.x,player.y,10,tc('ply'),3,2.5);}
   }
 });
 canvas.addEventListener('mousemove',e=>{
@@ -710,7 +711,7 @@ document.addEventListener('keydown',e=>{
     if(tutPhase==='action')return;
     if(tutPhase!=='wait'||tutStep>=TUT_CHECKPOINTS.length)return;
     const cp=TUT_CHECKPOINTS[tutStep];
-    if(cp.type==='jump'&&(e.code==='Space'||e.code==='ArrowUp')&&player.grounded){
+    if(cp.type==='jump'&&e.code==='Space'&&player.grounded){
       player.vy=player.gDir===1?-JUMP_POWER:JUMP_POWER;player.grounded=false;sfx('jump');
       tutDone=true;tutPhase='action';
       setTimeout(()=>{tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,600);},500);return;
@@ -746,7 +747,7 @@ document.addEventListener('keydown',e=>{
     }
     return;
   }
-  if(e.code==='Space'||e.code==='ArrowUp'){
+  if(e.code==='Space'){
     e.preventDefault();initAudio();
     if(state===ST.COUNTDOWN)return;
     if(state===ST.STAGE_SEL)return;
@@ -770,11 +771,21 @@ document.addEventListener('keydown',e=>{
       emitParts(player.x,player.y,8,'#ffaa00',3,2.5);
     }
   }
-  if(e.code==='ArrowDown'&&state===ST.PLAY&&player.canFlip&&!player._quakeStunned){
+  // ArrowUp: gravity flip to ceiling (gDir 1→-1)
+  if(e.code==='ArrowUp'){
     e.preventDefault();
-    flipCount++;flipTimer=0;
-    if(player.gDir===1){player.gDir=-1;player.vy=-2;totalFlips++;player.canFlip=flipCount<ct().maxFlip;sfx('flip');vibrate(20);player.rotTarget-=Math.PI;emitParts(player.x,player.y,10,tc('ply'),3,2.5);}
-    else{player.gDir=1;player.vy=2;totalFlips++;player.canFlip=flipCount<ct().maxFlip;sfx('flip');vibrate(20);player.rotTarget+=Math.PI;emitParts(player.x,player.y,10,tc('ply'),3,2.5);}
+    if(state===ST.PLAY&&player.canFlip&&!player._quakeStunned&&player.gDir===1){
+      flipCount++;flipTimer=0;
+      player.gDir=-1;player.vy=-2;totalFlips++;player.canFlip=flipCount<ct().maxFlip;sfx('flip');vibrate(20);player.rotTarget-=Math.PI;emitParts(player.x,player.y,10,tc('ply'),3,2.5);
+    }
+  }
+  // ArrowDown: gravity flip to floor (gDir -1→1)
+  if(e.code==='ArrowDown'){
+    e.preventDefault();
+    if(state===ST.PLAY&&player.canFlip&&!player._quakeStunned&&player.gDir===-1){
+      flipCount++;flipTimer=0;
+      player.gDir=1;player.vy=2;totalFlips++;player.canFlip=flipCount<ct().maxFlip;sfx('flip');vibrate(20);player.rotTarget+=Math.PI;emitParts(player.x,player.y,10,tc('ply'),3,2.5);
+    }
   }
   if((e.code==='KeyB'||e.code==='KeyX')&&state===ST.PLAY){e.preventDefault();useBomb();}
   if((e.code==='KeyV'||e.code==='KeyZ')&&state===ST.PLAY){e.preventDefault();useInvincible();}
