@@ -899,6 +899,7 @@ function drawEnemy(en){
 function drawFlyer(en){
   const s=en.sz;
   ctx.save();ctx.translate(en.x,en.y);
+  if(en.gDir===-1)ctx.scale(1,-1);
   // Body (orange flying enemy)
   const gr=ctx.createRadialGradient(0,0,0,0,0,s);
   gr.addColorStop(0,'#f97316');gr.addColorStop(1,'#c2410c');
@@ -1055,6 +1056,7 @@ function drawPhantom(en){
 function drawDasher(en){
   const s=en.sz,ds=en.dashState;
   ctx.save();ctx.translate(en.x,en.y);
+  if(en.gDir===-1)ctx.scale(1,-1);
   // Shake during warning
   if(ds==='warn'){
     const shake=Math.sin(en.warnT*1.5)*(3-en.warnT*0.05);
@@ -1502,13 +1504,13 @@ function drawPlayer(){
   const charRot=ct().shape==='ghost'?0:player.rot;
   // Draw equipped effect behind character
   const fxData=getEquippedEffectData();
-  if(fxData)drawPlayerEffect(player.x,player.y,pr,fxData.type,ghostA);
+  if(fxData)drawPlayerEffect(player.x,player.y,pr,fxData.type,ghostA,player.gDir);
   drawCharacter(player.x,player.y,selChar,pr,charRot,ghostA,player.face,dmgLv);
 }
 
-function drawPlayerEffect(px,py,pr,fxType,alpha){
+function drawPlayerEffect(px,py,pr,fxType,alpha,gDir){
   ctx.save();ctx.globalAlpha=alpha*0.8;
-  const t=frame||0;
+  const t=frame||0;const gd=gDir||1;
   switch(fxType){
     case'sparkle':
       for(let i=0;i<5;i++){
@@ -1521,7 +1523,7 @@ function drawPlayerEffect(px,py,pr,fxType,alpha){
     case'fire_aura':
       for(let i=0;i<6;i++){
         const a=t*0.06+i*1.047,d=pr*1.1+Math.sin(t*0.1+i*0.7)*3;
-        const fx=px+Math.cos(a)*d,fy=py+Math.sin(a)*d-Math.abs(Math.sin(t*0.15+i))*6;
+        const fx=px+Math.cos(a)*d,fy=py+Math.sin(a)*d-Math.abs(Math.sin(t*0.15+i))*6*gd;
         ctx.fillStyle=`rgba(${200+Math.floor(Math.sin(t*0.1+i)*55)},${60+Math.floor(i*15)},0,${0.5+Math.sin(t*0.2+i)*0.2})`;
         ctx.beginPath();ctx.arc(fx,fy,3+Math.sin(t*0.12+i)*1.5,0,6.28);ctx.fill();
       }break;
@@ -1542,7 +1544,7 @@ function drawPlayerEffect(px,py,pr,fxType,alpha){
       }break;
     case'hearts':
       for(let i=0;i<3;i++){
-        const hy=py-pr*1.5-((t*1.5+i*30)%50),hx=px+Math.sin(t*0.05+i*2)*pr*0.8;
+        const hy=py+(-pr*1.5-((t*1.5+i*30)%50))*gd,hx=px+Math.sin(t*0.05+i*2)*pr*0.8;
         const ha=1-((t*1.5+i*30)%50)/50;
         if(ha>0){ctx.globalAlpha=alpha*ha*0.7;ctx.fillStyle='#ff6688';ctx.font=(8+i*2)+'px monospace';ctx.textAlign='center';ctx.fillText('\u2665',hx,hy);}
       }ctx.globalAlpha=alpha*0.8;break;
@@ -1564,7 +1566,7 @@ function drawPlayerEffect(px,py,pr,fxType,alpha){
       }break;
     case'sakura':
       for(let i=0;i<4;i++){
-        const sy2=py-pr*1.2-((t*0.8+i*25)%60),sx2=px+Math.sin(t*0.04+i*1.5)*pr*1.2;
+        const sy2=py+(-pr*1.2-((t*0.8+i*25)%60))*gd,sx2=px+Math.sin(t*0.04+i*1.5)*pr*1.2;
         const sa2=1-((t*0.8+i*25)%60)/60;
         if(sa2>0){ctx.globalAlpha=alpha*sa2*0.8;ctx.fillStyle='#ffb7c5';ctx.font='10px sans-serif';ctx.textAlign='center';ctx.fillText('\u273f',sx2,sy2);}
       }ctx.globalAlpha=alpha*0.8;break;
@@ -1835,6 +1837,8 @@ function drawDemo(){
   ctx.globalAlpha=0.55;
   // Player
   const dRot=ch.shape==='ghost'?0:d.rot;
+  const dFxData=getEquippedEffectData();
+  if(dFxData)drawPlayerEffect(d.px,d.py,pr,dFxData.type,0.55);
   drawCharacter(d.px,d.py,d.charIdx,pr,dRot,0.85,d.face,0);
   // Combo popup
   if(d.comboN>=2&&d.comboT>0){
@@ -2304,6 +2308,8 @@ function drawCharModal(){
   ctx.fillStyle=ch.col+'0a';ctx.beginPath();ctx.arc(W/2,demoY,48,0,6.28);ctx.fill();
   ctx.strokeStyle=ch.col+'22';ctx.lineWidth=1;ctx.beginPath();ctx.arc(W/2,demoY,48,0,6.28);ctx.stroke();
   // Draw character large with animation
+  const cmFxData=getEquippedEffectData();
+  if(cmFxData)drawPlayerEffect(W/2,demoY+bob,32,cmFxData.type,1);
   drawCharacter(W/2,demoY+bob,charModal.idx,32,rot,1,'normal');
   // Trait-specific animated demo effects
   drawTraitDemo(ch,charModal.idx,W/2,demoY,t);

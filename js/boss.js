@@ -919,8 +919,8 @@ function updateBossPhase(){
     totalCoins+=bonus;fbSaveUserData();
     addPop(W/2,H*0.45,'+'+bonus+' COINS!','#ffd700');
     for(let i=0;i<40;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*4,vy:1+Math.random()*4,life:80+Math.random()*40,ml:120,sz:Math.random()*5+3,col:['#ffd700','#ffaa00','#fff4b0'][i%3]});
-    // Spawn treasure chest falling from above (100%)
-    if(true){
+    // Spawn treasure chest falling from above (50%)
+    if(Math.random()<0.5){
       bossChests++;
       chestFall={active:true,x:player.x,y:-40,vy:0,sparkT:0,gotT:0};
     }
