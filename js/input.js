@@ -69,16 +69,38 @@ function handleDeadBtn(btnId){
 }
 function handleInventoryChestTap(tapX,tapY){
   if(!inventoryOpen&&!deadChestOpen)return false;
-  // Check for batch open button tap (only in inventory, phase=none, 2+ chests)
-  if(chestOpen.phase==='none'&&storedChests>=2&&tapX!==undefined){
+  // Check for batch open button tap (only in inventory, NOT game over, phase=none, 2+ chests)
+  if(!deadChestOpen&&chestOpen.phase==='none'&&storedChests>=2&&tapX!==undefined){
     const cx=W/2,mW2=Math.min(300,W-24),mH2=Math.min(400,H-40);
     const mY2=(H-mH2)/2,cy=mY2+mH2*0.42;
     const boW=160,boH=34,boX=cx-boW/2,boY=cy+82;
     if(tapX>=boX&&tapX<=boX+boW&&tapY>=boY&&tapY<=boY+boH){
-      // Start batch mode
-      chestBatchMode=true;chestBatchResults=[];
-      startInventoryChestOpen();
-      sfx('select');vibrate(15);
+      // Open ALL chests at once
+      chestBatchResults=[];
+      const count=storedChests;
+      for(let i=0;i<count;i++){
+        startInventoryChestOpen();
+        const rw=chestOpen.reward;
+        chestBatchResults.push(rw);
+        // Apply rewards immediately
+        if(rw.type==='coin'){
+          walletCoins+=rw.amount;localStorage.setItem('gd5wallet',walletCoins.toString());
+        }
+        if(rw.type==='char'){
+          if(rw.isNew){unlockCharFromChest(rw.charIdx);}
+          else{rw.bonusCoins=500;walletCoins+=500;localStorage.setItem('gd5wallet',walletCoins.toString());}
+        }
+        if(rw.type==='cosmetic'){
+          if(rw.item&&rw.item.rarity==='super_rare'&&rw.isNew){/* already granted in startInventoryChestOpen */}
+          if(!rw.isNew){walletCoins+=300;localStorage.setItem('gd5wallet',walletCoins.toString());}
+        }
+        totalChestsOpened++;
+      }
+      localStorage.setItem('gd5chestTotal',totalChestsOpened.toString());
+      storedChests=0;localStorage.setItem('gd5storedChests','0');
+      chestOpen.phase='batchDone';chestOpen.t=0;chestOpen.parts=[];
+      chestBatchMode=false;
+      sfx('select');sfxChestOpen();vibrate([30,20,40,20,80]);shakeI=15;
       return true;
     }
   }
