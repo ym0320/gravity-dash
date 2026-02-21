@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy to GitHub Pages & Firebase Hosting
 
 on:
   push:
@@ -14,7 +14,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  # Job 1: GitHub Pages
+  deploy-pages:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -27,3 +28,15 @@ jobs:
           path: '.'
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # Job 2: Firebase Hosting
+  deploy-firebase:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          channelId: live
+          projectId: gravity-dash-cdce1
