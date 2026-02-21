@@ -815,14 +815,17 @@ function updateBossPhase(){
         // Phase scaling: slightly more bullets as phases progress
         const extra=Math.floor((bc-1)/2);
         if(w.castType===0){
-          // Straight shot toward player: 3 + phase bonus
+          // Spread shot: 3 + phase bonus, fan out from wizard toward player vicinity
           const shotCount=3+extra;
           const dx=player.x-w.x,dy=player.y-w.y;
-          const d=Math.sqrt(dx*dx+dy*dy)||1;
+          const baseAngle=Math.atan2(dy,dx);
           const baseSpd=3;
+          const spreadAngle=0.35; // radians between each shot
           for(let i=0;i<shotCount;i++){
-            const spd=baseSpd+i*0.6;
-            bullets.push({x:w.x,y:w.y,vx:dx/d*spd,vy:dy/d*spd,sz:7,life:999,wizBullet:true});
+            const offset=(i-(shotCount-1)/2)*spreadAngle;
+            const a=baseAngle+offset;
+            const spd=baseSpd+Math.random()*0.8;
+            bullets.push({x:w.x,y:w.y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,sz:7,life:999,wizBullet:true});
           }
         } else {
           // 360-degree radial burst: 8 + phase bonus
