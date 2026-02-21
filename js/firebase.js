@@ -56,19 +56,14 @@ if (fbAuth) {
     const wasReady = fbReady;
     fbReady = true;
     if (user) {
-      console.log('[Firebase] Signed in:', user.uid, user.isAnonymous ? '(guest)' : '(Google)');
       fbLoginMethod = user.isAnonymous ? 'anonymous' : 'google';
       localStorage.setItem('gd5loginMethod', fbLoginMethod);
-      // If Google login handler is active, let it handle everything
       if (_fbGoogleLoginInProgress) {
-        console.log('[Firebase] Google login in progress – skipping auto-sync');
+        // Google login handler manages sync
       } else if (_fbLastSyncedUid === user.uid && fbSynced) {
-        // Same user already synced – skip redundant sync to avoid race conditions
-        console.log('[Firebase] Already synced for', user.uid, '– skipping');
+        // Already synced
       } else {
-        // Merge cloud data on sign-in to stay in sync
         fbSynced = false;
-        console.log('[Firebase] Syncing with cloud...');
         fbLoadUserData().then(data => {
           if (data && data.name) fbMergeCloudData(data);
           fbSynced = true;
@@ -82,35 +77,26 @@ if (fbAuth) {
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true }).catch(e => console.error('[Firebase] ranking update error:', e));
           }
-          // Ensure user exists in Firestore (covers both new users and
-          // existing users who were never saved due to the old undefined bug)
           const pn = playerName || localStorage.getItem('gd5username');
           if (pn) {
             if (!playerName) playerName = pn;
             _fbDirty = true;
             _fbDoSave();
-            if (!data) console.log('[Firebase] Initial save for new user:', pn);
-            else console.log('[Firebase] Re-save for existing user:', pn);
           }
           // Flush any saves that were queued while syncing
           if (_fbPendingSave) {
             _fbPendingSave = false;
-            console.log('[Firebase] Flushing pending save after sync');
             _fbDirty = true;
             _fbDoSave();
           }
-          console.log('[Firebase] Sync complete');
         }).catch(() => {
           fbSynced = true;
           if (_fbPendingSave) { _fbPendingSave = false; _fbDirty = true; _fbDoSave(); }
         });
       }
     } else {
-      console.log('[Firebase] No user');
-      // Auto-connect existing localStorage users to Firebase (anonymous)
       const existingName = localStorage.getItem('gd5username');
       if (existingName) {
-        console.log('[Firebase] Existing local user detected – auto-connecting...');
         fbAuth.signInAnonymously().catch(e => console.warn('[Firebase] Auto-connect failed:', e));
         return; // onAuthStateChanged will fire again with the new user
       }
@@ -137,7 +123,6 @@ function fbSaveUserData() {
         _fbPendingRetryTimer = null;
         if (_fbPendingSave && fbSynced) {
           _fbPendingSave = false;
-          console.log('[Firebase] Flushing pending save (retry timer)');
           _fbDoSave();
         } else if (_fbPendingSave) {
           _fbPendingRetryTimer = setTimeout(_retryPending, 500);
@@ -150,7 +135,6 @@ function fbSaveUserData() {
   _fbSaveTimer = setTimeout(_fbDoSave, 1200);
 }
 function _fbDoSave() {
-  console.log('[Firebase] _fbDoSave called: fbDb=', !!fbDb, 'fbUser=', !!fbUser, 'dirty=', _fbDirty, 'synced=', fbSynced);
   if (!fbDb || !fbUser || !_fbDirty) return;
   const uid = fbUser.uid;
   const data = {
@@ -174,16 +158,13 @@ function _fbDoSave() {
     rankFx: rankFx || '',
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
-  _fbDirty = false; // reset after saving
-  console.log('[Firebase] Writing users/' + uid, 'name:', data.name, 'score:', data.highScore);
+  _fbDirty = false;
   fbDb.collection('users').doc(uid).set(data, { merge: true })
-    .then(() => console.log('[Firebase] users/' + uid + ' saved OK'))
     .catch(e => console.error('[Firebase] users/ SAVE FAILED:', e));
   // Update ranking entry – always save if name exists (even score 0 for visibility)
   if (playerName) {
     const sc = highScore || 0;
     const rc = rankChar >= 0 ? rankChar : selChar || 0;
-    console.log('[Firebase] Writing rankings/' + uid, 'name:', playerName, 'score:', sc);
     fbDb.collection('rankings').doc(uid).set({
       name: playerName,
       charIdx: rc,
@@ -193,7 +174,6 @@ function _fbDoSave() {
       eqFx: rankFx || '',
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true })
-      .then(() => console.log('[Firebase] rankings/' + uid + ' saved OK'))
       .catch(e => console.error('[Firebase] rankings/ SAVE FAILED:', e));
   }
 }
@@ -285,7 +265,6 @@ function fbLoadRankings() {
           eqSkin: d.eqSkin || '', eqEyes: d.eqEyes || '', eqFx: d.eqFx || '',
           isPlayer: doc.id === fbUser.uid });
       });
-      console.log('[Firebase] Rankings loaded:', arr.length, 'entries', arr.map(a => a.name + ':' + a.score));
       _fbRankCache = arr;
       _fbRankCacheT = now;
       return arr;
@@ -336,8 +315,6 @@ function fbFindAndMigrateByName(name) {
       if (!found) return null;
       const newUid = fbUser.uid;
       if (oldDocId === newUid) return found;
-      console.log('[Firebase] Migrating data from', oldDocId, 'to', newUid);
-      // Copy data to Google UID
       return fbDb.collection('users').doc(newUid).set(found, { merge: true }).then(() => {
         // Migrate ranking entry
         return fbDb.collection('rankings').doc(oldDocId).get().then(rdoc => {

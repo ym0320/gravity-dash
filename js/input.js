@@ -1199,15 +1199,11 @@ function _finishLogin(name){
   let _saveRetries=0;
   const _doInitialSave=()=>{
     _saveRetries++;
-    console.log('[Firebase] _doInitialSave attempt',_saveRetries,'fbUser:',!!fbUser,'fbSynced:',fbSynced);
     if(fbUser&&fbSynced){
       if(typeof fbForceSave==='function')fbForceSave();
-      console.log('[Firebase] Initial save completed for',name);
     } else if(_saveRetries<30){
       setTimeout(_doInitialSave,300);
     } else {
-      // Last resort: force save regardless of sync state
-      console.warn('[Firebase] Sync timeout – forcing save');
       fbSynced=true;
       if(typeof fbForceSave==='function')fbForceSave();
     }
