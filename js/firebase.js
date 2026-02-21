@@ -67,12 +67,11 @@ if (fbAuth) {
         fbLoadUserData().then(data => {
           if (data && data.name) fbMergeCloudData(data);
           fbSynced = true;
-          // Update ranking entry with cosmetics from time of record
+          // Update ranking entry with current cosmetics
           if (highScore > 0 && playerName) {
-            const rc = rankChar >= 0 ? rankChar : (selChar || 0);
             fbDb.collection('rankings').doc(user.uid).set({
-              name: playerName, charIdx: rc, score: highScore,
-              eqSkin: rankSkin || '', eqEyes: rankEyes || '', eqFx: rankFx || '',
+              name: playerName, charIdx: selChar || 0, score: highScore,
+              eqSkin: equippedSkin || '', eqEyes: equippedEyes || '', eqFx: equippedEffect || '',
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true }).catch(() => {});
           }
@@ -121,24 +120,19 @@ function _fbDoSave() {
     chestTotal: totalChestsOpened || 0,
     storedChests: storedChests || 0,
     packProgress: packProgress || {},
-    rankChar: rankChar >= 0 ? rankChar : (selChar || 0),
-    rankSkin: rankSkin || '',
-    rankEyes: rankEyes || '',
-    rankFx: rankFx || '',
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   fbDb.collection('users').doc(uid).set(data, { merge: true })
     .catch(e => console.warn('[Firebase] Save error:', e));
-  // Update ranking entry with cosmetics from time of record
+  // Update ranking entry with current cosmetics
   if (highScore > 0) {
-    const rc = rankChar >= 0 ? rankChar : (selChar || 0);
     fbDb.collection('rankings').doc(uid).set({
       name: playerName || '',
-      charIdx: rc,
+      charIdx: selChar || 0,
       score: highScore,
-      eqSkin: rankSkin || '',
-      eqEyes: rankEyes || '',
-      eqFx: rankFx || '',
+      eqSkin: equippedSkin || '',
+      eqEyes: equippedEyes || '',
+      eqFx: equippedEffect || '',
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true }).catch(e => console.warn('[Firebase] Ranking save error:', e));
   }
@@ -194,11 +188,6 @@ function fbMergeCloudData(data) {
   if (data.eqFx)   { equippedEffect = data.eqFx;  localStorage.setItem('gd5eqFx', data.eqFx); }
   // Character
   if (data.character !== undefined) { selChar = data.character; localStorage.setItem('gd5char', selChar.toString()); }
-  // Ranking cosmetics (captured at time of record)
-  if (data.rankChar !== undefined) { rankChar = data.rankChar; localStorage.setItem('gd5rankChar', rankChar.toString()); }
-  if (data.rankSkin !== undefined) { rankSkin = data.rankSkin; localStorage.setItem('gd5rankSkin', rankSkin); }
-  if (data.rankEyes !== undefined) { rankEyes = data.rankEyes; localStorage.setItem('gd5rankEyes', rankEyes); }
-  if (data.rankFx !== undefined) { rankFx = data.rankFx; localStorage.setItem('gd5rankFx', rankFx); }
   // Tutorial
   if (data.tutorialDone) { tutorialDone = true; localStorage.setItem('gd5tutorialDone', '1'); }
   // Pack progress (merge, keep best stars)
@@ -244,9 +233,8 @@ function fbRefreshRankings() {
     const data = cloud.map(d => ({ ...d }));
     // Ensure the player appears
     if (!data.some(d => d.isPlayer) && highScore > 0) {
-      const rc = rankChar >= 0 ? rankChar : (selChar || 0);
-      data.push({ name: playerName || 'あなた', charIdx: rc, score: highScore,
-        eqSkin: rankSkin || '', eqEyes: rankEyes || '', eqFx: rankFx || '', isPlayer: true });
+      data.push({ name: playerName || 'あなた', charIdx: selChar || 0, score: highScore,
+        eqSkin: equippedSkin || '', eqEyes: equippedEyes || '', eqFx: equippedEffect || '', isPlayer: true });
     }
     data.sort((a, b) => b.score - a.score);
     RANKING_DATA = data.slice(0, 100);
