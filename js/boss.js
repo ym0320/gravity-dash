@@ -186,7 +186,6 @@ function spawnBossEnemies(){
       teleportT:0,teleportTarget:{x:0,y:0},
       alpha:1,
       rushDir:1,rushT:0,rushReady:false,rushTargetX:0,rushTargetY:0,
-      lastAction:'rush', // start with cast first
       homeX:W*0.65,homeY:H*0.35+Math.random()*(H*0.3) // floating home position
     };
     bossPhase.wizard=wizard;
@@ -758,16 +757,14 @@ function updateBossPhase(){
       w.x+=(w.homeX-w.x)*0.05;
       w.y=w.homeY+Math.sin(w.fr*0.4)*8;
       if(w.timer>=70){
-        // Alternate: always cast after rush, always rush after cast
-        if(w.lastAction==='cast'){
+        // Random 50/50: rush or cast
+        if(Math.random()<0.5){
           w.state='rush';w.timer=0;w.rushT=0;w.rushReady=false;
           w.rushTargetX=player.x;
           w.rushTargetY=player.y;
           w.rushDir=player.gDir;
-          w.lastAction='rush';
         } else {
           w.state='cast';w.timer=0;w.castType=Math.floor(Math.random()*2);w.castT=0;
-          w.lastAction='cast';
         }
       }
     } else if(w.state==='rush'){
@@ -815,25 +812,24 @@ function updateBossPhase(){
       w.castT++;
       w.y+=Math.sin(w.fr)*0.3;
       if(w.castT===30){
-        // Phase 3+: 1.5x bullets
-        const bulletMul=bc>=3?1.5:1;
+        // Phase scaling: slightly more bullets as phases progress
+        const extra=Math.floor((bc-1)/2);
         if(w.castType===0){
-          const ringCount=Math.round(10*bulletMul);
+          // Straight shot toward player: 3 + phase bonus
+          const shotCount=3+extra;
+          const dx=player.x-w.x,dy=player.y-w.y;
+          const d=Math.sqrt(dx*dx+dy*dy)||1;
+          const baseSpd=3;
+          for(let i=0;i<shotCount;i++){
+            const spd=baseSpd+i*0.6;
+            bullets.push({x:w.x,y:w.y,vx:dx/d*spd,vy:dy/d*spd,sz:7,life:999,wizBullet:true});
+          }
+        } else {
+          // 360-degree radial burst: 8 + phase bonus
+          const ringCount=8+extra;
           for(let i=0;i<ringCount;i++){
             const a=i*Math.PI*2/ringCount;
             bullets.push({x:w.x,y:w.y,vx:Math.cos(a)*2.5,vy:Math.sin(a)*2.5,sz:7,life:999,wizBullet:true});
-          }
-        } else {
-          const waveCount=Math.round(5*bulletMul); // 5 → 7-8
-          const waveSpread=(waveCount-1)/2;
-          for(let i=0;i<waveCount;i++){
-            const si=i-waveSpread;
-            const dx=player.x-w.x,dy=player.y-w.y;
-            const d=Math.sqrt(dx*dx+dy*dy)||1;
-            const spd=3;
-            const spread=si*0.2;
-            bullets.push({x:w.x,y:w.y,vx:dx/d*spd+Math.cos(Math.atan2(dy,dx)+Math.PI/2)*spread*spd,
-              vy:dy/d*spd+Math.sin(Math.atan2(dy,dx)+Math.PI/2)*spread*spd,sz:8,life:999,wizBullet:true});
           }
         }
         sfx('shoot');
