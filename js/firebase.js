@@ -166,10 +166,10 @@ function _fbDoSave() {
     chestTotal: totalChestsOpened || 0,
     storedChests: storedChests || 0,
     packProgress: packProgress || {},
-    rankChar: rankChar >= 0 ? rankChar : undefined,
-    rankSkin: rankSkin || undefined,
-    rankEyes: rankEyes || undefined,
-    rankFx: rankFx || undefined,
+    rankChar: rankChar >= 0 ? rankChar : -1,
+    rankSkin: rankSkin || '',
+    rankEyes: rankEyes || '',
+    rankFx: rankFx || '',
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   _fbDirty = false; // reset after saving
