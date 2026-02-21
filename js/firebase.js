@@ -55,8 +55,22 @@ if (fbAuth) {
       console.log('[Firebase] Signed in:', user.uid, user.isAnonymous ? '(guest)' : '(Google)');
       fbLoginMethod = user.isAnonymous ? 'anonymous' : 'google';
       localStorage.setItem('gd5loginMethod', fbLoginMethod);
+      // If existing local user just auto-connected, upload their data
+      if (localStorage.getItem('gd5username') && !localStorage.getItem('gd5fbSynced')) {
+        console.log('[Firebase] Uploading existing local data to cloud...');
+        localStorage.setItem('gd5fbSynced', '1');
+        // Delay slightly to ensure all data.js globals are initialized
+        setTimeout(() => { _fbDoSave(); console.log('[Firebase] Initial sync complete'); }, 500);
+      }
     } else {
       console.log('[Firebase] No user');
+      // Auto-connect existing localStorage users to Firebase (anonymous)
+      const existingName = localStorage.getItem('gd5username');
+      if (existingName) {
+        console.log('[Firebase] Existing local user detected – auto-connecting...');
+        fbAuth.signInAnonymously().catch(e => console.warn('[Firebase] Auto-connect failed:', e));
+        return; // onAuthStateChanged will fire again with the new user
+      }
     }
     if (!wasReady) _fbAuthReadyCallbacks.forEach(cb => cb(user));
     _fbAuthReadyCallbacks.length = 0;
