@@ -665,7 +665,15 @@ canvas.addEventListener('mousedown',e=>{
       }
       handleInventoryChestTap(p.x,p.y);return;
     }
-    if(charModal.show){sfx('cancel');charModal.show=false;return;}handleTitleTouch(p.x,p.y);
+    if(charModal.show){sfx('cancel');charModal.show=false;return;}
+    // Long-press detection for character grid (same as touch)
+    longPressFired=false;titleTouchPos=p;
+    const cidx=getCharGridIdx(p.x,p.y);
+    if(cidx>=0&&isCharUnlocked(cidx)){
+      longPressTimer=setTimeout(()=>{longPressFired=true;charModal={show:true,idx:cidx,animT:0};sfxCharVoice(cidx);},400);
+    } else if(cidx<0){
+      handleTitleTouch(p.x,p.y);titleTouchPos=null;
+    }
   }
   else if(state===ST.DEAD&&deadChestOpen){
     handleInventoryChestTap(p.x,p.y);
@@ -683,9 +691,14 @@ canvas.addEventListener('mousedown',e=>{
   }
 });
 canvas.addEventListener('mousemove',e=>{
-  if(draggingSlider){const p=canvasXY(e.clientX,e.clientY);updateSliderDrag(p.x);}
+  const p=canvasXY(e.clientX,e.clientY);
+  if(draggingSlider){updateSliderDrag(p.x);}
+  if(longPressTimer&&titleTouchPos&&(Math.abs(p.x-titleTouchPos.x)>20||Math.abs(p.y-titleTouchPos.y)>20)){clearTimeout(longPressTimer);longPressTimer=null;}
 });
 canvas.addEventListener('mouseup',()=>{
+  if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}
+  if(state===ST.TITLE&&!longPressFired&&titleTouchPos){handleTitleTouch(titleTouchPos.x,titleTouchPos.y);titleTouchPos=null;}
+  longPressFired=false;
   if(shopOpen&&shopPendingTap){confirmShopTap();}
   else if(cosmeticMenuOpen&&cosmeticPendingTap){confirmCosmeticTap();}
   if(draggingSlider==='sfx')sfx('coin');
