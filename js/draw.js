@@ -2762,7 +2762,7 @@ function drawInventory(){
       ctx.fillStyle='#ffd70018';rr(boX,boY,boW,boH,8);ctx.fill();
       ctx.strokeStyle='#ffd700';ctx.lineWidth=1.5;rr(boX,boY,boW,boH,8);ctx.stroke();
       ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';ctx.textAlign='center';
-      ctx.fillText('\uD83D\uDCE6 \u307E\u3068\u3081\u3066\u958B\u5C01 ('+storedChests+')',cx,boY+22);
+      ctx.fillText('\uD83D\uDCE6 \u5168\u3066\u958B\u5C01 ('+storedChests+')',cx,boY+22);
     }
     // Total opened
     ctx.fillStyle='#fff4';ctx.font='10px monospace';
@@ -3331,70 +3331,133 @@ function drawChestOpen(){
     ctx.globalAlpha=1;
   }
   else if(p==='batchDone'){
-    // === BATCH OPEN SUMMARY ===
-    ctx.fillStyle='#ffd700';ctx.font='bold 18px monospace';ctx.textAlign='center';
-    ctx.fillText('開封結果',cx,mY+70);
-    // Tally results
-    let totalCoinsGot=0,charsGot=[],cosmeticsGot=[];
-    chestBatchResults.forEach(r=>{
-      if(!r)return;
-      if(r.type==='coin')totalCoinsGot+=r.amount;
-      else if(r.type==='char')charsGot.push(r);
-      else if(r.type==='cosmetic')cosmeticsGot.push(r);
-    });
-    // Also count the last chest reward (not yet in batchResults)
-    if(rw){
-      if(rw.type==='coin')totalCoinsGot+=rw.amount;
-      else if(rw.type==='char')charsGot.push(rw);
-      else if(rw.type==='cosmetic')cosmeticsGot.push(rw);
-    }
-    let sumY=mY+100;
-    // Total coins
-    if(totalCoinsGot>0){
-      ctx.fillStyle='#ffd700';ctx.font='bold 22px monospace';
-      ctx.fillText('+'+totalCoinsGot+' コイン',cx,sumY);
-      sumY+=30;
-    }
-    // Characters obtained
-    if(charsGot.length>0){
-      ctx.fillStyle='#ff88cc';ctx.font='bold 14px monospace';
-      ctx.fillText('キャラクター \u00D7'+charsGot.length,cx,sumY);
-      sumY+=8;
-      charsGot.forEach((cr,i)=>{
-        if(i>=5)return; // max 5 shown
-        const cy2=sumY+i*36+20;
-        drawCharacter(cx-60,cy2,cr.charIdx,14,0,1,'happy',0);
-        ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';ctx.textAlign='left';
-        ctx.fillText(CHARS[cr.charIdx].name,cx-40,cy2+5);
-        ctx.fillStyle=cr.isNew?'#34d399':'#ffaa00';ctx.font='10px monospace';
-        ctx.fillText(cr.isNew?'NEW!':'+500コイン',cx-40,cy2+18);
-        ctx.textAlign='center';
-      });
-      sumY+=Math.min(charsGot.length,5)*36+10;
-    }
-    // Cosmetic items obtained
-    if(cosmeticsGot.length>0){
-      ctx.fillStyle='#a855f7';ctx.font='bold 14px monospace';ctx.textAlign='center';
-      ctx.fillText('\u2605 \u30b3\u30b9\u30e1 \u00D7'+cosmeticsGot.length,cx,sumY);
-      sumY+=8;
-      cosmeticsGot.forEach((cr,i)=>{
-        if(i>=3)return;
-        const cy2=sumY+i*28+16;
-        const isSRb=cr.item&&cr.item.rarity==='super_rare';
-        ctx.fillStyle=isSRb?'#ffd700':'#a855f7';ctx.font='bold 12px monospace';ctx.textAlign='center';
-        ctx.fillText((isSRb?'\u2605\u2605 ':'')+ cr.item.name,cx,cy2+5);
-        ctx.fillStyle=cr.isNew?'#34d399':'#ffaa00';ctx.font='10px monospace';
-        ctx.fillText(cr.isNew?(isSRb?'S.RARE!':'NEW!'):'+300\u30b3\u30a4\u30f3',cx,cy2+18);
-      });
-      sumY+=Math.min(cosmeticsGot.length,3)*28+10;
-    }
-    // Count
+    // === BATCH OPEN SUMMARY - CARD FORMAT ===
+    ctx.fillStyle='#ffd700';ctx.font='bold 16px monospace';ctx.textAlign='center';
+    ctx.fillText('\u5168\u958B\u5C01\u7D50\u679C',cx,mY+30);
     ctx.fillStyle='#fff6';ctx.font='11px monospace';
-    ctx.fillText(chestBatchResults.length+1+' 個開封',cx,sumY+10);
+    ctx.fillText(chestBatchResults.length+' \u500B\u958B\u5C01',cx,mY+48);
+
+    // Sort results: super_rare > rare > char > normal cosmetic > coin (high first)
+    const sorted=[...chestBatchResults].sort((a,b)=>{
+      const rank=r=>{
+        if(!r)return 99;
+        if(r.type==='cosmetic'&&r.item&&r.item.rarity==='super_rare')return 0;
+        if(r.type==='char'&&r.isNew)return 1;
+        if(r.type==='cosmetic'&&r.item&&r.item.rarity==='rare')return 2;
+        if(r.type==='char')return 3;
+        if(r.type==='cosmetic')return 4;
+        if(r.type==='coin')return 5+(1000-r.amount)/1000;
+        return 9;
+      };
+      return rank(a)-rank(b);
+    });
+
+    // Card grid layout
+    const cols=4,cardW=62,cardH=68,gap=4;
+    const gridW=cols*cardW+(cols-1)*gap;
+    const startX=cx-gridW/2;
+    const startY=mY+60;
+    const maxRows=Math.floor((mY+mH-50-startY)/(cardH+gap));
+    const maxCards=cols*maxRows;
+    let totalCoinsGot=0;
+    chestBatchResults.forEach(r=>{if(r&&r.type==='coin')totalCoinsGot+=r.amount;
+      if(r&&r.type==='char'&&!r.isNew)totalCoinsGot+=500;
+      if(r&&r.type==='cosmetic'&&!r.isNew)totalCoinsGot+=300;});
+
+    // Draw each card with entrance animation
+    const fadeIn=Math.min(t/30,1);
+    sorted.forEach((rw2,i)=>{
+      if(!rw2||i>=maxCards)return;
+      const col2=i%cols,row2=Math.floor(i/cols);
+      const cardX=startX+col2*(cardW+gap);
+      const cardDelay=i*2;
+      const cardAlpha=Math.min(Math.max((t-cardDelay)/15,0),1);
+      if(cardAlpha<=0)return;
+      const cardY2=startY+row2*(cardH+gap);
+      ctx.save();ctx.globalAlpha=cardAlpha;
+
+      // Card bg & border based on rarity
+      let borderCol='#445',bgCol='#ffffff08';
+      let glowCol=null,lw=1;
+      if(rw2.type==='cosmetic'&&rw2.item&&rw2.item.rarity==='super_rare'){
+        borderCol='#ffd700';bgCol='#ffd70025';glowCol='#ffd70040';lw=2;
+      } else if(rw2.type==='cosmetic'&&rw2.item&&rw2.item.rarity==='rare'){
+        borderCol='#a855f7';bgCol='#a855f720';lw=1.5;
+      } else if(rw2.type==='char'){
+        borderCol=rw2.isNew?'#ff88cc':'#ff88cc88';bgCol='#ff88cc15';
+      } else if(rw2.type==='coin'){
+        borderCol=rw2.amount>=1000?'#ffd700':'#ffd70066';bgCol='#ffd70010';
+      }
+
+      // Glow for super rare
+      if(glowCol){
+        const glow=ctx.createRadialGradient(cardX+cardW/2,cardY2+cardH/2,5,cardX+cardW/2,cardY2+cardH/2,cardW);
+        glow.addColorStop(0,glowCol);glow.addColorStop(1,'transparent');
+        ctx.fillStyle=glow;ctx.fillRect(cardX-10,cardY2-10,cardW+20,cardH+20);
+      }
+
+      ctx.fillStyle=bgCol;rr(cardX,cardY2,cardW,cardH,6);ctx.fill();
+      ctx.strokeStyle=borderCol;ctx.lineWidth=lw;rr(cardX,cardY2,cardW,cardH,6);ctx.stroke();
+
+      const ccx2=cardX+cardW/2;
+      ctx.textAlign='center';
+
+      if(rw2.type==='coin'){
+        // Coin icon
+        ctx.fillStyle='#ffd700';ctx.font='bold 18px monospace';
+        ctx.fillText('\u25CF',ccx2,cardY2+24);
+        ctx.fillStyle='#ffd700';ctx.font='bold 11px monospace';
+        ctx.fillText('+'+rw2.amount,ccx2,cardY2+42);
+        ctx.fillStyle='#fff4';ctx.font='8px monospace';
+        ctx.fillText('\u30b3\u30a4\u30f3',ccx2,cardY2+54);
+      } else if(rw2.type==='char'){
+        drawCharacter(ccx2,cardY2+22,rw2.charIdx,9,0,1,'happy',0);
+        const cname=CHARS[rw2.charIdx]?CHARS[rw2.charIdx].name:'???';
+        const sname=cname.length>4?cname.substring(0,4)+'..':cname;
+        ctx.fillStyle='#fff';ctx.font='8px monospace';
+        ctx.fillText(sname,ccx2,cardY2+42);
+        ctx.fillStyle=rw2.isNew?'#34d399':'#ffaa00';ctx.font='bold 9px monospace';
+        ctx.fillText(rw2.isNew?'NEW!':'+500',ccx2,cardY2+56);
+      } else if(rw2.type==='cosmetic'){
+        const rar2=rw2.item?rw2.item.rarity:null;
+        // Rarity badge
+        if(rar2==='super_rare'){
+          ctx.fillStyle='#ffd700';ctx.font='bold 10px monospace';
+          ctx.fillText('\u2605\u2605',ccx2,cardY2+16);
+        } else if(rar2==='rare'){
+          ctx.fillStyle='#a855f7';ctx.font='bold 10px monospace';
+          ctx.fillText('\u2605',ccx2,cardY2+16);
+        } else {
+          ctx.fillStyle='#88aacc';ctx.font='9px monospace';
+          ctx.fillText('\u30b3\u30b9\u30e1',ccx2,cardY2+16);
+        }
+        // Item name
+        const iname=rw2.item?rw2.item.name:'???';
+        const siname=iname.length>5?iname.substring(0,5)+'..':iname;
+        ctx.fillStyle='#fff';ctx.font='8px monospace';
+        ctx.fillText(siname,ccx2,cardY2+34);
+        ctx.fillStyle=rw2.isNew?'#34d399':'#ffaa00';ctx.font='bold 9px monospace';
+        ctx.fillText(rw2.isNew?(rar2==='super_rare'?'S.RARE!':'NEW!'):'+300',ccx2,cardY2+50);
+      }
+      ctx.restore();
+    });
+
+    // Overflow indicator
+    if(sorted.length>maxCards){
+      ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.textAlign='center';
+      ctx.fillText('...+'+(sorted.length-maxCards)+'\u4EF6',cx,startY+maxRows*(cardH+gap)+12);
+    }
+
+    // Total coins at bottom
+    if(totalCoinsGot>0){
+      ctx.fillStyle='#ffd700';ctx.font='bold 13px monospace';ctx.textAlign='center';
+      ctx.fillText('\u5408\u8A08 +'+totalCoinsGot+' \u30b3\u30a4\u30f3',cx,mY+mH-40);
+    }
+
     // Tap to close
     const ta2=0.4+Math.sin(t*0.1)*0.3;
-    ctx.globalAlpha=ta2;ctx.fillStyle='#fff6';ctx.font='13px monospace';
-    ctx.fillText('タップで閉じる',cx,mY+mH-20);
+    ctx.globalAlpha=ta2;ctx.fillStyle='#fff6';ctx.font='12px monospace';ctx.textAlign='center';
+    ctx.fillText('\u30BF\u30C3\u30D7\u3067\u9589\u3058\u308B',cx,mY+mH-18);
     ctx.globalAlpha=1;
     // Sparkles
     if(t%5===0){

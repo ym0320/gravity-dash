@@ -170,7 +170,9 @@ function spawnBossEnemies(){
       swordDuration:25+Math.min(bc-1,3)*3,
       swordReach:gsz*1.2,
       // Stunned (after being stomped)
-      stunDuration:Math.max(35,55-Math.min(bc-1,4)*5)
+      stunDuration:Math.max(35,55-Math.min(bc-1,4)*5),
+      // Jump progression: each jump gets smaller and faster
+      jumpCount:0
     };
     bossPhase.guardian=guardian;
     bossPhase.total=1;
@@ -536,8 +538,10 @@ function updateBossPhase(){
       snapToSurface();
       g.x+=(Math.random()-0.5)*1.0; // shake telegraph
       // Random prep duration (set once when entering this state)
+      // Prep gets shorter with each jump (faster attacks)
       if(!g._jumpPrepTarget){
-        g._jumpPrepTarget=g.jumpPrepBase+Math.floor(Math.random()*g.jumpPrepVariance);
+        const prepScale=Math.max(0.25,1.0-g.jumpCount*0.15);
+        g._jumpPrepTarget=Math.max(2,Math.floor((g.jumpPrepBase+Math.floor(Math.random()*g.jumpPrepVariance))*prepScale));
       }
       if(g.timer>=g._jumpPrepTarget){
         g._jumpPrepTarget=0;
@@ -545,9 +549,11 @@ function updateBossPhase(){
         const willFlip=g.flipEnabled&&Math.random()<0.45;
         g._jumpFlip=willFlip;
         g.state='bigJump';g.timer=0;
-        // Irregular jump height each time
-        const jumpPow=g.bigJumpBase+Math.random()*g.bigJumpVariance;
+        // Jump height decreases with each jump (starts big, gets smaller)
+        const jumpScale=Math.max(0.35,1.0-g.jumpCount*0.12);
+        const jumpPow=(g.bigJumpBase+Math.random()*g.bigJumpVariance)*jumpScale;
         g.jumpVy=-jumpPow*g.gDir; // always jump away from current surface
+        g.jumpCount++;
         sfx('guardianJump');shakeI=5;vibrate(10);
         const dustY=g.gDir===1?floorY2:ceilY2;
         emitParts(g.x,dustY,8,'#8a7060',4,2);
@@ -574,8 +580,9 @@ function updateBossPhase(){
         if(g.y+g.sz>floorY2-g.sz*0.3){g.y=floorY2-g.sz*1.3;g.jumpVy=-1;}
       }
     } else if(g.state==='bigJump'){
-      // Fast jump - gravity accelerates quickly
-      g.jumpVy+=GRAVITY*g.gDir*1.3; // 1.3x gravity for faster arc
+      // Fast jump - gravity accelerates quickly, faster with each successive jump
+      const gravMul=1.3+Math.min(g.jumpCount*0.18,1.2);
+      g.jumpVy+=GRAVITY*g.gDir*gravMul;
       g.y+=g.jumpVy;
       // Flip: if going to other surface, change gDir mid-air
       if(g._jumpFlip){

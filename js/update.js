@@ -867,17 +867,19 @@ function update(dt){
             const sdir=si===0?-1:1;
             enemies.push({x:en.x+sdir*10,y:en.y,vy:en.gDir===1?-4:4,gDir:en.gDir,
               walkSpd:0,sz:9,alive:true,fr:Math.random()*100,type:9,shootT:999,
-              bounceVy:en.gDir===1?-3.5:3.5,patrolOriginX:en.x+sdir*10});
+              bounceVy:en.gDir===1?-3.5:3.5,patrolOriginX:en.x+sdir*10,
+              splitVx:sdir*0.8});
           }
           sfx('shoot');emitParts(en.x,en.y,10,'#88cc44',4,3);
           addPop(en.x,en.y-en.sz*en.gDir-10,'\u5206\u88C2!','#88cc44');
         }
       }
     } else if(en.type===9){
-      // Mini slime (from splitter): bounces in place
+      // Mini slime (from splitter): bounces, drifts laterally slower than scroll
       const grav=GRAVITY*en.gDir;
       en.vy+=grav;
       en.y+=en.vy;
+      en.x+=(en.splitVx||0);
       en.patrolOriginX-=speed;
       if(en.gDir===1){
         const sy=floorSurfaceY(en.x);
