@@ -21,15 +21,15 @@ const fbApp  = FB_ENABLED ? firebase.initializeApp({
 const fbAuth = FB_ENABLED ? firebase.auth() : null;
 const fbDb   = FB_ENABLED ? firebase.firestore() : null;
 
-// --- State ---
-let fbUser = null;   // current firebase.User
-let fbReady = false; // auth state resolved at least once
-let fbCloudData = null;
-let fbSynced = false; // true after cloud merge completes (blocks saves until ready)
-let _fbLastSyncedUid = ''; // uid of last successfully synced user (prevent duplicate syncs)
-let fbLoginMethod = localStorage.getItem('gd5loginMethod') || ''; // 'google' | 'anonymous' | ''
-let _fbGoogleLoginInProgress = false; // true while Google login handler is running
-let _fbDirty = false; // true when local state has changed and needs saving
+// --- State (var for cross-script access) ---
+var fbUser = null;   // current firebase.User
+var fbReady = false; // auth state resolved at least once
+var fbCloudData = null;
+var fbSynced = false; // true after cloud merge completes (blocks saves until ready)
+var _fbLastSyncedUid = ''; // uid of last successfully synced user (prevent duplicate syncs)
+var fbLoginMethod = localStorage.getItem('gd5loginMethod') || ''; // 'google' | 'anonymous' | ''
+var _fbGoogleLoginInProgress = false; // true while Google login handler is running
+var _fbDirty = false; // true when local state has changed and needs saving
 
 // --- Auth helpers ---
 function fbSignInAnonymous() {
@@ -121,8 +121,8 @@ if (fbAuth) {
 }
 
 // --- Firestore: save user data (debounced) ---
-let _fbSaveTimer = null;
-let _fbPendingSave = false; // true when save was requested but fbSynced was false
+var _fbSaveTimer = null;
+var _fbPendingSave = false; // true when save was requested but fbSynced was false
 function fbSaveUserData() {
   if (!fbDb || !fbUser) return;
   _fbDirty = true; // mark that local state has changed
@@ -246,8 +246,8 @@ function fbMergeCloudData(data) {
 }
 
 // --- Firestore: load rankings ---
-let _fbRankCache = null;
-let _fbRankCacheT = 0;
+var _fbRankCache = null;
+var _fbRankCacheT = 0;
 function fbLoadRankings() {
   if (!fbDb || !fbUser) return Promise.resolve(null);
   const now = Date.now();
