@@ -749,6 +749,7 @@ function updateBossPhase(){
   const wizardActive=bossPhase.wizard&&bossPhase.wizard.alive;
   if(chargesCleared&&wizardActive){
     const w=bossPhase.wizard;
+    const bc=bossPhase.bossCount;
     if(!enemies.includes(w)){
       enemies.push(w);bossPhase.enemies.push(w);
     }
