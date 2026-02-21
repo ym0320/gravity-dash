@@ -2103,18 +2103,18 @@ function drawTitle(){
       ctx.fillStyle='#fff';ctx.font='12px monospace';ctx.textAlign='left';
       ctx.fillText(nameEditBuf+blink,slX+60,nameY);
       // OK button
-      ctx.fillStyle='#00e5ff22';rr(slX+pw-42,nameY-14,36,22,4);ctx.fill();
-      ctx.strokeStyle='#00e5ff';ctx.lineWidth=1;rr(slX+pw-42,nameY-14,36,22,4);ctx.stroke();
+      ctx.fillStyle='#00e5ff22';rr(px+pw-42,nameY-14,36,22,4);ctx.fill();
+      ctx.strokeStyle='#00e5ff';ctx.lineWidth=1;rr(px+pw-42,nameY-14,36,22,4);ctx.stroke();
       ctx.fillStyle='#00e5ff';ctx.font='bold 10px monospace';ctx.textAlign='center';
-      ctx.fillText('OK',slX+pw-24,nameY);
+      ctx.fillText('OK',px+pw-24,nameY);
     } else {
       // Display name + change button
       ctx.fillStyle='#fff';ctx.font='12px monospace';ctx.textAlign='left';
       ctx.fillText(playerName,slX+54,nameY);
-      ctx.fillStyle='#ffd70022';rr(slX+pw-72,nameY-14,66,22,4);ctx.fill();
-      ctx.strokeStyle='#ffd70066';ctx.lineWidth=1;rr(slX+pw-72,nameY-14,66,22,4);ctx.stroke();
+      ctx.fillStyle='#ffd70022';rr(px+pw-72,nameY-14,66,22,4);ctx.fill();
+      ctx.strokeStyle='#ffd70066';ctx.lineWidth=1;rr(px+pw-72,nameY-14,66,22,4);ctx.stroke();
       ctx.fillStyle='#ffd700';ctx.font='10px monospace';ctx.textAlign='center';
-      ctx.fillText('\u5909\u66F4',slX+pw-39,nameY);
+      ctx.fillText('\u5909\u66F4',px+pw-39,nameY);
     }
     // Tutorial replay button
     const tutBtnY=nameY+22;
