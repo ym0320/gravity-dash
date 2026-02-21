@@ -140,30 +140,30 @@ function startInventoryChestOpen(){
     const ci=Math.floor(Math.random()*CHARS.length);
     reward={type:'char',charIdx:ci,isNew:!isCharUnlocked(ci),bonusCoins:0};
   } else if(roll<0.25){
-    // Secret (rare) cosmetic item (10%)
+    // Secret (rare) cosmetic item (10%) - duplicates allowed
     const allRare=[];
     SHOP_ITEMS.skins.forEach(it=>{if(it.rarity==='rare')allRare.push({...it,tab:0});});
     SHOP_ITEMS.eyes.forEach(it=>{if(it.rarity==='rare')allRare.push({...it,tab:1});});
     SHOP_ITEMS.effects.forEach(it=>{if(it.rarity==='rare')allRare.push({...it,tab:2});});
-    const unownedRare=allRare.filter(it=>!ownsItem(it.id));
-    if(unownedRare.length>0){
-      const ri=unownedRare[Math.floor(Math.random()*unownedRare.length)];
-      ownedItems.push(ri.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));
-      reward={type:'cosmetic',item:ri,isNew:true};
+    if(allRare.length>0){
+      const ri=allRare[Math.floor(Math.random()*allRare.length)];
+      const isNew=!ownsItem(ri.id);
+      if(isNew){ownedItems.push(ri.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));}
+      reward={type:'cosmetic',item:ri,isNew:isNew,bonusCoins:isNew?0:300};
     } else {
       reward={type:'coin',amount:1000};
     }
   } else if(roll<0.40){
-    // Normal cosmetic item (15%)
+    // Normal cosmetic item (15%) - duplicates allowed
     const allNormal=[];
     SHOP_ITEMS.skins.forEach(it=>{if(it.rarity!=='rare')allNormal.push({...it,tab:0});});
     SHOP_ITEMS.eyes.forEach(it=>{if(it.rarity!=='rare')allNormal.push({...it,tab:1});});
     SHOP_ITEMS.effects.forEach(it=>{if(it.rarity!=='rare')allNormal.push({...it,tab:2});});
-    const unownedNormal=allNormal.filter(it=>!ownsItem(it.id));
-    if(unownedNormal.length>0){
-      const ni=unownedNormal[Math.floor(Math.random()*unownedNormal.length)];
-      ownedItems.push(ni.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));
-      reward={type:'cosmetic',item:ni,isNew:true};
+    if(allNormal.length>0){
+      const ni=allNormal[Math.floor(Math.random()*allNormal.length)];
+      const isNew=!ownsItem(ni.id);
+      if(isNew){ownedItems.push(ni.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));}
+      reward={type:'cosmetic',item:ni,isNew:isNew,bonusCoins:isNew?0:300};
     } else {
       reward={type:'coin',amount:200};
     }

@@ -2841,7 +2841,7 @@ function drawChestOpen(){
             ctx.fillText('NEW! アンロック!',cx,charY+charR+60);
           } else {
             ctx.fillStyle='#ffaa00';ctx.font='12px monospace';
-            ctx.fillText('所持済み +50コイン',cx,charY+charR+60);
+            ctx.fillText('所持済み +500コイン',cx,charY+charR+60);
           }
           ctx.globalAlpha=1;
         }
@@ -2887,15 +2887,21 @@ function drawChestOpen(){
       if(revealT>0.5){
         const nameA=Math.min((revealT-0.5)/0.3,1);
         ctx.globalAlpha=nameA;
-        if(isRareItem){
-          const tHue=(t*5)%360;
-          ctx.fillStyle=`hsl(${tHue},100%,65%)`;ctx.font='bold 16px monospace';ctx.textAlign='center';
-          ctx.shadowColor=`hsl(${tHue},100%,50%)`;ctx.shadowBlur=12;
-          ctx.fillText('\u2605 SECRET ITEM! \u2605',cx,itemY-36);
+        if(rw.isNew){
+          if(isRareItem){
+            const tHue=(t*5)%360;
+            ctx.fillStyle=`hsl(${tHue},100%,65%)`;ctx.font='bold 16px monospace';ctx.textAlign='center';
+            ctx.shadowColor=`hsl(${tHue},100%,50%)`;ctx.shadowBlur=12;
+            ctx.fillText('\u2605 SECRET ITEM! \u2605',cx,itemY-36);
+          } else {
+            ctx.fillStyle='#00e5ff';ctx.font='bold 14px monospace';ctx.textAlign='center';
+            ctx.shadowColor='#00e5ff';ctx.shadowBlur=8;
+            ctx.fillText('\u2606 NEW ITEM! \u2606',cx,itemY-36);
+          }
         } else {
-          ctx.fillStyle='#00e5ff';ctx.font='bold 14px monospace';ctx.textAlign='center';
-          ctx.shadowColor='#00e5ff';ctx.shadowBlur=8;
-          ctx.fillText('\u2606 NEW ITEM! \u2606',cx,itemY-36);
+          ctx.fillStyle='#ffaa00';ctx.font='bold 14px monospace';ctx.textAlign='center';
+          ctx.shadowColor='#ffaa00';ctx.shadowBlur=8;
+          ctx.fillText('所持済み +300コイン',cx,itemY-36);
         }
         ctx.shadowBlur=0;
         ctx.fillStyle='#fff';ctx.font='bold 16px monospace';
@@ -3093,7 +3099,7 @@ function drawChestOpen(){
         ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';ctx.textAlign='left';
         ctx.fillText(CHARS[cr.charIdx].name,cx-40,cy2+5);
         ctx.fillStyle=cr.isNew?'#34d399':'#ffaa00';ctx.font='10px monospace';
-        ctx.fillText(cr.isNew?'NEW!':'+50コイン',cx-40,cy2+18);
+        ctx.fillText(cr.isNew?'NEW!':'+500コイン',cx-40,cy2+18);
         ctx.textAlign='center';
       });
       sumY+=Math.min(charsGot.length,5)*36+10;
@@ -3108,6 +3114,8 @@ function drawChestOpen(){
         const cy2=sumY+i*28+16;
         ctx.fillStyle='#a855f7';ctx.font='bold 12px monospace';ctx.textAlign='center';
         ctx.fillText(cr.item.name,cx,cy2+5);
+        ctx.fillStyle=cr.isNew?'#34d399':'#ffaa00';ctx.font='10px monospace';
+        ctx.fillText(cr.isNew?'NEW!':'+300コイン',cx,cy2+18);
       });
       sumY+=Math.min(cosmeticsGot.length,3)*28+10;
     }
