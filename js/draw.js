@@ -2234,7 +2234,7 @@ function drawTitle(){
 
   // Copyright (bottom center)
   ctx.fillStyle='#fff2';ctx.font='8px monospace';ctx.textAlign='center';
-  ctx.fillText('\u00A9 2025 ny-tkc',W/2,H-safeBot+4);
+  ctx.fillText('\u00A9 2026 ny',W/2,H-safeBot+4);
   // Version (bottom right)
   ctx.fillStyle='#fff2';ctx.font='8px monospace';ctx.textAlign='right';
   ctx.fillText('v'+GAME_VERSION,W-8,H-safeBot+4);
