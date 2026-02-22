@@ -1425,7 +1425,6 @@ function drawCharacter(x,y,charIdx,r,rot,alpha,face,dmgLevel,showCosmetics){
         // Happy smiling eyes (^_^) - black
         ctx.strokeStyle='#111';ctx.lineWidth=2;ctx.lineCap='round';
         ctx.beginPath();ctx.arc(ex,ey2,es*0.8,Math.PI+0.3,2*Math.PI-0.3);ctx.stroke();
-        ctx.fillStyle='#111';ctx.beginPath();ctx.arc(ex-es*0.3,ey2-es*0.2,es*0.12,0,6.28);ctx.fill();
         break;
       case'angry':
         // Cute angry eye with pout
@@ -1438,13 +1437,6 @@ function drawCharacter(x,y,charIdx,r,rot,alpha,face,dmgLevel,showCosmetics){
         // Cute pout mouth
         ctx.strokeStyle='#cc6644';ctx.lineWidth=1.5;
         ctx.beginPath();ctx.arc(ex-es*0.2,ey2+es*1.2,es*0.3,Math.PI+0.4,2*Math.PI-0.4);ctx.stroke();
-        // 💢 anger mark on forehead
-        ctx.strokeStyle='#ff4444';ctx.lineWidth=1.8;ctx.lineCap='round';
-        const ax=ex-es*0.8,ay=ey2-es*1.6,as=es*0.4;
-        ctx.beginPath();ctx.moveTo(ax,ay-as*0.3);ctx.lineTo(ax,ay+as*0.3);ctx.stroke();
-        ctx.beginPath();ctx.moveTo(ax-as*0.3,ay);ctx.lineTo(ax+as*0.3,ay);ctx.stroke();
-        ctx.beginPath();ctx.moveTo(ax+as*0.5,ay-as*0.5);ctx.lineTo(ax+as*0.5,ay+as*0.1);ctx.stroke();
-        ctx.beginPath();ctx.moveTo(ax+as*0.2,ay-as*0.5);ctx.lineTo(ax+as*0.8,ay-as*0.5);ctx.stroke();
         break;
       case'star':
         // Yellow star with default eye in center
@@ -1486,7 +1478,7 @@ function drawCharacter(x,y,charIdx,r,rot,alpha,face,dmgLevel,showCosmetics){
         break;
       case'spiral':
         ctx.fillStyle=ch.eye;ctx.beginPath();ctx.arc(ex,ey2,es,0,6.28);ctx.fill();
-        ctx.strokeStyle=ch.pupil;ctx.lineWidth=1.5;ctx.beginPath();
+        ctx.strokeStyle=ch.pupil;ctx.lineWidth=0.8;ctx.beginPath();
         for(let si=0;si<20;si++){const sa=si*0.8,sr=es*0.1+si*es*0.035;
           const sx=ex+Math.cos(sa+(typeof frame!=='undefined'?frame*0.1:0))*sr;
           const sy=ey2+Math.sin(sa+(typeof frame!=='undefined'?frame*0.1:0))*sr;
@@ -1531,6 +1523,28 @@ function drawCharacter(x,y,charIdx,r,rot,alpha,face,dmgLevel,showCosmetics){
         if(gt%30<5){ctx.fillStyle='#ff004488';ctx.fillRect(ex-es,ey2-es*0.3,es*2,es*0.2);
           ctx.fillStyle='#00ff4488';ctx.fillRect(ex-es+2,ey2+es*0.1,es*2,es*0.15);}
         break;
+      case'blink':{
+        // Blinking eye - normal eye with periodic blink animation
+        const bt=typeof frame!=='undefined'?frame:0;
+        const bc=bt%180; // 180 frame cycle (~3 sec)
+        const blinking=bc>=170&&bc<180; // blink for 10 frames
+        const halfBlink=bc>=168&&bc<170||bc>=178&&bc<180; // half-close
+        if(blinking){
+          // Closed eye - horizontal line
+          ctx.strokeStyle=ch.eye;ctx.lineWidth=1.5;ctx.lineCap='round';
+          ctx.beginPath();ctx.moveTo(ex-es*0.7,ey2);ctx.lineTo(ex+es*0.7,ey2);ctx.stroke();
+        } else if(halfBlink){
+          // Half-closed - squished ellipse
+          ctx.fillStyle=ch.eye;ctx.beginPath();ctx.ellipse(ex,ey2,es,es*0.3,0,0,6.28);ctx.fill();
+          ctx.fillStyle=ch.pupil;ctx.beginPath();ctx.ellipse(ex+r*0.08,ey2,es*0.5,es*0.15,0,0,6.28);ctx.fill();
+        } else {
+          // Normal open eye with shine
+          ctx.fillStyle=ch.eye;ctx.beginPath();ctx.arc(ex,ey2,es,0,6.28);ctx.fill();
+          ctx.fillStyle=ch.pupil;ctx.beginPath();ctx.arc(ex+r*0.08,ey2,es*0.5,0,6.28);ctx.fill();
+          ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(ex+r*0.14,ey2-es*0.2,es*0.15,0,6.28);ctx.fill();
+          ctx.fillStyle='rgba(255,255,255,0.4)';ctx.beginPath();ctx.arc(ex-r*0.04,ey2+es*0.2,es*0.08,0,6.28);ctx.fill();
+        }
+        break;}
       default:
         ctx.fillStyle=ch.eye;ctx.beginPath();ctx.arc(ex,ey2,es,0,6.28);ctx.fill();
         ctx.fillStyle=ch.pupil;ctx.beginPath();ctx.arc(ex+r*0.08,ey2,es*0.5,0,6.28);ctx.fill();
@@ -2656,7 +2670,13 @@ function drawTitle(){
       const _rkSkin=equippedSkin,_rkEyes=equippedEyes,_rkFx=equippedEffect;
       equippedSkin=entry.eqSkin||'';equippedEyes=entry.eqEyes||'';equippedEffect=entry.eqFx||'';
       const rkFxData=getEquippedEffectData();
-      if(rkFxData)drawPlayerEffect(cix,ciy,9,rkFxData.type,1);
+      if(rkFxData){
+        // Clip effect to character vicinity so it doesn't overlap other rows
+        ctx.save();
+        ctx.beginPath();ctx.arc(cix,ciy,14,0,6.28);ctx.clip();
+        drawPlayerEffect(cix,ciy,9,rkFxData.type,0.7);
+        ctx.restore();
+      }
       drawCharacter(cix,ciy,entry.charIdx,9,0,1,'normal',0,true);
       equippedSkin=_rkSkin;equippedEyes=_rkEyes;equippedEffect=_rkFx;
       // Name
@@ -4206,10 +4226,6 @@ function drawEyePreview(x,y,type,sz){
       ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x+es*0.2,y-es*0.15,es*0.15,0,6.28);ctx.fill();
       ctx.strokeStyle='#663300';ctx.lineWidth=Math.max(1.5,sz*0.15);ctx.lineCap='round';
       ctx.beginPath();ctx.moveTo(x-es*0.6,y-es*0.9);ctx.lineTo(x+es*0.4,y-es*0.6);ctx.stroke();
-      // Tiny anger mark
-      ctx.strokeStyle='#ff4444';ctx.lineWidth=Math.max(1,sz*0.12);
-      ctx.beginPath();ctx.moveTo(x-es*0.7,y-es*1.3);ctx.lineTo(x-es*0.7,y-es*0.9);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(x-es*0.9,y-es*1.1);ctx.lineTo(x-es*0.5,y-es*1.1);ctx.stroke();
       break;
     case'star':
       ctx.fillStyle='#ffd700';
@@ -4242,7 +4258,7 @@ function drawEyePreview(x,y,type,sz){
       break;
     case'spiral':
       ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,es,0,6.28);ctx.fill();
-      ctx.strokeStyle='#333';ctx.lineWidth=Math.max(1,sz*0.12);ctx.beginPath();
+      ctx.strokeStyle='#333';ctx.lineWidth=Math.max(0.6,sz*0.07);ctx.beginPath();
       for(let si=0;si<16;si++){const sa=si*0.8,sr=es*0.1+si*es*0.05;
         const sx=x+Math.cos(sa)*sr,sy=y+Math.sin(sa)*sr;
         if(si===0)ctx.moveTo(sx,sy);else ctx.lineTo(sx,sy);
@@ -4283,6 +4299,24 @@ function drawEyePreview(x,y,type,sz){
       if(gt2%30<5){ctx.fillStyle='#ff004488';ctx.fillRect(x-es,y-es*0.3,es*2,es*0.2);
         ctx.fillStyle='#00ff4488';ctx.fillRect(x-es+1,y+es*0.1,es*2,es*0.15);}
       break;
+    case'blink':{
+      const bt2=typeof frame!=='undefined'?frame:0;
+      const bc2=bt2%180;
+      const blk2=bc2>=170&&bc2<180;
+      const hlf2=bc2>=168&&bc2<170||bc2>=178&&bc2<180;
+      if(blk2){
+        ctx.strokeStyle='#333';ctx.lineWidth=Math.max(1,sz*0.12);ctx.lineCap='round';
+        ctx.beginPath();ctx.moveTo(x-es*0.6,y);ctx.lineTo(x+es*0.6,y);ctx.stroke();
+      } else if(hlf2){
+        ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(x,y,es,es*0.3,0,0,6.28);ctx.fill();
+        ctx.fillStyle='#333';ctx.beginPath();ctx.ellipse(x+es*0.15,y,es*0.5,es*0.15,0,0,6.28);ctx.fill();
+      } else {
+        ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,es,0,6.28);ctx.fill();
+        ctx.fillStyle='#333';ctx.beginPath();ctx.arc(x+es*0.15,y,es*0.5,0,6.28);ctx.fill();
+        ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x+es*0.25,y-es*0.2,es*0.13,0,6.28);ctx.fill();
+        ctx.fillStyle='rgba(255,255,255,0.4)';ctx.beginPath();ctx.arc(x-es*0.05,y+es*0.2,es*0.07,0,6.28);ctx.fill();
+      }
+      break;}
     default:
       ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,es,0,6.28);ctx.fill();
       ctx.fillStyle='#333';ctx.beginPath();ctx.arc(x+es*0.15,y,es*0.45,0,6.28);ctx.fill();
@@ -4351,8 +4385,8 @@ function drawShop(){
       ctx.textAlign='right';
       ctx.fillStyle=sCol;ctx.font='bold 11px monospace';
       ctx.fillText(isSuperRareShop?'\uD83D\uDD12 S.RARE':'\uD83D\uDD12 SECRET',mX+mW-16,iy+20);
-      ctx.fillStyle=sCol3;ctx.font='9px monospace';
-      ctx.fillText('\u5B9D\u7BB1\u304B\u3089\u51FA\u73FE',mX+mW-16,iy+34);
+      if(item.newItem){ctx.fillStyle='#ff3860';ctx.font='bold 8px monospace';ctx.fillText('NEW',mX+mW-16,iy+34);}
+      else{ctx.fillStyle=sCol3;ctx.font='9px monospace';ctx.fillText('\u5B9D\u7BB1\u304B\u3089\u51FA\u73FE',mX+mW-16,iy+34);}
     } else {
     // Preview: show actual character with cosmetic applied
     if(shopTab===0){
@@ -4377,6 +4411,12 @@ function drawShop(){
     // Name & desc
     ctx.fillStyle='#fff';ctx.font='bold 12px monospace';ctx.textAlign='left';
     ctx.fillText(item.name,mX+56,iy+20);
+    // NEW badge for newly added items
+    if(item.newItem){
+      const nw=ctx.measureText(item.name).width;
+      ctx.fillStyle='#ff3860';ctx.font='bold 8px monospace';
+      ctx.fillText('NEW',mX+56+nw+6,iy+20);
+    }
     ctx.fillStyle='#fff6';ctx.font='9px monospace';
     ctx.fillText(item.desc,mX+56,iy+34);
     // Price / owned / equipped
@@ -4561,9 +4601,26 @@ function drawCosmeticMenu(){
     if(iy+rowH<listY||iy>listY+listH)continue;
     const isNone=item.id==='';
     const equipped=(cosmeticTab===0&&equippedSkin===item.id)||(cosmeticTab===1&&equippedEyes===item.id)||(cosmeticTab===2&&equippedEffect===item.id);
-    ctx.fillStyle=equipped?'#ffffff18':'#ffffff06';
+    const isRare=!isNone&&item.rarity==='rare';
+    const isSR=!isNone&&item.rarity==='super_rare';
+    // Row background with rarity tint
+    ctx.fillStyle=isSR?'#ffd70012':isRare?'#a855f710':equipped?'#ffffff18':'#ffffff06';
     rr(mX+8,iy+2,mW-16,rowH-4,8);ctx.fill();
-    if(equipped){ctx.strokeStyle='#ffd700';ctx.lineWidth=1.5;rr(mX+8,iy+2,mW-16,rowH-4,8);ctx.stroke();}
+    // Rarity border
+    if(isSR){
+      ctx.strokeStyle='#ffd700';ctx.lineWidth=2;rr(mX+8,iy+2,mW-16,rowH-4,8);ctx.stroke();
+      // Corner accents for super rare
+      ctx.strokeStyle='#ffd70088';ctx.lineWidth=1;
+      const cx1=mX+8,cy1=iy+2,cx2=mX+mW-8,cy2=iy+rowH-2,cl=8;
+      ctx.beginPath();ctx.moveTo(cx1,cy1+cl);ctx.lineTo(cx1,cy1);ctx.lineTo(cx1+cl,cy1);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(cx2-cl,cy1);ctx.lineTo(cx2,cy1);ctx.lineTo(cx2,cy1+cl);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(cx1,cy2-cl);ctx.lineTo(cx1,cy2);ctx.lineTo(cx1+cl,cy2);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(cx2-cl,cy2);ctx.lineTo(cx2,cy2);ctx.lineTo(cx2,cy2-cl);ctx.stroke();
+    } else if(isRare){
+      ctx.strokeStyle='#a855f7';ctx.lineWidth=1.5;rr(mX+8,iy+2,mW-16,rowH-4,8);ctx.stroke();
+    } else if(equipped){
+      ctx.strokeStyle='#ffd700';ctx.lineWidth=1.5;rr(mX+8,iy+2,mW-16,rowH-4,8);ctx.stroke();
+    }
     // Preview
     if(!isNone){
       if(cosmeticTab===0){
@@ -4589,19 +4646,28 @@ function drawCosmeticMenu(){
       ctx.fillStyle='#fff4';ctx.font='18px monospace';ctx.textAlign='center';
       ctx.fillText('\u2013',mX+33,iy+rowH/2+6);
     }
-    // Name
-    ctx.fillStyle=equipped?'#ffd700':'#fff';ctx.font='bold 11px monospace';ctx.textAlign='left';
-    ctx.fillText(item.name,mX+56,iy+20);
+    // Name with rarity color
+    ctx.fillStyle=equipped?'#ffd700':isSR?'#ffd700':isRare?'#a855f7':'#fff';
+    ctx.font='bold 11px monospace';ctx.textAlign='left';
+    ctx.fillText(item.name,mX+56,iy+18);
+    // Rarity label
+    if(isSR){
+      ctx.fillStyle='#ffd700';ctx.font='bold 7px monospace';
+      ctx.fillText('\u2605 S.RARE',mX+56,iy+28);
+    } else if(isRare){
+      ctx.fillStyle='#a855f7';ctx.font='bold 7px monospace';
+      ctx.fillText('\u25C6 RARE',mX+56,iy+28);
+    }
     ctx.fillStyle='#fff5';ctx.font='9px monospace';
-    ctx.fillText(item.desc||'',mX+56,iy+34);
+    ctx.fillText(item.desc||'',mX+56,iy+38);
     // Status
     ctx.textAlign='right';
-    if(equipped){ctx.fillStyle='#ffd700';ctx.font='bold 10px monospace';ctx.fillText('\u88C5\u5099\u4E2D',mX+mW-16,iy+24);}
-    else{ctx.fillStyle='#fff5';ctx.font='9px monospace';ctx.fillText('\u30BF\u30C3\u30D7\u3067\u88C5\u5099',mX+mW-16,iy+24);}
+    if(equipped){ctx.fillStyle='#ffd700';ctx.font='bold 10px monospace';ctx.fillText('\u88C5\u5099\u4E2D',mX+mW-16,iy+22);}
+    else{ctx.fillStyle='#fff5';ctx.font='9px monospace';ctx.fillText('\u30BF\u30C3\u30D7\u3067\u88C5\u5099',mX+mW-16,iy+22);}
     // NEW badge
     if(!isNone&&newCosmeticIds.has(item.id)){
       ctx.fillStyle='#ff3860';ctx.font='bold 9px monospace';ctx.textAlign='right';
-      ctx.fillText('NEW',mX+mW-16,iy+38);
+      ctx.fillText('NEW',mX+mW-16,iy+36);
     }
   }
   ctx.restore();

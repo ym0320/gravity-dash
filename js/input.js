@@ -186,8 +186,15 @@ function startInventoryChestOpen(){
       reward={type:'coin',amount:1000};
     }
   } else if(roll<0.17){
-    // Character (15%)
-    const ci=Math.floor(Math.random()*CHARS.length);
+    // Character (15%) - exclude default cube (index 0), prefer unowned chars
+    const charPool=[];
+    for(let ci=1;ci<CHARS.length;ci++){
+      const owned=isCharUnlocked(ci);
+      // Unowned chars get weight 3, owned chars get weight 1
+      const w=owned?1:3;
+      for(let wi=0;wi<w;wi++)charPool.push(ci);
+    }
+    const ci=charPool[Math.floor(Math.random()*charPool.length)];
     reward={type:'char',charIdx:ci,isNew:!isCharUnlocked(ci),bonusCoins:0};
   } else if(roll<0.27){
     // Secret (rare) cosmetic item (10%) - duplicates allowed
@@ -959,7 +966,7 @@ function handleTitleTouch(tx,ty){
   }
   // Cosmetic button (top-left, row 4)
   if(tx>=8&&tx<=44&&ty>=safeTop+120&&ty<=safeTop+156){
-    cosmeticMenuOpen=true;cosmeticTab=0;cosmeticScroll=0;notifNewCosmetic=false;localStorage.removeItem('gd5notifCosm');newCosmeticIds.clear();localStorage.removeItem('gd5newCosm');
+    cosmeticMenuOpen=true;cosmeticTab=0;cosmeticScroll=0;notifNewCosmetic=false;localStorage.removeItem('gd5notifCosm');
     sfx('select');return;
   }
   // Character selection: 2 rows x 3 columns grid
@@ -1167,9 +1174,9 @@ function handleCosmeticTouch(tx,ty){
   }
   // Footer close button
   const cosClY=mY+mH-42;
-  if(tx>=W/2-50&&tx<=W/2+50&&ty>=cosClY&&ty<=cosClY+30){cosmeticMenuOpen=false;sfx('cancel');return;}
+  if(tx>=W/2-50&&tx<=W/2+50&&ty>=cosClY&&ty<=cosClY+30){cosmeticMenuOpen=false;newCosmeticIds.clear();localStorage.removeItem('gd5newCosm');sfx('cancel');return;}
   // Outside modal
-  if(tx<mX||tx>mX+mW||ty<mY||ty>mY+mH){cosmeticMenuOpen=false;sfx('cancel');return;}
+  if(tx<mX||tx>mX+mW||ty<mY||ty>mY+mH){cosmeticMenuOpen=false;newCosmeticIds.clear();localStorage.removeItem('gd5newCosm');sfx('cancel');return;}
   // Tabs
   const tabW=(mW-20)/3;
   for(let i=0;i<3;i++){
