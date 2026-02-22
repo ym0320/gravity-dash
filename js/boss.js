@@ -52,9 +52,9 @@ function spawnBossEnemies(){
   bossPhase.bossType=bossType;
   if(bossType==='charge'){
     // Charge type: vertical movement from 1st encounter, progressive mechanics
-    const chargeCount=5;
-    const baseSpd=3+Math.min(bc-1,5)*0.4;
-    const spdVariance=Math.min(bc,5)*0.6;
+    const chargeCount=5+Math.min(Math.floor((bc-1)/3),3); // 5→8 at high bc
+    const baseSpd=3+Math.min(bc-1,12)*0.3;
+    const spdVariance=Math.min(bc,12)*0.5;
     for(let i=0;i<chargeCount;i++){
       const fromCeil=Math.random()<0.5;
       const gDir=fromCeil?-1:1;
@@ -64,21 +64,21 @@ function spawnBossEnemies(){
       const fromLeft=Math.random()<0.5;
       const spd=baseSpd+Math.random()*(1.5+spdVariance);
       // Vertical movement from 1st encounter (60%+ chance, increases with bc)
-      const diagProb=0.6+Math.min(bc-1,4)*0.08;
-      const diagMag=1.5+Math.min(bc-1,4)*0.5;
+      const diagProb=0.6+Math.min(bc-1,10)*0.04;
+      const diagMag=1.5+Math.min(bc-1,10)*0.35;
       const diagVy=Math.random()<diagProb?(gDir===1?-diagMag-Math.random()*1.5:diagMag+Math.random()*1.5):0;
-      // Feint from 1st encounter (20%→60% with bc)
-      const feintProb=0.2+Math.min(bc-1,4)*0.1;
+      // Feint from 1st encounter (20%→80% with bc)
+      const feintProb=0.2+Math.min(bc-1,8)*0.075;
       const hasFeint=Math.random()<feintProb;
       // Multiple feints at higher bc
-      const feintCount=bc>=3?1+Math.floor(Math.random()*Math.min(bc-1,3)):hasFeint?1:0;
-      // Speed changes from 2nd encounter (30%→60%)
-      const accelProb=bc>=2?0.3+Math.min(bc-2,3)*0.1:0;
+      const feintCount=bc>=3?1+Math.floor(Math.random()*Math.min(bc-1,5)):hasFeint?1:0;
+      // Speed changes from 2nd encounter (30%→70%)
+      const accelProb=bc>=2?0.3+Math.min(bc-2,8)*0.05:0;
       const hasAccel=Math.random()<accelProb;
       // Ranged attack from 3rd encounter
-      const hasShot=bc>=3&&Math.random()<0.4+Math.min(bc-3,3)*0.1;
+      const hasShot=bc>=3&&Math.random()<0.4+Math.min(bc-3,6)*0.06;
       // Random direction changes at high bc
-      const hasDirChange=bc>=4&&Math.random()<0.3;
+      const hasDirChange=bc>=4&&Math.random()<0.3+Math.min(bc-4,6)*0.05;
       bossPhase.chargeQueue.push({
         x:fromLeft?-80-i*10:W+80+i*10,y:ey,vy:0,gDir:gDir,sz:sz,alive:true,fr:Math.random()*100,
         type:10,shootT:999,boss:true,bossType:'charge',
@@ -96,20 +96,20 @@ function spawnBossEnemies(){
     }
     bossPhase.total=chargeCount;
   } else if(bossType==='dodge'){
-    // Dodge type: 10 enemies rush from RIGHT, player dodges/stomps
+    // Dodge type: 10+ enemies rush from RIGHT, player dodges/stomps
     // Each enemy has spikes on top or bottom - must stomp the safe side
-    const dodgeCount=10;
+    const dodgeCount=10+Math.min(Math.floor((bc-1)/3),4); // 10→14 at high bc
     const phase=bc;
-    const baseSpd=2.2+(phase>=3?Math.min(phase-2,4)*0.4:0);
+    const baseSpd=2.2+(phase>=3?Math.min(phase-2,10)*0.25:0);
     for(let i=0;i<dodgeCount;i++){
-      const spd=baseSpd+Math.random()*1.2;
+      const spd=baseSpd+Math.random()*(1.2+Math.min(phase-1,8)*0.1);
       const onFloor=Math.random()<0.5;
       const gDir=onFloor?1:-1;
       // Diagonal: always home toward player Y (no safe "stay on floor" cheese)
-      const diagStrength=phase>=2?(1.0+Math.min(phase-2,4)*0.3):0;
+      const diagStrength=phase>=2?(1.0+Math.min(phase-2,8)*0.2):0;
       const sz=PLAYER_R*5;
-      // Spawn interval: base 8 frames apart, reduced by 1 per phase (min 4)
-      const baseInterval=Math.max(6,12-Math.min(phase-1,4));
+      // Spawn interval: base 8 frames apart, reduced by 1 per phase (min 3)
+      const baseInterval=Math.max(3,12-Math.min(phase-1,8));
       bossPhase.dodgeQueue.push({
         x:W+80+i*10,y:onFloor?floorY-sz:ceilY+sz,vy:0,gDir:gDir,sz:sz,alive:true,fr:Math.random()*100,
         type:10,shootT:999,boss:true,bossType:'dodge',
@@ -125,12 +125,12 @@ function spawnBossEnemies(){
     bossPhase.dodgeKills=0;
   } else if(bossType==='bruiser'){
     // Bruiser type: 2x previous size, always 3 stomps, from 2nd encounter moves between floor/ceiling
-    const bsz=(30+Math.min(bc-1,3)*3)*2;
+    const bsz=(30+Math.min(bc-1,6)*2)*2;
     const bruiser={
       x:W+80,y:floorY-bsz,vy:0,gDir:1,sz:bsz,alive:true,fr:0,
       type:11,shootT:999,boss:true,bossType:'bruiser',
-      hp:3, maxHp:3,
-      chargeVx:-(3.5+Math.min(bc-1,6)*0.4), retreatVx:2.5+Math.min(bc-1,4)*0.2,
+      hp:3+Math.min(Math.floor((bc-1)/4),2), maxHp:3+Math.min(Math.floor((bc-1)/4),2),
+      chargeVx:-(3.5+Math.min(bc-1,12)*0.3), retreatVx:2.5+Math.min(bc-1,10)*0.15,
       state:'enter',
       timer:0, stunT:0, hurtFlash:0, invT:0, feinted:false,
       flipEnabled:bc>=2, // from 2nd encounter: can move between floor and ceiling
@@ -142,26 +142,26 @@ function spawnBossEnemies(){
     // Guardian type: armored knight - jump → earthquake → charge → sword attack
     // Player avoids earthquake by jumping, stomps guardian during charge phase
     // Can flip between floor/ceiling, always earthquakes on landing
-    const gsz=(28+Math.min(bc-1,3)*3)*2;
+    const gsz=(28+Math.min(bc-1,6)*2)*2;
     const guardian={
       x:W+90,y:floorY-gsz,vy:0,gDir:1,sz:gsz,alive:true,fr:0,
       type:13,shootT:999,boss:true,bossType:'guardian',
-      hp:3,maxHp:3,
-      chargeSpd:4.0+Math.min(bc-1,5)*0.5,
-      retreatSpd:4+Math.min(bc-1,3)*0.5,
+      hp:3+Math.min(Math.floor((bc-1)/4),2),maxHp:3+Math.min(Math.floor((bc-1)/4),2),
+      chargeSpd:4.0+Math.min(bc-1,12)*0.3,
+      retreatSpd:4+Math.min(bc-1,10)*0.25,
       state:'enter',
       timer:0,stunT:0,hurtFlash:0,invT:0,
       jumpVy:0,
       // Jump parameters - irregular height/timing, faster at higher phases
-      bigJumpBase:10+Math.min(bc-1,4)*1.0, // base jump power (randomized each jump)
-      bigJumpVariance:3+Math.min(bc-1,3)*0.5, // random range added to base
-      jumpPrepBase:Math.max(4,12-Math.min(bc-1,4)*2), // base prep time (shorter at higher bc)
-      jumpPrepVariance:Math.max(3,10-Math.min(bc-1,3)*2), // random extra prep frames
+      bigJumpBase:10+Math.min(bc-1,10)*0.6, // base jump power (randomized each jump)
+      bigJumpVariance:3+Math.min(bc-1,8)*0.4, // random range added to base
+      jumpPrepBase:Math.max(2,12-Math.min(bc-1,8)*1.2), // base prep time (shorter at higher bc)
+      jumpPrepVariance:Math.max(2,10-Math.min(bc-1,8)*1.0), // random extra prep frames
       onCeiling:false, // whether currently on ceiling
       flipEnabled:bc>=2, // can flip between floor/ceiling from bc>=2
       // Earthquake parameters
-      quakeStunDuration:50+Math.min(bc-1,3)*10, // moderate stun, charge is still dodgeable
-      quakeDuration:25, // visual earthquake frames
+      quakeStunDuration:50+Math.min(bc-1,8)*6, // moderate stun, charge is still dodgeable
+      quakeDuration:25+Math.min(bc-1,6)*2, // visual earthquake frames
       quakeT:0,
       // Feint parameters (disabled - no feint jumps)
       feintEnabled:false,
@@ -170,10 +170,10 @@ function spawnBossEnemies(){
       feintCooldown:0,
       // Sword attack
       swordSwingT:0,
-      swordDuration:25+Math.min(bc-1,3)*3,
-      swordReach:gsz*1.2,
+      swordDuration:25+Math.min(bc-1,8)*2,
+      swordReach:gsz*(1.2+Math.min(bc-1,8)*0.05),
       // Stunned (after being stomped)
-      stunDuration:Math.max(35,55-Math.min(bc-1,4)*5),
+      stunDuration:Math.max(25,55-Math.min(bc-1,8)*3.5),
       // Jump progression: each jump gets smaller and faster
       jumpCount:0
     };
@@ -181,7 +181,7 @@ function spawnBossEnemies(){
     bossPhase.total=1;
   } else {
     // Wizard type: floats in air, dashes toward player then returns, shoots patterns
-    const wsz=24+Math.min(bc-1,3)*2;
+    const wsz=24+Math.min(bc-1,8)*1.5;
     const wizard={
       x:W+60,y:H/2,vy:0,gDir:1,sz:wsz,alive:true,fr:0,
       type:12,shootT:999,boss:true,bossType:'wizard',
@@ -411,7 +411,7 @@ function updateBossPhase(){
       b.fr+=0.15;
       if(frame%2===0)parts.push({x:b.x+b.sz,y:b.y,vx:2,vy:(Math.random()-0.5)*1.5,life:15,ml:15,sz:Math.random()*5+2,col:'#ff3860'});
       // Feint: at higher boss counts, sometimes fake charge then retreat
-      if(bc>=2&&b.timer>15&&b.timer<50&&!b.feinted&&Math.random()<0.004*bc){
+      if(bc>=2&&b.timer>15&&b.timer<50&&!b.feinted&&Math.random()<0.003*Math.min(bc,12)){
         b.state='feint';b.feintT=25;b.timer=0;b.feinted=true;
       }
       if(b.x<W*0.15){b.state='retreat';b.timer=0;}
@@ -584,7 +584,7 @@ function updateBossPhase(){
       }
     } else if(g.state==='bigJump'){
       // Fast jump - gravity accelerates quickly
-      const gravMul=1.3+Math.min(bc-1,3)*0.15;
+      const gravMul=1.3+Math.min(bc-1,10)*0.08;
       g.jumpVy+=GRAVITY*g.gDir*gravMul;
       g.y+=g.jumpVy;
       // Flip: if going to other surface, change gDir mid-air

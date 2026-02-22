@@ -8,6 +8,8 @@ let flipZone={active:false,type:0,len:0,cd:0,lastType:-1}; // type: 0=floor gap,
 let abyssPhase={active:false,len:0,cd:0};
 // Gravity rush phase: score 5000+, temporarily spawns many gravity zones
 let gravRushPhase={active:false,len:0,cd:0};
+// Terrain gimmick phase: score 8000+, temporarily spawns only falling floors or only moving floors
+let terrainGimmickPhase={active:false,type:'',len:0,cd:0}; // type: 'falling' or 'moving'
 
 function generatePlatform(arr,isCeil,forceGap){
   const last=arr.length>0?arr[arr.length-1]:null;
@@ -158,6 +160,7 @@ function reset(){
   flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
   abyssPhase={active:false,len:0,cd:0};
   gravRushPhase={active:false,len:0,cd:0};
+  terrainGimmickPhase={active:false,type:'',len:0,cd:0};
   bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:BOSS_INTERVAL,lastBossScore:0,lastBossRawDist:0,bossCount:0,bossType:'',noDamage:true};
   hp=HP_MAX+(ct().hpBonus||0);hurtT=0;
   curTheme=0;prevTheme=0;themeLerp=1;
@@ -208,6 +211,7 @@ function resetPackStage(pi,si){
   flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
   abyssPhase={active:false,len:0,cd:0};
   gravRushPhase={active:false,len:0,cd:0};
+  terrainGimmickPhase={active:false,type:'',len:0,cd:0};
   bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:99999,lastBossScore:0,lastBossRawDist:0,bossCount:0};
   hp=HP_MAX+(ct().hpBonus||0);hurtT=0;
   curTheme=0;prevTheme=0;themeLerp=1;

@@ -416,6 +416,15 @@ function update(dt){
         gravRushPhase.len=6+Math.floor(Math.random()*5); // 6-10 rapid gravity zones
       }
     }
+    // Terrain gimmick phase: score 8000+, occasionally force falling-floor-only or moving-floor-only
+    if(terrainGimmickPhase.cd>0)terrainGimmickPhase.cd--;
+    if(!terrainGimmickPhase.active&&terrainGimmickPhase.cd<=0&&score>=8000&&!bossPhase.active){
+      if(Math.random()<0.004){
+        terrainGimmickPhase.active=true;
+        terrainGimmickPhase.type=Math.random()<0.5?'falling':'moving';
+        terrainGimmickPhase.len=5+Math.floor(Math.random()*4); // 5-8 spawns
+      }
+    }
 
     let lastF=platforms[platforms.length-1];
     let lastC=ceilPlats[ceilPlats.length-1];
@@ -448,7 +457,7 @@ function update(dt){
     }
     updateBossPhase();
     // During boss prepare/active, cancel flip zones and special phases
-    if(bossPhase.active){flipZone.active=false;flipZone.cd=200;abyssPhase.active=false;abyssPhase.cd=300;gravRushPhase.active=false;gravRushPhase.cd=300;}
+    if(bossPhase.active){flipZone.active=false;flipZone.cd=200;abyssPhase.active=false;abyssPhase.cd=300;gravRushPhase.active=false;gravRushPhase.cd=300;terrainGimmickPhase.active=false;terrainGimmickPhase.cd=300;}
   }
 
   // Physics
@@ -544,16 +553,30 @@ function update(dt){
     }
   });
 
-  // Moving hill collision (acts as temporary elevated terrain)
+  // Moving hill collision (acts as temporary elevated terrain, both floor and ceiling)
   movingHills.forEach(mh=>{
     const curH=mh.baseH+Math.sin(mh.phase)*mh.ampH;
-    const surfY=H-curH;
-    if(player.gDir===1&&player.x+pr>mh.x&&player.x-pr<mh.x+mh.w){
-      if(player.y+pr>=surfY&&player.y+pr<surfY+20&&player.vy>=0){
-        player.y=surfY-pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
-      } else if(player.y+pr>surfY+4&&player.y-pr<surfY&&player.grounded){
-        // Push player up with the hill
-        player.y=surfY-pr;
+    if(player.x+pr>mh.x&&player.x-pr<mh.x+mh.w){
+      if(!mh.isFloor){
+        // Ceiling moving hill
+        const surfY=curH;
+        if(player.gDir===-1){
+          if(player.y-pr<=surfY&&player.y-pr>surfY-20&&player.vy<=0){
+            player.y=surfY+pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
+          } else if(player.y-pr<surfY-4&&player.y+pr>surfY&&player.grounded){
+            player.y=surfY+pr;
+          }
+        }
+      } else {
+        // Floor moving hill
+        const surfY=H-curH;
+        if(player.gDir===1){
+          if(player.y+pr>=surfY&&player.y+pr<surfY+20&&player.vy>=0){
+            player.y=surfY-pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
+          } else if(player.y+pr>surfY+4&&player.y-pr<surfY&&player.grounded){
+            player.y=surfY-pr;
+          }
+        }
       }
     }
   });
@@ -575,38 +598,68 @@ function update(dt){
     }
   });
 
-  // Falling mountain update
+  // Falling mountain update (supports both floor and ceiling)
   fallingMtns.forEach(fm=>{
     fm.x-=speed;
+    const isCeil=!fm.isFloor;
     if(fm.state==='idle'){
-      const surfY2=H-fm.curH;
       // Auto-trigger when visible on screen (before player reaches it)
       if(fm.x<W+20){fm.state='shaking';fm.shakeT=60;}
-      if(player.gDir===1&&player.x+pr>fm.x&&player.x-pr<fm.x+fm.w){
-        if(player.y+pr>=surfY2&&player.y+pr<surfY2+12&&player.vy>=0){
-          player.y=surfY2-pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;djumpAvailable=true;
+      if(!isCeil){
+        const surfY2=H-fm.curH;
+        if(player.gDir===1&&player.x+pr>fm.x&&player.x-pr<fm.x+fm.w){
+          if(player.y+pr>=surfY2&&player.y+pr<surfY2+12&&player.vy>=0){
+            player.y=surfY2-pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;djumpAvailable=true;
+          }
+        }
+      } else {
+        const surfY2=fm.curH;
+        if(player.gDir===-1&&player.x+pr>fm.x&&player.x-pr<fm.x+fm.w){
+          if(player.y-pr<=surfY2&&player.y-pr>surfY2-12&&player.vy<=0){
+            player.y=surfY2+pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;djumpAvailable=true;
+          }
         }
       }
     } else if(fm.state==='shaking'){
       fm.shakeT--;
       fm.shakeAmt=Math.sin(fm.shakeT*0.8)*(2+(60-fm.shakeT)*0.05);
-      const surfY2=H-fm.curH;
-      if(player.gDir===1&&player.x+pr>fm.x&&player.x-pr<fm.x+fm.w){
-        if(player.y+pr>=surfY2&&player.y+pr<surfY2+12&&player.vy>=0){
-          player.y=surfY2-pr;player.vy=0;player.grounded=true;
+      if(!isCeil){
+        const surfY2=H-fm.curH;
+        if(player.gDir===1&&player.x+pr>fm.x&&player.x-pr<fm.x+fm.w){
+          if(player.y+pr>=surfY2&&player.y+pr<surfY2+12&&player.vy>=0){
+            player.y=surfY2-pr;player.vy=0;player.grounded=true;
+          }
+        }
+      } else {
+        const surfY2=fm.curH;
+        if(player.gDir===-1&&player.x+pr>fm.x&&player.x-pr<fm.x+fm.w){
+          if(player.y-pr<=surfY2&&player.y-pr>surfY2-12&&player.vy<=0){
+            player.y=surfY2+pr;player.vy=0;player.grounded=true;
+          }
         }
       }
       if(fm.shakeT<=0){fm.state='falling';fm.vy=0.5;sfx('death');vibrate([10,5,10]);}
     } else if(fm.state==='falling'){
       fm.vy+=0.3;fm.curH-=fm.vy;fm.alpha=Math.max(0,fm.curH/fm.baseH);
-      const surfY2=H-fm.curH;
-      if(fm.curH>0&&player.gDir===1&&player.x+pr>fm.x&&player.x-pr<fm.x+fm.w){
-        if(player.y+pr>=surfY2&&player.y+pr<surfY2+12&&player.vy>=0){
-          player.y=surfY2-pr;player.vy=fm.vy*-0.3;player.grounded=true;
+      if(!isCeil){
+        const surfY2=H-fm.curH;
+        if(fm.curH>0&&player.gDir===1&&player.x+pr>fm.x&&player.x-pr<fm.x+fm.w){
+          if(player.y+pr>=surfY2&&player.y+pr<surfY2+12&&player.vy>=0){
+            player.y=surfY2-pr;player.vy=fm.vy*-0.3;player.grounded=true;
+          }
         }
+        if(fm.curH<=-50)fm.state='gone';
+        if(frame%3===0)emitParts(fm.x+Math.random()*fm.w,H-Math.max(0,fm.curH),2,tc('gnd'),2,1);
+      } else {
+        const surfY2=fm.curH;
+        if(fm.curH>0&&player.gDir===-1&&player.x+pr>fm.x&&player.x-pr<fm.x+fm.w){
+          if(player.y-pr<=surfY2&&player.y-pr>surfY2-12&&player.vy<=0){
+            player.y=surfY2+pr;player.vy=fm.vy*0.3;player.grounded=true;
+          }
+        }
+        if(fm.curH<=-50)fm.state='gone';
+        if(frame%3===0)emitParts(fm.x+Math.random()*fm.w,Math.max(0,fm.curH),2,tc('gnd'),2,1);
       }
-      if(fm.curH<=-50)fm.state='gone';
-      if(frame%3===0)emitParts(fm.x+Math.random()*fm.w,H-Math.max(0,fm.curH),2,tc('gnd'),2,1);
     }
   });
   fallingMtns=fallingMtns.filter(fm=>fm.state!=='gone'&&fm.x+fm.w>-50);
