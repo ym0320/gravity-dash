@@ -251,19 +251,25 @@ function trySpawnSpike(){
   }
 }
 
-// ===== FALLING FLOOR (only over abysses) =====
+// ===== FALLING FLOOR (over abysses, both floor and ceiling) =====
 function trySpawnFallingMtn(){
   if(fallingMtnCD>0){fallingMtnCD--;return;}
   if(bossPhase.active)return;
   if(score<4000)return;
-  // Find a gap (abyss) in floor platforms to place the falling floor over
+  // During terrain gimmick phase (moving type), skip falling spawns
+  if(terrainGimmickPhase.active&&terrainGimmickPhase.type==='moving')return;
+  // Find a gap (abyss) in floor or ceiling platforms to place the falling floor over
   // Starts at 4000, increases significantly from 4000-6000+
-  const chance=score>=6000?Math.min(0.12,0.04+(score-6000)*0.0002):Math.min(0.06,0.01+(score-4000)*0.0003);
+  const isGimmickFalling=terrainGimmickPhase.active&&terrainGimmickPhase.type==='falling';
+  let chance=score>=6000?Math.min(0.12,0.04+(score-6000)*0.0002):Math.min(0.06,0.01+(score-4000)*0.0003);
+  if(isGimmickFalling)chance=0.35; // high spawn rate during gimmick phase
   if(Math.random()<chance){
+    const isFloor=Math.random()<0.5;
+    const platArr=isFloor?platforms:ceilPlats;
     // Look for gaps between platforms in the upcoming area
     let gapX=-1,gapW=0;
-    for(let i=0;i<platforms.length-1;i++){
-      const p1=platforms[i],p2=platforms[i+1];
+    for(let i=0;i<platArr.length-1;i++){
+      const p1=platArr[i],p2=platArr[i+1];
       const gStart=p1.x+p1.w;
       const gEnd=p2.x;
       const gap=gEnd-gStart;
@@ -272,11 +278,16 @@ function trySpawnFallingMtn(){
       }
     }
     if(gapX<0){fallingMtnCD=30+Math.floor(Math.random()*20);return;}
-    fallingMtnCD=180+Math.floor(Math.random()*120);
+    // Check overlap: don't spawn where a movingHill already exists
+    const hasHill=movingHills.some(mh=>Math.abs(mh.x-gapX)<gapW&&mh.isFloor===isFloor);
+    if(hasHill){fallingMtnCD=30+Math.floor(Math.random()*15);return;}
+    const isGimmickFalling2=terrainGimmickPhase.active&&terrainGimmickPhase.type==='falling';
+    fallingMtnCD=isGimmickFalling2?(40+Math.floor(Math.random()*30)):(180+Math.floor(Math.random()*120));
+    if(isGimmickFalling2){terrainGimmickPhase.len--;if(terrainGimmickPhase.len<=0){terrainGimmickPhase.active=false;terrainGimmickPhase.cd=800+Math.floor(Math.random()*400);}}
     const fw=Math.min(gapW*0.8,50+Math.random()*60);
     const fx=gapX+(gapW-fw)/2; // center in gap
     const fh=GROUND_H+10+Math.random()*20;
-    fallingMtns.push({x:fx,w:fw,baseH:fh,curH:fh,vy:0,state:'idle',shakeT:0,shakeAmt:0,triggerDist:80,isFloor:true,alpha:1});
+    fallingMtns.push({x:fx,w:fw,baseH:fh,curH:fh,vy:0,state:'idle',shakeT:0,shakeAmt:0,triggerDist:80,isFloor:isFloor,alpha:1});
   } else {
     fallingMtnCD=30+Math.floor(Math.random()*20);
   }
@@ -310,12 +321,18 @@ function trySpawnCoinSwitch(){
 function trySpawnMovingHill(){
   if(hillCD>0){hillCD--;return;}
   if(bossPhase.bossCount<2||bossPhase.active)return; // only after 2nd boss defeated
-  const chance=Math.min(0.1,0.02+(score-120)*0.001);
+  // During terrain gimmick phase (falling type), skip moving hill spawns
+  if(terrainGimmickPhase.active&&terrainGimmickPhase.type==='falling')return;
+  const isGimmickMoving=terrainGimmickPhase.active&&terrainGimmickPhase.type==='moving';
+  let chance=Math.min(0.1,0.02+(score-120)*0.001);
+  if(isGimmickMoving)chance=0.35; // high spawn rate during gimmick phase
   if(Math.random()<chance){
-    // Find a gap (abyss) in floor platforms to place the moving hill over
+    const isFloor=Math.random()<0.5;
+    const platArr=isFloor?platforms:ceilPlats;
+    // Find a gap (abyss) in platforms to place the moving hill over
     let gapX=-1,gapW=0;
-    for(let i=0;i<platforms.length-1;i++){
-      const p1=platforms[i],p2=platforms[i+1];
+    for(let i=0;i<platArr.length-1;i++){
+      const p1=platArr[i],p2=platArr[i+1];
       const gStart=p1.x+p1.w;
       const gEnd=p2.x;
       const gap=gEnd-gStart;
@@ -324,12 +341,17 @@ function trySpawnMovingHill(){
       }
     }
     if(gapX<0){hillCD=30+Math.floor(Math.random()*15);return;}
-    hillCD=120+Math.floor(Math.random()*80);
+    // Check overlap: don't spawn where a fallingMtn already exists
+    const hasFalling=fallingMtns.some(fm=>Math.abs(fm.x-gapX)<gapW&&fm.isFloor===isFloor);
+    if(hasFalling){hillCD=30+Math.floor(Math.random()*15);return;}
+    const isGimmickMoving2=terrainGimmickPhase.active&&terrainGimmickPhase.type==='moving';
+    hillCD=isGimmickMoving2?(40+Math.floor(Math.random()*30)):(120+Math.floor(Math.random()*80));
+    if(isGimmickMoving2){terrainGimmickPhase.len--;if(terrainGimmickPhase.len<=0){terrainGimmickPhase.active=false;terrainGimmickPhase.cd=800+Math.floor(Math.random()*400);}}
     const hw=Math.min(gapW*0.7,60+Math.random()*50);
     const hx=gapX+(gapW-hw)/2; // center in gap
     const baseH=GROUND_H;
     const ampH=25+Math.random()*30;
-    movingHills.push({x:hx,w:hw,baseH:baseH,ampH:ampH,phase:Math.random()*6.28,spd:0.03+Math.random()*0.02});
+    movingHills.push({x:hx,w:hw,baseH:baseH,ampH:ampH,phase:Math.random()*6.28,spd:0.03+Math.random()*0.02,isFloor:isFloor});
   } else {
     hillCD=30+Math.floor(Math.random()*15);
   }
