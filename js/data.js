@@ -1419,5 +1419,5 @@ function unequipEffect(){equippedEffect='';localStorage.setItem('gd5eqFx','');if
 function getEquippedSkinData(){if(!equippedSkin)return null;return SHOP_ITEMS.skins.find(s=>s.id===equippedSkin)||null;}
 function getEquippedEyesData(){if(!equippedEyes)return null;return SHOP_ITEMS.eyes.find(e=>e.id===equippedEyes)||null;}
 function getEquippedEffectData(){if(!equippedEffect)return null;return SHOP_ITEMS.effects.find(e=>e.id===equippedEffect)||null;}
-// Sort shop items: normal first, then rare, then super_rare at bottom
-function shopSorted(arr){const rVal=r=>r==='super_rare'?2:r==='rare'?1:0;return arr.slice().sort((a,b)=>rVal(a.rarity)-rVal(b.rarity));}
+// Sort shop items: cheap→expensive (normal), then rare by price, then super_rare at bottom
+function shopSorted(arr){const rVal=r=>r==='super_rare'?2:r==='rare'?1:0;return arr.slice().sort((a,b)=>{const ra=rVal(a.rarity),rb=rVal(b.rarity);if(ra!==rb)return ra-rb;return(a.price||0)-(b.price||0);});}
