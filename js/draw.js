@@ -2580,22 +2580,6 @@ function drawTitle(){
       }
       ny+=8;
     }
-    // "分かりました" checkbox (only on latest page)
-    if(updateInfoPage===0){
-      const dismissed=localStorage.getItem('gd5updateDismissed')===UPDATE_VER;
-      const cbY=uy+uh-72;
-      const cbSz=16;
-      const cbX=W/2-70;
-      ctx.strokeStyle=dismissed?'#34d399':'#fff6';ctx.lineWidth=1.5;
-      rr(cbX,cbY,cbSz,cbSz,3);ctx.stroke();
-      if(dismissed){
-        ctx.fillStyle='#34d399';rr(cbX,cbY,cbSz,cbSz,3);ctx.fill();
-        ctx.fillStyle='#fff';ctx.font='bold 12px monospace';ctx.textAlign='center';
-        ctx.fillText('\u2713',cbX+cbSz/2,cbY+13);
-      }
-      ctx.fillStyle=dismissed?'#34d399':'#fff8';ctx.font='11px monospace';ctx.textAlign='left';
-      ctx.fillText('\u5206\u304B\u308A\u307E\u3057\u305F\uFF08\u4ECA\u5F8C\u8868\u793A\u3057\u306A\u3044\uFF09',cbX+cbSz+8,cbY+13);
-    }
     // Close button
     const uCloseY=uy+uh-42;
     ctx.fillStyle='#ffd70022';rr(W/2-50,uCloseY,100,32,8);ctx.fill();
@@ -4364,13 +4348,28 @@ function drawShop(){
     if(iy+rowH<listY||iy>listY+listH)continue;
     const owned=ownsItem(item.id);
     const isSecret=(item.rarity==='rare'||item.rarity==='super_rare')&&!owned;
+    const isRareShop=item.rarity==='rare';
     const isSuperRareShop=item.rarity==='super_rare';
     const equipped=(shopTab===0&&equippedSkin===item.id)||(shopTab===1&&equippedEyes===item.id)||(shopTab===2&&equippedEffect===item.id);
-    // Row bg
-    ctx.fillStyle=equipped?'#ffffff15':owned?'#ffffff08':isSecret?'#ffffff02':'#ffffff04';
+    // Row bg with rarity tint
+    ctx.fillStyle=isSuperRareShop&&owned?'#ffd70012':isRareShop&&owned?'#a855f710':equipped?'#ffffff15':owned?'#ffffff08':isSecret?'#ffffff02':'#ffffff04';
     rr(mX+8,iy+2,mW-16,rowH-4,8);ctx.fill();
+    // Rarity borders (for both owned and unowned)
     if(equipped){ctx.strokeStyle='#ffd700';ctx.lineWidth=1.5;rr(mX+8,iy+2,mW-16,rowH-4,8);ctx.stroke();}
-    if(isSecret){ctx.strokeStyle=isSuperRareShop?'#ffd70033':'#a855f722';ctx.lineWidth=isSuperRareShop?1.5:1;rr(mX+8,iy+2,mW-16,rowH-4,8);ctx.stroke();}
+    else if(isSuperRareShop){
+      ctx.strokeStyle=owned?'#ffd700':'#ffd70033';ctx.lineWidth=owned?2:1.5;rr(mX+8,iy+2,mW-16,rowH-4,8);ctx.stroke();
+      if(owned){
+        // Corner accents for owned super rare
+        ctx.strokeStyle='#ffd70088';ctx.lineWidth=1;
+        const cx1=mX+8,cy1=iy+2,cx2=mX+mW-8,cy2=iy+rowH-2,cl=8;
+        ctx.beginPath();ctx.moveTo(cx1,cy1+cl);ctx.lineTo(cx1,cy1);ctx.lineTo(cx1+cl,cy1);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(cx2-cl,cy1);ctx.lineTo(cx2,cy1);ctx.lineTo(cx2,cy1+cl);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(cx1,cy2-cl);ctx.lineTo(cx1,cy2);ctx.lineTo(cx1+cl,cy2);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(cx2-cl,cy2);ctx.lineTo(cx2,cy2);ctx.lineTo(cx2,cy2-cl);ctx.stroke();
+      }
+    } else if(isRareShop){
+      ctx.strokeStyle=owned?'#a855f7':'#a855f722';ctx.lineWidth=owned?1.5:1;rr(mX+8,iy+2,mW-16,rowH-4,8);ctx.stroke();
+    }
     if(isSecret){
       // Secret item: show mystery appearance
       const sCol=isSuperRareShop?'#ffd700':'#a855f7';
@@ -4408,17 +4407,26 @@ function drawShop(){
       drawCharacter(mX+33,iy+rowH/2,selChar,10,0,1,'normal',0,true);
       drawPlayerEffect(mX+33,iy+rowH/2,10,item.type,0.7);
     }
-    // Name & desc
-    ctx.fillStyle='#fff';ctx.font='bold 12px monospace';ctx.textAlign='left';
-    ctx.fillText(item.name,mX+56,iy+20);
+    // Name & desc with rarity
+    ctx.fillStyle=isSuperRareShop?'#ffd700':isRareShop?'#a855f7':'#fff';
+    ctx.font='bold 12px monospace';ctx.textAlign='left';
+    ctx.fillText(item.name,mX+56,iy+16);
+    // Rarity label
+    if(isSuperRareShop){
+      ctx.fillStyle='#ffd700';ctx.font='bold 7px monospace';
+      ctx.fillText('\u2605 S.RARE',mX+56,iy+26);
+    } else if(isRareShop){
+      ctx.fillStyle='#a855f7';ctx.font='bold 7px monospace';
+      ctx.fillText('\u25C6 RARE',mX+56,iy+26);
+    }
     // NEW badge for newly added items
     if(item.newItem){
       const nw=ctx.measureText(item.name).width;
       ctx.fillStyle='#ff3860';ctx.font='bold 8px monospace';
-      ctx.fillText('NEW',mX+56+nw+6,iy+20);
+      ctx.fillText('NEW',mX+56+nw+6,iy+16);
     }
     ctx.fillStyle='#fff6';ctx.font='9px monospace';
-    ctx.fillText(item.desc,mX+56,iy+34);
+    ctx.fillText(item.desc,mX+56,iy+38);
     // Price / owned / equipped
     ctx.textAlign='right';
     if(equipped){
@@ -4592,7 +4600,7 @@ function drawCosmeticMenu(){
   // Item list (only owned items + "none" option)
   const listY=mY+134,listH=mH-184;
   const allItems=cosmeticTab===0?SHOP_ITEMS.skins:cosmeticTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
-  const ownedList=[{id:'',name:'\u306A\u3057',desc:'\u30C7\u30D5\u30A9\u30EB\u30C8'}].concat(allItems.filter(it=>ownsItem(it.id)));
+  const ownedList=[{id:'',name:'\u306A\u3057',desc:'\u30C7\u30D5\u30A9\u30EB\u30C8'}].concat(shopSorted(allItems.filter(it=>ownsItem(it.id))));
   const rowH=48;
   ctx.save();ctx.beginPath();ctx.rect(mX,listY,mW,listH);ctx.clip();
   for(let i=0;i<ownedList.length;i++){

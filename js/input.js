@@ -276,21 +276,11 @@ function handleUpdateInfoTouch(tx,ty){
     // Right arrow (older)
     if(tx>=ux+uw-40&&tx<=ux+uw&&updateInfoPage<UPDATE_HISTORY.length-1){sfx('click');updateInfoPage++;return;}
   }
-  // Checkbox (only on latest page)
-  if(updateInfoPage===0){
-    const cbY=uy+uh-72,cbX=W/2-70;
-    if(tx>=cbX&&tx<=W/2+80&&ty>=cbY&&ty<=cbY+18){
-      const cur=localStorage.getItem('gd5updateDismissed')===UPDATE_VER;
-      if(cur){localStorage.removeItem('gd5updateDismissed');}
-      else{localStorage.setItem('gd5updateDismissed',UPDATE_VER);}
-      sfx('click');return;
-    }
-  }
-  // Close button
+  // Close button - auto dismiss on close
   const uCloseY=uy+uh-42;
-  if(tx>=W/2-50&&tx<=W/2+50&&ty>=uCloseY&&ty<=uCloseY+32){sfx('click');updateInfoOpen=false;updateInfoPage=0;return;}
-  // Tap outside
-  if(tx<ux||tx>ux+uw||ty<uy||ty>uy+uh){sfx('cancel');updateInfoOpen=false;updateInfoPage=0;return;}
+  if(tx>=W/2-50&&tx<=W/2+50&&ty>=uCloseY&&ty<=uCloseY+32){sfx('click');localStorage.setItem('gd5updateDismissed',UPDATE_VER);updateInfoOpen=false;updateInfoPage=0;return;}
+  // Tap outside - auto dismiss on close
+  if(tx<ux||tx>ux+uw||ty<uy||ty>uy+uh){sfx('cancel');localStorage.setItem('gd5updateDismissed',UPDATE_VER);updateInfoOpen=false;updateInfoPage=0;return;}
 }
 // Help overlay touch handler
 function handleHelpTouch(tx,ty){
@@ -833,7 +823,7 @@ canvas.addEventListener('mouseup',()=>{
   draggingSlider=null;
 });
 document.addEventListener('keydown',e=>{
-  if(updateInfoOpen){if(e.code==='Escape'){updateInfoOpen=false;updateInfoPage=0;sfx('cancel');}if(e.code==='ArrowLeft'&&updateInfoPage>0){updateInfoPage--;sfx('click');}if(e.code==='ArrowRight'&&updateInfoPage<UPDATE_HISTORY.length-1){updateInfoPage++;sfx('click');}e.preventDefault();return;}
+  if(updateInfoOpen){if(e.code==='Escape'){localStorage.setItem('gd5updateDismissed',UPDATE_VER);updateInfoOpen=false;updateInfoPage=0;sfx('cancel');}if(e.code==='ArrowLeft'&&updateInfoPage>0){updateInfoPage--;sfx('click');}if(e.code==='ArrowRight'&&updateInfoPage<UPDATE_HISTORY.length-1){updateInfoPage++;sfx('click');}e.preventDefault();return;}
   if(helpOpen){if(e.code==='Escape'){helpOpen=false;sfx('cancel');}e.preventDefault();return;}
   if(rankingOpen){if(e.code==='Escape'){rankingOpen=false;sfx('cancel');}e.preventDefault();return;}
   if(settingsOpen){if(e.code==='Escape'){if(confirmModal){confirmModal=null;sfx('cancel');}else if(nameEditMode){nameEditMode=false;}else{settingsOpen=false;logoutConfirm=false;resetConfirmStep=0;}sfx('cancel');e.preventDefault();}if(!nameEditMode){e.preventDefault();}return;}
@@ -1136,10 +1126,10 @@ function confirmShopTap(){
     // Already owned - do nothing (equip via cosmetic menu instead)
     return;
   } else {
-    // Block purchase of secret/rare items (gacha only)
-    if(item.rarity==='rare'){
+    // Block purchase of secret/rare/super_rare items (gacha only)
+    if(item.rarity==='rare'||item.rarity==='super_rare'){
       sfx('hurt');vibrate(15);
-      addPop(W/2,H/2,'\u30AC\u30C1\u30E3\u9650\u5B9A!','#a855f7');
+      addPop(W/2,H/2,'\u30AC\u30C1\u30E3\u9650\u5B9A!',item.rarity==='super_rare'?'#ffd700':'#a855f7');
       return;
     }
     shopConfirm={item,tab};sfx('select');

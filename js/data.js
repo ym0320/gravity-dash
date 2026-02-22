@@ -26,6 +26,8 @@ function resize(){
 }
 resize();window.addEventListener('resize',resize);
 if(window.visualViewport)window.visualViewport.addEventListener('resize',resize);
+// Lock to portrait orientation on mobile
+try{if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('portrait').catch(()=>{});}catch(e){}
 
 // ===== CONSTANTS =====
 const GRAVITY=0.22;
