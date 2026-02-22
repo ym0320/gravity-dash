@@ -241,7 +241,7 @@ function continueFromDeath(){
   player.y=floorSurfaceY(player.x)-PLAYER_R;player.grounded=false;
   // Clear hazards
   enemies=[];bullets=[];spikes=[];items=[];floatPlats=[];movingHills=[];gravZones=[];
-  bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:(Math.floor(dist/1000)+1)*1000,lastBossScore:score,bossCount:bossPhase.bossCount||0,bossType:'',noDamage:true};
+  bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:(Math.floor(rawDist/1000)+1)*1000,lastBossScore:score,lastBossRawDist:rawDist,bossCount:bossPhase.bossCount||0,bossType:'',noDamage:true};
   itemEff={invincible:0,magnet:0};bombCount=0;bombFlashT=0;invCount=0;
   djumpAvailable=!!ct().hasDjump;djumpUsed=false;ghostPhaseT=0;ghostInvis=false;
   player._quakeStunned=false;player._quakeStunT=0;
@@ -496,9 +496,9 @@ function startCountdown(mode){
     // Boss retry: start at saved score, boss triggers immediately
     isRetryGame=true;
     bossRetry=null;
-    score=retry.score;dist=retry.score;
+    score=retry.score;dist=retry.score;rawDist=retry.rawDist;
     bossPhase.bossCount=retry.bossCount;
-    bossPhase.nextAt=dist; // will trigger boss on first play frame
+    bossPhase.nextAt=rawDist; // will trigger boss on first play frame
     bossPhase.lastBossScore=score;
     lastMile=Math.floor(score/1000)*1000;
     // Set correct theme for this score
@@ -542,7 +542,7 @@ canvas.addEventListener('touchstart',e=>{
   }
   if(state===ST.PAUSE){
     if(hitResumeBtn(p.x,p.y)){sfx('select');state=ST.PLAY;switchBGM('play');return;}
-    if(hitQuitBtn(p.x,p.y)){sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
+    if(hitQuitBtn(p.x,p.y)){sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     return;
   }
   if(state===ST.PLAY&&hitInvBtn(p.x,p.y)){useInvincible();touchBtnUsed=true;return;}
@@ -765,7 +765,7 @@ canvas.addEventListener('mousedown',e=>{
   }
   if(state===ST.PAUSE){
     if(hitResumeBtn(p.x,p.y)){sfx('select');state=ST.PLAY;switchBGM('play');return;}
-    if(hitQuitBtn(p.x,p.y)){sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
+    if(hitQuitBtn(p.x,p.y)){sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     return;
   }
   if(state===ST.PLAY&&hitInvBtn(p.x,p.y)){useInvincible();return;}

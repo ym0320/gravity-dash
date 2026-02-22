@@ -1142,6 +1142,7 @@ let mileT=0,mileTxt='',lastMile=0;
 let pops=[],totalCoins=0,totalFlips=0,maxCombo=0,flipCount=0,flipTimer=999;
 let played=parseInt(localStorage.getItem('gd5plays')||'0');
 let dist=0;
+let rawDist=0; // pure traversal distance (no bonuses) - used for boss timing
 let speedOffset=0; // distance offset for speed calculation (reset on continue)
 let hp=HP_MAX,hurtT=0; // hit points and hurt invincibility timer
 

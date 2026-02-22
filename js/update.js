@@ -285,6 +285,7 @@ function update(dt){
 
   // Distance scoring (score freezes during boss, catches up on victory)
   dist+=speed*0.08;
+  rawDist+=speed*0.08;
   if(!bossPhase.active){
     const ns=Math.floor(dist);
     if(ns>score){
@@ -442,7 +443,7 @@ function update(dt){
     trySpawnFallingMtn();
     trySpawnCoinSwitch();
     // Boss phase trigger
-    if(!bossPhase.active&&dist>=bossPhase.nextAt){
+    if(!bossPhase.active&&rawDist>=bossPhase.nextAt){
       startBossPhase();
     }
     updateBossPhase();
