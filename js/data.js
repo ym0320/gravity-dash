@@ -1377,6 +1377,7 @@ const SHOP_ITEMS={
     {id:'eye_void',name:'\u30f4\u30a9\u30a4\u30c9\u30a2\u30a4',type:'void',price:24000,desc:'\u865a\u7121\u306e\u6f06\u9ed2',rarity:'rare'},
     {id:'eye_galaxy',name:'\u30ae\u30e3\u30e9\u30af\u30b7\u30fc\u30a2\u30a4',type:'galaxy',price:30000,desc:'\u661f\u96f2\u306e\u77b3',rarity:'rare'},
     {id:'eye_glitch',name:'\u30b0\u30ea\u30c3\u30c1\u30a2\u30a4',type:'glitch',price:36000,desc:'\u30d0\u30b0\u3063\u305f\u77b3',rarity:'rare'},
+    {id:'eye_blink',name:'\u30d6\u30ea\u30f3\u30af\u30a2\u30a4',type:'blink',price:50000,desc:'\u77ac\u304d\u3059\u308b\u751f\u304d\u305f\u77b3',rarity:'super_rare',newItem:true},
   ],
   effects:[
     {id:'fx_sparkle',name:'\u30ad\u30e9\u30ad\u30e9',type:'sparkle',price:8000,desc:'\u5149\u306e\u7c92\u5b50\u304c\u821e\u3046'},
