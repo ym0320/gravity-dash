@@ -1360,7 +1360,10 @@ if(googleBtn){
         googleBtn.style.display='none';
         if(twitterBtn)twitterBtn.style.display='none';
         document.getElementById('loginDivider').style.display='none';
-        document.getElementById('loginLabel').textContent='名前を入力';
+        document.getElementById('loginLabel').textContent='名前を登録';
+        const ln=document.getElementById('loginNote');
+        ln.textContent='※ランキングに表示されます。適切な名前を設定してください';
+        ln.style.color='#fff4';
         if(user.displayName){
           const gName=user.displayName.replace(/[<>&"']/g,'').substring(0,12);
           nameInput.value=gName;
@@ -1422,7 +1425,10 @@ if(twitterBtn){
         if(twitterBtn)twitterBtn.style.display='none';
         googleBtn.style.display='none';
         document.getElementById('loginDivider').style.display='none';
-        document.getElementById('loginLabel').textContent='名前を入力';
+        document.getElementById('loginLabel').textContent='名前を登録';
+        const ln2=document.getElementById('loginNote');
+        ln2.textContent='※ランキングに表示されます。適切な名前を設定してください';
+        ln2.style.color='#fff4';
         if(user.displayName){
           const tName=user.displayName.replace(/[<>&"']/g,'').substring(0,12);
           nameInput.value=tName;
