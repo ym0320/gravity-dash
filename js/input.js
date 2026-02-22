@@ -180,7 +180,7 @@ function startInventoryChestOpen(){
     if(allSR.length>0){
       const ri=allSR[Math.floor(Math.random()*allSR.length)];
       const isNew=!ownsItem(ri.id);
-      if(isNew){ownedItems.push(ri.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));notifNewCosmetic=true;localStorage.setItem('gd5notifCosm','1');}
+      if(isNew){ownedItems.push(ri.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));notifNewCosmetic=true;localStorage.setItem('gd5notifCosm','1');newCosmeticIds.add(ri.id);localStorage.setItem('gd5newCosm',JSON.stringify([...newCosmeticIds]));}
       reward={type:'cosmetic',item:ri,isNew:isNew,bonusCoins:isNew?0:300};
     } else {
       reward={type:'coin',amount:1000};
@@ -198,7 +198,7 @@ function startInventoryChestOpen(){
     if(allRare.length>0){
       const ri=allRare[Math.floor(Math.random()*allRare.length)];
       const isNew=!ownsItem(ri.id);
-      if(isNew){ownedItems.push(ri.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));notifNewCosmetic=true;localStorage.setItem('gd5notifCosm','1');}
+      if(isNew){ownedItems.push(ri.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));notifNewCosmetic=true;localStorage.setItem('gd5notifCosm','1');newCosmeticIds.add(ri.id);localStorage.setItem('gd5newCosm',JSON.stringify([...newCosmeticIds]));}
       reward={type:'cosmetic',item:ri,isNew:isNew,bonusCoins:isNew?0:300};
     } else {
       reward={type:'coin',amount:1000};
@@ -212,7 +212,7 @@ function startInventoryChestOpen(){
     if(allNormal.length>0){
       const ni=allNormal[Math.floor(Math.random()*allNormal.length)];
       const isNew=!ownsItem(ni.id);
-      if(isNew){ownedItems.push(ni.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));notifNewCosmetic=true;localStorage.setItem('gd5notifCosm','1');}
+      if(isNew){ownedItems.push(ni.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));notifNewCosmetic=true;localStorage.setItem('gd5notifCosm','1');newCosmeticIds.add(ni.id);localStorage.setItem('gd5newCosm',JSON.stringify([...newCosmeticIds]));}
       reward={type:'cosmetic',item:ni,isNew:isNew,bonusCoins:isNew?0:300};
     } else {
       reward={type:'coin',amount:200};
@@ -959,7 +959,7 @@ function handleTitleTouch(tx,ty){
   }
   // Cosmetic button (top-left, row 4)
   if(tx>=8&&tx<=44&&ty>=safeTop+120&&ty<=safeTop+156){
-    cosmeticMenuOpen=true;cosmeticTab=0;cosmeticScroll=0;notifNewCosmetic=false;localStorage.removeItem('gd5notifCosm');
+    cosmeticMenuOpen=true;cosmeticTab=0;cosmeticScroll=0;notifNewCosmetic=false;localStorage.removeItem('gd5notifCosm');newCosmeticIds.clear();localStorage.removeItem('gd5newCosm');
     sfx('select');return;
   }
   // Character selection: 2 rows x 3 columns grid

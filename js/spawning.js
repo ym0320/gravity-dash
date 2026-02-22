@@ -141,7 +141,7 @@ function trySpawnEnemy(){
       // Bomber (Hammer Bros style): stationary, throws bombs in an arc
       const surfY=H-plat.h;
       enemies.push({x:ex,y:surfY-sz,vy:0,gDir:1,walkSpd:0.1,sz:sz+2,alive:true,fr:Math.random()*100,type:3,
-        shootT:90+Math.floor(Math.random()*40),bombCD:90+Math.floor(Math.random()*40),
+        shootT:130+Math.floor(Math.random()*50),bombCD:130+Math.floor(Math.random()*50),
         patrolDir:1,patrolOriginX:ex,patrolRange:15+Math.random()*20});
     } else if(eType===6){
       // Dasher: walks slowly, then charges at player when close

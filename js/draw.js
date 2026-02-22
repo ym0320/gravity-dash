@@ -4598,6 +4598,11 @@ function drawCosmeticMenu(){
     ctx.textAlign='right';
     if(equipped){ctx.fillStyle='#ffd700';ctx.font='bold 10px monospace';ctx.fillText('\u88C5\u5099\u4E2D',mX+mW-16,iy+24);}
     else{ctx.fillStyle='#fff5';ctx.font='9px monospace';ctx.fillText('\u30BF\u30C3\u30D7\u3067\u88C5\u5099',mX+mW-16,iy+24);}
+    // NEW badge
+    if(!isNone&&newCosmeticIds.has(item.id)){
+      ctx.fillStyle='#ff3860';ctx.font='bold 9px monospace';ctx.textAlign='right';
+      ctx.fillText('NEW',mX+mW-16,iy+38);
+    }
   }
   ctx.restore();
   // Footer close button

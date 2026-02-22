@@ -1406,6 +1406,7 @@ let cosmeticTab=0; // 0=skins, 1=eyes, 2=effects
 let cosmeticScroll=0;
 // --- Notification badges ---
 let notifNewCosmetic=localStorage.getItem('gd5notifCosm')==='1'; // new cosmetic obtained
+let newCosmeticIds=new Set(JSON.parse(localStorage.getItem('gd5newCosm')||'[]')); // individual new cosmetic IDs
 let notifNewChars=JSON.parse(localStorage.getItem('gd5notifChars')||'[]'); // newly unlocked char indices
 let notifNewHighScore=localStorage.getItem('gd5notifHi')==='1'; // new high score achieved
 // Shop purchase confirmation & gacha animation
@@ -1423,6 +1424,7 @@ function buyItem(id,price){
   ownedItems.push(id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));
   // Notification badge for new cosmetic
   notifNewCosmetic=true;localStorage.setItem('gd5notifCosm','1');
+  newCosmeticIds.add(id);localStorage.setItem('gd5newCosm',JSON.stringify([...newCosmeticIds]));
   if(typeof fbSaveUserData==='function')fbSaveUserData();
   return true;
 }
