@@ -39,6 +39,7 @@ const SPEED_INC=0.00025;
 const SPEED_MAX=5.0;
 const HP_MAX=3;
 const HURT_INVINCIBLE=90; // frames of invincibility after taking damage
+const BOSS_INTERVAL=750; // rawDist interval between boss battles
 
 // ===== THEMES =====
 const THEMES=[
