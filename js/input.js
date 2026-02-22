@@ -1,5 +1,6 @@
 'use strict';
 let touchStartY=0,touchStartX=0,touchStartT=0,touchMoved=false,touchBtnUsed=false;
+let touchOriginY=0; // original Y at touchstart (not modified by scroll handlers)
 // Character modal (long-press on title to show details + animated demo)
 let charModal={show:false,idx:0,animT:0};
 let longPressTimer=null,longPressFired=false,titleTouchPos=null;
@@ -513,7 +514,7 @@ canvas.addEventListener('touchstart',e=>{
   e.preventDefault();initAudio();
   const t=e.touches[0];
   const p=canvasXY(t.clientX,t.clientY);
-  touchStartY=t.clientY;touchStartX=t.clientX;touchStartT=Date.now();touchMoved=false;touchBtnUsed=false;
+  touchStartY=t.clientY;touchStartX=t.clientX;touchOriginY=t.clientY;touchStartT=Date.now();touchMoved=false;touchBtnUsed=false;
   // Update info modal intercepts all input when open
   if(updateInfoOpen){handleUpdateInfoTouch(p.x,p.y);return;}
   // Help overlay intercepts all input when open
@@ -609,7 +610,9 @@ canvas.addEventListener('touchmove',e=>{
     const items=shopSorted(shopTab===0?SHOP_ITEMS.skins:shopTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects);
     const mH2=Math.min(500,H-30),listH2=mH2-140,totalH2=items.length*54;
     const maxS=Math.max(0,totalH2-listH2);
-    shopScroll=Math.max(0,Math.min(maxS,shopScroll-dy2*2));touchMoved=true;return;
+    shopScroll=Math.max(0,Math.min(maxS,shopScroll-dy2*2));
+    if(Math.abs(t.clientY-touchOriginY)>10)touchMoved=true;
+    return;
   }
   // Cosmetic scroll
   if(cosmeticMenuOpen){
@@ -618,7 +621,9 @@ canvas.addEventListener('touchmove',e=>{
     const ownedList=[{id:''}].concat(allItems.filter(it=>ownsItem(it.id)));
     const mH2=Math.min(500,H-30),listH2=mH2-184,totalH2=ownedList.length*48;
     const maxS=Math.max(0,totalH2-listH2);
-    cosmeticScroll=Math.max(0,Math.min(maxS,cosmeticScroll-dy2*2));touchMoved=true;return;
+    cosmeticScroll=Math.max(0,Math.min(maxS,cosmeticScroll-dy2*2));
+    if(Math.abs(t.clientY-touchOriginY)>10)touchMoved=true;
+    return;
   }
   const dy=t.clientY-touchStartY;
   const dx=t.clientX-touchStartX;
