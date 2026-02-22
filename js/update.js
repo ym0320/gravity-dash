@@ -10,7 +10,7 @@ function update(dt){
   if(mileT>0)mileT--;
   if(bombFlashT>0)bombFlashT--;
   if(newHiEffT>0)newHiEffT--;
-  pops=pops.filter(p=>{p.y-=1.2;p.life--;return p.life>0;});
+  fip(pops,p=>{p.y-=1.2;p.life--;return p.life>0;});
 
   if(state===ST.PAUSE)return; // freeze everything while paused
 
@@ -125,8 +125,8 @@ function update(dt){
         en.y=H-GROUND_H-en.sz; // keep on floor
       }
     });
-    parts=parts.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.07;p.vx*=0.99;p.life--;return p.life>0;});
-    pops=pops.filter(p=>{p.y-=1.2;p.life--;return p.life>0;});
+    fip(parts,p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.07;p.vx*=0.99;p.life--;return p.life>0;});
+    fip(pops,p=>{p.y-=1.2;p.life--;return p.life>0;});
     if(bombFlashT>0)bombFlashT--;
     if(itemEff.invincible>0)itemEff.invincible--;
     return;
@@ -201,7 +201,7 @@ function update(dt){
   }
   if(state===ST.DEAD){
     deadT++;
-    parts=parts.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.07;p.vx*=0.99;p.life--;return p.life>0;});
+    fip(parts,p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.07;p.vx*=0.99;p.life--;return p.life>0;});
     stars.forEach(s=>{s.x-=s.sp*0.15;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
     // Chest opening on death screen
     if(deadChestOpen&&chestOpen.phase!=='none'){
@@ -238,7 +238,7 @@ function update(dt){
   }
   if(state===ST.STAGE_CLEAR){
     stageClearT++;
-    parts=parts.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.05;p.vx*=0.99;p.life--;return p.life>0;});
+    fip(parts,p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.05;p.vx*=0.99;p.life--;return p.life>0;});
     // Spawn celebration particles
     if(stageClearT<60&&stageClearT%3===0){
       for(let i=0;i<3;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*2,vy:1+Math.random()*2,life:50+Math.random()*30,ml:80,sz:Math.random()*5+2,col:['#ffd700','#00e5ff','#ff3860','#34d399'][i%4]});
@@ -316,12 +316,12 @@ function update(dt){
   movingHills.forEach(h=>{h.x-=speed;h.phase+=h.spd;});
   gravZones.forEach(g=>g.x-=speed);
   // Remove off-screen platforms
-  platforms=platforms.filter(p=>p.x+p.w>-50);
-  ceilPlats=ceilPlats.filter(p=>p.x+p.w>-50);
-  floatPlats=floatPlats.filter(p=>p.x+p.w>-50);
-  spikes=spikes.filter(s=>s.x+s.w>-50);
-  movingHills=movingHills.filter(h=>h.x+h.w>-50);
-  gravZones=gravZones.filter(g=>g.x+g.w>-50&&g.fadeT<60);
+  fip(platforms,p=>p.x+p.w>-50);
+  fip(ceilPlats,p=>p.x+p.w>-50);
+  fip(floatPlats,p=>p.x+p.w>-50);
+  fip(spikes,s=>s.x+s.w>-50);
+  fip(movingHills,h=>h.x+h.w>-50);
+  fip(gravZones,g=>g.x+g.w>-50&&g.fadeT<60);
   // Generate new platforms ahead (pack mode: seeded terrain)
   if(isPackMode&&currentPackStage){
     if(platforms.length===0)platforms.push({x:player.x-30,w:200,h:GROUND_H});
@@ -662,11 +662,11 @@ function update(dt){
       }
     }
   });
-  fallingMtns=fallingMtns.filter(fm=>fm.state!=='gone'&&fm.x+fm.w>-50);
+  fip(fallingMtns,fm=>fm.state!=='gone'&&fm.x+fm.w>-50);
 
   // Coin switch update (round button)
   coinSwitches.forEach(cs=>{cs.x-=speed;if(cs.flashT>0)cs.flashT--;});
-  coinSwitches=coinSwitches.filter(cs=>cs.x+cs.r>-50);
+  fip(coinSwitches,cs=>cs.x+cs.r>-50);
   coinSwitches.forEach(cs=>{
     if(cs.activated)return;
     const dx3=player.x-cs.x,dy3=player.y-cs.y;
@@ -749,7 +749,7 @@ function update(dt){
   });
   // Reset combo if any uncollected coin goes off-screen
   const prevCoinCount=coins.length;
-  coins=coins.filter(c=>{
+  fip(coins,c=>{
     if(c.col)return false; // collected, remove
     if(c.x>-50)return true; // still on screen, keep
     // Missed coin went off-screen: break combo
@@ -771,7 +771,7 @@ function update(dt){
       }
     }
   });
-  items=items.filter(it=>it.x>-50&&!it.col);
+  fip(items,it=>it.x>-50&&!it.col);
 
   // Enemies
   const esm=enemySpeedMul(); // enemy speed multiplier (1.0 to 2.0)
@@ -1030,7 +1030,7 @@ function update(dt){
       }
     }
   });
-  enemies=enemies.filter(en=>(en.boss||en.x>-50)&&en.alive&&en.y>-200&&en.y<H+200);
+  fip(enemies,en=>(en.boss||en.x>-50)&&en.alive&&en.y>-200&&en.y<H+200);
 
   // Shooter enemies fire horizontal bullets at player's Y position
   enemies.forEach(en=>{
@@ -1075,7 +1075,7 @@ function update(dt){
         if(itemEff.invincible<=0&&hurtT<=0){b.life=0;hurt();}
       }
       // Particles trail
-      if(b.life%3===0)parts.push({x:b.x,y:b.y,vx:(Math.random()-0.5)*0.5,vy:-1-Math.random()*2,life:12,ml:12,sz:Math.random()*4+2,col:'#ffaa00'});
+      if(b.life%3===0&&parts.length<MAX_PARTS)parts.push({x:b.x,y:b.y,vx:(Math.random()-0.5)*0.5,vy:-1-Math.random()*2,life:12,ml:12,sz:Math.random()*4+2,col:'#ffaa00'});
       return;
     }
     // Bomb gravity (parabolic arc)
@@ -1099,7 +1099,7 @@ function update(dt){
       hurt();
     }
   });
-  bullets=bullets.filter(b=>b.life>0&&(b.wizBullet||(b.x>-50&&b.x<W+100&&b.y>-50&&b.y<H+50)));
+  fip(bullets,b=>b.life>0&&(b.wizBullet||(b.x>-50&&b.x<W+100&&b.y>-50&&b.y<H+50)));
 
   // Wall collision: hitting the side of a higher platform step
   // All characters: climb steps up to half their height (pr = radius = half diameter)
@@ -1149,11 +1149,11 @@ function update(dt){
   }
 
   // Invincible particles (rainbow sparkle)
-  if(itemEff.invincible>0&&frame%2===0){const a=Math.random()*6.28;const ic=['#ff00ff','#ffff00','#00ffff','#ff4444','#44ff44'][frame%5];parts.push({x:player.x+Math.cos(a)*22,y:player.y+Math.sin(a)*22,vx:Math.cos(a)*0.6,vy:Math.sin(a)*0.6,life:14,ml:14,sz:Math.random()*3.5+1.5,col:ic});}
+  if(itemEff.invincible>0&&frame%2===0&&parts.length<MAX_PARTS){const a=Math.random()*6.28;const ic=['#ff00ff','#ffff00','#00ffff','#ff4444','#44ff44'][frame%5];parts.push({x:player.x+Math.cos(a)*22,y:player.y+Math.sin(a)*22,vx:Math.cos(a)*0.6,vy:Math.sin(a)*0.6,life:14,ml:14,sz:Math.random()*3.5+1.5,col:ic});}
   // Double jump available indicator
-  if(djumpAvailable&&!djumpUsed&&frame%6===0){parts.push({x:player.x,y:player.y+pr*player.gDir+4*player.gDir,vx:(Math.random()-0.5)*0.5,vy:0.3*player.gDir,life:10,ml:10,sz:2,col:'#ffaa00'});}
+  if(djumpAvailable&&!djumpUsed&&frame%6===0&&parts.length<MAX_PARTS){parts.push({x:player.x,y:player.y+pr*player.gDir+4*player.gDir,vx:(Math.random()-0.5)*0.5,vy:0.3*player.gDir,life:10,ml:10,sz:2,col:'#ffaa00'});}
 
-  parts=parts.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.life--;return p.life>0;});
+  fip(parts,p=>{p.x+=p.vx;p.y+=p.vy;p.life--;return p.life>0;});
   stars.forEach(s=>{s.x-=s.sp*speed*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
   mtns.forEach(m=>{m.off-=m.sp*speed*0.15;if(m.off<-500)m.off+=500;});
 }
@@ -1163,14 +1163,14 @@ function updateAmbient(){
   if(!isPackMode)return;
   const st=STAGE_THEMES[currentPackIdx];if(!st)return;
   const pt=st.partType;
-  if(frame%4===0){
+  if(frame%4===0&&ambientParts.length<MAX_AMBIENT){
     if(pt==='twinkle'){ambientParts.push({x:W+5,y:Math.random()*H,vx:-0.3-Math.random()*0.5,vy:(Math.random()-0.5)*0.3,life:120,ml:120,sz:Math.random()*2+1,col:st.partCol,tw:Math.random()*6.28});}
     else if(pt==='snow'){ambientParts.push({x:Math.random()*W,y:-5,vx:(Math.random()-0.5)*0.5-0.3,vy:0.5+Math.random()*1,life:200,ml:200,sz:Math.random()*3+1,col:'#ffffff'});}
     else if(pt==='ember'){ambientParts.push({x:Math.random()*W,y:H+5,vx:(Math.random()-0.5)*0.8,vy:-1-Math.random()*2,life:100,ml:100,sz:Math.random()*3+1,col:['#ff4400','#ff6600','#ffaa00'][Math.floor(Math.random()*3)]});}
     else if(pt==='bubble'){ambientParts.push({x:Math.random()*W,y:H+5,vx:(Math.random()-0.5)*0.3,vy:-0.5-Math.random()*0.8,life:180,ml:180,sz:Math.random()*4+2,col:'#66ccff44'});}
     else if(pt==='petal'){ambientParts.push({x:W+5,y:Math.random()*H*0.7,vx:-1-Math.random()*1.5,vy:0.3+Math.random()*0.8,life:150,ml:150,sz:Math.random()*4+2,col:['#ffaacc','#ff88bb','#ffccdd'][Math.floor(Math.random()*3)]});}
   }
-  ambientParts=ambientParts.filter(p=>{p.x+=p.vx;p.y+=p.vy;if(p.tw!==undefined)p.tw+=0.05;p.life--;return p.life>0;});
+  fip(ambientParts,p=>{p.x+=p.vx;p.y+=p.vy;if(p.tw!==undefined)p.tw+=0.05;p.life--;return p.life>0;});
 }
 function drawAmbient(){
   ambientParts.forEach(p=>{

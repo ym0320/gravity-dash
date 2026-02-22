@@ -1,6 +1,9 @@
 'use strict';
 const canvas=document.getElementById('game');
 const ctx=canvas.getContext('2d');
+// Android performance: disable shadowBlur (extremely expensive on Android GPU)
+const _isAndroid=/android/i.test(navigator.userAgent||'');
+if(_isAndroid){Object.defineProperty(ctx,'shadowBlur',{set(){},get(){return 0;},configurable:true});}
 const gameWrap=document.getElementById('gameWrap');
 const MAX_W=430;
 const MAX_H=844;
