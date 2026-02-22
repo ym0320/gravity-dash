@@ -2507,12 +2507,6 @@ function drawTitle(){
     // Tips
     ctx.fillStyle='#ff386088';ctx.font='bold 10px monospace';ctx.textAlign='center';
     ctx.fillText('\u203B \u91CD\u529B\u53CD\u8EE2\u3067\u5929\u4E95\u3092\u8D70\u308C\u308B\uFF01',W/2,ly);
-    // Update info button
-    const hUpdY=hy+hh-78;
-    ctx.fillStyle='#ffd70011';rr(W/2-70,hUpdY,140,28,8);ctx.fill();
-    ctx.strokeStyle='#ffd70066';ctx.lineWidth=1;rr(W/2-70,hUpdY,140,28,8);ctx.stroke();
-    ctx.fillStyle='#ffd700';ctx.font='bold 11px monospace';ctx.textAlign='center';
-    ctx.fillText('\uD83D\uDCE2 \u30A2\u30C3\u30D7\u30C7\u30FC\u30C8\u60C5\u5831',W/2,hUpdY+19);
     // Close button
     const hCloseY=hy+hh-42;
     ctx.fillStyle='#4488ff22';rr(W/2-50,hCloseY,100,32,8);ctx.fill();

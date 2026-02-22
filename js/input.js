@@ -288,9 +288,6 @@ function handleUpdateInfoTouch(tx,ty){
 // Help overlay touch handler
 function handleHelpTouch(tx,ty){
   const hw=Math.min(300,W-20),hh=420,hx=W/2-hw/2,hy=H/2-hh/2;
-  // Update info button
-  const hUpdY=hy+hh-78;
-  if(tx>=W/2-70&&tx<=W/2+70&&ty>=hUpdY&&ty<=hUpdY+28){sfx('select');helpOpen=false;updateInfoPage=0;updateInfoOpen=true;return;}
   // Close button
   const hCloseY=hy+hh-42;
   if(tx>=W/2-50&&tx<=W/2+50&&ty>=hCloseY&&ty<=hCloseY+32){sfx('click');helpOpen=false;return;}

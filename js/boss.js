@@ -97,16 +97,16 @@ function spawnBossEnemies(){
     // Each enemy has spikes on top or bottom - must stomp the safe side
     const dodgeCount=10;
     const phase=bc;
-    const baseSpd=3.5+(phase>=3?Math.min(phase-2,4)*0.6:0);
+    const baseSpd=2.2+(phase>=3?Math.min(phase-2,4)*0.4:0);
     for(let i=0;i<dodgeCount;i++){
-      const spd=baseSpd+Math.random()*2;
+      const spd=baseSpd+Math.random()*1.2;
       const onFloor=Math.random()<0.5;
       const gDir=onFloor?1:-1;
       // Diagonal: always home toward player Y (no safe "stay on floor" cheese)
-      const diagStrength=phase>=2?(1.5+Math.min(phase-2,4)*0.4):0;
+      const diagStrength=phase>=2?(1.0+Math.min(phase-2,4)*0.3):0;
       const sz=PLAYER_R*5;
       // Spawn interval: base 8 frames apart, reduced by 1 per phase (min 4)
-      const baseInterval=Math.max(4,8-Math.min(phase-1,4));
+      const baseInterval=Math.max(6,12-Math.min(phase-1,4));
       bossPhase.dodgeQueue.push({
         x:W+80+i*10,y:onFloor?floorY-sz:ceilY+sz,vy:0,gDir:gDir,sz:sz,alive:true,fr:Math.random()*100,
         type:10,shootT:999,boss:true,bossType:'dodge',
@@ -540,7 +540,7 @@ function updateBossPhase(){
       // Random prep duration (set once when entering this state)
       // Prep gets shorter with each jump (faster attacks)
       if(!g._jumpPrepTarget){
-        const prepScale=Math.max(0.25,1.0-g.jumpCount*0.15);
+        const prepScale=bc===1?1.0:Math.max(0.4,0.7+Math.random()*0.6);
         g._jumpPrepTarget=Math.max(2,Math.floor((g.jumpPrepBase+Math.floor(Math.random()*g.jumpPrepVariance))*prepScale));
       }
       if(g.timer>=g._jumpPrepTarget){
@@ -549,8 +549,8 @@ function updateBossPhase(){
         const willFlip=g.flipEnabled&&Math.random()<0.45;
         g._jumpFlip=willFlip;
         g.state='bigJump';g.timer=0;
-        // Jump height decreases with each jump (starts big, gets smaller)
-        const jumpScale=Math.max(0.35,1.0-g.jumpCount*0.12);
+        // Phase 1 (bc=1): always same big jump; Phase 2+: random jump size
+        const jumpScale=bc===1?1.0:(0.4+Math.random()*0.6);
         const jumpPow=(g.bigJumpBase+Math.random()*g.bigJumpVariance)*jumpScale;
         g.jumpVy=-jumpPow*g.gDir; // always jump away from current surface
         g.jumpCount++;
@@ -580,8 +580,8 @@ function updateBossPhase(){
         if(g.y+g.sz>floorY2-g.sz*0.3){g.y=floorY2-g.sz*1.3;g.jumpVy=-1;}
       }
     } else if(g.state==='bigJump'){
-      // Fast jump - gravity accelerates quickly, faster with each successive jump
-      const gravMul=1.3+Math.min(g.jumpCount*0.18,1.2);
+      // Fast jump - gravity accelerates quickly
+      const gravMul=1.3+Math.min(bc-1,3)*0.15;
       g.jumpVy+=GRAVITY*g.gDir*gravMul;
       g.y+=g.jumpVy;
       // Flip: if going to other surface, change gDir mid-air
