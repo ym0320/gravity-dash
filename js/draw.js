@@ -2235,9 +2235,9 @@ function drawTitle(){
   // Copyright (bottom center)
   ctx.fillStyle='#fff2';ctx.font='8px monospace';ctx.textAlign='center';
   ctx.fillText('\u00A9 2026 ny',W/2,H-safeBot+4);
-  // Version (bottom right)
+  // Version (top right, below buttons)
   ctx.fillStyle='#fff2';ctx.font='8px monospace';ctx.textAlign='right';
-  ctx.fillText('v'+GAME_VERSION,W-8,H-safeBot+4);
+  ctx.fillText('v'+GAME_VERSION,W-8,safeTop+124);
 
   // Controls info removed – now accessible via settings panel ❓ button
 
