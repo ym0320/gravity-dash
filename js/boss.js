@@ -306,7 +306,7 @@ function updateBossPhase(){
       if(frame%2===0){
         const tc2=en.gDir===1?'#ff4444':'#4444ff';
         const trailX=en.chargeVx>0?en.x-en.sz:en.x+en.sz;
-        parts.push({x:trailX,y:en.y,vx:(en.chargeVx>0?-1:1)+Math.random(),vy:(Math.random()-0.5)*2,life:12,ml:12,sz:Math.random()*4+2,col:tc2});
+        if(parts.length<MAX_PARTS)parts.push({x:trailX,y:en.y,vx:(en.chargeVx>0?-1:1)+Math.random(),vy:(Math.random()-0.5)*2,life:12,ml:12,sz:Math.random()*4+2,col:tc2});
       }
       // Off-screen: charge dodged = defeated
       if(en.x<-en.sz*2||en.x>W+en.sz*2){
@@ -367,7 +367,7 @@ function updateBossPhase(){
       }
       en.fr+=0.2;
       if(frame%2===0){
-        parts.push({x:en.x+en.sz,y:en.y,vx:1+Math.random(),vy:(Math.random()-0.5)*2,life:12,ml:12,sz:Math.random()*4+2,col:'#ff8844'});
+        if(parts.length<MAX_PARTS)parts.push({x:en.x+en.sz,y:en.y,vx:1+Math.random(),vy:(Math.random()-0.5)*2,life:12,ml:12,sz:Math.random()*4+2,col:'#ff8844'});
       }
       // Off-screen left: rush complete (dodged)
       if(en.x<-en.sz*2){
@@ -409,7 +409,7 @@ function updateBossPhase(){
     } else if(b.state==='charge'){
       b.x+=b.chargeVx;
       b.fr+=0.15;
-      if(frame%2===0)parts.push({x:b.x+b.sz,y:b.y,vx:2,vy:(Math.random()-0.5)*1.5,life:15,ml:15,sz:Math.random()*5+2,col:'#ff3860'});
+      if(frame%2===0&&parts.length<MAX_PARTS)parts.push({x:b.x+b.sz,y:b.y,vx:2,vy:(Math.random()-0.5)*1.5,life:15,ml:15,sz:Math.random()*5+2,col:'#ff3860'});
       // Feint: at higher boss counts, sometimes fake charge then retreat
       if(bc>=2&&b.timer>15&&b.timer<50&&!b.feinted&&Math.random()<0.003*Math.min(bc,12)){
         b.state='feint';b.feintT=25;b.timer=0;b.feinted=true;
@@ -419,7 +419,7 @@ function updateBossPhase(){
       // Quick retreat (fake-out)
       b.x+=b.retreatVx*1.8;
       b.feintT--;
-      if(frame%3===0)parts.push({x:b.x-b.sz*0.3,y:b.y,vx:-1,vy:(Math.random()-0.5),life:10,ml:10,sz:Math.random()*3+1,col:'#ffaa00'});
+      if(frame%3===0&&parts.length<MAX_PARTS)parts.push({x:b.x-b.sz*0.3,y:b.y,vx:-1,vy:(Math.random()-0.5),life:10,ml:10,sz:Math.random()*3+1,col:'#ffaa00'});
       if(b.feintT<=0){b.state='charge';b.timer=0;}
     } else if(b.state==='invincible'){
       // Blinking invincible after being stomped, slowly retreating
@@ -788,7 +788,7 @@ function updateBossPhase(){
         // Telegraph: shake and glow, stay at home
         w.x=w.homeX+(Math.random()-0.5)*3;
         w.y=w.homeY+Math.sin(w.fr*0.4)*8+(Math.random()-0.5)*2;
-        if(frame%3===0)parts.push({x:w.x,y:w.y,vx:(Math.random()-0.5)*3,vy:(Math.random()-0.5)*3,
+        if(frame%3===0&&parts.length<MAX_PARTS)parts.push({x:w.x,y:w.y,vx:(Math.random()-0.5)*3,vy:(Math.random()-0.5)*3,
           life:10,ml:10,sz:Math.random()*3+2,col:'#ff8844'});
       } else if(w.rushT<=warnT+dashT){
         // Fast dash toward player's position
@@ -797,7 +797,7 @@ function updateBossPhase(){
         w.x=w.homeX+(w.rushTargetX-w.homeX)*t;
         w.y=w.homeY+(w.rushTargetY-w.homeY)*t;
         // Dash trail
-        if(frame%2===0)parts.push({x:w.x+(Math.random()-0.5)*w.sz,y:w.y+(Math.random()-0.5)*w.sz,
+        if(frame%2===0&&parts.length<MAX_PARTS)parts.push({x:w.x+(Math.random()-0.5)*w.sz,y:w.y+(Math.random()-0.5)*w.sz,
           vx:(w.homeX-w.rushTargetX)*0.03,vy:(w.homeY-w.rushTargetY)*0.03,
           life:12,ml:12,sz:Math.random()*4+2,col:'#ff8844'});
       } else if(w.rushT<=warnT+dashT+stayT){
