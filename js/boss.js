@@ -24,7 +24,7 @@ function startBossPhase(){
   bossPhase.bossCount++;
   bossPhase.lastBossScore=score;
   bossPhase.lastBossRawDist=rawDist;
-  bossPhase.nextAt=(Math.floor(rawDist/1000)+1)*1000;
+  bossPhase.nextAt=(Math.floor(rawDist/BOSS_INTERVAL)+1)*BOSS_INTERVAL;
   shakeI=18;sfxBossAlert();vibrate([50,30,50,30,80,40,100]);
   switchBGM('boss');
 }
