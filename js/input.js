@@ -149,12 +149,12 @@ function handleInventoryChestTap(tapX,tapY){
   if(chestOpen.phase==='batchDone'){
     // Only allow close after all cards revealed (calculate total reveal time)
     const n2=chestBatchResults.length;
-    const bd2=n2>20?6:n2>10?8:12;
-    let ct2=12;
+    const bd2=n2>20?20:n2>10?28:36;
+    let ct2=30;
     chestBatchResults.forEach(r2=>{
       const rar2=r2&&r2.type==='cosmetic'&&r2.item?r2.item.rarity:null;
       const inc2=r2&&r2.type==='char'&&r2.isNew;
-      ct2+=bd2+(rar2==='super_rare'?40:rar2==='rare'?20:inc2?15:0);
+      ct2+=bd2+(rar2==='super_rare'?60:rar2==='rare'?35:inc2?25:0);
     });
     if(chestOpen.t<ct2)return true; // block tap during reveal
     chestOpen.phase='none';chestOpen.t=0;chestOpen.parts=[];chestOpen.reward=null;
@@ -260,7 +260,7 @@ function startPackStageFromDead(){
 
 // Update info modal touch handler
 function handleUpdateInfoTouch(tx,ty){
-  const uw=Math.min(310,W-16),uh=Math.min(420,H-30),ux=W/2-uw/2,uy=H/2-uh/2;
+  const uw=Math.min(310,W-16),uh=Math.min(460,H-20),ux=W/2-uw/2,uy=H/2-uh/2;
   // Checkbox
   const cbY=uy+uh-72,cbX=W/2-70;
   if(tx>=cbX&&tx<=W/2+80&&ty>=cbY&&ty<=cbY+18){

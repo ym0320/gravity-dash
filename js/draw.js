@@ -7,32 +7,42 @@ function rr(x,y,w,h,r){
 }
 
 // ===== CHARACTER STAT BARS =====
-function statSegs(v){
-  if(v<=0.88)return 1;if(v<=0.94)return 2;if(v<=1.01)return 3;if(v<=1.07)return 4;return 5;
-}
 function drawCharStatBars(ch,cx,startY,totalW){
-  // Stat bars: speed, jump, size, gravity
+  // Stat bars: speed, jump, size, gravity — single smooth bar per stat
   const labels=['\u901F\u5EA6','\u30B8\u30E3\u30F3\u30D7','\u5927\u304D\u3055','\u91CD\u529B'];
   const vals=[ch.speedMul,ch.jumpMul,ch.sizeMul,ch.gravMul];
   const cols=['#34d399','#00e5ff','#ffa500','#8B8B8B'];
-  const barGap=16,labelW=56,segCount=5,segGap=3;
-  const bAreaW=totalW-labelW-10;
-  const segW=(bAreaW-(segCount-1)*segGap)/segCount;
-  const segH=9;
+  const barGap=18,labelW=56;
+  const barW=totalW-labelW-10;
+  const barH=10;
   const leftX=cx-totalW/2;
+  // Normalize: 0.7 → 0%, 1.2 → 100%
+  const minV=0.7,maxV=1.2;
   for(let i=0;i<4;i++){
     const y=startY+i*barGap;
-    const filled=statSegs(vals[i]);
+    const ratio=Math.max(0,Math.min(1,(vals[i]-minV)/(maxV-minV)));
+    // Label
     ctx.fillStyle='#fff8';ctx.font='10px monospace';ctx.textAlign='left';
-    ctx.fillText(labels[i],leftX,y+segH-1);
+    ctx.fillText(labels[i],leftX,y+barH-1);
+    // Value text
+    ctx.fillStyle='#fff5';ctx.font='9px monospace';ctx.textAlign='right';
+    ctx.fillText(vals[i].toFixed(2),leftX+totalW,y+barH-1);
+    // Background track
     const bx=leftX+labelW;
-    for(let s=0;s<segCount;s++){
-      ctx.fillStyle=s<filled?cols[i]+'cc':'#ffffff11';
-      rr(bx+s*(segW+segGap),y,segW,segH,2);ctx.fill();
-    }
+    ctx.fillStyle='#ffffff11';
+    rr(bx,y,barW-32,barH,4);ctx.fill();
+    // Filled bar with gradient
+    const fillW=Math.max(2,(barW-32)*ratio);
+    const barGr=ctx.createLinearGradient(bx,y,bx+fillW,y);
+    barGr.addColorStop(0,cols[i]+'44');barGr.addColorStop(0.5,cols[i]+'cc');barGr.addColorStop(1,cols[i]);
+    ctx.fillStyle=barGr;
+    rr(bx,y,fillW,barH,4);ctx.fill();
+    // Shine highlight
+    ctx.fillStyle='#ffffff18';
+    rr(bx,y,fillW,barH/2,4);ctx.fill();
   }
-  // Special abilities
-  const specY=startY+4*barGap+4;
+  // Special abilities (positioned below stat bars with extra gap)
+  const specY=startY+4*barGap+12;
   const specials=[];
   if(ch.hasDjump)specials.push('\u5E38\u66422\u6BB5\u30B8\u30E3\u30F3\u30D7');
   if(ch.shape==='tire')specials.push('\u6BB5\u5DEE\u4E57\u8D8A\uFF0B\u5C0F\u6E9D\u901A\u904E');
@@ -55,20 +65,29 @@ function drawCharStatBars(ch,cx,startY,totalW){
     ctx.fillText('\u30D0\u30E9\u30F3\u30B9\u578B \u2015 \u6A19\u6E96\u7684\u306A\u6027\u80FD',cx,specY);
     specLines=1;
   }
-  // Review (character summary)
+  // Review (character summary) — concrete Japanese descriptions
   const reviews={
-    cube:'\u30AF\u30BB\u304C\u306A\u304F\u521D\u5FC3\u8005\u5411\u3051\u3002\u5B89\u5B9A\u611F\u25CE',
-    ball:'\u6EC5\u7A7A\u529B\u304C\u9AD8\u304F\u7A7A\u4E2D\u6226\u25CE \u3084\u3084\u5927\u304D\u3081\u306E\u5224\u5B9A\u306B\u6CE8\u610F',
-    tire:'\u5730\u4E0A\u6226\u25CE \u6700\u901F\u3067\u64CD\u4F5C\u304C\u5FD9\u3057\u3044\u4E0A\u7D1A\u8005\u5411\u3051',
-    ghost:'\u5C0F\u578B+\u900F\u660E\u5316\u3067\u56DE\u907F\u25CE \u751F\u5B58\u7279\u5316\u578B',
-    ninja:'\u30B8\u30E3\u30F3\u30D7+\u53CD\u8EE2\u3067\u6A5F\u52D5\u529B\u25CE \u3084\u3084\u901F\u3081',
-    stone:'HP+1\u3067\u8010\u4E45\u25CE \u920D\u91CD\u3067\u5927\u304D\u304F\u5F53\u305F\u308A\u3084\u3059\u3044'
+    cube:'\u30AF\u30BB\u304C\u306A\u304F\u521D\u5FC3\u8005\u306B\u3074\u3063\u305F\u308A\uFF01\u5168\u30B9\u30C6\u30FC\u30BF\u30B9\u304C\u5E73\u5747\u7684\u3067\u5B89\u5B9A\u3057\u3066\u8D70\u308C\u308B',
+    ball:'2\u6BB5\u30B8\u30E3\u30F3\u30D7\u3067\u7A7A\u4E2D\u306E\u81EA\u7531\u5EA6\u304C\u9AD8\u3044\uFF01\u4F53\u304C\u5C11\u3057\u5927\u304D\u3044\u306E\u3067\u30B9\u30AD\u30DE\u306B\u6CE8\u610F',
+    tire:'\u6BB5\u5DEE\u3084\u96A0\u9593\u306F\u3078\u3063\u3061\u3083\u3089\uFF01\u901F\u5EA6\u304C\u306F\u3084\u3044\u306E\u3067\u96E3\u3057\u3044\u304B\u3082\u2026',
+    ghost:'\u4F53\u304C\u5C0F\u3055\u304F\u3066\u30B9\u30AD\u30DE\u3092\u901A\u308A\u3084\u3059\u3044\uFF01\u900F\u660E\u5316\u3067\u5F3E\u3092\u3059\u308A\u629C\u3051\u3089\u308C\u308B',
+    ninja:'\u30B8\u30E3\u30F3\u30D7\u529B\u304C\u9AD8\u304F\u7A7A\u4E2D3\u56DE\u53CD\u8EE2\u3067\u304D\u308B\uFF01\u3059\u3070\u3084\u3044\u6A5F\u52D5\u529B\u304C\u9B45\u529B',
+    stone:'HP\u304C1\u591A\u3044\u306E\u3067\u30DF\u30B9\u3057\u3066\u3082\u5B89\u5FC3\uFF01\u91CD\u304F\u3066\u5927\u304D\u3044\u306E\u3067\u614E\u91CD\u306B\u9032\u3082\u3046'
   };
-  const revY=specY+specLines*14+6;
+  const revY=specY+specLines*14+10;
   const rev=reviews[ch.shape]||'';
   if(rev){
-    ctx.fillStyle='#ffffff44';ctx.font='9px monospace';ctx.textAlign='center';
-    ctx.fillText('\u25B8 '+rev,cx,revY);
+    ctx.fillStyle='#ffffff55';ctx.font='9px monospace';ctx.textAlign='center';
+    // Word wrap if needed
+    if(rev.length>20){
+      const mid=Math.ceil(rev.length/2);
+      let sp=rev.indexOf('\uFF01',mid-8);
+      if(sp<0||sp>mid+5)sp=mid;else sp++;
+      ctx.fillText('\u25B8 '+rev.substring(0,sp),cx,revY);
+      ctx.fillText('  '+rev.substring(sp),cx,revY+12);
+    } else {
+      ctx.fillText('\u25B8 '+rev,cx,revY);
+    }
   }
 }
 
@@ -2471,7 +2490,7 @@ function drawTitle(){
   // Update info modal
   if(updateInfoOpen){
     ctx.fillStyle='rgba(0,0,0,0.88)';ctx.fillRect(0,0,W,H);
-    const uw=Math.min(310,W-16),uh=Math.min(420,H-30),ux=W/2-uw/2,uy=H/2-uh/2;
+    const uw=Math.min(310,W-16),uh=Math.min(460,H-20),ux=W/2-uw/2,uy=H/2-uh/2;
     const uGr=ctx.createLinearGradient(ux,uy,ux,uy+uh);
     uGr.addColorStop(0,'rgba(15,10,30,0.98)');uGr.addColorStop(1,'rgba(8,5,18,0.98)');
     ctx.fillStyle=uGr;rr(ux,uy,uw,uh,14);ctx.fill();
@@ -2676,7 +2695,7 @@ function drawCharModal(){
   // Dark overlay
   ctx.fillStyle='rgba(0,0,0,0.78)';ctx.fillRect(0,0,W,H);
   // Modal panel
-  const mw=Math.min(W*0.85,320),mh=H*0.65,mx=W/2-mw/2,my=H/2-mh/2;
+  const mw=Math.min(W*0.85,320),mh=H*0.72,mx=W/2-mw/2,my=H/2-mh/2;
   const panelGr=ctx.createLinearGradient(mx,my,mx,my+mh);
   panelGr.addColorStop(0,'rgba(15,15,40,0.97)');panelGr.addColorStop(1,'rgba(8,8,25,0.97)');
   ctx.fillStyle=panelGr;rr(mx,my,mw,mh,16);ctx.fill();
@@ -3052,15 +3071,17 @@ function drawChestOpen(){
   const cx=W/2,cy=mY+mH*0.42;
   const chSz=48;
 
-  // Header: chest count
-  ctx.textAlign='center';ctx.fillStyle='#ffd700';ctx.font='bold 16px monospace';
-  ctx.fillText('宝箱開封',cx,mY+30);
-  ctx.fillStyle='#fff8';ctx.font='11px monospace';
-  ctx.fillText('通算 '+totalChestsOpened+' 個開封',cx,mY+48);
-  // Remaining chests in inventory
-  if(storedChests>0){
-    ctx.fillStyle='#ffaa00';ctx.font='10px monospace';
-    ctx.fillText('残り '+storedChests+' 個',cx,mY+62);
+  // Header: chest count (skip in batchDone to avoid duplicate title)
+  if(p!=='batchDone'){
+    ctx.textAlign='center';ctx.fillStyle='#ffd700';ctx.font='bold 16px monospace';
+    ctx.fillText('\u5B9D\u7BB1\u958B\u5C01',cx,mY+30);
+    ctx.fillStyle='#fff8';ctx.font='11px monospace';
+    ctx.fillText('\u901A\u7B97 '+totalChestsOpened+' \u500B\u958B\u5C01',cx,mY+48);
+    // Remaining chests in inventory
+    if(storedChests>0){
+      ctx.fillStyle='#ffaa00';ctx.font='10px monospace';
+      ctx.fillText('\u6B8B\u308A '+storedChests+' \u500B',cx,mY+62);
+    }
   }
 
   // Update and draw chest particles (clipped to modal)
@@ -3515,14 +3536,14 @@ function drawChestOpen(){
       return rank(a)-rank(b);
     });
 
-    // Calculate reveal timing per card (faster for many chests)
+    // Calculate reveal timing per card (slow sequential opening)
     const n=sorted.length;
-    const baseDur=n>20?6:n>10?8:12;
-    let cumT=12;
+    const baseDur=n>20?20:n>10?28:36;
+    let cumT=30;
     const revInfo=sorted.map((rw2)=>{
       const rar=rw2&&rw2.type==='cosmetic'&&rw2.item?rw2.item.rarity:null;
       const isNewChar=rw2&&rw2.type==='char'&&rw2.isNew;
-      const dur=baseDur+(rar==='super_rare'?40:rar==='rare'?20:isNewChar?15:0);
+      const dur=baseDur+(rar==='super_rare'?60:rar==='rare'?35:isNewChar?25:0);
       const info={start:cumT,dur:dur};
       cumT+=dur;
       return info;
@@ -3617,12 +3638,35 @@ function drawChestOpen(){
       ctx.scale(Math.min(scale,1.08),Math.min(scale,1.08));
       ctx.translate(-(cardX+cardW/2),-(cardY2+cardH/2));
 
-      // Card bg & border based on rarity
+      // Card bg & border based on rarity — special designs for rare/super_rare
       let borderCol='#445',bgCol='#ffffff08',glowCol=null,lw2=1;
       if(rar==='super_rare'){
-        borderCol='#ffd700';bgCol='#ffd70025';glowCol='#ffd70050';lw2=2;
+        borderCol='#ffd700';lw2=2.5;
+        // Gold gradient background
+        const srGr=ctx.createLinearGradient(cardX,cardY2,cardX,cardY2+cardH);
+        srGr.addColorStop(0,'#4a3800');srGr.addColorStop(0.3,'#2a1f00');
+        srGr.addColorStop(0.7,'#3d2e00');srGr.addColorStop(1,'#4a3800');
+        ctx.fillStyle=srGr;rr(cardX,cardY2,cardW,cardH,6);ctx.fill();
+        // Inner gold frame
+        ctx.strokeStyle='#ffd70088';ctx.lineWidth=1;
+        rr(cardX+3,cardY2+3,cardW-6,cardH-6,4);ctx.stroke();
+        // Shimmer effect
+        const shimX=cardX+((t*2+i*40)%((cardW+20)*2))-10;
+        ctx.save();ctx.beginPath();rr(cardX,cardY2,cardW,cardH,6);ctx.clip();
+        const shimGr=ctx.createLinearGradient(shimX-15,cardY2,shimX+15,cardY2);
+        shimGr.addColorStop(0,'transparent');shimGr.addColorStop(0.5,'rgba(255,215,0,0.15)');shimGr.addColorStop(1,'transparent');
+        ctx.fillStyle=shimGr;ctx.fillRect(cardX,cardY2,cardW,cardH);ctx.restore();
+        glowCol='#ffd70060';
       } else if(rar==='rare'){
-        borderCol='#a855f7';bgCol='#a855f720';glowCol='#a855f730';lw2=1.5;
+        borderCol='#a855f7';lw2=2;
+        // Purple gradient background
+        const rGr=ctx.createLinearGradient(cardX,cardY2,cardX,cardY2+cardH);
+        rGr.addColorStop(0,'#2a1048');rGr.addColorStop(0.5,'#1a0830');rGr.addColorStop(1,'#2a1048');
+        ctx.fillStyle=rGr;rr(cardX,cardY2,cardW,cardH,6);ctx.fill();
+        // Inner purple frame
+        ctx.strokeStyle='#a855f744';ctx.lineWidth=1;
+        rr(cardX+3,cardY2+3,cardW-6,cardH-6,4);ctx.stroke();
+        glowCol='#a855f740';
       } else if(rw2.type==='char'){
         borderCol=isNewChar?'#ff88cc':'#ff88cc88';bgCol='#ff88cc15';
       } else if(rw2.type==='coin'){
@@ -3631,9 +3675,9 @@ function drawChestOpen(){
 
       // Flash effect during reveal for rare/super_rare
       if(progress<0.6&&(rar==='super_rare'||rar==='rare')){
-        const flashA=(1-progress/0.6)*0.6;
+        const flashA=(1-progress/0.6)*0.7;
         const fc=rar==='super_rare'?'rgba(255,215,0,'+flashA+')':'rgba(168,85,247,'+flashA+')';
-        ctx.fillStyle=fc;rr(cardX-6,cardY2-6,cardW+12,cardH+12,10);ctx.fill();
+        ctx.fillStyle=fc;rr(cardX-8,cardY2-8,cardW+16,cardH+16,10);ctx.fill();
       }
 
       // Glow for special items
@@ -3643,7 +3687,10 @@ function drawChestOpen(){
         ctx.fillStyle=glow;ctx.fillRect(cardX-12,cardY2-12,cardW+24,cardH+24);
       }
 
-      ctx.fillStyle=bgCol;rr(cardX,cardY2,cardW,cardH,6);ctx.fill();
+      // Normal cards: simple bg fill
+      if(rar!=='super_rare'&&rar!=='rare'){
+        ctx.fillStyle=bgCol;rr(cardX,cardY2,cardW,cardH,6);ctx.fill();
+      }
       ctx.strokeStyle=borderCol;ctx.lineWidth=lw2;rr(cardX,cardY2,cardW,cardH,6);ctx.stroke();
 
       // Card content (fade in after pop)
