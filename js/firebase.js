@@ -119,9 +119,9 @@ var _fbSaveTimer = null;
 var _fbPendingSave = false; // true when save was requested but fbSynced was false
 var _fbPendingRetryTimer = null;
 function fbSaveUserData() {
-  if (!fbDb || !fbUser) { console.warn('[FB-DEBUG] save skip: db=',!!fbDb,'user=',!!fbUser); return; }
+  if (!fbDb || !fbUser) return;
   _fbDirty = true; // mark that local state has changed
-  if (!fbSynced) { console.warn('[FB-DEBUG] save queued (not synced yet)');
+  if (!fbSynced) {
     _fbPendingSave = true;
     // Retry after delay in case sync completes
     if (!_fbPendingRetryTimer) {
@@ -141,7 +141,7 @@ function fbSaveUserData() {
   _fbSaveTimer = setTimeout(_fbDoSave, 1200);
 }
 function _fbDoSave() {
-  if (!fbDb || !fbUser || !_fbDirty) { console.warn('[FB-DEBUG] _fbDoSave skip: db=',!!fbDb,'user=',!!fbUser,'dirty=',_fbDirty); return; }
+  if (!fbDb || !fbUser || !_fbDirty) return;
   const uid = fbUser.uid;
   const data = {
     name: playerName || '',
@@ -165,15 +165,12 @@ function _fbDoSave() {
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   _fbDirty = false;
-  console.log('[FB-DEBUG] SAVING to users/'+uid, 'name='+data.name, 'score='+data.highScore);
   fbDb.collection('users').doc(uid).set(data, { merge: true })
-    .then(() => console.log('[FB-DEBUG] users/ SAVE OK'))
     .catch(e => console.error('[Firebase] users/ SAVE FAILED:', e));
   // Update ranking entry – always save if name exists (even score 0 for visibility)
   if (playerName) {
     const sc = highScore || 0;
     const rc = rankChar >= 0 ? rankChar : selChar || 0;
-    console.log('[FB-DEBUG] SAVING to rankings/'+uid, 'name='+playerName, 'score='+sc);
     fbDb.collection('rankings').doc(uid).set({
       name: playerName,
       charIdx: rc,
@@ -183,7 +180,6 @@ function _fbDoSave() {
       eqFx: rankFx || '',
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true })
-      .then(() => console.log('[FB-DEBUG] rankings/ SAVE OK'))
       .catch(e => console.error('[Firebase] rankings/ SAVE FAILED:', e));
   }
 }
