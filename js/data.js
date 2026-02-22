@@ -93,6 +93,8 @@ function unlockCharFromChest(idx){
   unlockedChars.push(idx);
   localStorage.setItem('gd5unlocked',JSON.stringify(unlockedChars));
   unlockCelebT=120;unlockCelebChar=idx;
+  // Notification badge for new character
+  if(!notifNewChars.includes(idx)){notifNewChars.push(idx);localStorage.setItem('gd5notifChars',JSON.stringify(notifNewChars));}
   if(typeof fbSaveUserData==='function')fbSaveUserData();
   return true;
 }
@@ -1402,6 +1404,10 @@ let equippedEffect=localStorage.getItem('gd5eqFx')||'';
 let cosmeticMenuOpen=false; // cosmetic equip menu
 let cosmeticTab=0; // 0=skins, 1=eyes, 2=effects
 let cosmeticScroll=0;
+// --- Notification badges ---
+let notifNewCosmetic=localStorage.getItem('gd5notifCosm')==='1'; // new cosmetic obtained
+let notifNewChars=JSON.parse(localStorage.getItem('gd5notifChars')||'[]'); // newly unlocked char indices
+let notifNewHighScore=localStorage.getItem('gd5notifHi')==='1'; // new high score achieved
 // Shop purchase confirmation & gacha animation
 let shopConfirm=null; // {item, tab} when confirm dialog shown
 let shopPurchaseAnim=null; // {item, tab, t, parts} when purchase animation playing
@@ -1415,6 +1421,8 @@ function buyItem(id,price){
   if(ownsItem(id)||walletCoins<price)return false;
   walletCoins-=price;localStorage.setItem('gd5wallet',walletCoins.toString());
   ownedItems.push(id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));
+  // Notification badge for new cosmetic
+  notifNewCosmetic=true;localStorage.setItem('gd5notifCosm','1');
   if(typeof fbSaveUserData==='function')fbSaveUserData();
   return true;
 }

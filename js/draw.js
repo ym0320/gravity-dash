@@ -2161,6 +2161,17 @@ function drawTitle(){
         // Trait
         ctx.fillStyle=idx===selChar?ch.col:ch.col+'66';ctx.font='7px monospace';
         ctx.fillText(ch.trait,cx+charW/2,cy+charH-4);
+        // New character notification badge (animated !)
+        if(notifNewChars.includes(idx)){
+          const bounce=Math.sin(titleT*4)*3;
+          const bp=Math.sin(titleT*3)*0.15+1;
+          ctx.save();ctx.translate(cx+charW-2,cy+2);ctx.scale(bp,bp);
+          ctx.fillStyle='#ff3860';ctx.beginPath();ctx.arc(0,bounce,9,0,6.28);ctx.fill();
+          ctx.strokeStyle='#ff6888';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(0,bounce,9,0,6.28);ctx.stroke();
+          ctx.fillStyle='#fff';ctx.font='bold 12px monospace';ctx.textAlign='center';
+          ctx.fillText('!',0,bounce+5);
+          ctx.restore();
+        }
       }
     }
   }
@@ -2214,6 +2225,15 @@ function drawTitle(){
   ctx.strokeStyle='#ffd70044';ctx.lineWidth=1;rr(8,safeTop+6,36,36,8);ctx.stroke();
   ctx.fillStyle='#ffd700';ctx.font='16px monospace';ctx.textAlign='center';
   ctx.fillText('\uD83C\uDFC6',26,safeTop+30);
+  // Ranking notification badge (new high score)
+  if(notifNewHighScore){
+    const bp=Math.sin(titleT*3)*0.18+1;
+    ctx.save();ctx.translate(38,safeTop+10);ctx.scale(bp,bp);
+    ctx.fillStyle='#ff3860';ctx.beginPath();ctx.arc(0,0,8,0,6.28);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='bold 10px monospace';ctx.textAlign='center';
+    ctx.fillText('!',0,4);
+    ctx.restore();
+  }
 
   // Inventory button (top left, row 2) - chest icon with ! badge
   ctx.fillStyle='#ffffff14';rr(8,safeTop+44,36,36,8);ctx.fill();
@@ -2237,6 +2257,15 @@ function drawTitle(){
   ctx.strokeStyle='#a855f744';ctx.lineWidth=1;rr(8,safeTop+120,36,36,8);ctx.stroke();
   ctx.fillStyle='#a855f7';ctx.font='16px monospace';ctx.textAlign='center';
   ctx.fillText('\uD83D\uDC57',26,safeTop+143);
+  // Cosmetic notification badge (new cosmetic obtained)
+  if(notifNewCosmetic){
+    const bp=Math.sin(titleT*3)*0.18+1;
+    ctx.save();ctx.translate(38,safeTop+124);ctx.scale(bp,bp);
+    ctx.fillStyle='#ff3860';ctx.beginPath();ctx.arc(0,0,8,0,6.28);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='bold 10px monospace';ctx.textAlign='center';
+    ctx.fillText('!',0,4);
+    ctx.restore();
+  }
 
   // Settings gear button (top right)
   ctx.fillStyle='#ffffff14';rr(W-44,safeTop+6,36,36,8);ctx.fill();
