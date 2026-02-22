@@ -158,6 +158,21 @@ let nameEditBuf=''; // buffer for name being edited
 let logoutConfirm=false; // true when logout confirm shown
 let confirmModal=null; // {type:'reset'|'logout', step:0} - modal confirmation overlay
 let helpOpen=false; // true when help/controls overlay is shown
+let updateInfoOpen=false; // true when update info modal is shown
+let updateInfoShown=false; // prevents auto-show more than once per session
+const UPDATE_VER='2026-02-22';
+const UPDATE_NOTES=[
+  {title:'\u30AD\u30E3\u30E9\u30AF\u30BF\u30FC\u30D0\u30E9\u30F3\u30B9\u8ABF\u6574',items:[
+    '\u30BF\u30A4\u30E4\u3068\u30CB\u30F3\u30B8\u30E3\u306E\u901F\u5EA6\u3092\u5165\u308C\u66FF\u3048',
+    '\u30CB\u30F3\u30B8\u30E3\u3068\u30D0\u30A6\u30F3\u30B9\u306E\u30B8\u30E3\u30F3\u30D7\u529B\u3092\u5F37\u5316',
+    '\u30B9\u30C8\u30FC\u30F3\u306E\u91CD\u529B\u5897\u52A0\u3001\u30D0\u30A6\u30F3\u30B9\u306E\u91CD\u529B\u8EFD\u6E1B',
+    '\u30BF\u30A4\u30E4\u306E\u6BB5\u5DEE\u4E57\u8D8A\u3092\u5C11\u3057\u5F31\u4F53\u5316'
+  ]},
+  {title:'\u30B9\u30C6\u30FC\u30BF\u30B9\u8868\u793A\u306E\u6539\u5584',items:[
+    '\u30AD\u30E3\u30E9\u8A73\u7D30\u306B\u30B9\u30C6\u30FC\u30BF\u30B9\u30D0\u30FC\u3092\u8FFD\u52A0',
+    '\u7279\u6B8A\u80FD\u529B\u3068\u7DCF\u8A55\u3092\u5206\u304B\u308A\u3084\u3059\u304F\u8868\u793A'
+  ]}
+];
 let rankingOpen=false;
 let rankingScroll=0;
 let rankingScrollTarget=0;

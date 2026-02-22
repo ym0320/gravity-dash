@@ -2405,7 +2405,7 @@ function drawTitle(){
   // Help (操作方法) overlay
   if(helpOpen){
     ctx.fillStyle='rgba(0,0,0,0.85)';ctx.fillRect(0,0,W,H);
-    const hw=Math.min(300,W-20),hh=380,hx=W/2-hw/2,hy=H/2-hh/2;
+    const hw=Math.min(300,W-20),hh=420,hx=W/2-hw/2,hy=H/2-hh/2;
     const hGr=ctx.createLinearGradient(hx,hy,hx,hy+hh);
     hGr.addColorStop(0,'rgba(10,10,40,0.98)');hGr.addColorStop(1,'rgba(5,5,20,0.98)');
     ctx.fillStyle=hGr;rr(hx,hy,hw,hh,14);ctx.fill();
@@ -2454,12 +2454,69 @@ function drawTitle(){
     // Tips
     ctx.fillStyle='#ff386088';ctx.font='bold 10px monospace';ctx.textAlign='center';
     ctx.fillText('\u203B \u91CD\u529B\u53CD\u8EE2\u3067\u5929\u4E95\u3092\u8D70\u308C\u308B\uFF01',W/2,ly);
+    // Update info button
+    const hUpdY=hy+hh-78;
+    ctx.fillStyle='#ffd70011';rr(W/2-70,hUpdY,140,28,8);ctx.fill();
+    ctx.strokeStyle='#ffd70066';ctx.lineWidth=1;rr(W/2-70,hUpdY,140,28,8);ctx.stroke();
+    ctx.fillStyle='#ffd700';ctx.font='bold 11px monospace';ctx.textAlign='center';
+    ctx.fillText('\uD83D\uDCE2 \u30A2\u30C3\u30D7\u30C7\u30FC\u30C8\u60C5\u5831',W/2,hUpdY+19);
     // Close button
     const hCloseY=hy+hh-42;
     ctx.fillStyle='#4488ff22';rr(W/2-50,hCloseY,100,32,8);ctx.fill();
     ctx.strokeStyle='#4488ff';ctx.lineWidth=1;rr(W/2-50,hCloseY,100,32,8);ctx.stroke();
     ctx.fillStyle='#4488ff';ctx.font='bold 13px monospace';ctx.textAlign='center';
     ctx.fillText('\u9589\u3058\u308B',W/2,hCloseY+22);
+  }
+
+  // Update info modal
+  if(updateInfoOpen){
+    ctx.fillStyle='rgba(0,0,0,0.88)';ctx.fillRect(0,0,W,H);
+    const uw=Math.min(310,W-16),uh=Math.min(420,H-30),ux=W/2-uw/2,uy=H/2-uh/2;
+    const uGr=ctx.createLinearGradient(ux,uy,ux,uy+uh);
+    uGr.addColorStop(0,'rgba(15,10,30,0.98)');uGr.addColorStop(1,'rgba(8,5,18,0.98)');
+    ctx.fillStyle=uGr;rr(ux,uy,uw,uh,14);ctx.fill();
+    ctx.strokeStyle='#ffd70044';ctx.lineWidth=1.5;rr(ux,uy,uw,uh,14);ctx.stroke();
+    // Title
+    ctx.fillStyle='#ffd700';ctx.font='bold 16px monospace';ctx.textAlign='center';
+    ctx.fillText('\uD83D\uDCE2 \u30A2\u30C3\u30D7\u30C7\u30FC\u30C8\u60C5\u5831',W/2,uy+28);
+    // Date
+    ctx.fillStyle='#fff6';ctx.font='10px monospace';
+    ctx.fillText(UPDATE_VER,W/2,uy+44);
+    // Notes
+    let ny=uy+64;
+    const nlx=ux+16,nrx=ux+uw-16;
+    for(const sec of UPDATE_NOTES){
+      ctx.fillStyle='#ffd700cc';ctx.font='bold 12px monospace';ctx.textAlign='left';
+      ctx.fillText('\u25B6 '+sec.title,nlx,ny);
+      ny+=18;
+      for(const item of sec.items){
+        ctx.fillStyle='#fffb';ctx.font='10px monospace';ctx.textAlign='left';
+        ctx.fillText('\u30FB '+item,nlx+8,ny);
+        ny+=15;
+      }
+      ny+=8;
+    }
+    // "分かりました" checkbox
+    const dismissed=localStorage.getItem('gd5updateDismissed')===UPDATE_VER;
+    const cbY=uy+uh-72;
+    const cbSz=16;
+    const cbX=W/2-70;
+    // Checkbox box
+    ctx.strokeStyle=dismissed?'#34d399':'#fff6';ctx.lineWidth=1.5;
+    rr(cbX,cbY,cbSz,cbSz,3);ctx.stroke();
+    if(dismissed){
+      ctx.fillStyle='#34d399';rr(cbX,cbY,cbSz,cbSz,3);ctx.fill();
+      ctx.fillStyle='#fff';ctx.font='bold 12px monospace';ctx.textAlign='center';
+      ctx.fillText('\u2713',cbX+cbSz/2,cbY+13);
+    }
+    ctx.fillStyle=dismissed?'#34d399':'#fff8';ctx.font='11px monospace';ctx.textAlign='left';
+    ctx.fillText('\u5206\u304B\u308A\u307E\u3057\u305F\uFF08\u4ECA\u5F8C\u8868\u793A\u3057\u306A\u3044\uFF09',cbX+cbSz+8,cbY+13);
+    // Close button
+    const uCloseY=uy+uh-42;
+    ctx.fillStyle='#ffd70022';rr(W/2-50,uCloseY,100,32,8);ctx.fill();
+    ctx.strokeStyle='#ffd700';ctx.lineWidth=1;rr(W/2-50,uCloseY,100,32,8);ctx.stroke();
+    ctx.fillStyle='#ffd700';ctx.font='bold 13px monospace';ctx.textAlign='center';
+    ctx.fillText('\u9589\u3058\u308B',W/2,uCloseY+22);
   }
 
   // Ranking modal overlay
