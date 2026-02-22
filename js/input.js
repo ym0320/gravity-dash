@@ -1326,9 +1326,14 @@ if(googleBtn){
             }
           });
         }
-        // Step 3: Completely new – show name input
+        // Step 3: Completely new – show name input pre-filled with Google display name
         _fbGoogleLoginInProgress=false;
         fbSynced=true;
+        if(user.displayName){
+          const gName=user.displayName.replace(/[<>&"']/g,'').substring(0,12);
+          nameInput.value=gName;
+          loginBtn.classList.toggle('ready',gName.trim().length>=1);
+        }
         nameInput.focus();
       });
     }).catch(e=>{
@@ -1381,6 +1386,11 @@ if(twitterBtn){
         }
         _fbGoogleLoginInProgress=false;
         fbSynced=true;
+        if(user.displayName){
+          const tName=user.displayName.replace(/[<>&"']/g,'').substring(0,12);
+          nameInput.value=tName;
+          loginBtn.classList.toggle('ready',tName.trim().length>=1);
+        }
         nameInput.focus();
       });
     }).catch(e=>{
