@@ -32,7 +32,6 @@ var _fbGoogleLoginInProgress = false; // true while Google login handler is runn
 var _fbDirty = false; // true when local state has changed and needs saving
 
 // --- Auth helpers ---
-const _isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent || '');
 function fbSignInAnonymous() {
   if (!fbAuth) return Promise.reject('no-firebase');
   return fbAuth.signInAnonymously();
@@ -40,19 +39,11 @@ function fbSignInAnonymous() {
 function fbSignInGoogle() {
   if (!fbAuth) return Promise.reject('no-firebase');
   const provider = new firebase.auth.GoogleAuthProvider();
-  if (_isMobile) {
-    sessionStorage.setItem('gd5_redirectAuth', '1');
-    return fbAuth.signInWithRedirect(provider);
-  }
   return fbAuth.signInWithPopup(provider);
 }
 function fbSignInTwitter() {
   if (!fbAuth) return Promise.reject('no-firebase');
   const provider = new firebase.auth.TwitterAuthProvider();
-  if (_isMobile) {
-    sessionStorage.setItem('gd5_redirectAuth', '1');
-    return fbAuth.signInWithRedirect(provider);
-  }
   return fbAuth.signInWithPopup(provider);
 }
 function fbSignOut() {

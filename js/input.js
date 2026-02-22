@@ -1215,61 +1215,6 @@ nameInput.addEventListener('input',()=>{
   loginBtn.classList.toggle('ready',v.trim().length>=1);
   const ne=document.getElementById('nameError');if(ne)ne.textContent='';
 });
-// Show login error to user
-function _showLoginError(e){
-  const ne=document.getElementById('nameError');
-  if(!ne)return;
-  const code=e&&e.code||'';
-  if(code==='auth/popup-blocked')ne.textContent='ポップアップがブロックされました。もう一度お試しください';
-  else if(code==='auth/cancelled-popup-request'||code==='auth/popup-closed-by-user')ne.textContent='';
-  else if(code==='auth/unauthorized-domain')ne.textContent='このドメインは許可されていません';
-  else if(code==='auth/account-exists-with-different-credential')ne.textContent='別の方法で登録済みのアカウントです';
-  else ne.textContent='ログインに失敗しました（'+code+')';
-}
-// Common OAuth result handler (shared by popup and redirect flows)
-function _handleOAuthUser(user){
-  fbUser=user;
-  return fbLoadUserData(user.uid).then(data=>{
-    if(data&&data.name){
-      fbMergeCloudData(data);
-      fbSynced=true;
-      _fbGoogleLoginInProgress=false;
-      fbSaveUserData();
-      loginOverlay.classList.remove('active');
-      sfx('select');vibrate(15);
-      if(!tutorialDone){startTutorial();}
-      else{state=ST.TITLE;switchBGM('title');}
-      return;
-    }
-    const localName=playerName||localStorage.getItem('gd5username')||'';
-    if(localName){
-      return fbFindAndMigrateByName(localName).then(migrated=>{
-        if(migrated&&migrated.name){
-          fbMergeCloudData(migrated);
-          fbSynced=true;
-          _fbGoogleLoginInProgress=false;
-          fbSaveUserData();
-          loginOverlay.classList.remove('active');
-          sfx('select');vibrate(15);
-          if(!tutorialDone){startTutorial();}
-          else{state=ST.TITLE;switchBGM('title');}
-        } else {
-          fbSynced=true;
-          _fbGoogleLoginInProgress=false;
-          _finishLogin(localName);
-        }
-      });
-    }
-    _fbGoogleLoginInProgress=false;
-    fbSynced=true;
-    if(user.displayName){
-      const gName=user.displayName.replace(/[<>&"']/g,'').substring(0,12);
-      nameInput.value=gName;
-      loginBtn.classList.toggle('ready',gName.trim().length>=1);
-    }
-    nameInput.focus();
-  });
-}
 // Helper: finish login and enter the game
 function _finishLogin(name){
   console.log('[FB] _finishLogin called, name=',name);
@@ -1349,14 +1294,57 @@ if(googleBtn){
     googleBtn.disabled=true;
     _fbGoogleLoginInProgress=true;
     fbSignInGoogle().then(cred=>{
-      // Popup flow (desktop) – redirect flow won't reach here
-      if(!cred||!cred.user){_fbGoogleLoginInProgress=false;return;}
-      return _handleOAuthUser(cred.user);
+      const user=cred.user;
+      fbUser=user;
+      // Step 1: Check if this Google UID already has data
+      return fbLoadUserData(user.uid).then(data=>{
+        if(data&&data.name){
+          // Returning Google user – restore
+          fbMergeCloudData(data);
+          fbSynced=true;
+          _fbGoogleLoginInProgress=false;
+          fbSaveUserData(); // update ranking with current cosmetics
+          loginOverlay.classList.remove('active');
+          sfx('select');vibrate(15);
+          if(!tutorialDone){startTutorial();}
+          else{state=ST.TITLE;switchBGM('title');}
+          return;
+        }
+        // Step 2: No data under Google UID – try local name
+        const localName=playerName||localStorage.getItem('gd5username')||'';
+        if(localName){
+          return fbFindAndMigrateByName(localName).then(migrated=>{
+            if(migrated&&migrated.name){
+              fbMergeCloudData(migrated);
+              fbSynced=true;
+              _fbGoogleLoginInProgress=false;
+              fbSaveUserData(); // update ranking with current cosmetics
+              loginOverlay.classList.remove('active');
+              sfx('select');vibrate(15);
+              if(!tutorialDone){startTutorial();}
+              else{state=ST.TITLE;switchBGM('title');}
+            } else {
+              // Local name exists but no cloud data – keep name, save to Google UID
+              fbSynced=true;
+              _fbGoogleLoginInProgress=false;
+              _finishLogin(localName);
+            }
+          });
+        }
+        // Step 3: Completely new – show name input pre-filled with Google display name
+        _fbGoogleLoginInProgress=false;
+        fbSynced=true;
+        if(user.displayName){
+          const gName=user.displayName.replace(/[<>&"']/g,'').substring(0,12);
+          nameInput.value=gName;
+          loginBtn.classList.toggle('ready',gName.trim().length>=1);
+        }
+        nameInput.focus();
+      });
     }).catch(e=>{
       console.warn('[Firebase] Google sign-in error:',e);
       _fbGoogleLoginInProgress=false;
       sfx('hurt');vibrate(10);
-      _showLoginError(e);
     }).finally(()=>{googleBtn.disabled=false;});
   });
 }
@@ -1368,14 +1356,52 @@ if(twitterBtn){
     twitterBtn.disabled=true;
     _fbGoogleLoginInProgress=true;
     fbSignInTwitter().then(cred=>{
-      // Popup flow (desktop) – redirect flow won't reach here
-      if(!cred||!cred.user){_fbGoogleLoginInProgress=false;return;}
-      return _handleOAuthUser(cred.user);
+      const user=cred.user;
+      fbUser=user;
+      return fbLoadUserData(user.uid).then(data=>{
+        if(data&&data.name){
+          fbMergeCloudData(data);
+          fbSynced=true;
+          _fbGoogleLoginInProgress=false;
+          fbSaveUserData();
+          loginOverlay.classList.remove('active');
+          sfx('select');vibrate(15);
+          if(!tutorialDone){startTutorial();}
+          else{state=ST.TITLE;switchBGM('title');}
+          return;
+        }
+        const localName=playerName||localStorage.getItem('gd5username')||'';
+        if(localName){
+          return fbFindAndMigrateByName(localName).then(migrated=>{
+            if(migrated&&migrated.name){
+              fbMergeCloudData(migrated);
+              fbSynced=true;
+              _fbGoogleLoginInProgress=false;
+              fbSaveUserData();
+              loginOverlay.classList.remove('active');
+              sfx('select');vibrate(15);
+              if(!tutorialDone){startTutorial();}
+              else{state=ST.TITLE;switchBGM('title');}
+            } else {
+              fbSynced=true;
+              _fbGoogleLoginInProgress=false;
+              _finishLogin(localName);
+            }
+          });
+        }
+        _fbGoogleLoginInProgress=false;
+        fbSynced=true;
+        if(user.displayName){
+          const tName=user.displayName.replace(/[<>&"']/g,'').substring(0,12);
+          nameInput.value=tName;
+          loginBtn.classList.toggle('ready',tName.trim().length>=1);
+        }
+        nameInput.focus();
+      });
     }).catch(e=>{
       console.warn('[Firebase] Twitter sign-in error:',e);
       _fbGoogleLoginInProgress=false;
       sfx('hurt');vibrate(10);
-      _showLoginError(e);
     }).finally(()=>{twitterBtn.disabled=false;});
   });
 }
@@ -1394,20 +1420,6 @@ fbOnReady(user=>{
     });
   }
 });
-// Handle redirect result (mobile OAuth flow – page reloads after Google/X sign-in)
-if(fbAuth&&sessionStorage.getItem('gd5_redirectAuth')){
-  _fbGoogleLoginInProgress=true;
-  fbAuth.getRedirectResult().then(result=>{
-    sessionStorage.removeItem('gd5_redirectAuth');
-    if(!result||!result.user){_fbGoogleLoginInProgress=false;return;}
-    return _handleOAuthUser(result.user);
-  }).catch(e=>{
-    sessionStorage.removeItem('gd5_redirectAuth');
-    _fbGoogleLoginInProgress=false;
-    console.warn('[Firebase] Redirect auth error:',e);
-    _showLoginError(e);
-  });
-}
 
 // ===== TUTORIAL (course-based) =====
 // Checkpoint distances calculated for player at W*0.25
