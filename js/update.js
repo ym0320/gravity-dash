@@ -564,11 +564,9 @@ function update(dt){
     if(player.x>=g.x&&player.x<=g.x+g.w){
       g.triggered=true;g.fadeT=1;
       const forceDir=g.dir||1;
-      // Only change direction if player isn't already in the target direction
-      // Do NOT reset flip count, jump, or canFlip (preserve current movement state)
-      if(player.gDir!==forceDir){
-        player.gDir=forceDir;player.vy=0;
-      }
+      // Force gravity direction and reset movement state so player can act again
+      player.gDir=forceDir;player.vy=0;
+      flipCount=0;player.canFlip=true;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
       const col=forceDir===1?'#4488ff':'#ff66aa';
       sfx('milestone');vibrate([20,10,30]);shakeI=8;
       emitParts(player.x,player.y,15,col,4,3);
@@ -997,7 +995,7 @@ function update(dt){
     if(!en.alive||en.type!==3)return;
     en.bombCD-=esm;
     if(en.bombCD<=0&&en.x>0&&en.x<W+50){
-      en.bombCD=80+Math.floor(Math.random()*40);
+      en.bombCD=120+Math.floor(Math.random()*50);
       // Lob bomb toward player's approximate X position with arc
       const dx=player.x-en.x;
       const lobT=40+Math.random()*20; // frames to reach target area

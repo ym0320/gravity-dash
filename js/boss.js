@@ -18,7 +18,9 @@ function startBossPhase(){
   bossPhase.dodgeQueue=[]; // queue of dodge enemies
   bossPhase.dodgeIdx=0;
   bossPhase.dodgeKills=0;
-  enemies=[];bullets=[];floatPlats=[];spikes=[];movingHills=[];gravZones=[];
+  enemies=[];bullets=[];
+  // Cancel invincibility immediately with brief flash-out
+  if(itemEff.invincible>0){itemEff.invincible=45;}
   bossPhase.bossCount++;
   bossPhase.lastBossScore=score;
   bossPhase.nextAt=(Math.floor(dist/1000)+1)*1000;
