@@ -180,7 +180,7 @@ function startInventoryChestOpen(){
     if(allSR.length>0){
       const ri=allSR[Math.floor(Math.random()*allSR.length)];
       const isNew=!ownsItem(ri.id);
-      if(isNew){ownedItems.push(ri.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));}
+      if(isNew){ownedItems.push(ri.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));notifNewCosmetic=true;localStorage.setItem('gd5notifCosm','1');}
       reward={type:'cosmetic',item:ri,isNew:isNew,bonusCoins:isNew?0:300};
     } else {
       reward={type:'coin',amount:1000};
@@ -198,7 +198,7 @@ function startInventoryChestOpen(){
     if(allRare.length>0){
       const ri=allRare[Math.floor(Math.random()*allRare.length)];
       const isNew=!ownsItem(ri.id);
-      if(isNew){ownedItems.push(ri.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));}
+      if(isNew){ownedItems.push(ri.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));notifNewCosmetic=true;localStorage.setItem('gd5notifCosm','1');}
       reward={type:'cosmetic',item:ri,isNew:isNew,bonusCoins:isNew?0:300};
     } else {
       reward={type:'coin',amount:1000};
@@ -212,7 +212,7 @@ function startInventoryChestOpen(){
     if(allNormal.length>0){
       const ni=allNormal[Math.floor(Math.random()*allNormal.length)];
       const isNew=!ownsItem(ni.id);
-      if(isNew){ownedItems.push(ni.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));}
+      if(isNew){ownedItems.push(ni.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));notifNewCosmetic=true;localStorage.setItem('gd5notifCosm','1');}
       reward={type:'cosmetic',item:ni,isNew:isNew,bonusCoins:isNew?0:300};
     } else {
       reward={type:'coin',amount:200};
@@ -948,7 +948,7 @@ function getCharGridIdx(tx,ty){
 function handleTitleTouch(tx,ty){
   // Ranking button (top-left, row 1)
   if(tx>=8&&tx<=44&&ty>=safeTop+6&&ty<=safeTop+42){
-    rebuildRankingData();if(typeof fbRefreshRankings==='function')fbRefreshRankings();rankingOpen=true;rankingScroll=0;rankingScrollTarget=0;sfx('select');return;
+    rebuildRankingData();if(typeof fbRefreshRankings==='function')fbRefreshRankings();rankingOpen=true;rankingScroll=0;rankingScrollTarget=0;notifNewHighScore=false;localStorage.removeItem('gd5notifHi');sfx('select');return;
   }
   // Inventory button (top-left, row 2)
   if(tx>=8&&tx<=44&&ty>=safeTop+44&&ty<=safeTop+80){
@@ -962,7 +962,7 @@ function handleTitleTouch(tx,ty){
   }
   // Cosmetic button (top-left, row 4)
   if(tx>=8&&tx<=44&&ty>=safeTop+120&&ty<=safeTop+156){
-    cosmeticMenuOpen=true;cosmeticTab=0;cosmeticScroll=0;
+    cosmeticMenuOpen=true;cosmeticTab=0;cosmeticScroll=0;notifNewCosmetic=false;localStorage.removeItem('gd5notifCosm');
     sfx('select');return;
   }
   // Character selection: 2 rows x 3 columns grid
@@ -979,6 +979,8 @@ function handleTitleTouch(tx,ty){
       if(tx>=cx-5&&tx<=cx+charW+5&&ty>=cy-5&&ty<=cy+charH+5){
         if(isCharUnlocked(idx)){
           selChar=idx;localStorage.setItem('gd5char',selChar.toString());
+          // Clear new character notification for this character
+          const nci=notifNewChars.indexOf(idx);if(nci!==-1){notifNewChars.splice(nci,1);localStorage.setItem('gd5notifChars',JSON.stringify(notifNewChars));}
           sfxCharVoice(idx);vibrate(10);
         } else {
           // Locked: show hint to get from chest

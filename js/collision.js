@@ -32,7 +32,7 @@ function die(){
     localStorage.setItem('gd5lastRunChests','0');
   }
   if(gameMode==='endless'){
-    if(score>highScore){highScore=score;newHi=true;localStorage.setItem('gd5hi',highScore.toString());captureRankCosmetics();}
+    if(score>highScore){highScore=score;newHi=true;localStorage.setItem('gd5hi',highScore.toString());captureRankCosmetics();notifNewHighScore=true;localStorage.setItem('gd5notifHi','1');}
     played++;localStorage.setItem('gd5plays',played.toString());
     walletCoins+=totalCoins;localStorage.setItem('gd5wallet',walletCoins.toString());
     fbSaveUserData();
@@ -55,7 +55,7 @@ function checkMile(){
   }
   // Live highscore check
   if(gameMode==='endless'&&!newHi&&score>highScore&&highScore>0){
-    newHi=true;highScore=score;localStorage.setItem('gd5hi',highScore.toString());captureRankCosmetics();
+    newHi=true;highScore=score;localStorage.setItem('gd5hi',highScore.toString());captureRankCosmetics();notifNewHighScore=true;localStorage.setItem('gd5notifHi','1');
     sfx('newhi');shakeI=8;vibrate([20,10,30,10,50]);
     newHiEffT=120;
     addPop(W/2,H*0.35,'NEW RECORD!','#ffd700');
