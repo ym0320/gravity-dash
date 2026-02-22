@@ -297,7 +297,7 @@ function fbRefreshRankings() {
 
 // --- Firestore: check if name is already taken (by another user) ---
 function fbCheckNameExists(name) {
-  if (!fbDb) return Promise.resolve(false);
+  if (!fbDb || !fbUser) return Promise.resolve(false);
   return fbDb.collection('users').where('name', '==', name).limit(1).get()
     .then(snap => {
       if (snap.empty) return false;
