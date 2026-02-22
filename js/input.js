@@ -1271,19 +1271,20 @@ loginBtn.addEventListener('click',()=>{
     }).finally(()=>{loginBtn.disabled=false;});
     return;
   }
-  // Guest login – sign in first, then check name uniqueness
-  fbSignInAnonymous().then(()=>{
-    return fbCheckNameExists(name).then(taken=>{
-      if(taken){
-        nameError.textContent='この名前は使われています';
-        sfx('hurt');vibrate(10);
-        return;
-      }
+  // Guest login – check name uniqueness
+  fbCheckNameExists(name).then(taken=>{
+    if(taken){
+      nameError.textContent='この名前は使われています';
+      sfx('hurt');vibrate(10);
+      loginBtn.disabled=false;
+      return;
+    }
+    fbSignInAnonymous().then(()=>{
       _finishLogin(name);
-    });
-  }).catch(()=>{
-    _finishLogin(name);
-  }).finally(()=>{loginBtn.disabled=false;});
+    }).catch(()=>{
+      _finishLogin(name);
+    }).finally(()=>{loginBtn.disabled=false;});
+  });
 });
 // Google Sign-In
 const googleBtn=document.getElementById('googleBtn');
