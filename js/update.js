@@ -1047,9 +1047,9 @@ function update(dt){
 
   // Wall collision: hitting the side of a higher platform step
   // All characters: climb steps up to half their height (pr = radius = half diameter)
-  // Tire character: climbs steps up to its own height (diameter = pr*2)
+  // Tire character: climbs steps up to 0.75x its height (pr*1.5)
   {
-    const tireStepTol=isTire?pr*2:0; // tire: full character height = diameter
+    const tireStepTol=isTire?pr*1.5:0; // tire: 0.75x character height
     const STEP_TOLERANCE=pr; // all characters: half character height
     if(player.gDir===1){
       for(let i=0;i<platforms.length;i++){
