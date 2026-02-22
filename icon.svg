@@ -9,12 +9,12 @@
       <stop offset="100%" style="stop-color:#00b8d4"/>
     </linearGradient>
     <linearGradient id="floorGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#ff3860"/>
-      <stop offset="100%" style="stop-color:#cc2244"/>
+      <stop offset="0%" style="stop-color:#1e3a5f"/>
+      <stop offset="100%" style="stop-color:#152a45"/>
     </linearGradient>
     <linearGradient id="ceilGrad" x1="0%" y1="100%" x2="0%" y2="0%">
-      <stop offset="0%" style="stop-color:#ff3860"/>
-      <stop offset="100%" style="stop-color:#cc2244"/>
+      <stop offset="0%" style="stop-color:#1e3a5f"/>
+      <stop offset="100%" style="stop-color:#152a45"/>
     </linearGradient>
   </defs>
   <!-- Background -->
@@ -27,17 +27,44 @@
   <circle cx="400" cy="320" r="1.8" fill="#fff" opacity="0.5"/>
   <circle cx="60" cy="250" r="1.5" fill="#fff" opacity="0.4"/>
   <circle cx="450" cy="270" r="2" fill="#fff" opacity="0.3"/>
-  <!-- Floor terrain (bumpy pink) -->
-  <path d="M0 420 L0 512 L512 512 L512 420 L480 420 L460 400 L440 420 L400 420 L380 395 L360 420 L320 420 L300 405 L280 420 L240 420 L220 390 L200 420 L160 420 L140 400 L120 420 L80 420 L60 405 L40 420 L0 420 Z" fill="url(#floorGrad)" opacity="0.85"/>
-  <path d="M0 420 L40 420 L60 405 L80 420 L120 420 L140 400 L160 420 L200 420 L220 390 L240 420 L280 420 L300 405 L320 420 L360 420 L380 395 L400 420 L440 420 L460 400 L480 420 L512 420" stroke="#ff6888" stroke-width="3" fill="none" opacity="0.9"/>
-  <!-- Ceiling terrain (bumpy pink) -->
-  <path d="M0 0 L0 92 L40 92 L60 110 L80 92 L120 92 L140 115 L160 92 L200 92 L220 105 L240 92 L280 92 L300 118 L320 92 L360 92 L380 108 L400 92 L440 92 L460 112 L480 92 L512 92 L512 0 Z" fill="url(#ceilGrad)" opacity="0.85"/>
-  <path d="M0 92 L40 92 L60 110 L80 92 L120 92 L140 115 L160 92 L200 92 L220 105 L240 92 L280 92 L300 118 L320 92 L360 92 L380 108 L400 92 L440 92 L460 112 L480 92 L512 92" stroke="#ff6888" stroke-width="3" fill="none" opacity="0.9"/>
-  <!-- Obstacles -->
-  <rect x="130" y="92" width="28" height="120" rx="4" fill="#ff3860" opacity="0.7"/>
-  <rect x="130" y="290" width="28" height="130" rx="4" fill="#ff3860" opacity="0.7"/>
-  <rect x="350" y="92" width="28" height="170" rx="4" fill="#ff3860" opacity="0.5"/>
-  <rect x="350" y="340" width="28" height="80" rx="4" fill="#ff3860" opacity="0.5"/>
+  <!-- Floor terrain (rectangular stepped platforms) -->
+  <path d="M0 430 L0 512 L80 512 L80 430 L80 430 L120 430 L120 415 L200 415 L200 430 L260 430 L260 400 L330 400 L330 420 L400 420 L400 430 L460 430 L460 410 L512 410 L512 512 L0 512 Z" fill="url(#floorGrad)" opacity="0.9"/>
+  <!-- Floor neon edges -->
+  <path d="M0 430 L80 430 L80 430" stroke="#2a6aaf" stroke-width="3" fill="none" opacity="0.9"/>
+  <line x1="80" y1="430" x2="80" y2="415" stroke="#2a6aaf" stroke-width="2.5" opacity="0.7"/>
+  <line x1="120" y1="430" x2="120" y2="415" stroke="#2a6aaf" stroke-width="2.5" opacity="0.7"/>
+  <path d="M80 415 L120 415" stroke="#2a6aaf" stroke-width="2.5" fill="none" opacity="0.6"/>
+  <path d="M120 430 L200 430" stroke="#2a6aaf" stroke-width="3" fill="none" opacity="0.9"/>
+  <line x1="200" y1="430" x2="200" y2="415" stroke="#2a6aaf" stroke-width="2.5" opacity="0.7"/>
+  <path d="M200 415 L200 430" stroke="#2a6aaf" stroke-width="2.5" fill="none" opacity="0.7"/>
+  <line x1="260" y1="430" x2="260" y2="400" stroke="#2a6aaf" stroke-width="2.5" opacity="0.7"/>
+  <path d="M260 400 L330 400" stroke="#2a6aaf" stroke-width="3" fill="none" opacity="0.9"/>
+  <line x1="330" y1="400" x2="330" y2="420" stroke="#2a6aaf" stroke-width="2.5" opacity="0.7"/>
+  <path d="M330 420 L400 420" stroke="#2a6aaf" stroke-width="3" fill="none" opacity="0.9"/>
+  <line x1="400" y1="420" x2="400" y2="430" stroke="#2a6aaf" stroke-width="2.5" opacity="0.7"/>
+  <path d="M400 430 L460 430" stroke="#2a6aaf" stroke-width="3" fill="none" opacity="0.9"/>
+  <line x1="460" y1="430" x2="460" y2="410" stroke="#2a6aaf" stroke-width="2.5" opacity="0.7"/>
+  <path d="M460 410 L512 410" stroke="#2a6aaf" stroke-width="3" fill="none" opacity="0.9"/>
+  <!-- Floor glow -->
+  <path d="M0 430 L80 430 M120 430 L200 430 M200 415 L260 415 M260 400 L330 400 M330 420 L400 420 M400 430 L460 430 M460 410 L512 410" stroke="#2a6aaf" stroke-width="3" fill="none" opacity="0.4" filter="url(#blur)"/>
+  <!-- Ceiling terrain (rectangular stepped platforms) -->
+  <path d="M0 0 L0 82 L60 82 L60 95 L130 95 L130 80 L190 80 L190 82 L250 82 L250 100 L320 100 L320 85 L380 85 L380 82 L440 82 L440 90 L512 90 L512 0 Z" fill="url(#ceilGrad)" opacity="0.9"/>
+  <!-- Ceiling neon edges -->
+  <path d="M0 82 L60 82" stroke="#2a6aaf" stroke-width="3" fill="none" opacity="0.9"/>
+  <line x1="60" y1="82" x2="60" y2="95" stroke="#2a6aaf" stroke-width="2.5" opacity="0.7"/>
+  <path d="M60 95 L130 95" stroke="#2a6aaf" stroke-width="3" fill="none" opacity="0.9"/>
+  <line x1="130" y1="95" x2="130" y2="80" stroke="#2a6aaf" stroke-width="2.5" opacity="0.7"/>
+  <path d="M130 80 L190 80" stroke="#2a6aaf" stroke-width="3" fill="none" opacity="0.9"/>
+  <line x1="190" y1="80" x2="190" y2="82" stroke="#2a6aaf" stroke-width="2.5" opacity="0.7"/>
+  <path d="M190 82 L250 82" stroke="#2a6aaf" stroke-width="3" fill="none" opacity="0.9"/>
+  <line x1="250" y1="82" x2="250" y2="100" stroke="#2a6aaf" stroke-width="2.5" opacity="0.7"/>
+  <path d="M250 100 L320 100" stroke="#2a6aaf" stroke-width="3" fill="none" opacity="0.9"/>
+  <line x1="320" y1="100" x2="320" y2="85" stroke="#2a6aaf" stroke-width="2.5" opacity="0.7"/>
+  <path d="M320 85 L380 85" stroke="#2a6aaf" stroke-width="3" fill="none" opacity="0.9"/>
+  <line x1="380" y1="85" x2="380" y2="82" stroke="#2a6aaf" stroke-width="2.5" opacity="0.7"/>
+  <path d="M380 82 L440 82" stroke="#2a6aaf" stroke-width="3" fill="none" opacity="0.9"/>
+  <line x1="440" y1="82" x2="440" y2="90" stroke="#2a6aaf" stroke-width="2.5" opacity="0.7"/>
+  <path d="M440 90 L512 90" stroke="#2a6aaf" stroke-width="3" fill="none" opacity="0.9"/>
   <!-- Player cube -->
   <g transform="translate(256, 256)">
     <!-- Glow -->
