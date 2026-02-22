@@ -100,7 +100,7 @@ let gravZoneCD=0;
 
 // ===== BOSS PHASE =====
 // Boss appears periodically in endless mode
-let bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:1000,lastBossScore:0,bossCount:0,bossType:'',noDamage:true};
+let bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:1000,lastBossScore:0,lastBossRawDist:0,bossCount:0,bossType:'',noDamage:true};
 
 function initBG(){
   stars=[];
@@ -147,7 +147,7 @@ function reset(){
   coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];floatPlats=[];floatCD=0;
   spikes=[];spikeCD=0;movingHills=[];hillCD=0;gravZones=[];gravZoneCD=0;gravZoneChain=0;
   fallingMtns=[];fallingMtnCD=0;coinSwitches=[];coinSwitchCD=0;
-  score=0;dist=0;speedOffset=0;speed=SPEED_INIT;frame=0;deadT=0;newHi=false;
+  score=0;dist=0;rawDist=0;speedOffset=0;speed=SPEED_INIT;frame=0;deadT=0;newHi=false;
   combo=0;comboT=0;comboDsp=0;comboDspT=0;airCombo=0;
   shakeX=0;shakeY=0;shakeI=0;
   mileT=0;mileTxt='';lastMile=0;
@@ -158,7 +158,7 @@ function reset(){
   flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
   abyssPhase={active:false,len:0,cd:0};
   gravRushPhase={active:false,len:0,cd:0};
-  bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:1000,lastBossScore:0,bossCount:0,bossType:'',noDamage:true};
+  bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:1000,lastBossScore:0,lastBossRawDist:0,bossCount:0,bossType:'',noDamage:true};
   hp=HP_MAX+(ct().hpBonus||0);hurtT=0;
   curTheme=0;prevTheme=0;themeLerp=1;
   bossChests=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null};
@@ -197,7 +197,7 @@ function resetPackStage(pi,si){
   }
   stageBigCollected=0;stageClearT=0;
   ambientParts=[];
-  score=0;dist=0;speedOffset=0;speed=SPEED_INIT*stage.spdMul;frame=0;deadT=0;newHi=false;
+  score=0;dist=0;rawDist=0;speedOffset=0;speed=SPEED_INIT*stage.spdMul;frame=0;deadT=0;newHi=false;
   combo=0;comboT=0;comboDsp=0;comboDspT=0;airCombo=0;
   shakeX=0;shakeY=0;shakeI=0;
   mileT=0;mileTxt='';lastMile=0;
@@ -208,7 +208,7 @@ function resetPackStage(pi,si){
   flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
   abyssPhase={active:false,len:0,cd:0};
   gravRushPhase={active:false,len:0,cd:0};
-  bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:99999,lastBossScore:0,bossCount:0};
+  bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:99999,lastBossScore:0,lastBossRawDist:0,bossCount:0};
   hp=HP_MAX+(ct().hpBonus||0);hurtT=0;
   curTheme=0;prevTheme=0;themeLerp=1;
   bossChests=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null};
