@@ -1357,11 +1357,16 @@ if(googleBtn){
         // Step 3: Completely new – show name input pre-filled with Google display name
         _fbGoogleLoginInProgress=false;
         fbSynced=true;
+        googleBtn.style.display='none';
+        if(twitterBtn)twitterBtn.style.display='none';
+        document.getElementById('loginDivider').style.display='none';
+        document.getElementById('loginLabel').textContent='名前を入力';
         if(user.displayName){
           const gName=user.displayName.replace(/[<>&"']/g,'').substring(0,12);
           nameInput.value=gName;
           loginBtn.classList.toggle('ready',gName.trim().length>=1);
         }
+        nameInput.placeholder='お好きな名前';
         nameInput.focus();
       });
     }).catch(e=>{
@@ -1414,11 +1419,16 @@ if(twitterBtn){
         }
         _fbGoogleLoginInProgress=false;
         fbSynced=true;
+        if(twitterBtn)twitterBtn.style.display='none';
+        googleBtn.style.display='none';
+        document.getElementById('loginDivider').style.display='none';
+        document.getElementById('loginLabel').textContent='名前を入力';
         if(user.displayName){
           const tName=user.displayName.replace(/[<>&"']/g,'').substring(0,12);
           nameInput.value=tName;
           loginBtn.classList.toggle('ready',tName.trim().length>=1);
         }
+        nameInput.placeholder='お好きな名前';
         nameInput.focus();
       });
     }).catch(e=>{
