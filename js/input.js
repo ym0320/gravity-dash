@@ -258,11 +258,31 @@ function startPackStageFromDead(){
   state=ST.PLAY;resetPackStage(currentPackIdx,currentPackStageIdx);switchBGM('play');
 }
 
+// Update info modal touch handler
+function handleUpdateInfoTouch(tx,ty){
+  const uw=Math.min(310,W-16),uh=Math.min(420,H-30),ux=W/2-uw/2,uy=H/2-uh/2;
+  // Checkbox
+  const cbY=uy+uh-72,cbX=W/2-70;
+  if(tx>=cbX&&tx<=W/2+80&&ty>=cbY&&ty<=cbY+18){
+    const cur=localStorage.getItem('gd5updateDismissed')===UPDATE_VER;
+    if(cur){localStorage.removeItem('gd5updateDismissed');}
+    else{localStorage.setItem('gd5updateDismissed',UPDATE_VER);}
+    sfx('click');return;
+  }
+  // Close button
+  const uCloseY=uy+uh-42;
+  if(tx>=W/2-50&&tx<=W/2+50&&ty>=uCloseY&&ty<=uCloseY+32){sfx('click');updateInfoOpen=false;return;}
+  // Tap outside
+  if(tx<ux||tx>ux+uw||ty<uy||ty>uy+uh){sfx('cancel');updateInfoOpen=false;return;}
+}
 // Help overlay touch handler
 function handleHelpTouch(tx,ty){
-  const hw=Math.min(300,W-20),hh=380,hx=W/2-hw/2,hy=H/2-hh/2;
-  const hCloseY=hy+hh-42;
+  const hw=Math.min(300,W-20),hh=420,hx=W/2-hw/2,hy=H/2-hh/2;
+  // Update info button
+  const hUpdY=hy+hh-78;
+  if(tx>=W/2-70&&tx<=W/2+70&&ty>=hUpdY&&ty<=hUpdY+28){sfx('select');helpOpen=false;updateInfoOpen=true;return;}
   // Close button
+  const hCloseY=hy+hh-42;
   if(tx>=W/2-50&&tx<=W/2+50&&ty>=hCloseY&&ty<=hCloseY+32){sfx('click');helpOpen=false;return;}
   // Tap anywhere outside the modal closes it
   if(tx<hx||tx>hx+hw||ty<hy||ty>hy+hh){sfx('cancel');helpOpen=false;return;}
@@ -489,6 +509,8 @@ canvas.addEventListener('touchstart',e=>{
   const t=e.touches[0];
   const p=canvasXY(t.clientX,t.clientY);
   touchStartY=t.clientY;touchStartX=t.clientX;touchStartT=Date.now();touchMoved=false;touchBtnUsed=false;
+  // Update info modal intercepts all input when open
+  if(updateInfoOpen){handleUpdateInfoTouch(p.x,p.y);return;}
   // Help overlay intercepts all input when open
   if(helpOpen){handleHelpTouch(p.x,p.y);return;}
   // Ranking modal intercepts all input when open
@@ -609,7 +631,7 @@ canvas.addEventListener('touchend',e=>{
     if(draggingSlider==='sfx')sfx('coin'); // preview SE at new volume
     draggingSlider=null;return;
   }
-  if(helpOpen||settingsOpen||rankingOpen||inventoryOpen)return;
+  if(updateInfoOpen||helpOpen||settingsOpen||rankingOpen||inventoryOpen)return;
   // Shop/cosmetic: confirm pending item taps if user didn't scroll
   if(shopOpen){
     if(!touchMoved&&shopPendingTap){confirmShopTap();}
@@ -717,6 +739,7 @@ canvas.addEventListener('mousedown',e=>{
     return;
   }
   const p=canvasXY(e.clientX,e.clientY);
+  if(updateInfoOpen){handleUpdateInfoTouch(p.x,p.y);return;}
   if(helpOpen){handleHelpTouch(p.x,p.y);return;}
   if(rankingOpen){handleRankingTouch(p.x,p.y);return;}
   if(settingsOpen){handleSettingsTouch(p.x,p.y);return;}
@@ -792,6 +815,7 @@ canvas.addEventListener('mouseup',()=>{
   draggingSlider=null;
 });
 document.addEventListener('keydown',e=>{
+  if(updateInfoOpen){if(e.code==='Escape'){updateInfoOpen=false;sfx('cancel');}e.preventDefault();return;}
   if(helpOpen){if(e.code==='Escape'){helpOpen=false;sfx('cancel');}e.preventDefault();return;}
   if(rankingOpen){if(e.code==='Escape'){rankingOpen=false;sfx('cancel');}e.preventDefault();return;}
   if(settingsOpen){if(e.code==='Escape'){if(confirmModal){confirmModal=null;sfx('cancel');}else if(nameEditMode){nameEditMode=false;}else{settingsOpen=false;logoutConfirm=false;resetConfirmStep=0;}sfx('cancel');e.preventDefault();}if(!nameEditMode){e.preventDefault();}return;}
