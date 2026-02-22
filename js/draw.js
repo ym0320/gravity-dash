@@ -2232,6 +2232,13 @@ function drawTitle(){
   ctx.fillStyle='#ffffff33';ctx.font='9px monospace';
   ctx.fillText('\u8FD1\u65E5\u516C\u958B',sbx+btnW/2,btnY+34);
 
+  // Copyright (bottom center)
+  ctx.fillStyle='#fff2';ctx.font='8px monospace';ctx.textAlign='center';
+  ctx.fillText('\u00A9 2025 ny-tkc',W/2,H-safeBot+4);
+  // Version (bottom right)
+  ctx.fillStyle='#fff2';ctx.font='8px monospace';ctx.textAlign='right';
+  ctx.fillText('v'+GAME_VERSION,W-8,H-safeBot+4);
+
   // Controls info removed – now accessible via settings panel ❓ button
 
   // Ranking button (top left, row 1)
