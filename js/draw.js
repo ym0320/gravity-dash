@@ -2700,9 +2700,9 @@ function drawTitle(){
       equippedSkin=entry.eqSkin||'';equippedEyes=entry.eqEyes||'';equippedEffect=entry.eqFx||'';
       const rkFxData=getEquippedEffectData();
       if(rkFxData){
-        // Clip effect to character vicinity so it doesn't overlap other rows
+        // Clip effect to row bounds so it doesn't overlap other rows
         ctx.save();
-        ctx.beginPath();ctx.arc(cix,ciy,14,0,6.28);ctx.clip();
+        rr(cix-22,ry+1,44,rowH-4,6);ctx.clip();
         drawPlayerEffect(cix,ciy,9,rkFxData.type,0.7);
         ctx.restore();
       }
