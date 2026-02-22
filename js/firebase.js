@@ -57,6 +57,7 @@ function fbOnReady(cb) { if (fbReady) cb(fbUser); else _fbAuthReadyCallbacks.pus
 
 if (fbAuth) {
   fbAuth.onAuthStateChanged(user => {
+    console.log('[FB] onAuthStateChanged:', user ? user.uid : 'null', user ? (user.isAnonymous?'anon':'provider') : '');
     fbUser = user;
     const wasReady = fbReady;
     fbReady = true;
@@ -70,7 +71,9 @@ if (fbAuth) {
         // Already synced
       } else {
         fbSynced = false;
+        console.log('[FB] loading user data...');
         fbLoadUserData().then(data => {
+          console.log('[FB] loaded:', data ? 'has data' : 'no data');
           if (data && data.name) fbMergeCloudData(data);
           fbSynced = true;
           _fbLastSyncedUid = user.uid;
@@ -119,8 +122,9 @@ var _fbSaveTimer = null;
 var _fbPendingSave = false; // true when save was requested but fbSynced was false
 var _fbPendingRetryTimer = null;
 function fbSaveUserData() {
+  console.log('[FB] saveUserData called, db=',!!fbDb,'user=',!!fbUser,'synced=',fbSynced);
   if (!fbDb || !fbUser) return;
-  _fbDirty = true; // mark that local state has changed
+  _fbDirty = true;
   if (!fbSynced) {
     _fbPendingSave = true;
     // Retry after delay in case sync completes
@@ -141,6 +145,7 @@ function fbSaveUserData() {
   _fbSaveTimer = setTimeout(_fbDoSave, 1200);
 }
 function _fbDoSave() {
+  console.log('[FB] _doSave called, db=',!!fbDb,'user=',!!fbUser,'dirty=',_fbDirty,'name=',playerName);
   if (!fbDb || !fbUser || !_fbDirty) return;
   const uid = fbUser.uid;
   const data = {

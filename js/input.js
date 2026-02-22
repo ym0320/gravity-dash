@@ -1218,6 +1218,7 @@ nameInput.addEventListener('input',()=>{
 });
 // Helper: finish login and enter the game
 function _finishLogin(name){
+  console.log('[FB] _finishLogin called, name=',name);
   playerName=name;localStorage.setItem('gd5username',playerName);
   loginOverlay.classList.remove('active');
   sfx('select');vibrate(15);
@@ -1225,6 +1226,7 @@ function _finishLogin(name){
   let _saveRetries=0;
   const _doInitialSave=()=>{
     _saveRetries++;
+    console.log('[FB] _doInitialSave retry=',_saveRetries,'user=',!!fbUser,'synced=',fbSynced);
     if(fbUser&&fbSynced){
       if(typeof fbForceSave==='function')fbForceSave();
     } else if(_saveRetries<30){
