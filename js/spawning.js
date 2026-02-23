@@ -90,26 +90,43 @@ function trySpawnItem(){
 // Types: 0=左右パトロール, 1=砲台(水平砲弾), 2=空中飛行
 function trySpawnEnemy(){
   if(enemyCD>0){enemyCD--;return;}
-  if(score<30)return; // enemies appear later
+  if(!isPackMode&&score<30)return; // enemies appear later (endless only)
   if(bossPhase.active)return; // no normal enemies during boss
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
-  const chance=Math.min(0.3,0.04+(score-30)*0.002);
+  const chance=isPackMode?0.5:Math.min(0.3,0.04+(score-30)*0.002);
   if(Math.random()<chance){
-    enemyCD=55+Math.floor(Math.random()*50);
+    enemyCD=isPackMode?(25+Math.floor(Math.random()*25)):(55+Math.floor(Math.random()*50));
     const ex=Math.max(W+13,plat.x);
     const sz=13;
-    // Choose enemy type based on score - early game = walkers only
+    // Choose enemy type
     let eType=0;
     const tr=Math.random();
-    if(score>=600&&bossPhase.bossCount>=3&&tr<0.10) eType=8; // splitter (after 3rd boss)
-    else if(score>=400&&bossPhase.bossCount>=2&&tr<0.15) eType=3; // bomber (after 2nd boss)
-    else if(score>=250&&bossPhase.bossCount>=1&&tr<0.18) eType=6; // dasher (after 1st boss)
-    else if(score>=160&&tr<0.12) eType=5; // phantom (mid-late)
-    else if(score>=140&&tr<0.15) eType=4; // vertical mover (mid-late)
-    else if(score>=120&&tr<0.22) eType=2; // flyer (mid-late)
-    else if(score>=80&&tr<0.35) eType=1; // cannon (mid)
-    else eType=0; // walker/patrol (always available)
+    if(isPackMode&&currentPackStage){
+      // Pack mode: enemy types based on stage index (later stages = stronger enemies)
+      // Also stronger enemies toward end of stage (progress-based)
+      const stageIdx=currentPackStageIdx; // 0-4
+      const progress=dist/currentPackStage.dist;
+      if(stageIdx>=4&&progress>0.5&&tr<0.20) eType=8; // splitter (stage X-5 late)
+      else if(stageIdx>=3&&progress>0.4&&tr<0.22) eType=3; // bomber (stage X-4+)
+      else if(stageIdx>=3&&tr<0.20) eType=6; // dasher (stage X-4+)
+      else if(stageIdx>=2&&progress>0.3&&tr<0.18) eType=5; // phantom (stage X-3+)
+      else if(stageIdx>=2&&tr<0.22) eType=4; // vertical mover (stage X-3+)
+      else if(stageIdx>=1&&tr<0.28) eType=2; // flyer (stage X-2+)
+      else if(stageIdx>=1&&tr<0.35) eType=1; // cannon (stage X-2+)
+      else if(stageIdx>=0&&tr<0.40) eType=1; // cannon available from X-1
+      else eType=0; // walker/patrol (always)
+    } else {
+      // Endless mode: score-based enemy types
+      if(score>=600&&bossPhase.bossCount>=3&&tr<0.10) eType=8;
+      else if(score>=400&&bossPhase.bossCount>=2&&tr<0.15) eType=3;
+      else if(score>=250&&bossPhase.bossCount>=1&&tr<0.18) eType=6;
+      else if(score>=160&&tr<0.12) eType=5;
+      else if(score>=140&&tr<0.15) eType=4;
+      else if(score>=120&&tr<0.22) eType=2;
+      else if(score>=80&&tr<0.35) eType=1;
+      else eType=0;
+    }
 
     if(eType===4){
       // Vertical mover: bounces between floor and ceiling
@@ -182,13 +199,13 @@ function trySpawnEnemy(){
 // ===== FLOATING MID-AIR PLATFORMS =====
 function trySpawnFloatPlat(){
   if(floatCD>0){floatCD--;return;}
-  if(score<100)return; // appear after more progression
+  if(!isPackMode&&score<100)return; // appear after more progression (endless only)
   if(bossPhase.active)return;
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
-  const chance=Math.min(0.18,0.04+(score-35)*0.002);
+  const chance=isPackMode?0.30:Math.min(0.18,0.04+(score-35)*0.002);
   if(Math.random()<chance){
-    floatCD=80+Math.floor(Math.random()*60);
+    floatCD=isPackMode?(40+Math.floor(Math.random()*30)):(80+Math.floor(Math.random()*60));
     const fx=Math.max(W+20,plat.x);
     const fw=50+Math.random()*60; // width: 50-110px
     const floorY=H-plat.h;
@@ -221,10 +238,11 @@ function trySpawnFloatPlat(){
 // ===== STAGE GIMMICKS =====
 function trySpawnSpike(){
   if(spikeCD>0){spikeCD--;return;}
-  if(bossPhase.bossCount<3||bossPhase.active)return; // only after 3rd boss defeated
+  if(!isPackMode&&(bossPhase.bossCount<3||bossPhase.active))return; // endless: only after 3rd boss
+  if(isPackMode&&bossPhase.active)return;
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
-  const chance=Math.min(0.15,0.03+(score-80)*0.001);
+  const chance=isPackMode?0.20:Math.min(0.15,0.03+(score-80)*0.001);
   if(Math.random()<chance){
     const sx=Math.max(W+10,plat.x+Math.random()*plat.w*0.5);
     // Only place spikes where both floor AND ceiling terrain exist
@@ -255,13 +273,13 @@ function trySpawnSpike(){
 function trySpawnFallingMtn(){
   if(fallingMtnCD>0){fallingMtnCD--;return;}
   if(bossPhase.active)return;
-  if(score<4000)return;
+  if(!isPackMode&&score<4000)return; // endless only threshold
   // During terrain gimmick phase (moving type), skip falling spawns
   if(terrainGimmickPhase.active&&terrainGimmickPhase.type==='moving')return;
   // Find a gap (abyss) in floor or ceiling platforms to place the falling floor over
   // Starts at 4000, increases significantly from 4000-6000+
   const isGimmickFalling=terrainGimmickPhase.active&&terrainGimmickPhase.type==='falling';
-  let chance=score>=6000?Math.min(0.12,0.04+(score-6000)*0.0002):Math.min(0.06,0.01+(score-4000)*0.0003);
+  let chance=isPackMode?0.15:(score>=6000?Math.min(0.12,0.04+(score-6000)*0.0002):Math.min(0.06,0.01+(score-4000)*0.0003));
   if(isGimmickFalling)chance=0.35; // high spawn rate during gimmick phase
   if(Math.random()<chance){
     const isFloor=Math.random()<0.5;
@@ -320,11 +338,12 @@ function trySpawnCoinSwitch(){
 
 function trySpawnMovingHill(){
   if(hillCD>0){hillCD--;return;}
-  if(bossPhase.bossCount<2||bossPhase.active)return; // only after 2nd boss defeated
+  if(!isPackMode&&(bossPhase.bossCount<2||bossPhase.active))return; // endless: only after 2nd boss
+  if(isPackMode&&bossPhase.active)return;
   // During terrain gimmick phase (falling type), skip moving hill spawns
   if(terrainGimmickPhase.active&&terrainGimmickPhase.type==='falling')return;
   const isGimmickMoving=terrainGimmickPhase.active&&terrainGimmickPhase.type==='moving';
-  let chance=Math.min(0.1,0.02+(score-120)*0.001);
+  let chance=isPackMode?0.18:Math.min(0.1,0.02+(score-120)*0.001);
   if(isGimmickMoving)chance=0.35; // high spawn rate during gimmick phase
   if(Math.random()<chance){
     const isFloor=Math.random()<0.5;
@@ -362,8 +381,9 @@ let gravZoneChain=0; // tracks how many zones spawned in current chain
 let gravZoneChainTarget=0; // how many to spawn in this chain
 function trySpawnGravZone(){
   if(gravZoneCD>0){gravZoneCD--;return;}
-  if(bossPhase.bossCount<1||bossPhase.active)return;
-  if(score<150)return;
+  if(!isPackMode&&(bossPhase.bossCount<1||bossPhase.active))return;
+  if(isPackMode&&bossPhase.active)return;
+  if(!isPackMode&&score<150)return;
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
   let doSpawn=false;
@@ -373,7 +393,7 @@ function trySpawnGravZone(){
   } else if(gravZoneChain>0&&gravZoneChain<gravZoneChainTarget){
     doSpawn=true;
   } else {
-    const chance=Math.min(0.04,0.008+(score-150)*0.0003);
+    const chance=isPackMode?0.08:Math.min(0.04,0.008+(score-150)*0.0003);
     doSpawn=Math.random()<chance;
   }
   if(doSpawn){
