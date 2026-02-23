@@ -17,8 +17,7 @@ function startBossPhase(){
   bossPhase.dodgeIdx=0;
   bossPhase.dodgeKills=0;
   enemies=[];bullets=[];
-  // Cancel invincibility immediately with brief flash-out
-  if(itemEff.invincible>0){itemEff.invincible=45;}
+  // Keep invincibility active during boss (don't cancel it)
   bossPhase.bossCount++;
   bossPhase.lastBossScore=score;
   bossPhase.lastBossRawDist=rawDist;
@@ -104,19 +103,22 @@ function spawnBossEnemies(){
   }
   function addDodgeQueue(delayOffset){
     const dodgeCount=10+Math.min(Math.floor((effectiveBc-1)/3),4);
-    const baseSpd=2.2+(phaseLevel>=2?Math.min(phaseLevel-1,10)*0.15:0);
+    const baseSpd=2.2+Math.min(phaseLevel-1,10)*0.25; // gradual speed increase with phase
     const baseInterval=Math.max(3,12-Math.min(effectiveBc-1,8));
+    let lastFloor=Math.random()<0.5; // first one random, then strictly alternate
     for(let i=0;i<dodgeCount;i++){
-      const spd=baseSpd+Math.random()*(0.9+Math.min(effectiveBc-1,8)*0.08);
-      const onFloor=Math.random()<0.5;
+      // Speed gradually increases per dodge in the wave
+      const spd=baseSpd+i*0.12+Math.random()*0.5;
+      // Strictly alternate floor/ceiling (after first random pick)
+      const onFloor=i===0?lastFloor:!lastFloor;
+      lastFloor=onFloor;
       const gDir=onFloor?1:-1;
-      const diagStrength=phaseLevel>=2?(0.7+Math.min(phaseLevel-1,8)*0.15):0;
       const sz=PLAYER_R*5;
       bossPhase.dodgeQueue.push({
         x:W+80+i*10,y:onFloor?floorY-sz:ceilY+sz,vy:0,gDir:gDir,sz:sz,alive:true,fr:Math.random()*100,
         type:10,shootT:999,boss:true,bossType:'dodge',
-        chargeVx:-spd,diagStrength:diagStrength,chargeState:'wait',
-        rushDelay:(delayOffset||0)+10+i*baseInterval+Math.floor(Math.random()*4),
+        chargeVx:-spd,diagStrength:0,chargeState:'wait',
+        rushDelay:(delayOffset||0)+10+i*baseInterval+Math.floor(Math.random()*6),
         timer:0,missCount:0
       });
     }
@@ -252,15 +254,7 @@ function updateBossPhase(){
     if(en.chargeState==='rush'){
       en.x+=en.chargeVx;
       en.timer++;
-      // Homing: diagStrength pulls toward player Y (no safe "stay on floor" cheese)
-      if(en.diagStrength){
-        const targetY=player.y;
-        const dy2=targetY-en.y;
-        en.y+=Math.sign(dy2)*Math.min(Math.abs(dy2)*0.08,en.diagStrength);
-        // Clamp to playfield
-        if(en.y-en.sz<ceilY){en.y=ceilY+en.sz;}
-        if(en.y+en.sz>floorY){en.y=floorY-en.sz;}
-      }
+      // No homing - purely horizontal rush, speed only
       en.fr+=0.2;
       if(frame%2===0){
         if(parts.length<MAX_PARTS)parts.push({x:en.x+en.sz,y:en.y,vx:1+Math.random(),vy:(Math.random()-0.5)*2,life:12,ml:12,sz:Math.random()*4+2,col:'#ff8844'});

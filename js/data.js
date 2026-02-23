@@ -502,6 +502,46 @@ const BGM_DEAD={tempo:60,
   melWave:'sine',harmWave:'sine',bassWave:'sine',
   drums:'none'};
 
+// Stage1 - Cosmic Playground: C Lydian, wide-leap melody with F# for spacey wonder
+const BGM_STAGE1={tempo:118,
+  melody:[523,0,0,880, 740,0,784,0, 659,0,0,1047, 988,0,784,0,
+          880,0,0,659, 740,0,1047,0, 988,0,0,784, 880,0,659,0],
+  harmony:[0,330,0,0, 0,587,0,0, 0,392,0,0, 0,659,0,0,
+           0,523,0,0, 0,587,0,0, 0,392,0,0, 0,330,0,0],
+  bass:[131,0,131,262, 147,0,147,294, 110,0,110,220, 98,0,98,196,
+        131,131,262,0, 147,147,294,0, 110,110,220,0, 131,0,131,262],
+  chords:[[262,330,392],[294,370,440],[440,523,659],[392,494,587],
+          [262,330,392],[294,370,440],[330,392,494],[262,330,392]],
+  melVol:0.22,harmVol:0.07,bassVol:0.16,chordVol:0.06,
+  melWave:'triangle',harmWave:'sine',bassWave:'sine',
+  drums:'drive'};
+// Stage2 - Crystal Snow: Eb major, slow music-box, gentle falling snowflakes
+const BGM_STAGE2={tempo:80,
+  melody:[622,0,0,784, 0,0,932,0, 0,784,0,0, 698,0,622,0,
+          523,0,0,622, 0,784,0,0, 698,0,0,622, 0,0,0,0],
+  harmony:[0,0,466,0, 0,0,0,523, 0,466,0,0, 0,0,392,0,
+           0,0,349,0, 0,0,0,466, 0,0,392,0, 0,0,311,0],
+  bass:[156,0,0,0, 0,0,0,0, 131,0,0,0, 0,0,0,0,
+        117,0,0,0, 0,0,0,0, 156,0,0,0, 0,0,0,0],
+  chords:[[311,392,466],[208,262,311],[262,311,392],[233,294,349],
+          [311,392,466],[208,262,311],[262,311,392],[311,392,466]],
+  melVol:0.14,harmVol:0.06,bassVol:0.10,chordVol:0.05,
+  melWave:'sine',harmWave:'sine',bassWave:'sine',
+  drums:'soft'};
+// Stage3 - Inferno March: A Phrygian, aggressive driving riffs, fiery magma
+const BGM_STAGE3={tempo:130,
+  melody:[880,0,932,1047, 932,0,880,0, 784,880,932,0, 1047,932,880,784,
+          880,932,1047,1175, 1047,0,932,880, 784,0,880,932, 1047,0,880,0],
+  harmony:[659,0,698,0, 659,0,587,0, 523,0,587,659, 0,659,0,523,
+           659,698,0,784, 698,0,659,0, 523,0,587,0, 698,0,659,0],
+  bass:[110,110,220,110, 117,117,233,117, 98,98,196,98, 110,110,220,110,
+        110,110,220,110, 117,117,233,117, 87,87,175,87, 110,220,110,110],
+  chords:[[220,262,330],[233,294,349],[196,233,294],[220,262,330],
+          [220,262,330],[233,294,349],[175,220,262],[220,262,330]],
+  melVol:0.24,harmVol:0.10,bassVol:0.26,chordVol:0.07,
+  melWave:'sawtooth',harmWave:'triangle',bassWave:'sawtooth',
+  drums:'heavy'};
+
 // Fever: old-style simple oscillator BGM (reverted)
 let feverBI=0,feverTimer=null;
 const FEVER_NOTES=[784,988,1175,1319, 1175,988,784,988, 880,1175,1319,1568, 1319,1175,1047,880];
@@ -539,8 +579,11 @@ function getPlayBGMType(){
 
 function switchBGM(type){
   if(!audioCtx)return;
-  // 'play' resolves to score-based play BGM
-  if(type==='play')type=getPlayBGMType();
+  // 'play' resolves to stage BGM in pack mode, or score-based play BGM in endless
+  if(type==='play'){
+    if(isPackMode){type=currentPackIdx===0?'stage1':currentPackIdx===1?'stage2':currentPackIdx===2?'stage3':'stage1';}
+    else{type=getPlayBGMType();}
+  }
   // 'title' always picks a random variant (force restart for variety)
   if(type==='title'){
     bgmCurrent='';
@@ -554,7 +597,9 @@ function switchBGM(type){
   // Fever uses old-style simple oscillator
   if(type==='fever'){feverBI=0;playFeverBGM();return;}
   const BGM_MAP={title0:BGM_TITLES[0],title1:BGM_TITLES[1],title2:BGM_TITLES[2],title3:BGM_TITLES[3],title4:BGM_TITLES[4],title5:BGM_TITLES[5],
-    play1:BGM_PLAY1,play2:BGM_PLAY2,play3:BGM_PLAY3,play4:BGM_PLAY4,play5:BGM_PLAY5,boss:BGM_BOSS,dead:BGM_DEAD,challenge:BGM_CHALLENGE,collapse:BGM_COLLAPSE};
+    play1:BGM_PLAY1,play2:BGM_PLAY2,play3:BGM_PLAY3,play4:BGM_PLAY4,play5:BGM_PLAY5,
+    stage1:BGM_STAGE1,stage2:BGM_STAGE2,stage3:BGM_STAGE3,
+    boss:BGM_BOSS,dead:BGM_DEAD,challenge:BGM_CHALLENGE,collapse:BGM_COLLAPSE};
   const def=BGM_MAP[type]||BGM_PLAY1;
   const stepMs=60000/(def.tempo*4); // ms per 16th note step
   const stepS=stepMs/1000;

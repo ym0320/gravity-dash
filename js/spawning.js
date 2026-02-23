@@ -338,7 +338,7 @@ function trySpawnFallingMtn(){
       const gStart=p1.x+p1.w;
       const gEnd=p2.x;
       const gap=gEnd-gStart;
-      if(gap>=50&&gStart>W-50&&gStart<W+200){
+      if(gap>=50&&gStart>W-200&&gStart<W+200){
         gapX=gStart;gapW=gap;break;
       }
     }
@@ -407,7 +407,7 @@ function trySpawnMovingHill(){
       const gStart=p1.x+p1.w;
       const gEnd=p2.x;
       const gap=gEnd-gStart;
-      if(gap>=50&&gStart>W-50&&gStart<W+200){
+      if(gap>=50&&gStart>W-200&&gStart<W+200){
         gapX=gStart;gapW=gap;break;
       }
     }
