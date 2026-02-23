@@ -233,38 +233,35 @@ function generatePackPlatform(arr,isCeil,stage){
     arr.push({x:lastRight,w:200+rng()*100,h:GROUND_H});
     return;
   }
-  // --- VOID stage (1-5): walls protrude from center, gravity navigation ---
+  // --- VOID stage (1-5): walls protrude, floor-level only (no mid-height landing) ---
   if(sType==='void'){
     const progress=approxDist/stage.dist; // 0→1
     if(approxDist<30){
-      // Starting area: safe flat platform
       arr.push({x:lastRight,w:120+rng()*60,h:GROUND_H});
       return;
     }
     if(progress>=0.88){
-      // Goal area: massive walls from both sides converge, very narrow gap
-      const goalH=H*0.45; // walls protrude to 45% of screen
+      const goalH=H*0.45;
       const gap=rng()*15;
       arr.push({x:lastRight+gap,w:40+rng()*20,h:goalH});
       return;
     }
-    // Middle: alternating large walls that protrude into center
-    // Player must weave through by switching gravity
+    // Middle: walls protrude as obstacles, landing platforms are always floor-level
     const wallChance=0.6+progress*0.2;
     if(rng()<wallChance){
-      // Large protruding wall
-      const wallH=H*0.28+rng()*H*0.15; // 28-43% of screen height
+      // Large protruding wall (obstacle, not a landing point)
+      const wallH=H*0.28+rng()*H*0.15;
       const wallW=60+rng()*80;
       const gap=20+rng()*40;
       arr.push({x:lastRight+gap,w:wallW,h:wallH});
     } else {
-      // Normal segment or small gap
+      // Floor-level platform only
       const gap=30+rng()*60;
       arr.push({x:lastRight+gap,w:40+rng()*50,h:GROUND_H});
     }
     return;
   }
-  // --- GRAVITY stage (1-4): start land → all abyss → narrow goal ---
+  // --- GRAVITY stage (1-4): start land → all abyss (moving hills only) → goal ---
   if(sType==='gravity'){
     if(approxDist<30){
       // Starting area: solid platform
@@ -272,30 +269,21 @@ function generatePackPlatform(arr,isCeil,stage){
       return;
     }
     if(approxDist>=stage.dist*0.92){
-      // Goal area: terrain converges from top and bottom, leaving only flag-width gap
-      // Floor rises very high (H*0.45) and ceiling descends (H*0.45)
-      // Only a narrow ~40px landing strip at the goal point
-      const goalH=H*0.45; // floor rises to 45% of screen height
+      const goalH=H*0.45;
       arr.push({x:lastRight+10,w:40,h:goalH});
       return;
     }
-    // Middle: all void with tiny reference platforms
-    const gap=180+rng()*300;
-    arr.push({x:lastRight+gap,w:15+rng()*20,h:GROUND_H});
+    // Middle: complete abyss - only moving hills provide footing
+    const gap=400+rng()*600;
+    arr.push({x:lastRight+gap,w:1,h:0}); // invisible spacer
     return;
   }
-  // --- CHASM stage (1-3): extreme height alternation with deep gaps ---
+  // --- CHASM stage (1-3): deep gaps, floor-level only (no mid-height landing) ---
   if(sType==='chasm'){
     const doGap=rng()<0.55;
     const gap=doGap?(100+rng()*180):0; // frequent deep gaps
-    let h=lastH;
-    // Extreme height swings to force up/down movement
-    if(rng()<0.75){
-      const dh=(rng()<0.5?1:-1)*(40+rng()*70);
-      h=Math.max(65+safeBot,Math.min(H*0.38,h+dh));
-    }
     const w=45+rng()*70; // short platforms
-    arr.push({x:lastRight+gap,w:w,h:h});
+    arr.push({x:lastRight+gap,w:w,h:GROUND_H}); // always floor-level
     return;
   }
   // --- Default terrain generation ---

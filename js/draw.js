@@ -771,9 +771,12 @@ function drawCoinSwitches(){
 }
 
 function draw(){
-  ctx.save();ctx.translate(shakeX,shakeY);
+  // Reset transform every frame to prevent accumulated shift from unbalanced save/restore
+  ctx.setTransform(1,0,0,1,0,0);
+  // Fill background BEFORE shake translate so canvas is fully cleared
   const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,tc('bg1'));bg.addColorStop(1,tc('bg2'));
-  ctx.fillStyle=bg;ctx.fillRect(-20,-20,W+40,H+40);
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  ctx.save();ctx.translate(shakeX,shakeY);
 
   stars.forEach(s=>{ctx.globalAlpha=s.a*(0.6+Math.sin(s.tw)*0.4);ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(s.x,s.y,s.sz,0,6.28);ctx.fill();});
   ctx.globalAlpha=1;
@@ -2790,22 +2793,13 @@ function drawTitle(){
     ctx.beginPath();ctx.rect(mX,listY,mW,listH);ctx.clip();
     const rowH=36;
     const scrollOff=-rankingScroll;
-    if(rankingTab==='challenge'){
-      // Coming soon placeholder
-      ctx.fillStyle='#fff4';ctx.font='bold 14px monospace';ctx.textAlign='center';
-      ctx.fillText('\u{1F6A7} Coming Soon',W/2,listY+listH*0.4);
-      ctx.fillStyle='#fff3';ctx.font='11px monospace';
-      ctx.fillText('\u30C1\u30E3\u30EC\u30F3\u30B8\u30E2\u30FC\u30C9\u306E',W/2,listY+listH*0.4+24);
-      ctx.fillText('\u30E9\u30F3\u30AD\u30F3\u30B0\u306F\u6E96\u5099\u4E2D\u3067\u3059',W/2,listY+listH*0.4+40);
-      ctx.restore();
-    } else {
-    RANKING_DATA.forEach((entry,i)=>{
+    const rankData=rankingTab==='challenge'?CHALLENGE_RANKING_DATA:RANKING_DATA;
+    rankData.forEach((entry,i)=>{
       const ry=listY+i*rowH+scrollOff;
-      if(ry+rowH<listY||ry>listY+listH)return; // skip offscreen
+      if(ry+rowH<listY||ry>listY+listH)return;
       const rank=entry.rank;
       // Row background
       if(entry.isPlayer){
-        // Highlight player's own entry
         ctx.fillStyle='rgba(0,229,255,0.15)';rr(mX+4,ry,mW-8,rowH-2,6);ctx.fill();
         ctx.strokeStyle='#00e5ff88';ctx.lineWidth=1.5;rr(mX+4,ry,mW-8,rowH-2,6);ctx.stroke();
       } else if(rank===1){
@@ -2842,7 +2836,6 @@ function drawTitle(){
       equippedSkin=entry.eqSkin||'';equippedEyes=entry.eqEyes||'';equippedEffect=entry.eqFx||'';
       const rkFxData=getEquippedEffectData();
       if(rkFxData){
-        // Clip effect to row bounds so it doesn't overlap other rows
         ctx.save();
         rr(cix-22,ry+1,44,rowH-4,6);ctx.clip();
         drawPlayerEffect(cix,ciy,9,rkFxData.type,0.7);
@@ -2859,7 +2852,7 @@ function drawTitle(){
       else{ctx.fillStyle='#ccca';ctx.font='11px monospace';}
       ctx.textAlign='left';
       ctx.fillText(entry.name+(entry.isPlayer?' \u25C0':''),nameX,ry+22);
-      // Score (right-aligned)
+      // Value (right-aligned): score for endless, kills for challenge
       const scX=mX+mW-14;
       if(entry.isPlayer){ctx.fillStyle='#00e5ff';ctx.font='bold 13px monospace';}
       else if(rank===1){ctx.fillStyle='#ffd700';ctx.font='bold 13px monospace';}
@@ -2867,12 +2860,15 @@ function drawTitle(){
       else if(rank===3){ctx.fillStyle='#dda060';ctx.font='bold 12px monospace';}
       else{ctx.fillStyle='#fff6';ctx.font='11px monospace';}
       ctx.textAlign='right';
-      ctx.fillText(entry.score.toLocaleString(),scX,ry+22);
+      if(rankingTab==='challenge'){
+        ctx.fillText(String(entry.kills),scX,ry+22);
+      } else {
+        ctx.fillText(entry.score.toLocaleString(),scX,ry+22);
+      }
     });
     ctx.restore();
-    } // end else (endless tab)
     // Scroll indicator
-    const totalH=RANKING_DATA.length*rowH;
+    const totalH=rankData.length*rowH;
     if(totalH>listH){
       const scrollRatio=rankingScroll/Math.max(1,totalH-listH);
       const thumbH=Math.max(20,listH*(listH/totalH));
@@ -4229,12 +4225,15 @@ function drawChallengeResult(e){
   ctx.fillStyle='#ffd700';ctx.font='bold 42px monospace';
   ctx.shadowColor='#ffd70044';ctx.shadowBlur=12;
   ctx.fillText(challengeKills,W/2,cardY+110);ctx.shadowBlur=0;
+  // Best kills
+  ctx.fillStyle='#fff4';ctx.font='11px monospace';
+  ctx.fillText('\u30D9\u30B9\u30C8: '+challengeBestKills,W/2,cardY+130);
   // Phase reached
-  ctx.fillStyle='#00e5ff';ctx.font='bold 14px monospace';
-  ctx.fillText('\u30D5\u30A7\u30FC\u30BA '+(challengePhase+1),W/2,cardY+135);
+  ctx.fillStyle='#00e5ff';ctx.font='bold 12px monospace';
+  ctx.fillText('\u30D5\u30A7\u30FC\u30BA '+(challengePhase+1),W/2,cardY+150);
   // HP display
   ctx.fillStyle='#fff4';ctx.font='11px monospace';
-  ctx.fillText('HP: '+hp+' / '+maxHp(),W/2,cardY+158);
+  ctx.fillText('HP: '+hp+' / '+maxHp(),W/2,cardY+168);
   // Buttons
   if(deadT>45){
     const btnW2=Math.min(220,W-40),btnH2=38,btnX2=W/2-btnW2/2;
@@ -4257,45 +4256,24 @@ function drawChallengeResult(e){
 function drawChallCollapse(){
   const cc=challCollapse;
 
-  if(cc.phase==='collapse'||cc.phase==='fall'||cc.phase==='land'){
-    // Draw debris pieces with rotation
-    cc.debris.forEach(d=>{
-      if(d.alpha<=0)return;
-      ctx.save();
-      ctx.globalAlpha=d.alpha;
-      ctx.translate(d.x+d.w/2,d.y+d.h/2);
-      ctx.rotate(d.rot);
-      // Main block
-      ctx.fillStyle=d.col;
-      ctx.fillRect(-d.w/2,-d.h/2,d.w,d.h);
-      // Edge highlight
-      ctx.strokeStyle='#00000033';ctx.lineWidth=1;
-      ctx.strokeRect(-d.w/2,-d.h/2,d.w,d.h);
-      // Crack line
-      ctx.strokeStyle='#00000055';ctx.lineWidth=0.5;
-      ctx.beginPath();
-      ctx.moveTo(-d.w/2+Math.random()*d.w,-d.h/2);
-      ctx.lineTo(Math.random()*d.w/2-d.w/4,d.h/2);
-      ctx.stroke();
-      ctx.restore();
-    });
-  }
+  // No debris phase – simplified collapse
 
   if(cc.phase==='fall'){
-    // Fade to black over first 15 frames, stay black longer, then fade in from frame 80
+    // Draw blackout without shake for stable display
+    ctx.save();ctx.setTransform(1,0,0,1,0,0);
     let blackA;
-    if(cc.timer<15) blackA=cc.timer/15; // fade to black quickly
-    else if(cc.timer<80) blackA=1; // extended blackout
-    else blackA=Math.max(0,1-(cc.timer-80)/30); // fade in
-    ctx.fillStyle=`rgba(0,0,0,${blackA})`;ctx.fillRect(-20,-20,W+40,H+40);
-    // No floor number display (removed B1F etc.)
+    if(cc.timer<10) blackA=cc.timer/10; // fade to black in 10 frames
+    else if(cc.timer<65) blackA=1; // stay black
+    else blackA=Math.max(0,1-(cc.timer-65)/25); // fade in
+    ctx.fillStyle=`rgba(0,0,0,${blackA})`;ctx.fillRect(0,0,W,H);
+    ctx.restore();
   }
 
   if(cc.phase==='land'){
-    // Wave number display only (fade in then out)
+    // Wave number display without shake
+    ctx.save();ctx.setTransform(1,0,0,1,0,0);
     const landA=Math.min(1,cc.timer/15);
     const outA=cc.timer>50?Math.max(0,1-(cc.timer-50)/20):1;
-    ctx.save();
     ctx.globalAlpha=landA*outA;
     ctx.translate(W/2,H*0.35);
     ctx.fillStyle='rgba(0,0,0,0.5)';
@@ -4307,14 +4285,15 @@ function drawChallCollapse(){
     ctx.restore();ctx.globalAlpha=1;
   }
 
-  // Rumble phase: crack overlay (no warning text)
+  // Rumble phase: vignette without shake
   if(cc.phase==='rumble'){
-    // Red warning vignette only
+    ctx.save();ctx.setTransform(1,0,0,1,0,0);
     const vigA=Math.sin(cc.timer*0.15)*0.1+0.1;
     const grad=ctx.createRadialGradient(W/2,H/2,W*0.2,W/2,H/2,W*0.8);
     grad.addColorStop(0,'rgba(0,0,0,0)');
     grad.addColorStop(1,`rgba(100,20,20,${vigA})`);
-    ctx.fillStyle=grad;ctx.fillRect(-20,-20,W+40,H+40);
+    ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+    ctx.restore();
   }
 }
 

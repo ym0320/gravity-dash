@@ -425,7 +425,7 @@ function update(dt){
     // Stage mode gimmicks based on stageType
     const nearGoal=dist>=currentPackStage.dist*0.92;
     if(sType==='gravity'){
-      // Gravity stage: massive gravity zone spawning (no platform needed)
+      // Gravity stage: gravity zones + moving hills (only way to traverse)
       if(!nearGoal){
         if(gravZoneCD>0)gravZoneCD--;
         if(gravZoneCD<=0){
@@ -433,7 +433,18 @@ function update(dt){
           const gw=50+packRng()*60;
           const gdir=packRng()<0.5?1:-1;
           gravZones.push({x:gx,w:gw,triggered:false,fadeT:0,dir:gdir});
-          gravZoneCD=8+Math.floor(packRng()*30); // very dense: 8-37 frames
+          gravZoneCD=8+Math.floor(packRng()*30);
+        }
+        // Spawn moving hills directly (no gap detection needed for abyss)
+        if(hillCD>0)hillCD--;
+        if(hillCD<=0){
+          const hx=W+30+packRng()*120;
+          const hw=50+packRng()*45;
+          const isFloor=packRng()<0.5;
+          const baseH=GROUND_H;
+          const ampH=20+packRng()*35;
+          movingHills.push({x:hx,w:hw,baseH:baseH,ampH:ampH,phase:packRng()*6.28,spd:0.03+packRng()*0.02,isFloor:isFloor});
+          hillCD=35+Math.floor(packRng()*35);
         }
       }
     } else if(sType==='void'){
@@ -1400,102 +1411,44 @@ function updateChallCollapse(){
   }
 
   if(cc.phase==='rumble'){
-    // Ground shaking builds up over 90 frames
-    cc.shakeAmt=Math.min(20,cc.timer*0.25);
+    // Short rumble with moderate shake (40 frames)
+    cc.shakeAmt=Math.min(12,cc.timer*0.3);
     shakeI=Math.max(shakeI,cc.shakeAmt);
-    // Generate cracks and dust from floor
-    if(cc.timer%3===0){
+    // Floor/ceiling dust
+    if(cc.timer%4===0){
       const cx=Math.random()*W;
-      parts.push({x:cx,y:floorY,vx:(Math.random()-0.5)*3,vy:-2-Math.random()*4,
-        life:25+Math.random()*15,ml:40,sz:Math.random()*4+2,col:['#8a7060','#a09070','#665544'][Math.floor(Math.random()*3)]});
+      parts.push({x:cx,y:floorY,vx:(Math.random()-0.5)*2,vy:-1.5-Math.random()*3,
+        life:20+Math.random()*10,ml:30,sz:Math.random()*3+2,col:['#8a7060','#a09070','#665544'][Math.floor(Math.random()*3)]});
     }
-    // Ceiling dust too
-    if(cc.timer%5===0){
-      const cx=Math.random()*W;
-      parts.push({x:cx,y:ceilY,vx:(Math.random()-0.5)*2,vy:1+Math.random()*3,
-        life:20+Math.random()*10,ml:30,sz:Math.random()*3+1,col:'#8a7060'});
-    }
-    // After 90 frames, start the collapse
-    if(cc.timer>=90){
-      cc.phase='collapse';cc.timer=0;
-      // Generate debris from BOTH floor AND ceiling breaking apart
-      const cols=['#4a3a2a','#5a4a3a','#6a5a4a','#3a2a1a','#8a7060'];
-      // Floor debris (falls down)
-      for(let i=0;i<25;i++){
-        const dw=15+Math.random()*35;
-        const dh=10+Math.random()*25;
-        cc.debris.push({
-          x:Math.random()*W,y:floorY-Math.random()*GROUND_H,w:dw,h:dh,
-          vx:(Math.random()-0.5)*4,vy:2+Math.random()*5,
-          rot:Math.random()*6.28,rotV:(Math.random()-0.5)*0.15,
-          col:cols[Math.floor(Math.random()*5)],alpha:1
-        });
-      }
-      // Ceiling debris (falls down from top)
-      for(let i=0;i<20;i++){
-        const dw=15+Math.random()*35;
-        const dh=10+Math.random()*25;
-        cc.debris.push({
-          x:Math.random()*W,y:Math.random()*GROUND_H,w:dw,h:dh,
-          vx:(Math.random()-0.5)*4,vy:2+Math.random()*4,
-          rot:Math.random()*6.28,rotV:(Math.random()-0.5)*0.15,
-          col:cols[Math.floor(Math.random()*5)],alpha:1
-        });
-      }
-      sfx('earthquake');shakeI=25;vibrate([60,30,80,40,100,50,80]);
-    }
-    return;
-  }
-
-  if(cc.phase==='collapse'){
-    // BOTH floors break apart - debris falls with gravity and rotation
-    shakeI=Math.max(shakeI,15-cc.timer*0.1);
-    // Remove BOTH floor and ceiling platforms visually
-    platforms.forEach(p=>{p.h=Math.max(0,p.h-3);});
-    ceilPlats.forEach(p=>{p.h=Math.max(0,p.h-3);});
-    // Update debris
-    cc.debris.forEach(d=>{
-      d.vy+=0.3; // gravity
-      d.x+=d.vx;
-      d.y+=d.vy;
-      d.rot+=d.rotV;
-      d.alpha=Math.max(0,1-(d.y-H)/200);
-    });
-    cc.debris=cc.debris.filter(d=>d.y<H+300);
-    // Generate extra falling dust from both sides
-    if(cc.timer%2===0){
-      parts.push({x:Math.random()*W,y:floorY+cc.timer*2,vx:(Math.random()-0.5)*2,vy:3+Math.random()*3,
-        life:30,ml:30,sz:Math.random()*5+2,col:'#8a7060'});
-      parts.push({x:Math.random()*W,y:ceilY,vx:(Math.random()-0.5)*2,vy:2+Math.random()*3,
-        life:25,ml:25,sz:Math.random()*4+2,col:'#6a5a4a'});
-    }
-    // After 40 frames, player starts falling (faster transition)
+    // After 40 frames, skip debris and go straight to fall
     if(cc.timer>=40){
       cc.phase='fall';cc.timer=0;
+      // Remove platforms quickly
+      platforms.forEach(p=>{p.h=0;});
+      ceilPlats.forEach(p=>{p.h=0;});
       player.grounded=false;player.vy=0;
+      sfx('earthquake');shakeI=10;vibrate([40,20,60]);
     }
     return;
   }
 
   if(cc.phase==='fall'){
-    // Player drops rapidly straight down
-    if(cc.timer<10){
-      // Fast vertical drop
-      player.vy+=2.5;player.grounded=false;
-      shakeI=Math.max(shakeI,6);
+    // Character falls down, then blackout
+    if(cc.timer<8){
+      player.vy+=3;player.grounded=false;
     }
-    // At frame 20: fully black – rebuild level
-    if(cc.timer===20){
+    // At frame 15: fully black – rebuild level
+    if(cc.timer===15){
       platforms.length=0;ceilPlats.length=0;
       platforms.push({x:player.x-100,w:300,h:GROUND_H});
       ceilPlats.push({x:player.x-100,w:300,h:GROUND_H});
       player.y=H-GROUND_H-PLAYER_R*ct().sizeMul;
       player.vy=0;player.grounded=true;player.gDir=1;
     }
-    // Extended blackout: after 110 frames, transition to land
-    if(cc.timer>=110){
+    // Blackout duration then transition to land
+    if(cc.timer>=90){
       cc.phase='land';cc.timer=0;
-      sfx('gstompHeavy');shakeI=8;vibrate([30,15,40]);
+      sfx('gstompHeavy');shakeI=6;vibrate([20,10,30]);
     }
     return;
   }

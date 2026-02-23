@@ -207,9 +207,9 @@ let rankingScrollTarget=0;
 let rankingTab='endless'; // 'endless' | 'challenge'
 // Dynamic ranking data (cloud only, no sample data)
 let RANKING_DATA=[];
+let CHALLENGE_RANKING_DATA=[];
 function rebuildRankingData(){
   const data=[];
-  // Insert player's high score if > 0
   if(typeof highScore!=='undefined'&&highScore>0){
     const pName=(typeof playerName!=='undefined'&&playerName)||'\u3042\u306A\u305F';
     const rc=rankChar>=0?rankChar:selChar||0;
@@ -218,6 +218,17 @@ function rebuildRankingData(){
   data.sort((a,b)=>b.score-a.score);
   RANKING_DATA=data.slice(0,100);
   RANKING_DATA.forEach((d,i)=>d.rank=i+1);
+}
+function rebuildChallengeRankingData(){
+  const data=[];
+  if(typeof challengeBestKills!=='undefined'&&challengeBestKills>0){
+    const pName=(typeof playerName!=='undefined'&&playerName)||'\u3042\u306A\u305F';
+    const rc=challRankChar>=0?challRankChar:selChar||0;
+    data.push({name:pName,charIdx:rc,kills:challengeBestKills,eqSkin:challRankSkin||'',eqEyes:challRankEyes||'',eqFx:challRankFx||'',isPlayer:true});
+  }
+  data.sort((a,b)=>b.kills-a.kills);
+  CHALLENGE_RANKING_DATA=data.slice(0,100);
+  CHALLENGE_RANKING_DATA.forEach((d,i)=>d.rank=i+1);
 }
 function initAudio(){
   if(audioCtx){
@@ -1260,6 +1271,12 @@ let challengeKills=0; // total bosses defeated
 let challengePhase=0; // difficulty phase (increases every 3 kills)
 let challengeRetired=false; // true if player retired (vs died)
 let challengeNextBossT=0; // countdown timer between bosses
+let challengeBestKills=parseInt(localStorage.getItem('gd5challBest')||'0');
+// Challenge ranking cosmetics (captured at time of best kills)
+let challRankChar=parseInt(localStorage.getItem('gd5challRankChar')||'-1');
+let challRankSkin=localStorage.getItem('gd5challRankSkin')||'';
+let challRankEyes=localStorage.getItem('gd5challRankEyes')||'';
+let challRankFx=localStorage.getItem('gd5challRankFx')||'';
 // Challenge floor collapse state
 let challCollapse={
   active:false, phase:'none', // 'forceDown','rumble','collapse','fall','land'

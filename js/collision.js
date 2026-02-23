@@ -39,10 +39,26 @@ function die(){
     localStorage.setItem('gd5lastRunChests','0');
   }
   if(gameMode==='endless'){
-    if(score>highScore){highScore=score;newHi=true;localStorage.setItem('gd5hi',highScore.toString());captureRankCosmetics();notifNewHighScore=true;localStorage.setItem('gd5notifHi','1');}
-    played++;localStorage.setItem('gd5plays',played.toString());
-    walletCoins+=totalCoins;localStorage.setItem('gd5wallet',walletCoins.toString());
-    fbSaveUserData();
+    if(isChallengeMode){
+      // Challenge mode: save best kills
+      if(challengeKills>challengeBestKills){
+        challengeBestKills=challengeKills;
+        localStorage.setItem('gd5challBest',challengeBestKills.toString());
+        // Capture cosmetics at time of best
+        challRankChar=selChar||0;
+        challRankSkin=equippedSkin||'';challRankEyes=equippedEyes||'';challRankFx=equippedEffect||'';
+        localStorage.setItem('gd5challRankChar',challRankChar.toString());
+        localStorage.setItem('gd5challRankSkin',challRankSkin);
+        localStorage.setItem('gd5challRankEyes',challRankEyes);
+        localStorage.setItem('gd5challRankFx',challRankFx);
+      }
+      fbSaveUserData();
+    } else {
+      if(score>highScore){highScore=score;newHi=true;localStorage.setItem('gd5hi',highScore.toString());captureRankCosmetics();notifNewHighScore=true;localStorage.setItem('gd5notifHi','1');}
+      played++;localStorage.setItem('gd5plays',played.toString());
+      walletCoins+=totalCoins;localStorage.setItem('gd5wallet',walletCoins.toString());
+      fbSaveUserData();
+    }
   }
   for(let i=0;i<35;i++){const a=(6.28/35)*i,s=2+Math.random()*6;parts.push({x:player.x,y:player.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:35+Math.random()*25,ml:60,sz:Math.random()*6+2,col:i%3===0?CHARS[selChar].col:i%3===1?tc('obs'):'#fff'});}
 }
