@@ -273,10 +273,11 @@ function generatePackPlatform(arr,isCeil,stage){
       addedW=120+rng()*60;
       arr.push({x:lastRight,w:addedW,h:GROUND_H});
     } else if(progress>=0.88){
+      // Goal area: one continuous platform (no gaps)
       const goalH=H*0.45;
-      addedGap=rng()*15;
-      addedW=40+rng()*20;
-      arr.push({x:lastRight+addedGap,w:addedW,h:goalH});
+      addedGap=0;
+      addedW=150+rng()*100;
+      arr.push({x:lastRight,w:addedW,h:goalH});
     } else {
       const wallChance=0.6+progress*0.2;
       if(rng()<wallChance){
@@ -291,7 +292,7 @@ function generatePackPlatform(arr,isCeil,stage){
       }
     }
   }
-  // --- GRAVITY stage: start land → all abyss (moving hills only) → goal ---
+  // --- GRAVITY stage: endless-style mix of platforms, moving hills, and pits ---
   else if(sType==='gravity'){
     if(approxDist<30){
       addedW=120+rng()*80;
@@ -301,8 +302,13 @@ function generatePackPlatform(arr,isCeil,stage){
       addedGap=10;addedW=40;
       arr.push({x:lastRight+10,w:40,h:goalH});
     } else {
-      addedGap=400+rng()*600;addedW=1;
-      arr.push({x:lastRight+addedGap,w:1,h:0});
+      // Endless-style mix: platforms with gaps (some filled by moving hills, some empty pits)
+      if(rng()<0.55){
+        addedGap=80+rng()*180; // 80-260px gaps for moving hills or pits
+      }
+      // Endless-mode platform widths (mid difficulty range, matches score 60-120)
+      addedW=130+rng()*160; // 130-290px
+      arr.push({x:lastRight+addedGap,w:addedW,h:GROUND_H});
     }
   }
   // --- CHASM stage: deep gaps, floor-level only ---
