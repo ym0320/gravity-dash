@@ -221,15 +221,66 @@ function generatePackPlatform(arr,isCeil,stage){
   const lastH=last?last.h:GROUND_H;
   const lastRight=last?last.x+last.w:0;
   const rng=stageRng;if(!rng)return;
+  const sType=stage.stageType||'';
+  // Boss phase: flat terrain for fighting
+  if(bossPhase.active||bossPhase.prepare>0){
+    arr.push({x:lastRight,w:150+rng()*100,h:GROUND_H});
+    return;
+  }
+  // Post-goal area: flat continuous terrain with nothing
+  const approxDist=dist+(lastRight-(player?player.x:W*0.2))*0.08;
+  if(approxDist>=stage.dist){
+    arr.push({x:lastRight,w:200+rng()*100,h:GROUND_H});
+    return;
+  }
+  // --- VOID stage (1-5): all abyss, tiny ref platforms ---
+  if(sType==='void'){
+    const gap=150+rng()*250;
+    arr.push({x:lastRight+gap,w:25+rng()*30,h:GROUND_H});
+    return;
+  }
+  // --- GRAVITY stage (1-4): start land → all abyss → high land at end ---
+  if(sType==='gravity'){
+    if(approxDist<30){
+      // Starting area: solid platform
+      arr.push({x:lastRight,w:120+rng()*80,h:GROUND_H});
+      return;
+    }
+    if(approxDist>=stage.dist*0.88){
+      // Near goal: high altitude landing platform
+      const highH=Math.min(H*0.38,H*0.28+rng()*30);
+      arr.push({x:lastRight+15+rng()*25,w:180+rng()*120,h:highH});
+      return;
+    }
+    // Middle: all void with tiny reference platforms
+    const gap=180+rng()*300;
+    arr.push({x:lastRight+gap,w:15+rng()*20,h:GROUND_H});
+    return;
+  }
+  // --- CHASM stage (1-3): extreme height alternation with deep gaps ---
+  if(sType==='chasm'){
+    const doGap=rng()<0.55;
+    const gap=doGap?(100+rng()*180):0; // frequent deep gaps
+    let h=lastH;
+    // Extreme height swings to force up/down movement
+    if(rng()<0.75){
+      const dh=(rng()<0.5?1:-1)*(40+rng()*70);
+      h=Math.max(65+safeBot,Math.min(H*0.38,h+dh));
+    }
+    const w=45+rng()*70; // short platforms
+    arr.push({x:lastRight+gap,w:w,h:h});
+    return;
+  }
+  // --- Default terrain generation ---
   let gap=0;
   const gc=stage.gapChance||0.12;
-  if(rng()<gc){gap=20+rng()*60;} // wider gaps (was 10+rng()*40)
+  if(rng()<gc){gap=20+rng()*60;}
   let h=lastH;
   const hc=stage.hillChance||0.08;
   if(rng()<hc){
-    const dh=(rng()<0.5?1:-1)*(8+rng()*35); // bigger height variation (was 3+rng()*20)
+    const dh=(rng()<0.5?1:-1)*(8+rng()*35);
     h=Math.max(65+safeBot,Math.min(H*0.38,h+dh));
   }
-  const w=70+rng()*140; // shorter platforms (was 100+rng()*180)
+  const w=70+rng()*140;
   arr.push({x:lastRight+gap,w:w,h:h});
 }

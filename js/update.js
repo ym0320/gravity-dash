@@ -414,7 +414,8 @@ function update(dt){
     });
     // Enemy spawning in pack mode (much more aggressive than endless)
     const sType=currentPackStage.stageType||'';
-    if(currentPackStage.enemyChance){
+    const pastGoal=dist>=currentPackStage.dist*0.92;
+    if(currentPackStage.enemyChance&&!pastGoal){
       const stageProgress=dist/currentPackStage.dist;
       const baseRate=currentPackStage.enemyChance;
       const progressBoost=1+stageProgress*1.5;
@@ -423,23 +424,55 @@ function update(dt){
       if(Math.random()<baseRate*progressBoost*0.5*swarmMul) trySpawnEnemy();
     }
     // Stage mode gimmicks based on stageType
-    if(sType==='moving'){
-      // Moving-only stage: heavy moving hills + floating platforms, no other gimmicks
-      trySpawnMovingHill();trySpawnMovingHill(); // double spawn rate
-      trySpawnFloatPlat();trySpawnFloatPlat();   // double spawn rate
-      trySpawnFallingMtn();                       // falling floors over gaps
+    const nearGoal=dist>=currentPackStage.dist*0.92;
+    if(sType==='gravity'){
+      // Gravity stage: massive gravity zone spawning (no platform needed)
+      if(!nearGoal){
+        if(gravZoneCD>0)gravZoneCD--;
+        if(gravZoneCD<=0){
+          const gx=W+20+Math.random()*80;
+          const gw=50+Math.random()*60;
+          const gdir=Math.random()<0.5?1:-1;
+          gravZones.push({x:gx,w:gw,triggered:false,fadeT:0,dir:gdir});
+          gravZoneCD=8+Math.floor(Math.random()*30); // very dense: 8-37 frames
+        }
+      }
+    } else if(sType==='void'){
+      // Void stage: only moving hills + falling floors, enemies still spawn
+      if(!nearGoal){
+        trySpawnMovingHill();trySpawnMovingHill();trySpawnMovingHill(); // triple
+        trySpawnFallingMtn();trySpawnFallingMtn(); // double
+      }
+    } else if(sType==='chasm'){
+      // Chasm stage: gravity zones + floating platforms for up/down navigation
+      if(!nearGoal){
+        trySpawnGravZone();
+        trySpawnFloatPlat();trySpawnFloatPlat();
+        trySpawnMovingHill();
+      }
+    } else if(sType==='moving'){
+      // Moving-only stage: heavy moving hills + floating platforms
+      if(!nearGoal){
+        trySpawnMovingHill();trySpawnMovingHill();
+        trySpawnFloatPlat();trySpawnFloatPlat();
+        trySpawnFallingMtn();
+      }
     } else if(sType==='swarm'){
-      // Swarm stage: primarily enemies, but add floating platforms too
-      trySpawnFloatPlat();trySpawnFloatPlat();
-      trySpawnMovingHill();
-      trySpawnSpike();
+      // Swarm stage: primarily enemies, add floating platforms
+      if(!nearGoal){
+        trySpawnFloatPlat();trySpawnFloatPlat();
+        trySpawnMovingHill();
+        trySpawnSpike();
+      }
     } else {
       // Normal stage: all gimmicks
-      trySpawnFloatPlat();
-      trySpawnSpike();
-      trySpawnMovingHill();
-      trySpawnGravZone();
-      trySpawnFallingMtn();
+      if(!nearGoal){
+        trySpawnFloatPlat();
+        trySpawnSpike();
+        trySpawnMovingHill();
+        trySpawnGravZone();
+        trySpawnFallingMtn();
+      }
     }
     // Ambient particles for theme
     updateAmbient();

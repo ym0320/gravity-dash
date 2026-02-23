@@ -111,6 +111,17 @@ function trySpawnEnemy(){
       if(sType2==='swarm'){
         // Swarm stage: walkers and cannons only, very dense
         eType=tr<0.55?0:1; // 55% walker, 45% cannon
+      } else if(sType2==='void'){
+        // Void stage: all enemy types, heavier late-stage enemies
+        if(progress>0.6&&tr<0.25) eType=6; // dasher
+        else if(progress>0.4&&tr<0.30) eType=2; // flying
+        else if(tr<0.35) eType=1; // cannon
+        else eType=0; // walker
+      } else if(sType2==='chasm'){
+        // Chasm stage: flying and cannon enemies suited for vertical play
+        if(tr<0.35) eType=2; // flying
+        else if(tr<0.60) eType=1; // cannon
+        else eType=0; // walker
       } else {
         // Normal/moving stages: progressive enemy types
         if(stageIdx>=4&&progress>0.5&&tr<0.20) eType=8;
@@ -210,7 +221,7 @@ function trySpawnFloatPlat(){
   if(bossPhase.active)return;
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
-  const isFloatStage=isPackMode&&currentPackStage&&(currentPackStage.stageType==='moving'||currentPackStage.stageType==='swarm');
+  const isFloatStage=isPackMode&&currentPackStage&&(currentPackStage.stageType==='moving'||currentPackStage.stageType==='swarm'||currentPackStage.stageType==='chasm'||currentPackStage.stageType==='void');
   const chance=isPackMode?(isFloatStage?0.45:0.30):Math.min(0.18,0.04+(score-35)*0.002);
   if(Math.random()<chance){
     floatCD=isPackMode?(isFloatStage?20+Math.floor(Math.random()*20):40+Math.floor(Math.random()*30)):(80+Math.floor(Math.random()*60));
@@ -351,7 +362,7 @@ function trySpawnMovingHill(){
   // During terrain gimmick phase (falling type), skip moving hill spawns
   if(terrainGimmickPhase.active&&terrainGimmickPhase.type==='falling')return;
   const isGimmickMoving=terrainGimmickPhase.active&&terrainGimmickPhase.type==='moving';
-  const isMovingStage=isPackMode&&currentPackStage&&currentPackStage.stageType==='moving';
+  const isMovingStage=isPackMode&&currentPackStage&&(currentPackStage.stageType==='moving'||currentPackStage.stageType==='void');
   let chance=isPackMode?(isMovingStage?0.40:0.18):Math.min(0.1,0.02+(score-120)*0.001);
   if(isGimmickMoving)chance=0.35;
   if(Math.random()<chance){
