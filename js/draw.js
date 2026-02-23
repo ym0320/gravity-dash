@@ -771,8 +771,9 @@ function drawCoinSwitches(){
 }
 
 function draw(){
-  // Reset transform every frame to prevent accumulated shift from unbalanced save/restore
-  ctx.setTransform(1,0,0,1,0,0);
+  // Reset transform every frame to DPR base (prevent accumulated shift from unbalanced save/restore)
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
   // Fill background BEFORE shake translate so canvas is fully cleared
   const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,tc('bg1'));bg.addColorStop(1,tc('bg2'));
   ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
@@ -4255,12 +4256,13 @@ function drawChallengeResult(e){
 // ===== CHALLENGE FLOOR COLLAPSE DRAWING =====
 function drawChallCollapse(){
   const cc=challCollapse;
+  const dpr=Math.min(window.devicePixelRatio||1,2);
 
   // No debris phase – simplified collapse
 
   if(cc.phase==='fall'){
     // Draw blackout without shake for stable display
-    ctx.save();ctx.setTransform(1,0,0,1,0,0);
+    ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);
     let blackA;
     if(cc.timer<10) blackA=cc.timer/10; // fade to black in 10 frames
     else if(cc.timer<65) blackA=1; // stay black
@@ -4271,7 +4273,7 @@ function drawChallCollapse(){
 
   if(cc.phase==='land'){
     // Wave number display without shake
-    ctx.save();ctx.setTransform(1,0,0,1,0,0);
+    ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);
     const landA=Math.min(1,cc.timer/15);
     const outA=cc.timer>50?Math.max(0,1-(cc.timer-50)/20):1;
     ctx.globalAlpha=landA*outA;
@@ -4287,7 +4289,7 @@ function drawChallCollapse(){
 
   // Rumble phase: vignette without shake
   if(cc.phase==='rumble'){
-    ctx.save();ctx.setTransform(1,0,0,1,0,0);
+    ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);
     const vigA=Math.sin(cc.timer*0.15)*0.1+0.1;
     const grad=ctx.createRadialGradient(W/2,H/2,W*0.2,W/2,H/2,W*0.8);
     grad.addColorStop(0,'rgba(0,0,0,0)');
