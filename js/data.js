@@ -1119,6 +1119,12 @@ let gotNewStars=0; // how many new stars obtained this clear
 let stageDeathMarks={};
 // Ambient particles for stage themes
 let ambientParts=[];
+// Challenge mode (boss rush)
+let isChallengeMode=false;
+let challengeKills=0; // total bosses defeated
+let challengePhase=0; // difficulty phase (increases every 3 kills)
+let challengeRetired=false; // true if player retired (vs died)
+let challengeNextBossT=0; // countdown timer between bosses
 
 // ===== STATE =====
 const ST={TITLE:0,PLAY:1,DEAD:2,PAUSE:3,STAGE_CLEAR:4,STAGE_SEL:5,COUNTDOWN:6,LOGIN:7,TUTORIAL:8};

@@ -23,16 +23,25 @@ function hitQuitBtn(px,py){return px>=W/2-80&&px<=W/2+80&&py>=H*0.64&&py<=H*0.64
 // Game over screen buttons (must match drawDead layout exactly)
 function deadBtnLayout(){
   const btnW2=Math.min(220,W-40),btnH2=38,btnX2=W/2-btnW2/2;
-  const cardY=H*0.24,cardH=210+(storedChests>0?56:0);
-  let btnTop=cardY+cardH+12;
   const btns=[];
-  if(!isPackMode){
-    btns.push({id:'continue',x:btnX2,y:btnTop,w:btnW2,h:btnH2});
+  if(isChallengeMode){
+    // Challenge result: restart + title only
+    const cardY=H*0.25,cardH=180;
+    let btnTop=cardY+cardH+14;
+    btns.push({id:'restart',x:btnX2,y:btnTop,w:btnW2,h:btnH2});
     btnTop+=btnH2+8;
+    btns.push({id:'title',x:btnX2,y:btnTop,w:btnW2,h:btnH2});
+  } else {
+    const cardY=H*0.24,cardH=210+(storedChests>0?56:0);
+    let btnTop=cardY+cardH+12;
+    if(!isPackMode){
+      btns.push({id:'continue',x:btnX2,y:btnTop,w:btnW2,h:btnH2});
+      btnTop+=btnH2+8;
+    }
+    btns.push({id:'restart',x:btnX2,y:btnTop,w:btnW2,h:btnH2});
+    btnTop+=btnH2+8;
+    btns.push({id:'title',x:btnX2,y:btnTop,w:btnW2,h:btnH2});
   }
-  btns.push({id:'restart',x:btnX2,y:btnTop,w:btnW2,h:btnH2});
-  btnTop+=btnH2+8;
-  btns.push({id:'title',x:btnX2,y:btnTop,w:btnW2,h:btnH2});
   return btns;
 }
 function hitDeadChestBtn(px,py){
@@ -62,10 +71,12 @@ function handleDeadBtn(btnId){
     } else {sfx('hurt');vibrate(15);}
   } else if(btnId==='restart'){
     sfx('click');
+    if(isChallengeMode){startChallenge();return;}
     if(isPackMode){startPackStageFromDead();return;}
     startCountdown('endless');
   } else if(btnId==='title'){
-    sfx('cancel');titleTouchPos=null; // prevent stale touch from triggering title actions
+    sfx('cancel');titleTouchPos=null;
+    isChallengeMode=false;
     if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');}
     else{state=ST.TITLE;switchBGM('title');}
   }
@@ -490,6 +501,7 @@ window.addEventListener('blur',()=>{
 // Restart from pause menu (works for both endless and stage mode)
 function restartFromPause(){
   sfx('select');
+  if(isChallengeMode){startChallenge();return;}
   if(isPackMode){
     state=ST.PLAY;resetPackStage(currentPackIdx,currentPackStageIdx);switchBGM('play');
   } else {
@@ -501,9 +513,20 @@ function restartFromPause(){
   }
 }
 
+// Start challenge mode (boss rush)
+function startChallenge(){
+  gameMode='challenge';isChallengeMode=true;isPackMode=false;
+  challengeKills=0;challengePhase=0;challengeRetired=false;challengeNextBossT=0;
+  bossRetry=null;isRetryGame=false;
+  reset();
+  hp=maxHp(); // full HP
+  state=ST.COUNTDOWN;countdownT=180;
+  titleTouchPos=null;
+  sfx('countdown');
+}
 // Start countdown instead of immediately playing
 function startCountdown(mode){
-  gameMode=mode;isPackMode=false;
+  gameMode=mode;isPackMode=false;isChallengeMode=false;
   const retry=bossRetry;
   reset();
   if(retry){
@@ -531,12 +554,17 @@ canvas.addEventListener('touchstart',e=>{
   const t=e.touches[0];
   const p=canvasXY(t.clientX,t.clientY);
   touchStartY=t.clientY;touchStartX=t.clientX;touchOriginY=t.clientY;touchStartT=Date.now();touchMoved=false;touchBtnUsed=false;
-  // Developer mode: ranking tap while settings gear is held
+  // Developer mode: ranking tap while settings gear is held → stage select
+  // Developer mode: inventory tap while settings gear is held → challenge mode
   if(devModeGearHeld&&state===ST.TITLE&&!charModal.show){
     const nt=e.changedTouches[0];const np=canvasXY(nt.clientX,nt.clientY);
     if(np.x>=8&&np.x<=44&&np.y>=safeTop+6&&np.y<=safeTop+42){
       devModeGearHeld=false;sfx('select');vibrate(30);
       state=ST.STAGE_SEL;stageSelScroll=0;return;
+    }
+    if(np.x>=8&&np.x<=44&&np.y>=safeTop+44&&np.y<=safeTop+80){
+      devModeGearHeld=false;sfx('select');vibrate(30);
+      startChallenge();return;
     }
   }
   // Update info modal intercepts all input when open
@@ -565,7 +593,7 @@ canvas.addEventListener('touchstart',e=>{
   if(state===ST.PAUSE){
     if(hitResumeBtn(p.x,p.y)){sfx('select');state=ST.PLAY;switchBGM('play');return;}
     if(hitRestartBtn(p.x,p.y)){restartFromPause();return;}
-    if(hitQuitBtn(p.x,p.y)){sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
+    if(hitQuitBtn(p.x,p.y)){if(isChallengeMode){challengeRetired=true;sfx('cancel');player.alive=false;state=ST.DEAD;deadT=0;switchBGM('dead');return;}sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     return;
   }
   if(state===ST.PLAY&&hitInvBtn(p.x,p.y)){useInvincible();touchBtnUsed=true;return;}
@@ -789,11 +817,14 @@ canvas.addEventListener('mousedown',e=>{
     return;
   }
   const p=canvasXY(e.clientX,e.clientY);
-  // Developer mode: ranking click while settings gear was recently clicked
+  // Developer mode: ranking/inventory click while settings gear was recently clicked
   if(devModeGearHeld&&state===ST.TITLE&&!charModal.show){
     clearTimeout(devModeGearTimer);devModeGearTimer=null;
     if(p.x>=8&&p.x<=44&&p.y>=safeTop+6&&p.y<=safeTop+42){
       devModeGearHeld=false;sfx('select');state=ST.STAGE_SEL;stageSelScroll=0;return;
+    }
+    if(p.x>=8&&p.x<=44&&p.y>=safeTop+44&&p.y<=safeTop+80){
+      devModeGearHeld=false;sfx('select');vibrate(30);startChallenge();return;
     }
     devModeGearHeld=false;sfx('click');settingsOpen=true;return;
   }
@@ -814,7 +845,7 @@ canvas.addEventListener('mousedown',e=>{
   if(state===ST.PAUSE){
     if(hitResumeBtn(p.x,p.y)){sfx('select');state=ST.PLAY;switchBGM('play');return;}
     if(hitRestartBtn(p.x,p.y)){restartFromPause();return;}
-    if(hitQuitBtn(p.x,p.y)){sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
+    if(hitQuitBtn(p.x,p.y)){if(isChallengeMode){challengeRetired=true;sfx('cancel');player.alive=false;state=ST.DEAD;deadT=0;switchBGM('dead');return;}sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     return;
   }
   if(state===ST.PLAY&&hitInvBtn(p.x,p.y)){useInvincible();return;}
@@ -1038,11 +1069,11 @@ function handleTitleTouch(tx,ty){
       }
     }
   }
-  // Mode selection buttons (2 buttons: Endless, Stage)
+  // Mode selection buttons (2+1 layout: Endless/Stage row, Challenge below)
   const btnW=W*0.35,btnH=38,btnGap=12;
   const totalBtnW=btnW*2+btnGap;
   const btnStartX=W/2-totalBtnW/2;
-  const btnY=H*0.82;
+  const btnY=H*0.77;
   const ebx=btnStartX;
   const sbx=btnStartX+btnW+btnGap;
   // Endless mode button -> start countdown
@@ -1051,6 +1082,12 @@ function handleTitleTouch(tx,ty){
   }
   // Stage mode button (disabled - coming soon)
   if(tx>=sbx&&tx<=sbx+btnW&&ty>=btnY&&ty<=btnY+btnH){
+    sfx('cancel');vibrate(10);return;
+  }
+  // Challenge mode button (disabled - coming soon)
+  const cbtnW=W*0.45,cbtnH=34;
+  const cbx2=W/2-cbtnW/2,cbtnY2=btnY+btnH+6;
+  if(tx>=cbx2&&tx<=cbx2+cbtnW&&ty>=cbtnY2&&ty<=cbtnY2+cbtnH){
     sfx('cancel');vibrate(10);return;
   }
 }

@@ -21,7 +21,12 @@ function update(dt){
     // Play GO sound and transition to play
     if(countdownT<=0){
       sfx('countgo');
-      state=ST.PLAY;switchBGM('play');
+      state=ST.PLAY;
+      if(isChallengeMode){
+        switchBGM('boss');challengeNextBossT=60; // brief delay then first boss
+      } else {
+        switchBGM('play');
+      }
     }
     // Animate background during countdown
     stars.forEach(s=>{s.x-=s.sp*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
@@ -476,6 +481,44 @@ function update(dt){
     }
     // Ambient particles for theme
     updateAmbient();
+  }
+  // === CHALLENGE MODE: flat terrain + boss rush ===
+  if(isChallengeMode){
+    // Generate flat terrain (always)
+    if(platforms.length===0)platforms.push({x:player.x-30,w:200,h:GROUND_H});
+    if(ceilPlats.length===0)ceilPlats.push({x:player.x-30,w:200,h:GROUND_H});
+    while(platforms[platforms.length-1].x+platforms[platforms.length-1].w<W+300){
+      const last=platforms[platforms.length-1];
+      platforms.push({x:last.x+last.w,w:150+Math.random()*100,h:GROUND_H});
+    }
+    while(ceilPlats[ceilPlats.length-1].x+ceilPlats[ceilPlats.length-1].w<W+300){
+      const last=ceilPlats[ceilPlats.length-1];
+      ceilPlats.push({x:last.x+last.w,w:150+Math.random()*100,h:GROUND_H});
+    }
+    // Boss chaining: spawn next boss after reward phase ends
+    if(challengeNextBossT>0){
+      challengeNextBossT--;
+      if(challengeNextBossT<=0){
+        // Recover HP between bosses
+        hp=maxHp();
+        // Set bossCount for scaling: base + phase boost
+        bossPhase.bossCount=challengeKills+challengePhase*3;
+        startBossPhase();
+      }
+    }
+    // After boss reward ends, queue next boss
+    if(!bossPhase.active&&!bossPhase.reward&&bossPhase.bossCount>0&&challengeNextBossT<=0){
+      challengeKills++;
+      challengePhase=Math.floor(challengeKills/3);
+      // Brief pause before next boss
+      challengeNextBossT=120; // 2 seconds
+      addPop(W/2,H*0.3,'\u64C3\u7834: '+challengeKills,'#ffd700');
+      addPop(W/2,H*0.4,'\u6B21\u306E\u30DC\u30B9\u307E\u3067\u4F11\u61A9...','#fff8');
+    }
+    // Update boss phase during challenge
+    if(bossPhase.active||bossPhase.reward){
+      updateBossPhase();
+    }
   }
   // Generate new platforms ahead (endless mode only)
   if(gameMode==='endless'&&!isPackMode){

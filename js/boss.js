@@ -42,7 +42,15 @@ function spawnBossEnemies(){
   bossPhase.dodgeKills=0;
   // Randomly choose boss type
   let bossType;
-  if(isPackMode&&currentPackStage&&currentPackStage.boss){
+  if(isChallengeMode){
+    // Challenge mode: all 5 boss types randomly
+    const roll=Math.random();
+    if(roll<0.20) bossType='charge';
+    else if(roll<0.40) bossType='wizard';
+    else if(roll<0.60) bossType='bruiser';
+    else if(roll<0.80) bossType='guardian';
+    else bossType='dodge';
+  } else if(isPackMode&&currentPackStage&&currentPackStage.boss){
     // Stage mode X-5: pick bruiser or guardian (2 of same type will spawn)
     bossType=Math.random()<0.5?'bruiser':'guardian';
   } else {
@@ -268,7 +276,7 @@ function updateBossPhase(){
     }
     if(bossPhase.rewardT>=180){
       bossPhase.active=false;bossPhase.reward=false;
-      if(itemEff.invincible<=0)switchBGM('play');
+      if(!isChallengeMode&&itemEff.invincible<=0)switchBGM('play');
     }
     return;
   }
