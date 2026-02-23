@@ -24,6 +24,7 @@ function coinOverlaps(cx,cy){
 }
 function trySpawnCoins(){
   if(coinCD>0){coinCD--;return;}
+  if(isPackMode)return; // no coins in stage mode
   if(bossPhase.active)return;
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
@@ -68,6 +69,7 @@ function trySpawnCoins(){
 }
 function trySpawnItem(){
   if(itemCD>0){itemCD--;return;}
+  if(isPackMode)return; // no items in stage mode
   if(score<5)return;
   if(bossPhase.active)return;
   const plat=findEdgeSpawnPlat();
@@ -103,19 +105,24 @@ function trySpawnEnemy(){
     let eType=0;
     const tr=Math.random();
     if(isPackMode&&currentPackStage){
-      // Pack mode: enemy types based on stage index (later stages = stronger enemies)
-      // Also stronger enemies toward end of stage (progress-based)
       const stageIdx=currentPackStageIdx; // 0-4
       const progress=dist/currentPackStage.dist;
-      if(stageIdx>=4&&progress>0.5&&tr<0.20) eType=8; // splitter (stage X-5 late)
-      else if(stageIdx>=3&&progress>0.4&&tr<0.22) eType=3; // bomber (stage X-4+)
-      else if(stageIdx>=3&&tr<0.20) eType=6; // dasher (stage X-4+)
-      else if(stageIdx>=2&&progress>0.3&&tr<0.18) eType=5; // phantom (stage X-3+)
-      else if(stageIdx>=2&&tr<0.22) eType=4; // vertical mover (stage X-3+)
-      else if(stageIdx>=1&&tr<0.28) eType=2; // flyer (stage X-2+)
-      else if(stageIdx>=1&&tr<0.35) eType=1; // cannon (stage X-2+)
-      else if(stageIdx>=0&&tr<0.40) eType=1; // cannon available from X-1
-      else eType=0; // walker/patrol (always)
+      const sType2=currentPackStage.stageType||'';
+      if(sType2==='swarm'){
+        // Swarm stage: walkers and cannons only, very dense
+        eType=tr<0.55?0:1; // 55% walker, 45% cannon
+      } else {
+        // Normal/moving stages: progressive enemy types
+        if(stageIdx>=4&&progress>0.5&&tr<0.20) eType=8;
+        else if(stageIdx>=3&&progress>0.4&&tr<0.22) eType=3;
+        else if(stageIdx>=3&&tr<0.20) eType=6;
+        else if(stageIdx>=2&&progress>0.3&&tr<0.18) eType=5;
+        else if(stageIdx>=2&&tr<0.22) eType=4;
+        else if(stageIdx>=1&&tr<0.28) eType=2;
+        else if(stageIdx>=1&&tr<0.35) eType=1;
+        else if(stageIdx>=0&&tr<0.40) eType=1;
+        else eType=0;
+      }
     } else {
       // Endless mode: score-based enemy types
       if(score>=600&&bossPhase.bossCount>=3&&tr<0.10) eType=8;
@@ -203,9 +210,10 @@ function trySpawnFloatPlat(){
   if(bossPhase.active)return;
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
-  const chance=isPackMode?0.30:Math.min(0.18,0.04+(score-35)*0.002);
+  const isFloatStage=isPackMode&&currentPackStage&&(currentPackStage.stageType==='moving'||currentPackStage.stageType==='swarm');
+  const chance=isPackMode?(isFloatStage?0.45:0.30):Math.min(0.18,0.04+(score-35)*0.002);
   if(Math.random()<chance){
-    floatCD=isPackMode?(40+Math.floor(Math.random()*30)):(80+Math.floor(Math.random()*60));
+    floatCD=isPackMode?(isFloatStage?20+Math.floor(Math.random()*20):40+Math.floor(Math.random()*30)):(80+Math.floor(Math.random()*60));
     const fx=Math.max(W+20,plat.x);
     const fw=50+Math.random()*60; // width: 50-110px
     const floorY=H-plat.h;
@@ -217,15 +225,15 @@ function trySpawnFloatPlat(){
     const maxJumpH=JUMP_POWER*JUMP_POWER/(2*GRAVITY)*0.75; // ~109px (comfortable reach)
     const fy=floorY-maxJumpH*(0.5+Math.random()*0.5); // 50-100% of comfortable jump height
     floatPlats.push({x:fx,y:fy,w:fw,th:10});
-    // Sometimes spawn an item on the floating platform
-    if(Math.random()<0.4){
+    // Sometimes spawn an item on the floating platform (not in stage mode)
+    if(!isPackMode&&Math.random()<0.4){
       const pool=[1,2]; // magnet or double jump
       if(hp<maxHp()&&Math.random()<0.3) pool.push(3); // heart if damaged
       const it=pool[Math.floor(Math.random()*pool.length)];
       items.push({x:fx+fw/2,y:fy-25,t:it,sz:14,p:Math.random()*6.28,col:false});
     }
-    // Sometimes spawn coins in an arc above
-    if(Math.random()<0.5){
+    // Sometimes spawn coins in an arc above (not in stage mode)
+    if(!isPackMode&&Math.random()<0.5){
       for(let i=0;i<3;i++){
         coins.push({x:fx+10+i*(fw-20)/2,y:fy-30-Math.sin(i/2*Math.PI)*15,sz:9,col:false,p:0});
       }
@@ -343,8 +351,9 @@ function trySpawnMovingHill(){
   // During terrain gimmick phase (falling type), skip moving hill spawns
   if(terrainGimmickPhase.active&&terrainGimmickPhase.type==='falling')return;
   const isGimmickMoving=terrainGimmickPhase.active&&terrainGimmickPhase.type==='moving';
-  let chance=isPackMode?0.18:Math.min(0.1,0.02+(score-120)*0.001);
-  if(isGimmickMoving)chance=0.35; // high spawn rate during gimmick phase
+  const isMovingStage=isPackMode&&currentPackStage&&currentPackStage.stageType==='moving';
+  let chance=isPackMode?(isMovingStage?0.40:0.18):Math.min(0.1,0.02+(score-120)*0.001);
+  if(isGimmickMoving)chance=0.35;
   if(Math.random()<chance){
     const isFloor=Math.random()<0.5;
     const platArr=isFloor?platforms:ceilPlats;
