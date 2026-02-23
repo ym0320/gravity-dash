@@ -1012,6 +1012,10 @@ function draw(){
   if(state===ST.PLAY){
     drawActionPanel();
   }
+  // Challenge floor collapse overlay
+  if(isChallengeMode&&challCollapse.active){
+    drawChallCollapse();
+  }
   if(state===ST.DEAD){drawDead();if(deadChestOpen&&chestOpen.phase!=='none')drawChestOpen();}
   if(state===ST.PAUSE)drawPause();
   if(state===ST.STAGE_CLEAR)drawStageClear();
@@ -3012,9 +3016,22 @@ function drawTraitDemo(ch,idx,cx,cy,t){
 
 function drawCountdown(){
   // Semi-dark overlay
-  ctx.fillStyle='rgba(0,0,0,0.45)';ctx.fillRect(-20,-20,W+40,H+40);
+  ctx.fillStyle=isChallengeMode?'rgba(0,0,0,0.65)':'rgba(0,0,0,0.45)';ctx.fillRect(-20,-20,W+40,H+40);
   const sec=Math.ceil(countdownT/60); // 3, 2, 1
   const frac=(countdownT%60)/60; // 1→0 within each second
+
+  // Challenge mode title header
+  if(isChallengeMode){
+    const headerA=Math.min(1,(180-countdownT)/30);
+    ctx.save();ctx.globalAlpha=headerA;
+    ctx.fillStyle='#ff3860';ctx.font='bold 22px monospace';ctx.textAlign='center';
+    ctx.shadowColor='#ff386066';ctx.shadowBlur=15;
+    ctx.fillText('BOSS RUSH',W/2,H*0.15);ctx.shadowBlur=0;
+    ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';
+    ctx.fillText('チャレンジモード',W/2,H*0.20);
+    ctx.restore();
+  }
+
   if(sec>=1&&sec<=3){
     // Scale: starts big, shrinks to normal
     const sc=1+frac*0.6;
@@ -3026,13 +3043,14 @@ function drawCountdown(){
     // Pulsing ring behind number
     const ringR=50+frac*20;
     const ringA=frac*0.4;
-    ctx.strokeStyle=`rgba(0,229,255,${ringA})`;ctx.lineWidth=4;
+    const ringCol=isChallengeMode?'255,56,96':'0,229,255';
+    ctx.strokeStyle=`rgba(${ringCol},${ringA})`;ctx.lineWidth=4;
     ctx.beginPath();ctx.arc(0,0,ringR,0,6.28);ctx.stroke();
     // Outer expanding ring
-    ctx.strokeStyle=`rgba(0,229,255,${ringA*0.4})`;ctx.lineWidth=2;
+    ctx.strokeStyle=`rgba(${ringCol},${ringA*0.4})`;ctx.lineWidth=2;
     ctx.beginPath();ctx.arc(0,0,ringR+20*(1-frac),0,6.28);ctx.stroke();
     // Number
-    ctx.fillStyle='#fff';ctx.shadowColor='#00e5ff';ctx.shadowBlur=30;
+    ctx.fillStyle='#fff';ctx.shadowColor=isChallengeMode?'#ff3860':'#00e5ff';ctx.shadowBlur=30;
     ctx.font='bold 72px monospace';ctx.textAlign='center';
     ctx.fillText(sec,0,26);
     ctx.shadowBlur=0;
@@ -3044,9 +3062,10 @@ function drawCountdown(){
       const goA=goT/20;
       const goSc=1.5-goA*0.5;
       ctx.save();ctx.globalAlpha=goA;ctx.translate(W/2,H*0.4);ctx.scale(goSc,goSc);
-      ctx.fillStyle='#ffd700';ctx.shadowColor='#ffd700';ctx.shadowBlur=25;
+      const goCol=isChallengeMode?'#ff3860':'#ffd700';
+      ctx.fillStyle=goCol;ctx.shadowColor=goCol;ctx.shadowBlur=25;
       ctx.font='bold 64px monospace';ctx.textAlign='center';
-      ctx.fillText('GO!',0,22);ctx.shadowBlur=0;ctx.restore();
+      ctx.fillText(isChallengeMode?'FIGHT!':'GO!',0,22);ctx.shadowBlur=0;ctx.restore();
     }
   }
   // Character preview during countdown
@@ -4173,6 +4192,97 @@ function drawChallengeResult(e){
     ctx.strokeStyle='#ff3860';ctx.lineWidth=1.5;rr(btnX2,btnTop,btnW2,btnH2,8);ctx.stroke();
     ctx.fillStyle='#ff3860';ctx.font='bold 13px monospace';
     ctx.fillText('\u2190 \u30BF\u30A4\u30C8\u30EB\u3078',W/2,btnTop+24);
+  }
+}
+
+// ===== CHALLENGE FLOOR COLLAPSE DRAWING =====
+function drawChallCollapse(){
+  const cc=challCollapse;
+
+  if(cc.phase==='collapse'||cc.phase==='fall'||cc.phase==='land'){
+    // Draw debris pieces with rotation
+    cc.debris.forEach(d=>{
+      if(d.alpha<=0)return;
+      ctx.save();
+      ctx.globalAlpha=d.alpha;
+      ctx.translate(d.x+d.w/2,d.y+d.h/2);
+      ctx.rotate(d.rot);
+      // Main block
+      ctx.fillStyle=d.col;
+      ctx.fillRect(-d.w/2,-d.h/2,d.w,d.h);
+      // Edge highlight
+      ctx.strokeStyle='#00000033';ctx.lineWidth=1;
+      ctx.strokeRect(-d.w/2,-d.h/2,d.w,d.h);
+      // Crack line
+      ctx.strokeStyle='#00000055';ctx.lineWidth=0.5;
+      ctx.beginPath();
+      ctx.moveTo(-d.w/2+Math.random()*d.w,-d.h/2);
+      ctx.lineTo(Math.random()*d.w/2-d.w/4,d.h/2);
+      ctx.stroke();
+      ctx.restore();
+    });
+  }
+
+  if(cc.phase==='fall'){
+    // Dark overlay increasing as we fall deeper
+    const darkA=Math.min(0.6,cc.timer/120*0.6);
+    ctx.fillStyle=`rgba(0,0,0,${darkA})`;ctx.fillRect(-20,-20,W+40,H+40);
+    // Speed lines
+    const numLines=8;
+    for(let i=0;i<numLines;i++){
+      const lx=(W/(numLines+1))*(i+1)+(Math.sin(frame*0.3+i)*20);
+      const ly=(cc.timer*10+i*80)%H;
+      ctx.strokeStyle='#ffffff15';ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(lx,ly+40+cc.timer*0.5);ctx.stroke();
+    }
+    // "Falling deeper" text
+    const fallA=Math.min(1,cc.timer/30);
+    ctx.globalAlpha=fallA;
+    ctx.fillStyle='#ff3860';ctx.font='bold 18px monospace';ctx.textAlign='center';
+    ctx.shadowColor='#ff386066';ctx.shadowBlur=15;
+    const depth=cc.waveNum;
+    ctx.fillText('B'+depth+'F へ降下中...',W/2,H*0.45);
+    ctx.shadowBlur=0;ctx.globalAlpha=1;
+  }
+
+  if(cc.phase==='land'){
+    // Wave number display (big center text)
+    const landA=Math.min(1,cc.timer/20);
+    const sc=1+Math.max(0,(1-cc.timer/15)*0.5);
+    ctx.save();
+    ctx.globalAlpha=cc.timer<70?landA:Math.max(0,1-(cc.timer-70)/20);
+    ctx.translate(W/2,H*0.35);ctx.scale(sc,sc);
+    // Dark backdrop
+    ctx.fillStyle='rgba(0,0,0,0.5)';
+    rr(-100,-30,200,60,10);ctx.fill();
+    // Wave text
+    ctx.fillStyle='#ffd700';ctx.font='bold 28px monospace';ctx.textAlign='center';
+    ctx.shadowColor='#ffd70066';ctx.shadowBlur=20;
+    ctx.fillText('WAVE '+cc.waveNum,0,10);
+    ctx.shadowBlur=0;
+    // Sub text
+    ctx.fillStyle='#fff8';ctx.font='bold 12px monospace';
+    ctx.fillText('撃破: '+challengeKills+'  フェーズ: '+(challengePhase+1),0,30);
+    ctx.restore();ctx.globalAlpha=1;
+  }
+
+  // Rumble phase: crack overlay
+  if(cc.phase==='rumble'){
+    // Red warning vignette
+    const vigA=Math.sin(cc.timer*0.15)*0.1+0.1;
+    const grad=ctx.createRadialGradient(W/2,H/2,W*0.2,W/2,H/2,W*0.8);
+    grad.addColorStop(0,'rgba(0,0,0,0)');
+    grad.addColorStop(1,`rgba(100,20,20,${vigA})`);
+    ctx.fillStyle=grad;ctx.fillRect(-20,-20,W+40,H+40);
+    // Warning text
+    if(cc.timer>30){
+      const warnA=Math.sin(cc.timer*0.2)*0.3+0.7;
+      ctx.globalAlpha=warnA;
+      ctx.fillStyle='#ff4444';ctx.font='bold 16px monospace';ctx.textAlign='center';
+      ctx.shadowColor='#ff000066';ctx.shadowBlur=10;
+      ctx.fillText('WARNING: 床が崩壊します',W/2,H*0.3);
+      ctx.shadowBlur=0;ctx.globalAlpha=1;
+    }
   }
 }
 

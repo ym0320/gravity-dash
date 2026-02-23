@@ -23,8 +23,9 @@ function startBossPhase(){
   bossPhase.lastBossScore=score;
   bossPhase.lastBossRawDist=rawDist;
   bossPhase.nextAt=(Math.floor(rawDist/BOSS_INTERVAL)+1)*BOSS_INTERVAL;
-  shakeI=18;sfxBossAlert();vibrate([50,30,50,30,80,40,100]);
-  switchBGM('boss');
+  shakeI=18;vibrate([50,30,50,30,80,40,100]);
+  if(isChallengeMode){sfxChallengeBossAlert();switchBGM('challenge');}
+  else{sfxBossAlert();switchBGM('boss');}
 }
 function spawnBossEnemies(){
   const bc=bossPhase.bossCount; // 1-based count of boss fights
@@ -69,12 +70,12 @@ function spawnBossEnemies(){
   if(bossType==='dodge'){
     // Dodge type: enemies rush from RIGHT, player dodges/stomps
     const dodgeCount=10+Math.min(Math.floor((effectiveBc-1)/3),4);
-    const baseSpd=2.2+(phaseLevel>=2?Math.min(phaseLevel-1,10)*0.25:0);
+    const baseSpd=2.2+(phaseLevel>=2?Math.min(phaseLevel-1,10)*0.15:0);
     for(let i=0;i<dodgeCount;i++){
-      const spd=baseSpd+Math.random()*(1.2+Math.min(effectiveBc-1,8)*0.1);
+      const spd=baseSpd+Math.random()*(0.9+Math.min(effectiveBc-1,8)*0.08);
       const onFloor=Math.random()<0.5;
       const gDir=onFloor?1:-1;
-      const diagStrength=phaseLevel>=2?(1.0+Math.min(phaseLevel-1,8)*0.2):0;
+      const diagStrength=phaseLevel>=2?(0.7+Math.min(phaseLevel-1,8)*0.15):0;
       const sz=PLAYER_R*5;
       const baseInterval=Math.max(3,12-Math.min(effectiveBc-1,8));
       bossPhase.dodgeQueue.push({
@@ -233,7 +234,8 @@ function updateBossPhase(){
       // Chest shrinks into player after collection
       if(chestFall.gotT>40)chestFall.active=false;
     }
-    if(bossPhase.rewardT>=180){
+    const rewardEnd=isChallengeMode?90:180;
+    if(bossPhase.rewardT>=rewardEnd){
       bossPhase.active=false;bossPhase.reward=false;
       if(!isChallengeMode&&itemEff.invincible<=0)switchBGM('play');
     }
@@ -815,8 +817,14 @@ function updateBossPhase(){
     bossPhase.reward=true;bossPhase.rewardT=0;
     // Catch up score that accumulated during boss
     score=Math.floor(dist);lastMile=Math.floor(score/1000)*1000;
-    sfxFanfare();shakeI=10;vibrate([30,20,30,20,60]);
-    addPop(W/2,H*0.3,'BOSS DEFEATED!','#ffd700');
+    if(isChallengeMode){sfxChallengeDefeat();} else {sfxFanfare();}
+    shakeI=10;vibrate([30,20,30,20,60]);
+    if(isChallengeMode){
+      addPop(W/2,H*0.25,'BOSS DEFEATED!','#ffd700');
+      addPop(W/2,H*0.35,'撃破 '+(challengeKills+1)+'体目','#00e5ff');
+    } else {
+      addPop(W/2,H*0.3,'BOSS DEFEATED!','#ffd700');
+    }
     // No-damage bonus: earn stockable invincibility
     if(bossPhase.noDamage){invCount++;addPop(W/2,H*0.55,'\u7121\u6575+1! (No Damage!)','#ff00ff');}
     if(hp<maxHp()){hp++;addPop(player.x,player.y-40,'HP +1','#ff3860');}

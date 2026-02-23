@@ -441,6 +441,40 @@ const BGM_BOSS={tempo:105,
   melVol:0.18,harmVol:0.10,bassVol:0.32,chordVol:0.06,
   melWave:'sawtooth',harmWave:'sawtooth',bassWave:'sawtooth',
   drums:'nightmare'};
+// Challenge: "Descent into Madness" - Dm relentless descending arpeggios, intense battle theme
+const BGM_CHALLENGE={tempo:140,
+  melody:[587,0,523,0, 494,0,440,0, 392,0,349,0, 330,0,294,0,
+          587,0,554,0, 523,0,494,0, 440,0,392,0, 370,0,349,0,
+          698,0,659,0, 587,0,554,0, 523,0,494,0, 440,0,392,0,
+          784,0,698,0, 659,0,587,0, 554,0,523,0, 494,440,392,349],
+  harmony:[0,294,0,262, 0,247,0,220, 0,196,0,175, 0,165,0,147,
+           0,294,0,277, 0,262,0,247, 0,220,0,196, 0,185,0,175,
+           0,349,0,330, 0,294,0,277, 0,262,0,247, 0,220,0,196,
+           0,392,0,349, 0,330,0,294, 0,277,0,262, 0,247,0,220],
+  bass:[147,147,0,147, 0,0,147,0, 131,131,0,131, 0,0,131,0,
+        147,147,0,147, 0,0,147,0, 110,110,0,110, 0,0,110,0,
+        175,175,0,175, 0,0,175,0, 131,131,0,131, 0,0,131,0,
+        196,196,0,196, 0,0,175,0, 165,165,0,147, 131,131,110,110],
+  chords:[[294,349,440,523],[262,330,392,494],[247,294,370,440],[220,262,330,392],
+          [294,349,440,523],[277,330,415,494],[262,330,392,494],[247,294,370,440],
+          [349,440,523,659],[330,392,494,587],[294,349,440,523],[262,330,392,494],
+          [392,494,587,698],[349,440,523,659],[330,392,494,587],[294,370,440,554]],
+  melVol:0.20,harmVol:0.12,bassVol:0.30,chordVol:0.07,
+  melWave:'sawtooth',harmWave:'triangle',bassWave:'sawtooth',
+  drums:'nightmare'};
+// Challenge Boss Defeat: "Floor Crumble" - deep rumbling drone for collapse transition
+const BGM_COLLAPSE={tempo:70,
+  melody:[0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
+          0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
+  harmony:[0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
+           0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
+  bass:[55,0,55,52, 0,49,0,46, 55,0,52,0, 49,46,44,41,
+        55,0,55,52, 0,49,0,46, 44,0,41,0, 39,37,35,33],
+  chords:[[55,82,110],[52,78,104],[49,73,98],[46,69,93],
+          [55,82,110],[52,78,104],[49,73,98],[46,69,93]],
+  melVol:0,harmVol:0,bassVol:0.35,chordVol:0.10,
+  melWave:'sine',harmWave:'sine',bassWave:'sawtooth',
+  drums:'rumble'};
 // Dead: Last Light - Bm very slow, sparse, melancholy piano-like
 const BGM_DEAD={tempo:60,
   melody:[740,0,0,0, 659,0,0,0, 587,0,0,659, 0,0,587,0,
@@ -507,7 +541,7 @@ function switchBGM(type){
   // Fever uses old-style simple oscillator
   if(type==='fever'){feverBI=0;playFeverBGM();return;}
   const BGM_MAP={title0:BGM_TITLES[0],title1:BGM_TITLES[1],title2:BGM_TITLES[2],title3:BGM_TITLES[3],title4:BGM_TITLES[4],title5:BGM_TITLES[5],
-    play1:BGM_PLAY1,play2:BGM_PLAY2,play3:BGM_PLAY3,play4:BGM_PLAY4,play5:BGM_PLAY5,boss:BGM_BOSS,dead:BGM_DEAD};
+    play1:BGM_PLAY1,play2:BGM_PLAY2,play3:BGM_PLAY3,play4:BGM_PLAY4,play5:BGM_PLAY5,boss:BGM_BOSS,dead:BGM_DEAD,challenge:BGM_CHALLENGE,collapse:BGM_COLLAPSE};
   const def=BGM_MAP[type]||BGM_PLAY1;
   const stepMs=60000/(def.tempo*4); // ms per 16th note step
   const stepS=stepMs/1000;
@@ -588,6 +622,13 @@ function switchBGM(type){
         if(mi%32===0||mi%32===24)bgmNoise(now,0.12,0.15);
         // Sub-bass drone (very low oscillator)
         bgmOsc('sine',32+Math.sin(si*0.1)*4,now,stepS*0.9,0.15);
+      } else if(def.drums==='rumble'){
+        // Deep earthquake rumble: constant sub-bass kicks, random impacts
+        if(mi%2===0)bgmKick(now);
+        if(mi%4===0)bgmNoise(now,0.15,0.20); // heavy debris sounds
+        if(mi%8===3||mi%8===7)bgmSnare(now); // cracking sounds
+        if(mi%16===0)bgmNoise(now,0.25,0.18); // big impact
+        bgmOsc('sine',25+Math.sin(si*0.05)*5,now,stepS*0.9,0.20); // sub-bass drone
       }
       si++;
     }catch(e){}
@@ -1021,6 +1062,75 @@ function sfxSuperRare(){
   }catch(e){}
 }
 
+// Challenge mode SFX
+function sfxFloorCrumble(){
+  if(!audioCtx)return;try{
+    const t=audioCtx.currentTime;
+    // Deep rumbling quake (sub-bass sweep)
+    const r=audioCtx.createOscillator(),rg=audioCtx.createGain();
+    r.connect(rg);rg.connect(sfxGain);r.type='sawtooth';
+    r.frequency.setValueAtTime(60,t);r.frequency.linearRampToValueAtTime(25,t+1.5);
+    rg.gain.setValueAtTime(0.15,t);rg.gain.linearRampToValueAtTime(0.20,t+0.5);rg.gain.linearRampToValueAtTime(0.001,t+2.0);
+    r.start(t);r.stop(t+2.1);
+    // Rock cracking impacts
+    [0,0.15,0.35,0.5,0.7,0.9,1.1,1.3].forEach(d=>{
+      const n=audioCtx.createBufferSource();
+      const buf=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.12)),audioCtx.sampleRate);
+      const data=buf.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1);
+      n.buffer=buf;const ng=audioCtx.createGain();n.connect(ng);ng.connect(sfxGain);
+      ng.gain.setValueAtTime(0.12+Math.random()*0.08,t+d);ng.gain.exponentialRampToValueAtTime(0.001,t+d+0.1);
+      n.start(t+d);n.stop(t+d+0.12);
+    });
+    // Sub-bass thud impacts
+    [0.1,0.4,0.7,1.0].forEach(d=>{
+      const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
+      o2.connect(g2);g2.connect(sfxGain);o2.type='sine';
+      o2.frequency.setValueAtTime(80,t+d);o2.frequency.exponentialRampToValueAtTime(25,t+d+0.15);
+      g2.gain.setValueAtTime(0.18,t+d);g2.gain.exponentialRampToValueAtTime(0.001,t+d+0.2);
+      o2.start(t+d);o2.stop(t+d+0.22);
+    });
+  }catch(e){}
+}
+function sfxChallengeDefeat(){
+  if(!audioCtx)return;try{
+    const t=audioCtx.currentTime;
+    // Short triumphant stinger (different from normal fanfare)
+    [392,494,587,784].forEach((f,i)=>{
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='triangle';
+      o.frequency.setValueAtTime(f,t+i*0.08);
+      g.gain.setValueAtTime(0.14,t+i*0.08);g.gain.exponentialRampToValueAtTime(0.001,t+i*0.08+0.2);
+      o.start(t+i*0.08);o.stop(t+i*0.08+0.25);
+    });
+    // Power chord
+    [784,988,1175].forEach(f=>{
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='sawtooth';
+      o.frequency.setValueAtTime(f,t+0.35);
+      g.gain.setValueAtTime(0.08,t+0.35);g.gain.exponentialRampToValueAtTime(0.001,t+0.7);
+      o.start(t+0.35);o.stop(t+0.75);
+    });
+  }catch(e){}
+}
+function sfxChallengeBossAlert(){
+  if(!audioCtx)return;try{
+    const t=audioCtx.currentTime;
+    // Aggressive warning siren (different from normal boss alert)
+    const s=audioCtx.createOscillator(),sg=audioCtx.createGain();
+    s.connect(sg);sg.connect(sfxGain);s.type='sawtooth';
+    s.frequency.setValueAtTime(200,t);s.frequency.linearRampToValueAtTime(400,t+0.3);
+    s.frequency.linearRampToValueAtTime(200,t+0.6);s.frequency.linearRampToValueAtTime(500,t+0.9);
+    sg.gain.setValueAtTime(0.10,t);sg.gain.exponentialRampToValueAtTime(0.001,t+1.2);
+    s.start(t);s.stop(t+1.3);
+    // Impact drum
+    const k=audioCtx.createOscillator(),kg=audioCtx.createGain();
+    k.connect(kg);kg.connect(sfxGain);k.type='sine';
+    k.frequency.setValueAtTime(100,t+0.9);k.frequency.exponentialRampToValueAtTime(30,t+1.1);
+    kg.gain.setValueAtTime(0.15,t+0.9);kg.gain.exponentialRampToValueAtTime(0.001,t+1.2);
+    k.start(t+0.9);k.stop(t+1.3);
+  }catch(e){}
+}
+
 // ===== ITEMS (5 types) =====
 const ITEMS=[
   {name:'\u7121\u6575',desc:'10\u79D2\u9593\u7121\u6575',col:'#ff00ff',icon:'\u2B50\uFE0F',dur:600},
@@ -1112,6 +1222,15 @@ let challengeKills=0; // total bosses defeated
 let challengePhase=0; // difficulty phase (increases every 3 kills)
 let challengeRetired=false; // true if player retired (vs died)
 let challengeNextBossT=0; // countdown timer between bosses
+// Challenge floor collapse state
+let challCollapse={
+  active:false, phase:'none', // 'forceDown','rumble','collapse','fall','land'
+  timer:0,
+  debris:[], // {x,y,w,h,vx,vy,rot,rotV,col,alpha}
+  shakeAmt:0,
+  fallY:0, // vertical scroll offset during fall
+  waveNum:0 // which boss wave we're heading to
+};
 
 // ===== STATE =====
 const ST={TITLE:0,PLAY:1,DEAD:2,PAUSE:3,STAGE_CLEAR:4,STAGE_SEL:5,COUNTDOWN:6,LOGIN:7,TUTORIAL:8};
