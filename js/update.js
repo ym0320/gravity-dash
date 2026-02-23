@@ -266,7 +266,7 @@ function update(dt){
     if(ghostInvis&&ghostPhaseT>=60){
       ghostInvis=false;ghostPhaseT=0;
       emitParts(player.x,player.y,6,ghostCol,2,1);
-    } else if(!ghostInvis&&ghostPhaseT>=90){
+    } else if(!ghostInvis&&ghostPhaseT>=60){
       ghostInvis=true;ghostPhaseT=0;
       emitParts(player.x,player.y,8,ghostCol,3,2);
     }
@@ -506,8 +506,7 @@ function update(dt){
     if(challengeNextBossT>0&&!challCollapse.active){
       challengeNextBossT--;
       if(challengeNextBossT<=0){
-        // Recover HP between bosses
-        hp=maxHp();
+        // Challenge: no HP recovery here (HP +1 already given at boss defeat)
         // Set bossCount for scaling: base + phase boost
         bossPhase.bossCount=challengeKills+challengePhase*3;
         startBossPhase();
@@ -1436,21 +1435,28 @@ function updateChallCollapse(){
     // After 90 frames, start the collapse
     if(cc.timer>=90){
       cc.phase='collapse';cc.timer=0;
-      // Generate debris pieces from floor breaking apart
-      const numDebris=30;
-      for(let i=0;i<numDebris;i++){
+      // Generate debris from BOTH floor AND ceiling breaking apart
+      const cols=['#4a3a2a','#5a4a3a','#6a5a4a','#3a2a1a','#8a7060'];
+      // Floor debris (falls down)
+      for(let i=0;i<25;i++){
         const dw=15+Math.random()*35;
         const dh=10+Math.random()*25;
-        const dx=Math.random()*W;
-        const dy=floorY-Math.random()*GROUND_H;
         cc.debris.push({
-          x:dx,y:dy,w:dw,h:dh,
-          vx:(Math.random()-0.5)*4,
-          vy:2+Math.random()*5,
-          rot:Math.random()*6.28,
-          rotV:(Math.random()-0.5)*0.15,
-          col:['#4a3a2a','#5a4a3a','#6a5a4a','#3a2a1a','#8a7060'][Math.floor(Math.random()*5)],
-          alpha:1
+          x:Math.random()*W,y:floorY-Math.random()*GROUND_H,w:dw,h:dh,
+          vx:(Math.random()-0.5)*4,vy:2+Math.random()*5,
+          rot:Math.random()*6.28,rotV:(Math.random()-0.5)*0.15,
+          col:cols[Math.floor(Math.random()*5)],alpha:1
+        });
+      }
+      // Ceiling debris (falls down from top)
+      for(let i=0;i<20;i++){
+        const dw=15+Math.random()*35;
+        const dh=10+Math.random()*25;
+        cc.debris.push({
+          x:Math.random()*W,y:Math.random()*GROUND_H,w:dw,h:dh,
+          vx:(Math.random()-0.5)*4,vy:2+Math.random()*4,
+          rot:Math.random()*6.28,rotV:(Math.random()-0.5)*0.15,
+          col:cols[Math.floor(Math.random()*5)],alpha:1
         });
       }
       sfx('earthquake');shakeI=25;vibrate([60,30,80,40,100,50,80]);
@@ -1459,10 +1465,11 @@ function updateChallCollapse(){
   }
 
   if(cc.phase==='collapse'){
-    // Floor breaks apart - debris falls with gravity and rotation
+    // BOTH floors break apart - debris falls with gravity and rotation
     shakeI=Math.max(shakeI,15-cc.timer*0.1);
-    // Remove floor platforms visually (shift them down)
-    platforms.forEach(p=>{p.h=Math.max(0,p.h-2);});
+    // Remove BOTH floor and ceiling platforms visually
+    platforms.forEach(p=>{p.h=Math.max(0,p.h-3);});
+    ceilPlats.forEach(p=>{p.h=Math.max(0,p.h-3);});
     // Update debris
     cc.debris.forEach(d=>{
       d.vy+=0.3; // gravity
@@ -1472,13 +1479,15 @@ function updateChallCollapse(){
       d.alpha=Math.max(0,1-(d.y-H)/200);
     });
     cc.debris=cc.debris.filter(d=>d.y<H+300);
-    // Generate extra falling dust
+    // Generate extra falling dust from both sides
     if(cc.timer%2===0){
       parts.push({x:Math.random()*W,y:floorY+cc.timer*2,vx:(Math.random()-0.5)*2,vy:3+Math.random()*3,
         life:30,ml:30,sz:Math.random()*5+2,col:'#8a7060'});
+      parts.push({x:Math.random()*W,y:ceilY,vx:(Math.random()-0.5)*2,vy:2+Math.random()*3,
+        life:25,ml:25,sz:Math.random()*4+2,col:'#6a5a4a'});
     }
-    // After 60 frames, player starts falling
-    if(cc.timer>=60){
+    // After 40 frames, player starts falling (faster transition)
+    if(cc.timer>=40){
       cc.phase='fall';cc.timer=0;
       player.grounded=false;player.vy=0;
     }
@@ -1486,22 +1495,22 @@ function updateChallCollapse(){
   }
 
   if(cc.phase==='fall'){
-    // Player falls briefly then screen fades to black
-    if(cc.timer<15){
-      // Player drops rapidly
-      player.vy+=1.5;player.grounded=false;
-      shakeI=Math.max(shakeI,5);
+    // Player drops rapidly straight down
+    if(cc.timer<10){
+      // Fast vertical drop
+      player.vy+=2.5;player.grounded=false;
+      shakeI=Math.max(shakeI,6);
     }
-    // At frame 25: fully black – rebuild level
-    if(cc.timer===25){
+    // At frame 20: fully black – rebuild level
+    if(cc.timer===20){
       platforms.length=0;ceilPlats.length=0;
       platforms.push({x:player.x-100,w:300,h:GROUND_H});
       ceilPlats.push({x:player.x-100,w:300,h:GROUND_H});
       player.y=H-GROUND_H-PLAYER_R*ct().sizeMul;
       player.vy=0;player.grounded=true;player.gDir=1;
     }
-    // After 80 frames: fade-in complete, transition to land
-    if(cc.timer>=80){
+    // Extended blackout: after 110 frames, transition to land
+    if(cc.timer>=110){
       cc.phase='land';cc.timer=0;
       sfx('gstompHeavy');shakeI=8;vibrate([30,15,40]);
     }

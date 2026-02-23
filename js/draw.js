@@ -2004,13 +2004,11 @@ function drawUI(){
     }
   }
 
-  // === TOP: Challenge mode info ===
+  // === TOP: Challenge mode label (no kill/phase info) ===
   if(isChallengeMode){
     const cTop=hpY+22;
     ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='left';
     ctx.fillText('\u30C1\u30E3\u30EC\u30F3\u30B8',10,cTop);
-    ctx.fillStyle='#fff8';ctx.font='11px monospace';
-    ctx.fillText('\u64C3\u7834: '+challengeKills+'  \u30D5\u30A7\u30FC\u30BA: '+(challengePhase+1),10,cTop+16);
   }
 
   // Combo display (center area)
@@ -2042,43 +2040,53 @@ function drawActionPanel(){
   ctx.fillStyle='rgba(0,0,0,0.55)';ctx.fillRect(0,py,W,PANEL_H);
   ctx.fillStyle='rgba(255,255,255,0.06)';ctx.fillRect(0,py,W,1);
 
-  // Item buttons centered in panel
-  const btnSz=44,btnGap=12;
-  const totalBtnW=btnSz*2+btnGap;
-  const btnStartX=W/2-totalBtnW/2;
-  const btnY=py+6;
-  // Helper to draw an item button
-  function drawItemBtn(bx,has,col,icon,count){
-    if(has){
-      ctx.fillStyle=col+'33';rr(bx,btnY,btnSz,btnSz,10);ctx.fill();
-      ctx.strokeStyle=col;ctx.lineWidth=2;rr(bx,btnY,btnSz,btnSz,10);ctx.stroke();
-      const pulse=Math.sin(frame*0.1)*0.15+0.85;
-      ctx.shadowColor=col;ctx.shadowBlur=8*pulse;
-      ctx.strokeStyle=col.slice(0,7)+(Math.round(pulse*128).toString(16).padStart(2,'0'));
-      rr(bx,btnY,btnSz,btnSz,10);ctx.stroke();ctx.shadowBlur=0;
-    } else {
-      ctx.fillStyle='#ffffff0a';rr(bx,btnY,btnSz,btnSz,10);ctx.fill();
-      ctx.strokeStyle='#ffffff22';ctx.lineWidth=1;rr(bx,btnY,btnSz,btnSz,10);ctx.stroke();
+  // Item buttons centered in panel (hidden in challenge mode)
+  if(!isChallengeMode){
+    const btnSz=44,btnGap=12;
+    const totalBtnW=btnSz*2+btnGap;
+    const btnStartX=W/2-totalBtnW/2;
+    const btnY=py+6;
+    // Helper to draw an item button
+    function drawItemBtn(bx,has,col,icon,count){
+      if(has){
+        ctx.fillStyle=col+'33';rr(bx,btnY,btnSz,btnSz,10);ctx.fill();
+        ctx.strokeStyle=col;ctx.lineWidth=2;rr(bx,btnY,btnSz,btnSz,10);ctx.stroke();
+        const pulse=Math.sin(frame*0.1)*0.15+0.85;
+        ctx.shadowColor=col;ctx.shadowBlur=8*pulse;
+        ctx.strokeStyle=col.slice(0,7)+(Math.round(pulse*128).toString(16).padStart(2,'0'));
+        rr(bx,btnY,btnSz,btnSz,10);ctx.stroke();ctx.shadowBlur=0;
+      } else {
+        ctx.fillStyle='#ffffff0a';rr(bx,btnY,btnSz,btnSz,10);ctx.fill();
+        ctx.strokeStyle='#ffffff22';ctx.lineWidth=1;rr(bx,btnY,btnSz,btnSz,10);ctx.stroke();
+      }
+      ctx.fillStyle=has?'#fff':'#fff3';ctx.font='bold 20px monospace';ctx.textAlign='center';
+      ctx.fillText(icon,bx+btnSz/2,btnY+btnSz/2+7);
+      if(count>0){
+        const badgeX=bx+btnSz-4,badgeY2=btnY+2;
+        ctx.fillStyle='#ff3860';ctx.beginPath();ctx.arc(badgeX,badgeY2,9,0,6.28);ctx.fill();
+        ctx.fillStyle='#fff';ctx.font='bold 11px monospace';ctx.textAlign='center';
+        ctx.fillText(count,badgeX,badgeY2+4);
+      }
     }
-    ctx.fillStyle=has?'#fff':'#fff3';ctx.font='bold 20px monospace';ctx.textAlign='center';
-    ctx.fillText(icon,bx+btnSz/2,btnY+btnSz/2+7);
-    if(count>0){
-      const badgeX=bx+btnSz-4,badgeY2=btnY+2;
-      ctx.fillStyle='#ff3860';ctx.beginPath();ctx.arc(badgeX,badgeY2,9,0,6.28);ctx.fill();
-      ctx.fillStyle='#fff';ctx.font='bold 11px monospace';ctx.textAlign='center';
-      ctx.fillText(count,badgeX,badgeY2+4);
-    }
+    // Invincible button (left)
+    drawItemBtn(btnStartX,invCount>0,'#ff00ff','\u2B50\uFE0F',invCount);
+    // Bomb button (right)
+    drawItemBtn(btnStartX+btnSz+btnGap,bombCount>0,'#ff4400','\uD83D\uDCA3',bombCount);
   }
-  // Invincible button (left)
-  drawItemBtn(btnStartX,invCount>0,'#ff00ff','\u2B50\uFE0F',invCount);
-  // Bomb button (right)
-  drawItemBtn(btnStartX+btnSz+btnGap,bombCount>0,'#ff4400','\uD83D\uDCA3',bombCount);
 
   // Score display in panel (left side)
-  ctx.fillStyle='#fff';ctx.font='bold 22px monospace';ctx.textAlign='left';
-  ctx.fillText(score,12,py+30);
-  ctx.fillStyle='#ffd70088';ctx.font='10px monospace';
-  ctx.fillText('HI: '+highScore,12,py+44);
+  if(isChallengeMode){
+    // Challenge mode: show consecutive kill count
+    ctx.fillStyle='#ffd700';ctx.font='bold 22px monospace';ctx.textAlign='left';
+    ctx.fillText('\u64C3\u7834 '+challengeKills,12,py+30);
+    ctx.fillStyle='#fff5';ctx.font='10px monospace';
+    ctx.fillText('WAVE '+(challCollapse.waveNum||challengeKills+1),12,py+44);
+  } else {
+    ctx.fillStyle='#fff';ctx.font='bold 22px monospace';ctx.textAlign='left';
+    ctx.fillText(score,12,py+30);
+    ctx.fillStyle='#ffd70088';ctx.font='10px monospace';
+    ctx.fillText('HI: '+highScore,12,py+44);
+  }
 
   // Active item effect bars (right of score/hi-score)
   const activeItems=[];
@@ -3132,7 +3140,7 @@ function drawPause(){
   ctx.fillText('\u4E00\u6642\u505C\u6B62',W/2,H*0.28);ctx.shadowBlur=0;
   ctx.fillStyle='#fff5';ctx.font='13px monospace';
   if(isChallengeMode){
-    ctx.fillText('\u64C3\u7834: '+challengeKills+'  \u30D5\u30A7\u30FC\u30BA: '+(challengePhase+1),W/2,H*0.33);
+    ctx.fillText('\u64C3\u7834: '+challengeKills,W/2,H*0.33);
   } else {
     ctx.fillText('\u30B9\u30B3\u30A2: '+score,W/2,H*0.33);
   }
@@ -4274,58 +4282,39 @@ function drawChallCollapse(){
   }
 
   if(cc.phase==='fall'){
-    // Fade to black over first 20 frames, stay black, then fade in from frame 50
+    // Fade to black over first 15 frames, stay black longer, then fade in from frame 80
     let blackA;
-    if(cc.timer<20) blackA=cc.timer/20; // fade to black
-    else if(cc.timer<50) blackA=1; // fully black
-    else blackA=Math.max(0,1-(cc.timer-50)/30); // fade in
+    if(cc.timer<15) blackA=cc.timer/15; // fade to black quickly
+    else if(cc.timer<80) blackA=1; // extended blackout
+    else blackA=Math.max(0,1-(cc.timer-80)/30); // fade in
     ctx.fillStyle=`rgba(0,0,0,${blackA})`;ctx.fillRect(-20,-20,W+40,H+40);
-    // Show floor text during blackout
-    if(cc.timer>=20&&cc.timer<60){
-      const txtA=cc.timer<30?((cc.timer-20)/10):cc.timer>50?Math.max(0,1-(cc.timer-50)/10):1;
-      ctx.globalAlpha=txtA;
-      ctx.fillStyle='#ff3860';ctx.font='bold 20px monospace';ctx.textAlign='center';
-      ctx.shadowColor='#ff386066';ctx.shadowBlur=15;
-      ctx.fillText('B'+cc.waveNum+'F',W/2,H*0.45);
-      ctx.shadowBlur=0;ctx.globalAlpha=1;
-    }
+    // No floor number display (removed B1F etc.)
   }
 
   if(cc.phase==='land'){
-    // Wave number display (fade in then out)
+    // Wave number display only (fade in then out)
     const landA=Math.min(1,cc.timer/15);
     const outA=cc.timer>50?Math.max(0,1-(cc.timer-50)/20):1;
     ctx.save();
     ctx.globalAlpha=landA*outA;
     ctx.translate(W/2,H*0.35);
     ctx.fillStyle='rgba(0,0,0,0.5)';
-    rr(-100,-30,200,60,10);ctx.fill();
+    rr(-100,-25,200,50,10);ctx.fill();
     ctx.fillStyle='#ffd700';ctx.font='bold 28px monospace';ctx.textAlign='center';
     ctx.shadowColor='#ffd70066';ctx.shadowBlur=20;
     ctx.fillText('WAVE '+cc.waveNum,0,10);
     ctx.shadowBlur=0;
-    ctx.fillStyle='#fff8';ctx.font='bold 12px monospace';
-    ctx.fillText('撃破: '+challengeKills+'  フェーズ: '+(challengePhase+1),0,30);
     ctx.restore();ctx.globalAlpha=1;
   }
 
-  // Rumble phase: crack overlay
+  // Rumble phase: crack overlay (no warning text)
   if(cc.phase==='rumble'){
-    // Red warning vignette
+    // Red warning vignette only
     const vigA=Math.sin(cc.timer*0.15)*0.1+0.1;
     const grad=ctx.createRadialGradient(W/2,H/2,W*0.2,W/2,H/2,W*0.8);
     grad.addColorStop(0,'rgba(0,0,0,0)');
     grad.addColorStop(1,`rgba(100,20,20,${vigA})`);
     ctx.fillStyle=grad;ctx.fillRect(-20,-20,W+40,H+40);
-    // Warning text
-    if(cc.timer>30){
-      const warnA=Math.sin(cc.timer*0.2)*0.3+0.7;
-      ctx.globalAlpha=warnA;
-      ctx.fillStyle='#ff4444';ctx.font='bold 16px monospace';ctx.textAlign='center';
-      ctx.shadowColor='#ff000066';ctx.shadowBlur=10;
-      ctx.fillText('WARNING: 床が崩壊します',W/2,H*0.3);
-      ctx.shadowBlur=0;ctx.globalAlpha=1;
-    }
   }
 }
 

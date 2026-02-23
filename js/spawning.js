@@ -70,6 +70,7 @@ function trySpawnCoins(){
 function trySpawnItem(){
   if(itemCD>0){itemCD--;return;}
   if(isPackMode)return; // no items in stage mode
+  if(isChallengeMode)return; // no items in challenge mode
   if(score<5)return;
   if(bossPhase.active)return;
   const plat=findEdgeSpawnPlat();

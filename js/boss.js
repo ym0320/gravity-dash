@@ -38,150 +38,134 @@ function spawnBossEnemies(){
   bossPhase.dodgeIdx=0;
   bossPhase.dodgeKills=0;
   // Phase system: every 5 fights, phase escalates
-  // bc 1-5: phase 1, bc 6-10: phase 2, bc 11-15: phase 3
-  // bc 16-20: dual phase 1, bc 21-25: dual phase 2, bc 26-30: dual phase 3
-  // then repeats (bc 31-35: dual phase 1, ...)
-  const cyclePos=(bc-1)%15; // 0-14 within a 15-fight cycle
-  const bigCycle=Math.floor((bc-1)/15); // 0=solo, 1+=dual
-  const phaseLevel=Math.floor(cyclePos/5)+1; // 1, 2, or 3
-  const isDual=bigCycle>=1; // 2nd cycle onwards = dual bosses
-  // Effective bc for stat scaling based on phase level
+  const cyclePos=(bc-1)%15;
+  const bigCycle=Math.floor((bc-1)/15);
+  const phaseLevel=Math.floor(cyclePos/5)+1;
+  const isDual=bigCycle>=1;
   const effectiveBc=phaseLevel===1?1:phaseLevel===2?6:11;
-  // Randomly choose boss type
-  let bossType;
-  if(isChallengeMode){
-    // Challenge mode: 3 boss types + dodge randomly
-    const roll=Math.random();
-    if(roll<0.25) bossType='wizard';
-    else if(roll<0.50) bossType='bruiser';
-    else if(roll<0.75) bossType='guardian';
-    else bossType='dodge';
-  } else if(isPackMode&&currentPackStage&&currentPackStage.boss){
-    // Stage mode X-5: pick bruiser or guardian (2 of same type will spawn)
-    bossType=Math.random()<0.5?'bruiser':'guardian';
-  } else {
-    const roll=Math.random();
-    if(roll<0.25) bossType='wizard';
-    else if(roll<0.50) bossType='bruiser';
-    else if(roll<0.75) bossType='guardian';
-    else bossType='dodge';
+  // Pre-calculate sizes for all boss types (needed for mixed dual)
+  const bsz=(30+Math.min(effectiveBc-1,6)*2)*2;
+  const gsz=(28+Math.min(effectiveBc-1,6)*2)*2;
+  const wsz=24+Math.min(effectiveBc-1,8)*1.5;
+  // Boss creation helpers
+  function makeBruiser(bx,by,bgd,offsetFr){
+    return {
+      x:bx,y:by,vy:0,gDir:bgd,sz:bsz,alive:true,fr:offsetFr,
+      type:11,shootT:999,boss:true,bossType:'bruiser',
+      hp:3,maxHp:3,
+      chargeVx:-(3.5+Math.min(effectiveBc-1,12)*0.3),retreatVx:2.5+Math.min(effectiveBc-1,10)*0.15,
+      state:'enter',
+      timer:0,stunT:0,hurtFlash:0,invT:0,feinted:false,
+      flipEnabled:true,
+      patrolDir:bgd,patrolOriginX:bgd===1?W*0.6:W*0.5,patrolRange:0
+    };
   }
-  bossPhase.bossType=bossType;
-  if(bossType==='dodge'){
-    // Dodge type: enemies rush from RIGHT, player dodges/stomps
+  function makeGuardian(gx,gy,gd,offsetFr){
+    return {
+      x:gx,y:gy,vy:0,gDir:gd,sz:gsz,alive:true,fr:offsetFr,
+      type:13,shootT:999,boss:true,bossType:'guardian',
+      hp:3,maxHp:3,
+      chargeSpd:4.0+Math.min(effectiveBc-1,12)*0.3,
+      retreatSpd:4+Math.min(effectiveBc-1,10)*0.25,
+      state:'enter',
+      timer:0,stunT:0,hurtFlash:0,invT:0,
+      jumpVy:0,
+      bigJumpBase:10+Math.min(effectiveBc-1,10)*0.6,
+      bigJumpVariance:3+Math.min(effectiveBc-1,8)*0.4,
+      jumpPrepBase:Math.max(2,12-Math.min(effectiveBc-1,8)*1.2),
+      jumpPrepVariance:Math.max(2,10-Math.min(effectiveBc-1,8)*1.0),
+      onCeiling:gd===-1,
+      flipEnabled:true,
+      quakeStunDuration:50+Math.min(effectiveBc-1,8)*6,
+      quakeDuration:25+Math.min(effectiveBc-1,6)*2,
+      quakeT:0,
+      feintEnabled:false,feintCount:0,feintsDone:0,feintCooldown:0,
+      swordSwingT:0,
+      swordDuration:25+Math.min(effectiveBc-1,8)*2,
+      swordReach:gsz*(1.2+Math.min(effectiveBc-1,8)*0.05),
+      stunDuration:Math.max(25,55-Math.min(effectiveBc-1,8)*3.5),
+      jumpCount:0
+    };
+  }
+  function makeWizard(wx,wy,offsetFr){
+    return {
+      x:wx,y:wy,vy:0,gDir:1,sz:wsz,alive:true,fr:offsetFr,
+      type:12,shootT:999,boss:true,bossType:'wizard',
+      hp:1,maxHp:1,
+      state:'enter',timer:0,hurtFlash:0,invT:0,
+      castT:0,castType:0,
+      teleportT:0,teleportTarget:{x:0,y:0},
+      alpha:1,
+      rushDir:1,rushT:0,rushReady:false,rushTargetX:0,rushTargetY:0,
+      homeX:W*0.65,homeY:H*0.35+Math.random()*(H*0.3)
+    };
+  }
+  function addDodgeQueue(delayOffset){
     const dodgeCount=10+Math.min(Math.floor((effectiveBc-1)/3),4);
     const baseSpd=2.2+(phaseLevel>=2?Math.min(phaseLevel-1,10)*0.15:0);
+    const baseInterval=Math.max(3,12-Math.min(effectiveBc-1,8));
     for(let i=0;i<dodgeCount;i++){
       const spd=baseSpd+Math.random()*(0.9+Math.min(effectiveBc-1,8)*0.08);
       const onFloor=Math.random()<0.5;
       const gDir=onFloor?1:-1;
       const diagStrength=phaseLevel>=2?(0.7+Math.min(phaseLevel-1,8)*0.15):0;
       const sz=PLAYER_R*5;
-      const baseInterval=Math.max(3,12-Math.min(effectiveBc-1,8));
       bossPhase.dodgeQueue.push({
         x:W+80+i*10,y:onFloor?floorY-sz:ceilY+sz,vy:0,gDir:gDir,sz:sz,alive:true,fr:Math.random()*100,
         type:10,shootT:999,boss:true,bossType:'dodge',
-        chargeVx:-spd,
-        diagStrength:diagStrength,
-        chargeState:'wait',
-        rushDelay:10+i*baseInterval+Math.floor(Math.random()*4),
-        timer:0,
-        missCount:0
+        chargeVx:-spd,diagStrength:diagStrength,chargeState:'wait',
+        rushDelay:(delayOffset||0)+10+i*baseInterval+Math.floor(Math.random()*4),
+        timer:0,missCount:0
       });
     }
-    bossPhase.total=dodgeCount;
-    bossPhase.dodgeKills=0;
-  } else if(bossType==='bruiser'){
-    // Bruiser type
-    const bsz=(30+Math.min(effectiveBc-1,6)*2)*2;
-    const packBoss=isPackMode&&currentPackStage&&currentPackStage.boss;
-    const bruiserHP=packBoss?3:(3+Math.min(Math.floor((effectiveBc-1)/4),2));
-    function makeBruiser(bx,by,bgd,offsetFr){
-      return {
-        x:bx,y:by,vy:0,gDir:bgd,sz:bsz,alive:true,fr:offsetFr,
-        type:11,shootT:999,boss:true,bossType:'bruiser',
-        hp:bruiserHP, maxHp:bruiserHP,
-        chargeVx:-(3.5+Math.min(effectiveBc-1,12)*0.3), retreatVx:2.5+Math.min(effectiveBc-1,10)*0.15,
-        state:'enter',
-        timer:0, stunT:0, hurtFlash:0, invT:0, feinted:false,
-        flipEnabled:true,
-        patrolDir:bgd,patrolOriginX:bgd===1?W*0.6:W*0.5,patrolRange:0
-      };
+    return dodgeCount;
+  }
+  // Helper: spawn a boss of given type on given side
+  function spawnBoss(type,gDir,xOff,frOff){
+    if(type==='dodge'){
+      return addDodgeQueue(frOff||0);
+    } else if(type==='bruiser'){
+      const b=makeBruiser(W+80+(xOff||0),gDir===1?floorY-bsz:ceilY+bsz,gDir,frOff||0);
+      if(!bossPhase.bruiser)bossPhase.bruiser=b;
+      bossPhase.enemies.push(b);
+      return 1;
+    } else if(type==='guardian'){
+      const g=makeGuardian(W+90+(xOff||0),gDir===1?floorY-gsz:ceilY+gsz,gDir,frOff||0);
+      if(!bossPhase.guardian)bossPhase.guardian=g;
+      bossPhase.enemies.push(g);
+      return 1;
+    } else {
+      const w=makeWizard(W+60+(xOff||0),gDir===1?(H*0.6+Math.random()*H*0.15):(H*0.25+Math.random()*H*0.15),frOff||0);
+      if(!bossPhase.wizard)bossPhase.wizard=w;
+      bossPhase.enemies.push(w);
+      return 1;
     }
-    const bruiser=makeBruiser(W+80,floorY-bsz,1,0);
-    bossPhase.bruiser=bruiser;
-    bossPhase.total=1;
-    // Dual mode or Stage X-5: spawn 2nd bruiser on ceiling
-    if(isDual||packBoss){
-      const bruiser2=makeBruiser(W+120,ceilY+bsz,-1,50);
-      bossPhase.enemies.push(bruiser2);
-      bossPhase.total=2;
-    }
-  } else if(bossType==='guardian'){
-    // Guardian type: armored knight
-    const packBoss2=isPackMode&&currentPackStage&&currentPackStage.boss;
-    const gsz=(28+Math.min(effectiveBc-1,6)*2)*2;
-    const guardianHP=packBoss2?3:(3+Math.min(Math.floor((effectiveBc-1)/4),2));
-    function makeGuardian(gx,gy,gd,offsetFr){
-      return {
-        x:gx,y:gy,vy:0,gDir:gd,sz:gsz,alive:true,fr:offsetFr,
-        type:13,shootT:999,boss:true,bossType:'guardian',
-        hp:guardianHP,maxHp:guardianHP,
-        chargeSpd:4.0+Math.min(effectiveBc-1,12)*0.3,
-        retreatSpd:4+Math.min(effectiveBc-1,10)*0.25,
-        state:'enter',
-        timer:0,stunT:0,hurtFlash:0,invT:0,
-        jumpVy:0,
-        bigJumpBase:10+Math.min(effectiveBc-1,10)*0.6,
-        bigJumpVariance:3+Math.min(effectiveBc-1,8)*0.4,
-        jumpPrepBase:Math.max(2,12-Math.min(effectiveBc-1,8)*1.2),
-        jumpPrepVariance:Math.max(2,10-Math.min(effectiveBc-1,8)*1.0),
-        onCeiling:gd===-1,
-        flipEnabled:true,
-        quakeStunDuration:50+Math.min(effectiveBc-1,8)*6,
-        quakeDuration:25+Math.min(effectiveBc-1,6)*2,
-        quakeT:0,
-        feintEnabled:false,feintCount:0,feintsDone:0,feintCooldown:0,
-        swordSwingT:0,
-        swordDuration:25+Math.min(effectiveBc-1,8)*2,
-        swordReach:gsz*(1.2+Math.min(effectiveBc-1,8)*0.05),
-        stunDuration:Math.max(25,55-Math.min(effectiveBc-1,8)*3.5),
-        jumpCount:0
-      };
-    }
-    const guardian=makeGuardian(W+90,floorY-gsz,1,0);
-    bossPhase.guardian=guardian;
-    bossPhase.total=1;
-    // Dual mode or Stage X-5: spawn 2nd guardian on ceiling
-    if(isDual||packBoss2){
-      const guardian2=makeGuardian(W+130,ceilY+gsz,-1,40);
-      bossPhase.enemies.push(guardian2);
-      bossPhase.total=2;
-    }
+  }
+  // Pick boss type(s)
+  const allTypes=['wizard','bruiser','guardian','dodge'];
+  function pickType(){return allTypes[Math.floor(Math.random()*4)];}
+  let bossType;
+  if(isChallengeMode){
+    bossType=pickType();
+  } else if(isPackMode&&currentPackStage&&currentPackStage.boss){
+    bossType=Math.random()<0.5?'bruiser':'guardian';
   } else {
-    // Wizard type: floats in air, dashes toward player then returns, shoots patterns
-    const wsz=24+Math.min(effectiveBc-1,8)*1.5;
-    function makeWizard(wx,wy,offsetFr){
-      return {
-        x:wx,y:wy,vy:0,gDir:1,sz:wsz,alive:true,fr:offsetFr,
-        type:12,shootT:999,boss:true,bossType:'wizard',
-        hp:1,maxHp:1,
-        state:'enter',timer:0,hurtFlash:0,invT:0,
-        castT:0,castType:0,
-        teleportT:0,teleportTarget:{x:0,y:0},
-        alpha:1,
-        rushDir:1,rushT:0,rushReady:false,rushTargetX:0,rushTargetY:0,
-        homeX:W*0.65,homeY:H*0.35+Math.random()*(H*0.3)
-      };
-    }
-    const wizard=makeWizard(W+60,H/2,0);
-    bossPhase.wizard=wizard;
-    bossPhase.total=1;
-    // Dual mode: spawn 2nd wizard
-    if(isDual){
-      const wizard2=makeWizard(W+100,H*0.3+Math.random()*(H*0.4),50);
-      bossPhase.enemies.push(wizard2);
-      bossPhase.total=2;
+    bossType=pickType();
+  }
+  bossPhase.bossType=bossType;
+  // Spawn primary boss (floor side)
+  bossPhase.total=spawnBoss(bossType,1,0,0);
+  bossPhase.dodgeKills=0;
+  // Dual boss spawning
+  const packBoss=isPackMode&&currentPackStage&&currentPackStage.boss;
+  if(isChallengeMode&&isDual){
+    // Challenge mode: mixed dual - pick second type independently (all combos)
+    const type2=pickType();
+    bossPhase.total+=spawnBoss(type2,-1,40,50);
+  } else if(isDual||packBoss){
+    // Endless/Stage mode: second boss same type on ceiling
+    if(bossType!=='dodge'){
+      bossPhase.total+=spawnBoss(bossType,-1,40,50);
     }
   }
 }
@@ -810,7 +794,8 @@ function updateBossPhase(){
   const bruiserDone=bossPhase.enemies.filter(e=>e.bossType==='bruiser'&&e.alive).length===0;
   const wizardDone=bossPhase.enemies.filter(e=>e.bossType==='wizard'&&e.alive).length===0;
   const guardianDone=bossPhase.enemies.filter(e=>e.bossType==='guardian'&&e.alive).length===0;
-  const dodgeDone=bossPhase.bossType!=='dodge'||(bossPhase.dodgeIdx>=bossPhase.dodgeQueue.length&&
+  const hasDodge=bossPhase.dodgeQueue.length>0;
+  const dodgeDone=!hasDodge||(bossPhase.dodgeIdx>=bossPhase.dodgeQueue.length&&
     enemies.filter(e=>e.bossType==='dodge'&&e.alive).length===0);
   const allDone=dodgeDone&&bruiserDone&&wizardDone&&guardianDone;
   if(allDone&&bossPhase.enemies.length>0&&!bossPhase.reward){
@@ -825,8 +810,8 @@ function updateBossPhase(){
     } else {
       addPop(W/2,H*0.3,'BOSS DEFEATED!','#ffd700');
     }
-    // No-damage bonus: earn stockable invincibility
-    if(bossPhase.noDamage){invCount++;addPop(W/2,H*0.55,'\u7121\u6575+1! (No Damage!)','#ff00ff');}
+    // No-damage bonus: earn stockable invincibility (not in challenge mode)
+    if(bossPhase.noDamage&&!isChallengeMode){invCount++;addPop(W/2,H*0.55,'\u7121\u6575+1! (No Damage!)','#ff00ff');}
     if(hp<maxHp()){hp++;addPop(player.x,player.y-40,'HP +1','#ff3860');}
     const bonus=30+bossPhase.total*5;
     walletCoins+=bonus;localStorage.setItem('gd5wallet',walletCoins.toString());
