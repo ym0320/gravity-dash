@@ -344,8 +344,7 @@ function updateBossPhase(){
       const hw=b.sz*0.65;
       const bL=b.x-hw,bR=b.x+hw;
       const headEdge=b.y-b.sz*0.75*b.gDir;
-      // Extend feet hitbox to full body size so it reaches the floor/ceiling surface
-      const feetEdge=b.y+b.sz*b.gDir;
+      const feetEdge=b.y+b.sz*0.5*b.gDir;
       const minY=Math.min(headEdge,feetEdge),maxY=Math.max(headEdge,feetEdge);
       const pL=player.x-pr,pR=player.x+pr;
       const pT=player.y-pr,pB=player.y+pr;
