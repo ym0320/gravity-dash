@@ -212,7 +212,7 @@ function resetPackStage(pi,si){
   gravRushPhase={active:false,len:0,cd:0};
   terrainGimmickPhase={active:false,type:'',len:0,cd:0};
   bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:99999,lastBossScore:0,lastBossRawDist:0,bossCount:0};
-  hp=HP_MAX+(ct().hpBonus||0);hurtT=0;
+  hp=1;hurtT=0; // Stage mode: always 1 HP (one-hit death)
   curTheme=0;prevTheme=0;themeLerp=1;
   bossChests=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null};
 }
@@ -223,13 +223,13 @@ function generatePackPlatform(arr,isCeil,stage){
   const rng=stageRng;if(!rng)return;
   let gap=0;
   const gc=stage.gapChance||0.12;
-  if(rng()<gc){gap=10+rng()*40;}
+  if(rng()<gc){gap=20+rng()*60;} // wider gaps (was 10+rng()*40)
   let h=lastH;
   const hc=stage.hillChance||0.08;
   if(rng()<hc){
-    const dh=(rng()<0.5?1:-1)*(3+rng()*20);
-    h=Math.max(65+safeBot,Math.min(H*0.32,h+dh));
+    const dh=(rng()<0.5?1:-1)*(8+rng()*35); // bigger height variation (was 3+rng()*20)
+    h=Math.max(65+safeBot,Math.min(H*0.38,h+dh));
   }
-  const w=100+rng()*180;
+  const w=70+rng()*140; // shorter platforms (was 100+rng()*180)
   arr.push({x:lastRight+gap,w:w,h:h});
 }
