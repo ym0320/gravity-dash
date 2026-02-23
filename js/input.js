@@ -283,7 +283,10 @@ function continueFromDeath(){
   sfx('countdown');
 }
 function startPackStageFromDead(){
-  state=ST.PLAY;resetPackStage(currentPackIdx,currentPackStageIdx);switchBGM('play');
+  // If checkpoint was reached in this run (or saved), restart from checkpoint
+  const sid=currentPackStage?currentPackStage.id:'';
+  const hasCp=checkpointReached||stageCheckpoints[sid];
+  state=ST.PLAY;resetPackStage(currentPackIdx,currentPackStageIdx,hasCp);switchBGM('play');
 }
 
 // Update info modal touch handler
@@ -562,7 +565,9 @@ function restartFromPause(){
   sfx('select');
   if(isChallengeMode){startChallenge();return;}
   if(isPackMode){
-    state=ST.PLAY;resetPackStage(currentPackIdx,currentPackStageIdx);switchBGM('play');
+    const sid2=currentPackStage?currentPackStage.id:'';
+    const hasCp2=checkpointReached||stageCheckpoints[sid2];
+    state=ST.PLAY;resetPackStage(currentPackIdx,currentPackStageIdx,hasCp2);switchBGM('play');
   } else {
     bossRetry=null;isRetryGame=false;
     reset();

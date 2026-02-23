@@ -717,51 +717,29 @@ function drawIcicles(){
     ctx.save();
     ctx.globalAlpha=(ic.alpha||1);
     // Warning shake before falling
-    if(ic.state==='wait'&&ic.warnT>10){
-      const shk=Math.sin(ic.warnT*1.2)*(1+ic.warnT*0.06);
+    if(ic.state==='hang'&&ic.warnT>10){
+      const shk=Math.sin(ic.warnT*1.5)*(1+ic.warnT*0.08);
       ctx.translate(shk,0);
     }
     const cx=ic.x+ic.w/2;
-    if(!ic.isFloor){
-      // Ceiling icicle (stalactite) - hangs from baseY, tip points down
-      const tipY=ic.state==='wait'?ic.baseY+ic.h*0.3:ic.y;
-      // Icicle body: tapered triangle
-      const gr=ctx.createLinearGradient(cx,ic.baseY,cx,tipY);
-      gr.addColorStop(0,'rgba(180,220,255,0.9)');gr.addColorStop(0.5,'rgba(140,200,255,0.85)');gr.addColorStop(1,'rgba(200,240,255,0.6)');
-      ctx.fillStyle=gr;
-      ctx.beginPath();
-      ctx.moveTo(ic.x,ic.baseY);
-      ctx.lineTo(cx,tipY);
-      ctx.lineTo(ic.x+ic.w,ic.baseY);
-      ctx.closePath();ctx.fill();
-      // Highlight edge
-      ctx.strokeStyle='rgba(220,240,255,0.7)';ctx.lineWidth=1.5;
-      ctx.beginPath();ctx.moveTo(ic.x+ic.w*0.3,ic.baseY);ctx.lineTo(cx,tipY);ctx.stroke();
-      // Frost glow
-      ctx.shadowColor='#88ccff';ctx.shadowBlur=6;
-      ctx.strokeStyle='rgba(136,204,255,0.4)';ctx.lineWidth=1;
-      ctx.beginPath();ctx.moveTo(ic.x,ic.baseY);ctx.lineTo(cx,tipY);ctx.lineTo(ic.x+ic.w,ic.baseY);ctx.stroke();
-      ctx.shadowBlur=0;
-    } else {
-      // Floor icicle (stalagmite) - rises from baseY, tip points up
-      const tipY=ic.state==='wait'?ic.baseY-ic.h*0.3:ic.y;
-      const gr=ctx.createLinearGradient(cx,ic.baseY,cx,tipY);
-      gr.addColorStop(0,'rgba(180,220,255,0.9)');gr.addColorStop(0.5,'rgba(140,200,255,0.85)');gr.addColorStop(1,'rgba(200,240,255,0.6)');
-      ctx.fillStyle=gr;
-      ctx.beginPath();
-      ctx.moveTo(ic.x,ic.baseY);
-      ctx.lineTo(cx,tipY);
-      ctx.lineTo(ic.x+ic.w,ic.baseY);
-      ctx.closePath();ctx.fill();
-      // Highlight edge
-      ctx.strokeStyle='rgba(220,240,255,0.7)';ctx.lineWidth=1.5;
-      ctx.beginPath();ctx.moveTo(ic.x+ic.w*0.3,ic.baseY);ctx.lineTo(cx,tipY);ctx.stroke();
-      // Frost glow
-      ctx.shadowColor='#88ccff';ctx.shadowBlur=6;
-      ctx.strokeStyle='rgba(136,204,255,0.4)';ctx.lineWidth=1;
-      ctx.beginPath();ctx.moveTo(ic.x,ic.baseY);ctx.lineTo(cx,tipY);ctx.lineTo(ic.x+ic.w,ic.baseY);ctx.stroke();
-      ctx.shadowBlur=0;
-    }
+    const tipY=ic.tipY;
+    // Icicle body: tapered triangle from ceiling
+    const gr=ctx.createLinearGradient(cx,ic.baseY,cx,tipY);
+    gr.addColorStop(0,'rgba(180,220,255,0.9)');gr.addColorStop(0.5,'rgba(140,200,255,0.85)');gr.addColorStop(1,'rgba(200,240,255,0.6)');
+    ctx.fillStyle=gr;
+    ctx.beginPath();
+    ctx.moveTo(ic.x,ic.baseY);
+    ctx.lineTo(cx,tipY);
+    ctx.lineTo(ic.x+ic.w,ic.baseY);
+    ctx.closePath();ctx.fill();
+    // Highlight edge
+    ctx.strokeStyle='rgba(220,240,255,0.7)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(ic.x+ic.w*0.3,ic.baseY);ctx.lineTo(cx,tipY);ctx.stroke();
+    // Frost glow
+    ctx.shadowColor='#88ccff';ctx.shadowBlur=6;
+    ctx.strokeStyle='rgba(136,204,255,0.4)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(ic.x,ic.baseY);ctx.lineTo(cx,tipY);ctx.lineTo(ic.x+ic.w,ic.baseY);ctx.stroke();
+    ctx.shadowBlur=0;
     ctx.restore();
   });
 }
@@ -853,6 +831,55 @@ function draw(){
         ctx.beginPath();ctx.moveTo(markScreenX+cr,markY-cr);ctx.lineTo(markScreenX-cr,markY+cr);ctx.stroke();
         ctx.restore();
       }
+    }
+  }
+
+  // Pack mode: draw checkpoint flag at midpoint (500m)
+  if(isPackMode&&currentPackStage&&!checkpointFlag.collected){
+    const cpDist=currentPackStage.dist*0.5;
+    const cpScreenX=player.x+(cpDist-dist)/(speed*0.08)*speed;
+    if(cpScreenX>-60&&cpScreenX<W+200){
+      const cpSurf=floorSurfaceY(cpScreenX);
+      const flagBase=cpSurf;
+      const poleH=80;
+      const flagW=30,flagH=22;
+      const wave=Math.sin(frame*0.08)*2;
+      ctx.save();
+      // Flag pole
+      ctx.strokeStyle='#ccc';ctx.lineWidth=2;ctx.shadowColor='#34d399';ctx.shadowBlur=6;
+      ctx.beginPath();ctx.moveTo(cpScreenX,flagBase);ctx.lineTo(cpScreenX,flagBase-poleH);ctx.stroke();
+      // Flag cloth (green, waving)
+      const fTop=flagBase-poleH;
+      ctx.fillStyle='#34d399';ctx.beginPath();
+      ctx.moveTo(cpScreenX,fTop);
+      ctx.quadraticCurveTo(cpScreenX+flagW*0.5,fTop+flagH*0.3+wave,cpScreenX+flagW,fTop+flagH*0.5+wave*0.5);
+      ctx.lineTo(cpScreenX,fTop+flagH);
+      ctx.closePath();ctx.fill();
+      // Checkmark on flag
+      ctx.shadowBlur=0;ctx.fillStyle='#fff';ctx.font='bold 11px monospace';ctx.textAlign='center';
+      ctx.fillText('\u2713',cpScreenX+flagW*0.4,fTop+flagH*0.6+wave*0.3);
+      // Label
+      ctx.fillStyle='#34d399';ctx.font='bold 10px monospace';
+      const lp=0.6+Math.sin(frame*0.1)*0.4;
+      ctx.globalAlpha=lp;
+      ctx.fillText('CHECK',cpScreenX,flagBase-poleH-10);
+      ctx.globalAlpha=1;
+      // Pole base
+      ctx.fillStyle='#34d399';ctx.beginPath();ctx.arc(cpScreenX,flagBase,4,0,6.28);ctx.fill();
+      ctx.restore();
+    }
+  }
+  // Pack mode: draw collected checkpoint flag indicator
+  if(isPackMode&&currentPackStage&&checkpointFlag.collected){
+    const cpDist=currentPackStage.dist*0.5;
+    const cpScreenX=player.x+(cpDist-dist)/(speed*0.08)*speed;
+    if(cpScreenX>-60&&cpScreenX<W+200){
+      const cpSurf=floorSurfaceY(cpScreenX);
+      // Dimmed pole remains
+      ctx.save();ctx.globalAlpha=0.3;
+      ctx.strokeStyle='#aaa';ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(cpScreenX,cpSurf);ctx.lineTo(cpScreenX,cpSurf-80);ctx.stroke();
+      ctx.restore();
     }
   }
 
@@ -1033,12 +1060,12 @@ function draw(){
       ctx.shadowBlur=0;ctx.restore();
     }
   }
-  // Bottom action panel
+  ctx.restore();
+  // === Draw UI and overlays OUTSIDE shake translate (fixed position) ===
+  // Bottom action panel (must be outside shake so it doesn't jitter with gravity/impacts)
   if(state===ST.PLAY){
     drawActionPanel();
   }
-  ctx.restore();
-  // === Draw UI and overlays OUTSIDE shake translate (fixed position) ===
   drawUI();
   // Challenge floor collapse overlay
   if(isChallengeMode&&challCollapse.active){
@@ -2022,23 +2049,47 @@ function drawUI(){
     drawHeart(hx+14,hpY,28,i<hp);
   }
 
-  // === TOP: Pack mode stage info (below HP) ===
+  // === TOP: Pack mode progress bar with character icon ===
   if(isPackMode&&currentPackStage){
     const packTop=hpY+22;
     const prog=Math.min(1,dist/currentPackStage.dist);
-    ctx.fillStyle='#ffffff15';ctx.fillRect(0,2,W,4);
-    ctx.fillStyle=tc('ply');ctx.shadowColor=tc('ply');ctx.shadowBlur=6;ctx.fillRect(0,2,W*prog,4);ctx.shadowBlur=0;
+    const barX=24,barY=packTop,barW=W-48,barH=8;
+    // Bar background
+    ctx.fillStyle='#ffffff15';rr(barX,barY,barW,barH,4);ctx.fill();
+    // Bar fill (gradient)
+    const barGr=ctx.createLinearGradient(barX,barY,barX+barW*prog,barY);
+    barGr.addColorStop(0,tc('ply'));barGr.addColorStop(1,'#ffd700');
+    ctx.fillStyle=barGr;ctx.shadowColor=tc('ply');ctx.shadowBlur=4;
+    rr(barX,barY,Math.max(2,barW*prog),barH,4);ctx.fill();ctx.shadowBlur=0;
+    // Checkpoint flag at 50%
+    const cpX=barX+barW*0.5;
+    const cpCollected=checkpointReached||checkpointFlag.collected;
+    ctx.fillStyle=cpCollected?'#34d399':'#ffffff44';
+    ctx.font='bold 12px monospace';ctx.textAlign='center';
+    ctx.fillText('\u2691',cpX,barY-2); // flag icon
+    // Small tick mark at 50%
+    ctx.fillStyle=cpCollected?'#34d399':'#ffffff33';
+    ctx.fillRect(cpX-0.5,barY,1,barH);
+    // Goal flag at end
+    ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';ctx.textAlign='center';
+    ctx.fillText('\u2691',barX+barW+6,barY-2);
+    // Character icon moving along bar
+    const charIconX=barX+barW*prog;
+    const charIconY=barY+barH+10;
+    drawCharacter(charIconX,charIconY,selChar,8,player.rot,1,player.face,0,true);
+    // Stage name + distance below bar
+    const infoY=barY+barH+22;
     const pname=STAGE_PACKS[currentPackIdx].name+' '+currentPackStage.name;
-    ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='left';
-    ctx.fillText(pname,10,packTop);
-    ctx.fillStyle='#fff8';ctx.font='11px monospace';
-    ctx.fillText(Math.floor(dist)+'m / '+currentPackStage.dist+'m',10,packTop+16);
-    // Stars collected indicator
+    ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';ctx.textAlign='left';
+    ctx.fillText(pname,10,infoY);
+    ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.textAlign='right';
+    ctx.fillText(Math.floor(dist)+'m / '+currentPackStage.dist+'m',W-10,infoY);
+    // Stars collected (compact, next to stage name)
     ctx.textAlign='left';
     for(let i=0;i<3;i++){
       const collected=i<stageBigCollected;
-      ctx.fillStyle=collected?'#ffd700':'#ffffff22';ctx.font='bold 16px monospace';
-      ctx.fillText('\u2605',10+i*20,packTop+34);
+      ctx.fillStyle=collected?'#ffd700':'#ffffff22';ctx.font='bold 12px monospace';
+      ctx.fillText('\u2605',10+i*16,infoY+14);
     }
   }
 
@@ -2112,14 +2163,15 @@ function drawActionPanel(){
     drawItemBtn(btnStartX+btnSz+btnGap,bombCount>0,'#ff4400','\uD83D\uDCA3',bombCount);
   }
 
-  // Score display in panel (left side)
+  // Score display in panel (left side) — hidden in pack/stage mode
   if(isChallengeMode){
     // Challenge mode: show consecutive kill count
     ctx.fillStyle='#ffd700';ctx.font='bold 22px monospace';ctx.textAlign='left';
     ctx.fillText('\u64C3\u7834 '+challengeKills,12,py+30);
     ctx.fillStyle='#fff5';ctx.font='10px monospace';
     ctx.fillText('WAVE '+(challCollapse.waveNum||challengeKills+1),12,py+44);
-  } else {
+  } else if(!isPackMode){
+    // Endless mode only: show score and hi-score
     ctx.fillStyle='#fff';ctx.font='bold 22px monospace';ctx.textAlign='left';
     ctx.fillText(score,12,py+30);
     ctx.fillStyle='#ffd70088';ctx.font='10px monospace';
@@ -2158,13 +2210,15 @@ function drawActionPanel(){
     });
   }
 
-  // Speed and coin display (right of score, left of bomb button)
-  const infoX=W-btnSz-22;
-  ctx.fillStyle='#8899aa';ctx.font='11px monospace';ctx.textAlign='right';
-  ctx.fillText('\u901F\u5EA6 '+(speed/SPEED_INIT).toFixed(1),infoX,py+22);
-  ctx.fillStyle='#ffd700aa';
-  ctx.fillText('\u25CF '+totalCoins,infoX,py+38);
-  ctx.textAlign='left';
+  // Speed and coin display (right side of panel)
+  if(!isPackMode){
+    const infoX2=W-66;
+    ctx.fillStyle='#8899aa';ctx.font='11px monospace';ctx.textAlign='right';
+    ctx.fillText('\u901F\u5EA6 '+(speed/SPEED_INIT).toFixed(1),infoX2,py+22);
+    ctx.fillStyle='#ffd700aa';
+    ctx.fillText('\u25CF '+totalCoins,infoX2,py+38);
+    ctx.textAlign='left';
+  }
 }
 
 function drawMile(){
@@ -4468,9 +4522,64 @@ function drawStageSel(){
     ctx.fillStyle='#ffffff22';rr(W-6,60+safeTop,4,viewH,2);ctx.fill();
     ctx.fillStyle='#ffffff55';rr(W-6,barY,4,barH,2);ctx.fill();
   }
+  // Start choice modal overlay
+  if(showStartChoice){
+    ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,W,H);
+    const mw=Math.min(280,W-20),mh=180;
+    const mx=W/2-mw/2,my=H/2-mh/2;
+    ctx.fillStyle='#111828';rr(mx,my,mw,mh,14);ctx.fill();
+    ctx.strokeStyle='#34d399';ctx.lineWidth=2;rr(mx,my,mw,mh,14);ctx.stroke();
+    // Title
+    ctx.fillStyle='#fff';ctx.font='bold 16px monospace';ctx.textAlign='center';
+    ctx.fillText('どこから始めますか？',W/2,my+30);
+    // Button: はじめから
+    const btnW=mw-30,btnH=40;
+    const btn1X=mx+15,btn1Y=my+50;
+    ctx.fillStyle='#ffffff11';rr(btn1X,btn1Y,btnW,btnH,10);ctx.fill();
+    ctx.strokeStyle='#fff4';ctx.lineWidth=1;rr(btn1X,btn1Y,btnW,btnH,10);ctx.stroke();
+    ctx.fillStyle='#fff';ctx.font='bold 14px monospace';ctx.textAlign='center';
+    ctx.fillText('はじめから',W/2,btn1Y+26);
+    // Button: セーブポイントから
+    const btn2Y=my+100;
+    ctx.fillStyle='#34d39922';rr(btn1X,btn2Y,btnW,btnH,10);ctx.fill();
+    ctx.strokeStyle='#34d399';ctx.lineWidth=2;rr(btn1X,btn2Y,btnW,btnH,10);ctx.stroke();
+    ctx.fillStyle='#34d399';ctx.font='bold 14px monospace';
+    ctx.fillText('セーブポイントから',W/2,btn2Y+26);
+    // Hint
+    ctx.fillStyle='#fff4';ctx.font='10px monospace';
+    ctx.fillText('中間地点（50%）から再開',W/2,my+mh-10);
+  }
 }
 function handleStageSelTouch(tx,ty){
   if(stageSelGuardT>0)return; // ignore taps right after transitioning to stage select
+  // Start choice modal
+  if(showStartChoice){
+    const mw=Math.min(280,W-20),mh=180;
+    const mx=W/2-mw/2,my=H/2-mh/2;
+    const btnW=mw-30,btnH=40;
+    const btn1X=mx+15,btn1Y=my+50;
+    const btn2Y=my+100;
+    // "はじめから" button
+    if(tx>=btn1X&&tx<=btn1X+btnW&&ty>=btn1Y&&ty<=btn1Y+btnH){
+      showStartChoice=false;
+      gameMode='pack';isPackMode=true;
+      state=ST.PLAY;resetPackStage(pendingPackPi,pendingPackSi,false);switchBGM('play');
+      return;
+    }
+    // "セーブポイントから" button
+    if(tx>=btn1X&&tx<=btn1X+btnW&&ty>=btn2Y&&ty<=btn2Y+btnH){
+      showStartChoice=false;
+      gameMode='pack';isPackMode=true;
+      state=ST.PLAY;resetPackStage(pendingPackPi,pendingPackSi,true);switchBGM('play');
+      return;
+    }
+    // Tap outside modal = cancel
+    if(tx<mx||tx>mx+mw||ty<my||ty>my+mh){
+      showStartChoice=false;sfx('cancel');
+      return;
+    }
+    return;
+  }
   // Back button
   if(tx>=10&&tx<=60&&ty>=22+safeTop&&ty<=52+safeTop){
     sfx('cancel');titleTouchPos=null;state=ST.TITLE;isPackMode=false;switchBGM('title');return;
@@ -4495,9 +4604,16 @@ function handleStageSelTouch(tx,ty){
         const reqStars=pack.starsPerStage||2;
         const canPlay=si===0||(prevProg&&prevProg.cleared&&(prevProg.stars||0)>=reqStars);
         if(!canPlay){sfx('hurt');vibrate(10);addPop(sx+sbW/2,sbY-5,'★'+reqStars+'個必要','#ff8844');return;}
+        // Check if checkpoint exists for this stage
+        if(stageCheckpoints[stage.id]){
+          // Show start choice modal
+          showStartChoice=true;stageStartChoice='';
+          pendingPackPi=pi;pendingPackSi=si;
+          sfx('select');return;
+        }
         // Start this stage!
         gameMode='pack';isPackMode=true;
-        state=ST.PLAY;resetPackStage(pi,si);switchBGM('play');
+        state=ST.PLAY;resetPackStage(pi,si,false);switchBGM('play');
         return;
       }
     }

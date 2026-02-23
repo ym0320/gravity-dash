@@ -413,6 +413,28 @@ function update(dt){
         emitParts(bc.x,bc.y,25,'#ffd700',6,4);
       }
     });
+    // Checkpoint flag at 500m (midpoint)
+    if(!checkpointReached&&!checkpointFlag.collected){
+      const cpDist=currentPackStage.dist*0.5; // midpoint
+      const cpScreenX=player.x+(cpDist-dist)/(speed*0.08)*speed;
+      checkpointFlag.x=cpScreenX;
+      // Collection detection
+      if(dist>=cpDist-5&&dist<=cpDist+30){
+        const cpSurf=floorSurfaceY(cpScreenX);
+        const cpFlagY=cpSurf-50; // flag top
+        const dx2=player.x-cpScreenX,dy2=player.y-cpFlagY;
+        if(Math.abs(dx2)<30&&Math.abs(dy2)<60){
+          checkpointFlag.collected=true;checkpointReached=true;
+          // Save checkpoint
+          const sid=currentPackStage.id;
+          stageCheckpoints[sid]=true;
+          localStorage.setItem('gd5checkpoints',JSON.stringify(stageCheckpoints));
+          sfx('bigcoin');vibrate([15,10,25]);shakeI=5;
+          addPop(cpScreenX,cpFlagY-20,'チェックポイント!','#34d399');
+          emitParts(cpScreenX,cpFlagY,20,'#34d399',4,3);
+        }
+      }
+    }
     // Enemy spawning in pack mode (much more aggressive than endless)
     const sType=currentPackStage.stageType||'';
     const pastGoal=dist>=currentPackStage.dist*0.92;
@@ -478,6 +500,11 @@ function update(dt){
         trySpawnFloatPlat();trySpawnFloatPlat();
         trySpawnMovingHill();
         trySpawnSpike();
+      }
+    } else if(sType==='spikeOnly'){
+      // Spike-only stage: dense red spikes on floor+ceiling, no other gimmicks
+      if(!nearGoal){
+        trySpawnSpike();trySpawnSpike();trySpawnSpike();
       }
     } else {
       // Normal stage: all gimmicks
@@ -837,50 +864,50 @@ function update(dt){
   });
   fip(fallingMtns,fm=>fm.state!=='gone'&&fm.x+fm.w>-50);
 
-  // Icicle update & collision (snow stage gimmick)
+  // Icicle update & collision (snow stage gimmick - ceiling only, fall straight down)
   icicles.forEach(ic=>{
-    ic.timer--;
-    if(ic.state==='wait'){
-      // Waiting off-screen or approaching - start warning when near player
-      if(ic.x<W+40){
+    if(ic.state==='hang'){
+      // Already hanging from ceiling, visible. Shake when player approaches.
+      const triggerDist=120;
+      if(ic.x<player.x+triggerDist+ic.w&&ic.x+ic.w>player.x-50){
         ic.warnT++;
-        // Shake warning before falling/rising
-        if(ic.warnT>30){
+        if(ic.warnT>=35){
           ic.state='fall';ic.vy=0;
           sfx('death');
+          // Small dust particles from base
+          for(let i=0;i<4;i++){
+            if(parts.length<MAX_PARTS)parts.push({x:ic.x+ic.w*Math.random(),y:ic.baseY,vx:(Math.random()-0.5)*1.5,vy:0.5+Math.random(),
+              life:15,ml:15,sz:Math.random()*2+1,col:'#cceeff'});
+          }
         }
       }
     } else if(ic.state==='fall'){
-      // Ceiling icicle falls down, floor icicle rises up
-      const accel=0.25;
-      if(ic.isFloor){
-        ic.vy-=accel; // rises up
-        ic.y+=ic.vy;
-        // Stop when tip reaches surface
-        if(ic.y<=ic.baseY-ic.h){ic.y=ic.baseY-ic.h;ic.state='stuck';ic.timer=120+Math.floor(Math.random()*60);}
-      } else {
-        ic.vy+=accel; // falls down
-        ic.y+=ic.vy;
-        // Stop when tip reaches surface
-        if(ic.y>=ic.baseY+ic.h){ic.y=ic.baseY+ic.h;ic.state='stuck';ic.timer=120+Math.floor(Math.random()*60);}
+      // Falls straight down with gravity
+      ic.vy+=0.35;
+      ic.tipY+=ic.vy;
+      // Hit the floor? Check floor surface
+      const floorY=floorSurfaceY(ic.x+ic.w/2);
+      if(ic.tipY>=floorY){
+        ic.tipY=floorY;ic.state='stuck';ic.stuckT=90;
+        shakeI=3;
+        // Impact particles
+        for(let i=0;i<6;i++){
+          if(parts.length<MAX_PARTS)parts.push({x:ic.x+ic.w*Math.random(),y:floorY,vx:(Math.random()-0.5)*3,vy:-1-Math.random()*3,
+            life:15,ml:15,sz:Math.random()*3+1,col:'#cceeff'});
+        }
       }
     } else if(ic.state==='stuck'){
-      // Stuck in place for a while, then fade out
-      if(ic.timer<=0){ic.state='fade';ic.timer=30;}
+      ic.stuckT--;
+      if(ic.stuckT<=0){ic.state='fade';ic.fadeT=25;}
     } else if(ic.state==='fade'){
-      ic.alpha=Math.max(0,ic.timer/30);
-      if(ic.timer<=0)ic.state='gone';
+      ic.fadeT--;
+      ic.alpha=Math.max(0,ic.fadeT/25);
+      if(ic.fadeT<=0)ic.state='gone';
     }
-    // Collision: icicle is a solid obstacle while falling or stuck
-    if((ic.state==='fall'||ic.state==='stuck')&&itemEff.invincible<=0&&hurtT<=0){
-      let icTop,icBot;
-      if(ic.isFloor){
-        icBot=ic.baseY;
-        icTop=ic.y;
-      } else {
-        icTop=ic.baseY;
-        icBot=ic.y;
-      }
+    // Collision: while hanging (near bottom), falling, or stuck
+    if((ic.state==='fall'||ic.state==='stuck'||ic.state==='hang')&&itemEff.invincible<=0&&hurtT<=0){
+      const icTop=ic.baseY;
+      const icBot=ic.tipY;
       if(player.x+pr>ic.x&&player.x-pr<ic.x+ic.w){
         if(player.y+pr>icTop&&player.y-pr<icBot){
           hurt(true);

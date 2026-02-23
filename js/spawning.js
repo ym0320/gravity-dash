@@ -471,33 +471,24 @@ function trySpawnGravZone(){
 }
 
 // ===== ICICLES (snow stage gimmick) =====
-// Large icicles fall from ceiling and rise from floor to block the player's path
+// Icicles hang from ceiling, already visible. When player approaches, they shake and fall straight down.
 function trySpawnIcicle(){
   if(icicleCD>0){icicleCD--;return;}
   if(bossPhase.active)return;
-  // Only spawn in stages with icicleChance defined
   if(!isPackMode||!currentPackStage||!currentPackStage.icicleChance)return;
   const chance=currentPackStage.icicleChance;
   if(packRng()<chance){
-    icicleCD=25+Math.floor(packRng()*30);
-    const isFloor=packRng()<0.45; // slightly more from ceiling (icicle theme)
+    icicleCD=20+Math.floor(packRng()*25);
     const ix=W+20+packRng()*80;
-    const iw=18+packRng()*22; // width 18-40
-    const ih=50+packRng()*60; // height 50-110 (big obstacle)
-    if(isFloor){
-      // Floor icicle: stalagmite rises up from floor
-      const plat=platforms.find(p=>ix>=p.x&&ix<=p.x+p.w);
-      if(!plat){icicleCD=15;return;}
-      const baseY=H-plat.h;
-      icicles.push({x:ix,y:baseY+ih,w:iw,h:ih,baseY:baseY,vy:0,isFloor:true,state:'wait',timer:60+Math.floor(packRng()*40),warnT:0,alpha:1});
-    } else {
-      // Ceiling icicle: stalactite falls from ceiling
-      const cp=ceilPlats.find(p=>ix>=p.x&&ix<=p.x+p.w);
-      if(!cp){icicleCD=15;return;}
-      const baseY=cp.h;
-      icicles.push({x:ix,y:baseY-ih,w:iw,h:ih,baseY:baseY,vy:0,isFloor:false,state:'wait',timer:60+Math.floor(packRng()*40),warnT:0,alpha:1});
-    }
+    const iw=16+packRng()*20; // width 16-36
+    const ih=50+packRng()*70; // height 50-120 (big obstacle)
+    // Ceiling only: find ceiling platform at spawn position
+    const cp=ceilPlats.find(p=>ix>=p.x&&ix<=p.x+p.w);
+    if(!cp){icicleCD=10;return;}
+    const baseY=cp.h; // ceiling surface Y
+    // Spawn already hanging (tip = baseY + ih)
+    icicles.push({x:ix,w:iw,h:ih,baseY:baseY,tipY:baseY+ih,vy:0,isFloor:false,state:'hang',warnT:0,alpha:1});
   } else {
-    icicleCD=15+Math.floor(packRng()*15);
+    icicleCD=12+Math.floor(packRng()*12);
   }
 }

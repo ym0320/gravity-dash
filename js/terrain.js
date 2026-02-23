@@ -171,11 +171,14 @@ function reset(){
   usedContinue=false;
 }
 
-function resetPackStage(pi,si){
+function resetPackStage(pi,si,fromCheckpoint){
   const pack=STAGE_PACKS[pi];if(!pack)return;
   const stage=pack.stages[si];if(!stage)return;
   isPackMode=true;currentPackIdx=pi;currentPackStageIdx=si;currentPackStage=stage;
-  stageRng=mulberry32(stage.seed);stageCeilRng=mulberry32(stage.seed+111);stageSpawnRng=mulberry32(stage.seed+555);gotNewStars=0;
+  const cpStart=!!fromCheckpoint;
+  // When starting from checkpoint, use offset seed so terrain is fresh but deterministic
+  const seedOff=cpStart?5000:0;
+  stageRng=mulberry32(stage.seed+seedOff);stageCeilRng=mulberry32(stage.seed+111+seedOff);stageSpawnRng=mulberry32(stage.seed+555+seedOff);gotNewStars=0;
   player.x=W*0.2;player.gDir=1;player.vy=0;
   player.rot=0;player.rotTarget=0;player.trail=[];player.alive=true;
   player.grounded=false;player.face='normal';player.canFlip=true;
@@ -190,6 +193,12 @@ function resetPackStage(pi,si){
   spikes=[];spikeCD=0;movingHills=[];hillCD=0;gravZones=[];gravZoneCD=0;gravZoneChain=0;
   fallingMtns=[];fallingMtnCD=0;coinSwitches=[];coinSwitchCD=0;
   icicles=[];icicleCD=0;
+  // Checkpoint state
+  checkpointReached=cpStart; // already passed checkpoint if starting from it
+  checkpointFlag={x:0,collected:cpStart};
+  useCheckpoint=cpStart;
+  // Starting distance: 0 or midpoint
+  const startDist=cpStart?stage.dist*0.5:0;
   // Place 3 stars (big coins) using stage-specific positions or defaults
   const starRng=mulberry32(stage.seed+777);
   stageBigCoins=[];
@@ -197,13 +206,18 @@ function resetPackStage(pi,si){
   for(let si2=0;si2<coinDefs.length;si2++){
     const cd=coinDefs[si2];
     const starDist=stage.dist*cd.pos;
-    const starX=W*0.2 + starDist / (SPEED_INIT * stage.spdMul * 0.08) * (SPEED_INIT * stage.spdMul);
+    // Skip stars before checkpoint start point
+    if(cpStart&&starDist<startDist){
+      stageBigCoins.push({x:-999,y:-999,yOff:0,sz:16,col:true,p:0,distMark:starDist});
+      continue;
+    }
+    const starX=W*0.2 + (starDist-startDist) / (SPEED_INIT * stage.spdMul * 0.08) * (SPEED_INIT * stage.spdMul);
     const yOff=cd.yOff||-50;
     stageBigCoins.push({x:starX,y:0,yOff:yOff,sz:16,col:false,p:0,distMark:starDist});
   }
-  stageBigCollected=0;stageClearT=0;
+  stageBigCollected=cpStart?stageBigCoins.filter(bc=>bc.col).length:0;stageClearT=0;
   ambientParts=[];
-  score=0;dist=0;rawDist=0;speedOffset=0;speed=SPEED_INIT*stage.spdMul;frame=0;deadT=0;newHi=false;
+  score=0;dist=startDist;rawDist=startDist;speedOffset=0;speed=SPEED_INIT*stage.spdMul;frame=0;deadT=0;newHi=false;
   combo=0;comboT=0;comboDsp=0;comboDspT=0;airCombo=0;
   shakeX=0;shakeY=0;shakeI=0;
   mileT=0;mileTxt='';lastMile=0;
