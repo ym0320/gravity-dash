@@ -366,9 +366,9 @@ function update(dt){
       const dx=player.x-bc.x,dy=player.y-bc.y;
       if(Math.sqrt(dx*dx+dy*dy)<pr2+bc.sz){
         bc.col=true;stageBigCollected++;
-        sfx('milestone');vibrate([20,10,40]);shakeI=6;
+        sfx('bigcoin');vibrate([20,10,20,10,40]);shakeI=8;
         addPop(bc.x,bc.y-20,'\u2605 STAR!','#ffd700');
-        emitParts(bc.x,bc.y,15,'#ffd700',5,3);
+        emitParts(bc.x,bc.y,25,'#ffd700',6,4);
       }
     });
     // Enemy spawning in pack mode (based on stage enemyChance)

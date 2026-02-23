@@ -186,16 +186,15 @@ function resetPackStage(pi,si){
   coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];floatPlats=[];floatCD=0;
   spikes=[];spikeCD=0;movingHills=[];hillCD=0;gravZones=[];gravZoneCD=0;gravZoneChain=0;
   fallingMtns=[];fallingMtnCD=0;coinSwitches=[];coinSwitchCD=0;
-  // Place 3 stars at 25%, 50%, 80% of stage distance
+  // Place 3 stars (big coins) using stage-specific positions or defaults
   const starRng=mulberry32(stage.seed+777);
   stageBigCoins=[];
-  const starPositions=[0.25,0.5,0.8];
-  for(let si2=0;si2<3;si2++){
-    const starDist=stage.dist*starPositions[si2];
-    // Convert distance to approximate x position (speed * frames * 0.08 = dist)
-    // x offset from player start = starDist / 0.08 * speed_approx_frames... simplified: use dist directly as scroll units
+  const coinDefs=stage.coins||[{pos:0.25,yOff:-50},{pos:0.5,yOff:-50},{pos:0.8,yOff:-50}];
+  for(let si2=0;si2<coinDefs.length;si2++){
+    const cd=coinDefs[si2];
+    const starDist=stage.dist*cd.pos;
     const starX=W*0.2 + starDist / (SPEED_INIT * stage.spdMul * 0.08) * (SPEED_INIT * stage.spdMul);
-    const yOff=-40-starRng()*40; // 40-80px above floor
+    const yOff=cd.yOff||-50;
     stageBigCoins.push({x:starX,y:0,yOff:yOff,sz:16,col:false,p:0,distMark:starDist});
   }
   stageBigCollected=0;stageClearT=0;
