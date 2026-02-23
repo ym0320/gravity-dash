@@ -1392,6 +1392,7 @@ if(googleBtn){
   googleBtn.addEventListener('click',()=>{
     initAudio();
     googleBtn.disabled=true;
+    const prevMethod=fbLoginMethod; // capture before auth changes it
     _fbGoogleLoginInProgress=true;
     fbSignInGoogle().then(cred=>{
       const user=cred.user;
@@ -1410,9 +1411,10 @@ if(googleBtn){
           else{state=ST.TITLE;switchBGM('title');}
           return;
         }
-        // Step 2: No data under Google UID – try local name
+        // Step 2: No data under Google UID – try local name (only migrate from anonymous)
         const localName=playerName||localStorage.getItem('gd5username')||'';
-        if(localName){
+        const canMigrate=prevMethod===''||prevMethod==='anonymous';
+        if(localName&&canMigrate){
           return fbFindAndMigrateByName(localName).then(migrated=>{
             if(migrated&&migrated.name){
               fbMergeCloudData(migrated);
@@ -1431,7 +1433,17 @@ if(googleBtn){
             }
           });
         }
-        // Step 3: Completely new – show name input pre-filled with Google display name
+        // Step 3: New account (or switching from different social provider) – show name input
+        // Clear lingering local data from previous provider to prevent bleed-through
+        if(prevMethod==='google'||prevMethod==='twitter'){
+          playerName='';highScore=0;walletCoins=0;played=0;
+          totalChestsOpened=0;storedChests=0;tutorialDone=false;
+          unlockedChars=[0];ownedItems=[];packProgress={};totalStars=0;
+          equippedSkin='';equippedEyes='';equippedEffect='';
+          selChar=0;rankChar=-1;rankSkin='';rankEyes='';rankFx='';
+          const ks=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gd5'))ks.push(k);}
+          ks.forEach(k=>localStorage.removeItem(k));
+        }
         _fbGoogleLoginInProgress=false;
         fbSynced=true;
         googleBtn.style.display='none';
@@ -1462,6 +1474,7 @@ if(twitterBtn){
   twitterBtn.addEventListener('click',()=>{
     initAudio();
     twitterBtn.disabled=true;
+    const prevMethod=fbLoginMethod; // capture before auth changes it
     _fbGoogleLoginInProgress=true;
     fbSignInTwitter().then(cred=>{
       const user=cred.user;
@@ -1478,8 +1491,10 @@ if(twitterBtn){
           else{state=ST.TITLE;switchBGM('title');}
           return;
         }
+        // Only migrate from anonymous accounts, not from other social providers
         const localName=playerName||localStorage.getItem('gd5username')||'';
-        if(localName){
+        const canMigrate=prevMethod===''||prevMethod==='anonymous';
+        if(localName&&canMigrate){
           return fbFindAndMigrateByName(localName).then(migrated=>{
             if(migrated&&migrated.name){
               fbMergeCloudData(migrated);
@@ -1496,6 +1511,17 @@ if(twitterBtn){
               _finishLogin(localName);
             }
           });
+        }
+        // New account (or switching from different social provider) – show name input
+        // Clear lingering local data from previous provider to prevent bleed-through
+        if(prevMethod==='google'||prevMethod==='twitter'){
+          playerName='';highScore=0;walletCoins=0;played=0;
+          totalChestsOpened=0;storedChests=0;tutorialDone=false;
+          unlockedChars=[0];ownedItems=[];packProgress={};totalStars=0;
+          equippedSkin='';equippedEyes='';equippedEffect='';
+          selChar=0;rankChar=-1;rankSkin='';rankEyes='';rankFx='';
+          const ks=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gd5'))ks.push(k);}
+          ks.forEach(k=>localStorage.removeItem(k));
         }
         _fbGoogleLoginInProgress=false;
         fbSynced=true;
