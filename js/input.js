@@ -17,8 +17,9 @@ function hitPauseBtn(px,py){return px>=W-58&&px<=W-4&&py>=safeTop+8&&py<=safeTop
 function itemBtnLayout(){const btnSz=44,btnGap=12,totalW=btnSz*2+btnGap,sx=W/2-totalW/2,by=H-PANEL_H+6;return{invX:sx,bombX:sx+btnSz+btnGap,y:by,sz:btnSz};}
 function hitInvBtn(px,py){const b=itemBtnLayout();return px>=b.invX&&px<=b.invX+b.sz&&py>=b.y&&py<=b.y+b.sz;}
 function hitBombBtn(px,py){const b=itemBtnLayout();return px>=b.bombX&&px<=b.bombX+b.sz&&py>=b.y&&py<=b.y+b.sz;}
-function hitResumeBtn(px,py){return px>=W/2-80&&px<=W/2+80&&py>=H*0.45&&py<=H*0.45+44;}
-function hitQuitBtn(px,py){return px>=W/2-80&&px<=W/2+80&&py>=H*0.56&&py<=H*0.56+44;}
+function hitResumeBtn(px,py){return px>=W/2-80&&px<=W/2+80&&py>=H*0.42&&py<=H*0.42+44;}
+function hitRestartBtn(px,py){return px>=W/2-80&&px<=W/2+80&&py>=H*0.53&&py<=H*0.53+44;}
+function hitQuitBtn(px,py){return px>=W/2-80&&px<=W/2+80&&py>=H*0.64&&py<=H*0.64+44;}
 // Game over screen buttons (must match drawDead layout exactly)
 function deadBtnLayout(){
   const btnW2=Math.min(220,W-40),btnH2=38,btnX2=W/2-btnW2/2;
@@ -486,6 +487,20 @@ window.addEventListener('blur',()=>{
   if(state===ST.PLAY){state=ST.PAUSE;}
 });
 
+// Restart from pause menu (works for both endless and stage mode)
+function restartFromPause(){
+  sfx('select');
+  if(isPackMode){
+    state=ST.PLAY;resetPackStage(currentPackIdx,currentPackStageIdx);switchBGM('play');
+  } else {
+    bossRetry=null;isRetryGame=false;
+    reset();
+    state=ST.COUNTDOWN;countdownT=180;
+    bgmCurrent='';switchBGM('play');
+    sfx('countdown');
+  }
+}
+
 // Start countdown instead of immediately playing
 function startCountdown(mode){
   gameMode=mode;isPackMode=false;
@@ -549,6 +564,7 @@ canvas.addEventListener('touchstart',e=>{
   }
   if(state===ST.PAUSE){
     if(hitResumeBtn(p.x,p.y)){sfx('select');state=ST.PLAY;switchBGM('play');return;}
+    if(hitRestartBtn(p.x,p.y)){restartFromPause();return;}
     if(hitQuitBtn(p.x,p.y)){sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     return;
   }
@@ -797,6 +813,7 @@ canvas.addEventListener('mousedown',e=>{
   }
   if(state===ST.PAUSE){
     if(hitResumeBtn(p.x,p.y)){sfx('select');state=ST.PLAY;switchBGM('play');return;}
+    if(hitRestartBtn(p.x,p.y)){restartFromPause();return;}
     if(hitQuitBtn(p.x,p.y)){sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     return;
   }
@@ -868,6 +885,7 @@ document.addEventListener('keydown',e=>{
     if(state===ST.PLAY){sfx('pause');state=ST.PAUSE;return;}
     if(state===ST.PAUSE){sfx('select');state=ST.PLAY;return;}
   }
+  if(e.code==='KeyR'&&state===ST.PAUSE){e.preventDefault();restartFromPause();return;}
   if(state===ST.LOGIN)return; // login handled by HTML overlay
   // Tutorial keyboard
   if(state===ST.TUTORIAL){

@@ -1062,44 +1062,44 @@ const STAGE_THEMES=[
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t^=t+Math.imul(t^t>>>7,61|t);return((t^t>>>14)>>>0)/4294967296;};}
 const STAGE_PACKS=[
   {name:'宇宙',theme:0,unlock:0,starsPerStage:2,stages:[
-    {id:'1-1',name:'1-1',dist:750,spdMul:1.0,seed:1001,hillChance:0.03,gapChance:0.03,enemyChance:0.04,
+    {id:'1-1',name:'1-1',dist:750,spdMul:1.5,seed:1001,hillChance:0.10,gapChance:0.10,enemyChance:0.12,
       coins:[{pos:0.20,yOff:-60},{pos:0.50,yOff:-160},{pos:0.82,yOff:-70}]},
-    {id:'1-2',name:'1-2',dist:750,spdMul:1.0,seed:1002,hillChance:0.05,gapChance:0.04,enemyChance:0.06,
+    {id:'1-2',name:'1-2',dist:750,spdMul:1.5,seed:1002,hillChance:0.12,gapChance:0.12,enemyChance:0.15,
       coins:[{pos:0.18,yOff:-130},{pos:0.48,yOff:-320},{pos:0.78,yOff:-80}]},
-    {id:'1-3',name:'1-3',dist:750,spdMul:1.0,seed:1003,hillChance:0.06,gapChance:0.05,enemyChance:0.08,
+    {id:'1-3',name:'1-3',dist:750,spdMul:1.5,seed:1003,hillChance:0.14,gapChance:0.14,enemyChance:0.18,
       coins:[{pos:0.22,yOff:-220},{pos:0.55,yOff:-70},{pos:0.83,yOff:-380}]},
-    {id:'1-4',name:'1-4',dist:750,spdMul:1.0,seed:1004,hillChance:0.08,gapChance:0.07,enemyChance:0.10,
+    {id:'1-4',name:'1-4',dist:750,spdMul:1.5,seed:1004,hillChance:0.16,gapChance:0.16,enemyChance:0.22,
       coins:[{pos:0.20,yOff:-320},{pos:0.50,yOff:-90},{pos:0.80,yOff:-480}]},
-    {id:'1-5',name:'1-5',dist:750,spdMul:1.0,seed:1005,hillChance:0.10,gapChance:0.08,enemyChance:0.12,
+    {id:'1-5',name:'1-5',dist:750,spdMul:1.5,seed:1005,hillChance:0.18,gapChance:0.18,enemyChance:0.26,
       coins:[{pos:0.15,yOff:-380},{pos:0.48,yOff:-120},{pos:0.80,yOff:-540}]},
   ]},
   {name:'雪山',theme:1,unlock:12,starsPerStage:2,stages:[
-    {id:'2-1',name:'2-1',dist:150,spdMul:1.0,seed:2001,hillChance:0.06,gapChance:0.07,enemyChance:0.08},
-    {id:'2-2',name:'2-2',dist:200,spdMul:1.0,seed:2002,hillChance:0.08,gapChance:0.09,enemyChance:0.11},
-    {id:'2-3',name:'2-3',dist:250,spdMul:1.0,seed:2003,hillChance:0.10,gapChance:0.11,enemyChance:0.14},
-    {id:'2-4',name:'2-4',dist:300,spdMul:1.0,seed:2004,hillChance:0.12,gapChance:0.13,enemyChance:0.17},
-    {id:'2-5',name:'2-5',dist:350,spdMul:1.0,seed:2005,hillChance:0.14,gapChance:0.15,enemyChance:0.20},
+    {id:'2-1',name:'2-1',dist:150,spdMul:1.5,seed:2001,hillChance:0.12,gapChance:0.14,enemyChance:0.16},
+    {id:'2-2',name:'2-2',dist:200,spdMul:1.5,seed:2002,hillChance:0.14,gapChance:0.16,enemyChance:0.20},
+    {id:'2-3',name:'2-3',dist:250,spdMul:1.5,seed:2003,hillChance:0.16,gapChance:0.18,enemyChance:0.24},
+    {id:'2-4',name:'2-4',dist:300,spdMul:1.5,seed:2004,hillChance:0.18,gapChance:0.20,enemyChance:0.28},
+    {id:'2-5',name:'2-5',dist:350,spdMul:1.5,seed:2005,hillChance:0.20,gapChance:0.22,enemyChance:0.32},
   ]},
   {name:'マグマ',theme:2,unlock:24,starsPerStage:2,stages:[
-    {id:'3-1',name:'3-1',dist:180,spdMul:1.0,seed:3001,hillChance:0.08,gapChance:0.08,enemyChance:0.10},
-    {id:'3-2',name:'3-2',dist:230,spdMul:1.0,seed:3002,hillChance:0.10,gapChance:0.10,enemyChance:0.14},
-    {id:'3-3',name:'3-3',dist:280,spdMul:1.0,seed:3003,hillChance:0.12,gapChance:0.12,enemyChance:0.17},
-    {id:'3-4',name:'3-4',dist:350,spdMul:1.0,seed:3004,hillChance:0.14,gapChance:0.14,enemyChance:0.20},
-    {id:'3-5',name:'3-5',dist:400,spdMul:1.0,seed:3005,hillChance:0.16,gapChance:0.16,enemyChance:0.23},
+    {id:'3-1',name:'3-1',dist:180,spdMul:1.5,seed:3001,hillChance:0.14,gapChance:0.14,enemyChance:0.20},
+    {id:'3-2',name:'3-2',dist:230,spdMul:1.5,seed:3002,hillChance:0.16,gapChance:0.16,enemyChance:0.24},
+    {id:'3-3',name:'3-3',dist:280,spdMul:1.5,seed:3003,hillChance:0.18,gapChance:0.18,enemyChance:0.28},
+    {id:'3-4',name:'3-4',dist:350,spdMul:1.5,seed:3004,hillChance:0.20,gapChance:0.20,enemyChance:0.32},
+    {id:'3-5',name:'3-5',dist:400,spdMul:1.5,seed:3005,hillChance:0.22,gapChance:0.22,enemyChance:0.36},
   ]},
   {name:'海',theme:3,unlock:36,starsPerStage:2,stages:[
-    {id:'4-1',name:'4-1',dist:200,spdMul:1.0,seed:4001,hillChance:0.08,gapChance:0.09,enemyChance:0.12},
-    {id:'4-2',name:'4-2',dist:260,spdMul:1.0,seed:4002,hillChance:0.10,gapChance:0.11,enemyChance:0.16},
-    {id:'4-3',name:'4-3',dist:320,spdMul:1.0,seed:4003,hillChance:0.12,gapChance:0.13,enemyChance:0.19},
-    {id:'4-4',name:'4-4',dist:380,spdMul:1.0,seed:4004,hillChance:0.14,gapChance:0.15,enemyChance:0.22},
-    {id:'4-5',name:'4-5',dist:440,spdMul:1.0,seed:4005,hillChance:0.16,gapChance:0.17,enemyChance:0.25},
+    {id:'4-1',name:'4-1',dist:200,spdMul:1.5,seed:4001,hillChance:0.14,gapChance:0.16,enemyChance:0.22},
+    {id:'4-2',name:'4-2',dist:260,spdMul:1.5,seed:4002,hillChance:0.16,gapChance:0.18,enemyChance:0.26},
+    {id:'4-3',name:'4-3',dist:320,spdMul:1.5,seed:4003,hillChance:0.18,gapChance:0.20,enemyChance:0.30},
+    {id:'4-4',name:'4-4',dist:380,spdMul:1.5,seed:4004,hillChance:0.20,gapChance:0.22,enemyChance:0.34},
+    {id:'4-5',name:'4-5',dist:440,spdMul:1.5,seed:4005,hillChance:0.22,gapChance:0.24,enemyChance:0.38},
   ]},
   {name:'桜幻',theme:4,unlock:48,starsPerStage:2,stages:[
-    {id:'5-1',name:'5-1',dist:250,spdMul:1.0,seed:5001,hillChance:0.10,gapChance:0.10,enemyChance:0.14},
-    {id:'5-2',name:'5-2',dist:320,spdMul:1.0,seed:5002,hillChance:0.12,gapChance:0.13,enemyChance:0.18},
-    {id:'5-3',name:'5-3',dist:380,spdMul:1.0,seed:5003,hillChance:0.14,gapChance:0.15,enemyChance:0.22},
-    {id:'5-4',name:'5-4',dist:440,spdMul:1.0,seed:5004,hillChance:0.16,gapChance:0.17,enemyChance:0.25},
-    {id:'5-5',name:'5-5',dist:500,spdMul:1.0,seed:5005,hillChance:0.18,gapChance:0.18,enemyChance:0.28},
+    {id:'5-1',name:'5-1',dist:250,spdMul:1.5,seed:5001,hillChance:0.16,gapChance:0.16,enemyChance:0.26},
+    {id:'5-2',name:'5-2',dist:320,spdMul:1.5,seed:5002,hillChance:0.18,gapChance:0.20,enemyChance:0.30},
+    {id:'5-3',name:'5-3',dist:380,spdMul:1.5,seed:5003,hillChance:0.20,gapChance:0.22,enemyChance:0.34},
+    {id:'5-4',name:'5-4',dist:440,spdMul:1.5,seed:5004,hillChance:0.22,gapChance:0.24,enemyChance:0.38},
+    {id:'5-5',name:'5-5',dist:500,spdMul:1.5,seed:5005,hillChance:0.24,gapChance:0.26,enemyChance:0.42},
   ]},
 ];
 // Stage pack progress: {stageId: {cleared:true, stars:N}} for cleared stages
@@ -1112,6 +1112,8 @@ let totalStars=getTotalStars();
 let isPackMode=false,currentPackIdx=0,currentPackStageIdx=0,currentPackStage=null,stageRng=null;
 let stageSelScroll=0,stageSelTarget=0;
 let gotNewStars=0; // how many new stars obtained this clear
+// Death markers for stage mode: {stageId: {dist, gDir}} — records where player last died
+let stageDeathMarks={};
 // Ambient particles for stage themes
 let ambientParts=[];
 

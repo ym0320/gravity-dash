@@ -804,6 +804,35 @@ function draw(){
   if(isPackMode)drawAmbient();
   if(state===ST.COUNTDOWN){drawCountdown();ctx.restore();return;}
 
+  // Pack mode: draw death marker from previous attempt
+  if(isPackMode&&currentPackStage&&stageDeathMarks[currentPackStage.id]){
+    const dm=stageDeathMarks[currentPackStage.id];
+    // Convert stored dist to screen X position (same logic as stageBigCoins positioning)
+    const markScreenX=player.x+(dm.dist-dist)/(speed*0.08)*speed;
+    if(markScreenX>-40&&markScreenX<W+40){
+      const gSurf=dm.gDir===1?floorSurfaceY(markScreenX):ceilSurfaceY(markScreenX);
+      const markY=dm.gDir===1?gSurf:gSurf;
+      const pulse=Math.sin(frame*0.08)*0.15+0.85;
+      // Skull icon with pulsing glow
+      ctx.save();
+      ctx.globalAlpha=0.85*pulse;
+      ctx.shadowColor='#ff3860';ctx.shadowBlur=16;
+      // Red triangle warning
+      ctx.fillStyle='#ff3860';ctx.beginPath();
+      ctx.moveTo(markScreenX,markY-36*dm.gDir);
+      ctx.lineTo(markScreenX-14,markY-8*dm.gDir);
+      ctx.lineTo(markScreenX+14,markY-8*dm.gDir);
+      ctx.closePath();ctx.fill();
+      // Exclamation mark
+      ctx.shadowBlur=0;ctx.fillStyle='#fff';ctx.font='bold 14px monospace';ctx.textAlign='center';
+      ctx.fillText('!',markScreenX,markY-18*dm.gDir+5);
+      // "前回ここで落ちた" label
+      ctx.fillStyle='#ff3860';ctx.font='bold 10px monospace';
+      ctx.fillText('\u524D\u56DE\u3053\u3053\u3067\u843D\u3061\u305F',markScreenX,markY-40*dm.gDir);
+      ctx.restore();
+    }
+  }
+
   // Pack mode: draw stars (stageBigCoins)
   if(isPackMode){
     stageBigCoins.forEach(bc=>{
@@ -1680,8 +1709,8 @@ function drawPlayer(){
     ctx.fillStyle='rgba(255,100,0,0.3)';
     ctx.beginPath();ctx.arc(player.x,player.y,pr*1.2,0,6.28);ctx.fill();
   }
-  // Ghost character: always draw upright (don't flip body when gravity reverses)
-  const charRot=ct().shape==='ghost'?0:player.rot;
+  // All characters rotate with gravity; face direction corrected inside drawCharacter
+  const charRot=player.rot;
   // Draw equipped effect behind character
   const fxData=getEquippedEffectData();
   if(fxData)drawPlayerEffect(player.x,player.y,pr,fxData.type,ghostA,player.gDir);
@@ -2979,22 +3008,26 @@ function drawPause(){
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(-20,-20,W+40,H+40);
   ctx.fillStyle='#fff';ctx.font='bold 34px monospace';ctx.textAlign='center';
   ctx.shadowColor='#fff3';ctx.shadowBlur=12;
-  ctx.fillText('\u4E00\u6642\u505C\u6B62',W/2,H*0.32);ctx.shadowBlur=0;
+  ctx.fillText('\u4E00\u6642\u505C\u6B62',W/2,H*0.28);ctx.shadowBlur=0;
   ctx.fillStyle='#fff5';ctx.font='13px monospace';
-  ctx.fillText('\u30B9\u30B3\u30A2: '+score,W/2,H*0.37);
+  ctx.fillText('\u30B9\u30B3\u30A2: '+score,W/2,H*0.33);
   // HP in pause
-  for(let i=0;i<maxHp();i++)drawHeart(W/2-((maxHp()-1)*13)+i*26,H*0.41,16,i<hp);
+  for(let i=0;i<maxHp();i++)drawHeart(W/2-((maxHp()-1)*13)+i*26,H*0.37,16,i<hp);
   // Resume button
-  ctx.fillStyle='#00e5ff33';rr(W/2-80,H*0.45,160,44,10);ctx.fill();
-  ctx.strokeStyle='#00e5ff';ctx.lineWidth=2;rr(W/2-80,H*0.45,160,44,10);ctx.stroke();
-  ctx.fillStyle='#00e5ff';ctx.font='bold 18px monospace';ctx.fillText('\u25B6 \u518D\u958B',W/2,H*0.45+28);
+  ctx.fillStyle='#00e5ff33';rr(W/2-80,H*0.42,160,44,10);ctx.fill();
+  ctx.strokeStyle='#00e5ff';ctx.lineWidth=2;rr(W/2-80,H*0.42,160,44,10);ctx.stroke();
+  ctx.fillStyle='#00e5ff';ctx.font='bold 18px monospace';ctx.fillText('\u25B6 \u518D\u958B',W/2,H*0.42+28);
+  // Restart button
+  ctx.fillStyle='#ffa50033';rr(W/2-80,H*0.53,160,44,10);ctx.fill();
+  ctx.strokeStyle='#ffa500';ctx.lineWidth=2;rr(W/2-80,H*0.53,160,44,10);ctx.stroke();
+  ctx.fillStyle='#ffa500';ctx.font='bold 18px monospace';ctx.fillText('\u21BA \u3084\u308A\u76F4\u3059',W/2,H*0.53+28);
   // Quit button
-  ctx.fillStyle='#ff386033';rr(W/2-80,H*0.56,160,44,10);ctx.fill();
-  ctx.strokeStyle='#ff3860';ctx.lineWidth=2;rr(W/2-80,H*0.56,160,44,10);ctx.stroke();
-  ctx.fillStyle='#ff3860';ctx.font='bold 18px monospace';ctx.fillText('\u2716 \u30BF\u30A4\u30C8\u30EB\u3078',W/2,H*0.56+28);
+  ctx.fillStyle='#ff386033';rr(W/2-80,H*0.64,160,44,10);ctx.fill();
+  ctx.strokeStyle='#ff3860';ctx.lineWidth=2;rr(W/2-80,H*0.64,160,44,10);ctx.stroke();
+  ctx.fillStyle='#ff3860';ctx.font='bold 18px monospace';ctx.fillText('\u2716 \u30BF\u30A4\u30C8\u30EB\u3078',W/2,H*0.64+28);
   // Hint
   ctx.fillStyle='#fff3';ctx.font='11px monospace';
-  ctx.fillText('ESC\u30AD\u30FC\u3067\u518D\u958B',W/2,H*0.67);
+  ctx.fillText('ESC:\u518D\u958B / R:\u3084\u308A\u76F4\u3059',W/2,H*0.75);
 }
 
 // ===== INVENTORY MODAL (title screen) =====

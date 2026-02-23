@@ -23,6 +23,10 @@ function die(){
   player.alive=false;state=ST.DEAD;deadT=0;shakeI=14;switchBGM('dead');
   player.face='dead';sfx('death');vibrate([30,20,50]);
   bossRetry=null; // clear boss retry on death
+  // Record death position for stage mode marker
+  if(isPackMode&&currentPackStage){
+    stageDeathMarks[currentPackStage.id]={dist:dist,gDir:player.gDir};
+  }
   // Transfer earned chests to inventory storage
   if(bossChests>0){
     localStorage.setItem('gd5lastRunChests',bossChests.toString());
