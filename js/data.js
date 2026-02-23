@@ -548,7 +548,7 @@ const FEVER_NOTES=[784,988,1175,1319, 1175,988,784,988, 880,1175,1319,1568, 1319
 const FEVER_BASS=[196,196,247,247, 196,196,247,247, 220,220,262,262, 220,220,196,196];
 function playFeverBGM(){
   if(bgmCurrent!=='fever')return;
-  if(audioCtx.state!=='running'){feverTimer=setTimeout(playFeverBGM,200);return;}
+  if(audioCtx.state!=='running'){feverTimer=setTimeout(playFeverBGM,50);return;}
   if(!feverStarted){feverNextT=audioCtx.currentTime+0.05;feverStarted=true;}
   const dur=0.11;
   try{
@@ -615,7 +615,7 @@ function switchBGM(type){
   (function play(){
     if(bgmCurrent!==type)return;
     // Don't schedule notes while AudioContext is suspended
-    if(audioCtx.state!=='running'){bgmTimer=setTimeout(play,200);return;}
+    if(audioCtx.state!=='running'){bgmTimer=setTimeout(play,50);return;}
     if(!started){
       nextT=audioCtx.currentTime+0.05;
       started=true;
