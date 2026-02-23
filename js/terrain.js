@@ -101,6 +101,7 @@ let gravZones=[]; // {x, w, triggered} - forced gravity reversal zones (waterfal
 let gravZoneCD=0;
 let icicles=[]; // {x, y, w, h, vy, isFloor, state:'wait'|'fall'|'stuck'|'gone', timer}
 let icicleCD=0;
+let magmaFireballs=[]; // {x, y, vx, vy, originX, originY, isFloor, sz, phase, alive, returning}
 
 // ===== BOSS PHASE =====
 // Boss appears periodically in endless mode
@@ -151,7 +152,7 @@ function reset(){
   coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];floatPlats=[];floatCD=0;
   spikes=[];spikeCD=0;movingHills=[];hillCD=0;gravZones=[];gravZoneCD=0;gravZoneChain=0;
   fallingMtns=[];fallingMtnCD=0;coinSwitches=[];coinSwitchCD=0;
-  icicles=[];icicleCD=0;
+  icicles=[];icicleCD=0;magmaFireballs=[];magmaFireCD=0;
   score=0;dist=0;rawDist=0;speedOffset=0;speed=SPEED_INIT;frame=0;deadT=0;newHi=false;
   combo=0;comboT=0;comboDsp=0;comboDspT=0;airCombo=0;
   shakeX=0;shakeY=0;shakeI=0;
@@ -192,7 +193,7 @@ function resetPackStage(pi,si,fromCheckpoint){
   coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];floatPlats=[];floatCD=0;
   spikes=[];spikeCD=0;movingHills=[];hillCD=0;gravZones=[];gravZoneCD=0;gravZoneChain=0;
   fallingMtns=[];fallingMtnCD=0;coinSwitches=[];coinSwitchCD=0;
-  icicles=[];icicleCD=0;
+  icicles=[];icicleCD=0;magmaFireballs=[];magmaFireCD=0;
   // Checkpoint state
   checkpointReached=cpStart; // already passed checkpoint if starting from it
   checkpointFlag={x:0,collected:cpStart};

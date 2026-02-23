@@ -518,6 +518,8 @@ function update(dt){
     }
     // Icicle spawning (snow stages, controlled by icicleChance)
     if(!nearGoal) trySpawnIcicle();
+    // Magma fireball spawning (magma stages)
+    if(!nearGoal) trySpawnMagmaFire();
     // Ambient particles for theme
     updateAmbient();
   }
@@ -864,17 +866,17 @@ function update(dt){
   });
   fip(fallingMtns,fm=>fm.state!=='gone'&&fm.x+fm.w>-50);
 
-  // Icicle update & collision (snow stage gimmick - ceiling only, fall straight down)
+  // Icicle update & collision (snow stage gimmick - ceiling only, detach and fall as whole piece)
   icicles.forEach(ic=>{
     if(ic.state==='hang'){
-      // Already hanging from ceiling, visible. Shake when player approaches.
-      const triggerDist=120;
-      if(ic.x<player.x+triggerDist+ic.w&&ic.x+ic.w>player.x-50){
+      // Already hanging from ceiling. Shake when icicle is slightly AHEAD of player.
+      const triggerDist=160; // trigger when player is approaching (icicle ahead)
+      if(ic.x<player.x+triggerDist+ic.w&&ic.x+ic.w>player.x-20){
         ic.warnT++;
-        if(ic.warnT>=35){
+        if(ic.warnT>=30){
           ic.state='fall';ic.vy=0;
           sfx('death');
-          // Small dust particles from base
+          // Dust particles at detach point
           for(let i=0;i<4;i++){
             if(parts.length<MAX_PARTS)parts.push({x:ic.x+ic.w*Math.random(),y:ic.baseY,vx:(Math.random()-0.5)*1.5,vy:0.5+Math.random(),
               life:15,ml:15,sz:Math.random()*2+1,col:'#cceeff'});
@@ -882,13 +884,16 @@ function update(dt){
         }
       }
     } else if(ic.state==='fall'){
-      // Falls straight down with gravity
-      ic.vy+=0.35;
+      // Whole icicle falls together (baseY and tipY move together)
+      ic.vy+=0.4;
+      ic.baseY+=ic.vy;
       ic.tipY+=ic.vy;
-      // Hit the floor? Check floor surface
+      // Hit the floor?
       const floorY=floorSurfaceY(ic.x+ic.w/2);
       if(ic.tipY>=floorY){
-        ic.tipY=floorY;ic.state='stuck';ic.stuckT=90;
+        const diff=ic.tipY-floorY;
+        ic.tipY=floorY;ic.baseY-=diff;
+        ic.state='stuck';ic.stuckT=60;
         shakeI=3;
         // Impact particles
         for(let i=0;i<6;i++){
@@ -915,6 +920,33 @@ function update(dt){
       }
     }
   });
+
+  // Magma fireball update & collision
+  magmaFireballs.forEach(fb=>{
+    if(!fb.alive)return;
+    fb.x-=speed; // scroll with world
+    fb.originX-=speed;
+    // Gravity: floor fireballs go up then fall back, ceiling fireballs go down then come back
+    if(fb.isFloor){
+      fb.vy+=0.18; // gravity pulls back down
+    } else {
+      fb.vy-=0.18; // gravity pulls back up (for ceiling magma)
+    }
+    fb.x+=fb.vx;
+    fb.y+=fb.vy;
+    fb.phase+=0.1;
+    // Remove when returned into magma
+    if(fb.isFloor&&fb.y>H+30)fb.alive=false;
+    if(!fb.isFloor&&fb.y<-30)fb.alive=false;
+    // Collision with player
+    if(itemEff.invincible<=0&&hurtT<=0){
+      const dx=player.x-fb.x,dy=player.y-fb.y;
+      if(dx*dx+dy*dy<(pr+fb.sz*0.5)*(pr+fb.sz*0.5)){
+        hurt(true);
+      }
+    }
+  });
+  fip(magmaFireballs,fb=>fb.alive&&fb.x>-50);
 
   // Coin switch update (round button)
   coinSwitches.forEach(cs=>{cs.x-=speed;if(cs.flashT>0)cs.flashT--;});

@@ -711,6 +711,113 @@ function drawFallingMtns(){
   });
 }
 
+// ===== MAGMA GAPS (fill abyss with animated lava) =====
+function drawMagmaGaps(){
+  if(!isPackMode||!currentPackStage||!currentPackStage.magma)return;
+  const t=frame*0.02;
+  // Floor gaps (magma below)
+  for(let i=0;i<platforms.length-1;i++){
+    const p1=platforms[i],p2=platforms[i+1];
+    const gStart=p1.x+p1.w;
+    const gEnd=p2.x;
+    if(gEnd-gStart<5)continue;
+    if(gStart>W+20||gEnd<-20)continue;
+    const surfY=H-p1.h;
+    // Lava fill
+    const lg=ctx.createLinearGradient(0,surfY,0,H+10);
+    lg.addColorStop(0,'#ff4400');lg.addColorStop(0.3,'#ff2200');lg.addColorStop(0.6,'#cc1100');lg.addColorStop(1,'#660800');
+    ctx.fillStyle=lg;
+    ctx.fillRect(gStart,surfY,gEnd-gStart,H-surfY+10);
+    // Animated bubble/glow on surface
+    ctx.fillStyle='#ff880066';
+    for(let bx=gStart+5;bx<gEnd-5;bx+=18){
+      const by=surfY+Math.sin(t*3+bx*0.05)*4;
+      const br=3+Math.sin(t*2+bx*0.08)*1.5;
+      ctx.beginPath();ctx.arc(bx,by,br,0,6.28);ctx.fill();
+    }
+    // Bright surface line
+    ctx.strokeStyle='#ffaa44';ctx.lineWidth=2;
+    ctx.shadowColor='#ff6600';ctx.shadowBlur=8;
+    ctx.beginPath();
+    ctx.moveTo(gStart,surfY);
+    for(let x=gStart;x<=gEnd;x+=6){
+      ctx.lineTo(x,surfY+Math.sin(t*4+x*0.1)*2.5);
+    }
+    ctx.stroke();ctx.shadowBlur=0;
+  }
+  // Ceiling gaps (magma above)
+  for(let i=0;i<ceilPlats.length-1;i++){
+    const p1=ceilPlats[i],p2=ceilPlats[i+1];
+    const gStart=p1.x+p1.w;
+    const gEnd=p2.x;
+    if(gEnd-gStart<5)continue;
+    if(gStart>W+20||gEnd<-20)continue;
+    const surfY=p1.h;
+    // Lava fill
+    const lg=ctx.createLinearGradient(0,-10,0,surfY);
+    lg.addColorStop(0,'#660800');lg.addColorStop(0.4,'#cc1100');lg.addColorStop(0.7,'#ff2200');lg.addColorStop(1,'#ff4400');
+    ctx.fillStyle=lg;
+    ctx.fillRect(gStart,-10,gEnd-gStart,surfY+10);
+    // Animated bubble/glow on surface
+    ctx.fillStyle='#ff880066';
+    for(let bx=gStart+5;bx<gEnd-5;bx+=18){
+      const by=surfY-Math.sin(t*3+bx*0.07)*4;
+      const br=3+Math.sin(t*2+bx*0.09)*1.5;
+      ctx.beginPath();ctx.arc(bx,by,br,0,6.28);ctx.fill();
+    }
+    // Bright surface line
+    ctx.strokeStyle='#ffaa44';ctx.lineWidth=2;
+    ctx.shadowColor='#ff6600';ctx.shadowBlur=8;
+    ctx.beginPath();
+    ctx.moveTo(gStart,surfY);
+    for(let x=gStart;x<=gEnd;x+=6){
+      ctx.lineTo(x,surfY-Math.sin(t*4+x*0.12)*2.5);
+    }
+    ctx.stroke();ctx.shadowBlur=0;
+  }
+}
+
+// ===== MAGMA FIREBALLS (cute fire creatures from magma gaps) =====
+function drawMagmaFireballs(){
+  magmaFireballs.forEach(fb=>{
+    if(!fb.alive)return;
+    if(fb.x<-30||fb.x>W+30)return;
+    ctx.save();ctx.translate(fb.x,fb.y);
+    const s=fb.sz;
+    const wobble=Math.sin(fb.phase+frame*0.15)*0.12;
+    // Fire body (cute round flame shape)
+    const gr=ctx.createRadialGradient(0,-s*0.1,s*0.1,0,-s*0.1,s);
+    gr.addColorStop(0,'#ffee44');gr.addColorStop(0.4,'#ff8800');gr.addColorStop(0.8,'#ff4400');gr.addColorStop(1,'#cc220088');
+    ctx.fillStyle=gr;
+    ctx.beginPath();
+    // Flame-like body with flickering top
+    ctx.moveTo(-s*0.7,s*0.3);
+    ctx.quadraticCurveTo(-s*0.8,-s*0.2,-s*0.3-s*wobble,-s*0.8);
+    ctx.quadraticCurveTo(0,-s*1.2+s*wobble*2,s*0.3+s*wobble,-s*0.8);
+    ctx.quadraticCurveTo(s*0.8,-s*0.2,s*0.7,s*0.3);
+    ctx.quadraticCurveTo(s*0.3,s*0.5,0,s*0.4);
+    ctx.quadraticCurveTo(-s*0.3,s*0.5,-s*0.7,s*0.3);
+    ctx.closePath();ctx.fill();
+    // Inner glow
+    ctx.fillStyle='#ffee6688';
+    ctx.beginPath();ctx.ellipse(0,-s*0.1,s*0.3,s*0.4,0,0,6.28);ctx.fill();
+    // Eyes (cute big white eyes)
+    ctx.fillStyle='#fff';
+    ctx.beginPath();ctx.arc(-s*0.22,-s*0.05,s*0.18,0,6.28);ctx.fill();
+    ctx.beginPath();ctx.arc(s*0.22,-s*0.05,s*0.18,0,6.28);ctx.fill();
+    // Pupils (dark)
+    ctx.fillStyle='#441100';
+    ctx.beginPath();ctx.arc(-s*0.18,-s*0.08,s*0.09,0,6.28);ctx.fill();
+    ctx.beginPath();ctx.arc(s*0.26,-s*0.08,s*0.09,0,6.28);ctx.fill();
+    // Glow effect
+    ctx.shadowColor='#ff6600';ctx.shadowBlur=10;
+    ctx.strokeStyle='#ff660044';ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(0,0,s*0.6,0,6.28);ctx.stroke();
+    ctx.shadowBlur=0;
+    ctx.restore();
+  });
+}
+
 function drawIcicles(){
   icicles.forEach(ic=>{
     if(ic.x+ic.w<-10||ic.x>W+10||ic.state==='gone')return;
@@ -797,12 +904,14 @@ function draw(){
   // Platforms
   drawPlatforms(platforms,true);
   drawPlatforms(ceilPlats,false);
+  drawMagmaGaps();
   drawFloatPlats();
   drawSpikes();
   drawMovingHills();
   drawGravZones();
   drawFallingMtns();
   drawIcicles();
+  drawMagmaFireballs();
   drawCoinSwitches();
 
   if(isPackMode)drawAmbient();
@@ -1358,11 +1467,16 @@ function drawDasher(en){
 }
 function drawSplitter(en){
   const s=en.sz,flip=en.gDir;
+  const isMagma=isPackMode&&currentPackIdx===2;
   ctx.save();ctx.translate(en.x,en.y);
   if(flip===-1)ctx.scale(1,-1);
-  // Body (green slime-like, slightly larger)
+  // Body (slime-like, slightly larger)
   const gr=ctx.createRadialGradient(0,-s*0.1,0,0,-s*0.1,s);
-  gr.addColorStop(0,'#88cc44');gr.addColorStop(0.6,'#55aa22');gr.addColorStop(1,'#338811');
+  if(isMagma){
+    gr.addColorStop(0,'#ffcc44');gr.addColorStop(0.6,'#ff6622');gr.addColorStop(1,'#cc3300');
+  } else {
+    gr.addColorStop(0,'#88cc44');gr.addColorStop(0.6,'#55aa22');gr.addColorStop(1,'#338811');
+  }
   ctx.fillStyle=gr;
   // Slime blob shape (wobbly)
   const wobble=Math.sin(en.fr*0.8)*s*0.08;
@@ -1375,28 +1489,36 @@ function drawSplitter(en){
   ctx.quadraticCurveTo(-s*0.4,s*0.5,-s*0.8-wobble,s*0.3);
   ctx.closePath();ctx.fill();
   // Shine
-  ctx.fillStyle='#bbff6644';
+  ctx.fillStyle=isMagma?'#ffee8844':'#bbff6644';
   ctx.beginPath();ctx.ellipse(-s*0.2,-s*0.3,s*0.15,s*0.25,0.3,0,6.28);ctx.fill();
+  // Magma glow
+  if(isMagma){ctx.shadowColor='#ff6600';ctx.shadowBlur=6;}
   // Eyes
   ctx.fillStyle='#fff';
   ctx.beginPath();ctx.arc(-s*0.25,-s*0.15,s*0.2,0,6.28);ctx.fill();
   ctx.beginPath();ctx.arc(s*0.25,-s*0.15,s*0.2,0,6.28);ctx.fill();
-  ctx.fillStyle='#1a3300';
+  ctx.fillStyle=isMagma?'#441100':'#1a3300';
   ctx.beginPath();ctx.arc(-s*0.2,-s*0.18,s*0.1,0,6.28);ctx.fill();
   ctx.beginPath();ctx.arc(s*0.3,-s*0.18,s*0.1,0,6.28);ctx.fill();
+  ctx.shadowBlur=0;
   // Split line (visual hint that this enemy splits)
-  ctx.strokeStyle='#44660044';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);
+  ctx.strokeStyle=isMagma?'#88330044':'#44660044';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);
   ctx.beginPath();ctx.moveTo(0,-s*0.7);ctx.lineTo(0,s*0.35);ctx.stroke();
   ctx.setLineDash([]);
   ctx.restore();
 }
 function drawMiniSlime(en){
   const s=en.sz,flip=en.gDir;
+  const isMagma=isPackMode&&currentPackIdx===2;
   ctx.save();ctx.translate(en.x,en.y);
   if(flip===-1)ctx.scale(1,-1);
-  // Small green slime body (same style as splitter but smaller, no split line)
+  // Small slime body (same style as splitter but smaller, no split line)
   const gr=ctx.createRadialGradient(0,-s*0.1,0,0,-s*0.1,s);
-  gr.addColorStop(0,'#88cc44');gr.addColorStop(0.6,'#55aa22');gr.addColorStop(1,'#338811');
+  if(isMagma){
+    gr.addColorStop(0,'#ffcc44');gr.addColorStop(0.6,'#ff6622');gr.addColorStop(1,'#cc3300');
+  } else {
+    gr.addColorStop(0,'#88cc44');gr.addColorStop(0.6,'#55aa22');gr.addColorStop(1,'#338811');
+  }
   ctx.fillStyle=gr;
   const wobble=Math.sin(en.fr*1.2)*s*0.12;
   ctx.beginPath();
@@ -1408,15 +1530,18 @@ function drawMiniSlime(en){
   ctx.quadraticCurveTo(-s*0.4,s*0.5,-s*0.8-wobble,s*0.3);
   ctx.closePath();ctx.fill();
   // Shine
-  ctx.fillStyle='#bbff6644';
+  ctx.fillStyle=isMagma?'#ffee8844':'#bbff6644';
   ctx.beginPath();ctx.ellipse(-s*0.15,-s*0.25,s*0.12,s*0.2,0.3,0,6.28);ctx.fill();
+  // Magma glow
+  if(isMagma){ctx.shadowColor='#ff6600';ctx.shadowBlur=4;}
   // Eyes
   ctx.fillStyle='#fff';
   ctx.beginPath();ctx.arc(-s*0.2,-s*0.15,s*0.18,0,6.28);ctx.fill();
   ctx.beginPath();ctx.arc(s*0.2,-s*0.15,s*0.18,0,6.28);ctx.fill();
-  ctx.fillStyle='#1a3300';
+  ctx.fillStyle=isMagma?'#441100':'#1a3300';
   ctx.beginPath();ctx.arc(-s*0.15,-s*0.18,s*0.09,0,6.28);ctx.fill();
   ctx.beginPath();ctx.arc(s*0.25,-s*0.18,s*0.09,0,6.28);ctx.fill();
+  ctx.shadowBlur=0;
   ctx.restore();
 }
 function drawBullet(b){
@@ -4503,6 +4628,18 @@ function drawStageSel(){
         ctx.fillText(stage.name,sx+sbW/2,sbY+18);
         ctx.fillStyle='#fff2';ctx.font='10px monospace';
         ctx.fillText('🔒',sx+sbW/2,sbY+36);
+      }
+      // Checkpoint pin indicator (on any playable/cleared stage with checkpoint saved)
+      if(stageCheckpoints[stage.id]){
+        ctx.save();
+        const pinX=sx+sbW-4,pinY=sbY-2;
+        // Pin pole
+        ctx.strokeStyle='#34d399';ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.moveTo(pinX,pinY);ctx.lineTo(pinX,pinY+12);ctx.stroke();
+        // Pin flag (small triangle)
+        ctx.fillStyle='#34d399';
+        ctx.beginPath();ctx.moveTo(pinX,pinY);ctx.lineTo(pinX+8,pinY+3);ctx.lineTo(pinX,pinY+6);ctx.closePath();ctx.fill();
+        ctx.restore();
       }
     }
     // Star total indicator at bottom of card

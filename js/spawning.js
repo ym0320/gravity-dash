@@ -281,6 +281,9 @@ function trySpawnSpike(){
     const maxW=isFloor?(plat.x+plat.w-sx):(ceilHere.x+ceilHere.w-sx);
     const sw=Math.min(30+packRng()*30,Math.max(10,maxW));
     if(sw<10){spikeCD=25;return;} // platform too narrow
+    // Overlap check: skip if this spike would overlap any existing spike on the same surface
+    const spikeOverlap=spikes.some(s=>s.isFloor===isFloor&&sx<s.x+s.w+10&&sx+sw>s.x-10);
+    if(spikeOverlap){spikeCD=15+Math.floor(packRng()*10);return;}
     if(isFloor){
       spikes.push({x:sx,w:sw,h:H-plat.h,spikeH:22,phase:0,timer:0,state:'hidden',
         cycle:120+Math.floor(packRng()*80),upTime:60+Math.floor(packRng()*30),
@@ -491,4 +494,64 @@ function trySpawnIcicle(){
   } else {
     icicleCD=12+Math.floor(packRng()*12);
   }
+}
+
+// ===== MAGMA FIREBALLS (magma stage gimmick) =====
+// Cute little fire creatures that leap out of magma gaps in a parabolic arc
+let magmaFireCD=0;
+function trySpawnMagmaFire(){
+  if(magmaFireCD>0){magmaFireCD--;return;}
+  if(!isPackMode||currentPackIdx!==2)return; // magma pack only
+  if(bossPhase.active)return;
+  // Look for floor gaps (magma) slightly ahead of player
+  for(let i=0;i<platforms.length-1;i++){
+    const p1=platforms[i],p2=platforms[i+1];
+    const gStart=p1.x+p1.w;
+    const gEnd=p2.x;
+    const gapW=gEnd-gStart;
+    if(gapW<40)continue;
+    const gapMid=gStart+gapW/2;
+    // Trigger when gap is ahead of player and within range
+    if(gapMid>player.x+30&&gapMid<player.x+250){
+      // Don't spawn if there's already a fireball near this gap
+      if(magmaFireballs.some(fb=>Math.abs(fb.originX-gapMid)<gapW))continue;
+      if(packRng()<0.35){
+        magmaFireCD=40+Math.floor(packRng()*30);
+        const fx=gapMid;
+        const fy=H+10; // start from below screen (magma)
+        const isFloorGap=true;
+        // Parabolic arc: jump up then fall back
+        const jumpVy=-(5+packRng()*3); // upward velocity
+        const jumpVx=(packRng()-0.5)*1.5; // slight horizontal drift
+        magmaFireballs.push({x:fx,y:fy,vx:jumpVx,vy:jumpVy,originX:fx,originY:fy,
+          isFloor:isFloorGap,sz:10+packRng()*4,phase:packRng()*6.28,alive:true,
+          returning:false});
+        return;
+      }
+    }
+  }
+  // Also check ceiling gaps
+  for(let i=0;i<ceilPlats.length-1;i++){
+    const p1=ceilPlats[i],p2=ceilPlats[i+1];
+    const gStart=p1.x+p1.w;
+    const gEnd=p2.x;
+    const gapW=gEnd-gStart;
+    if(gapW<40)continue;
+    const gapMid=gStart+gapW/2;
+    if(gapMid>player.x+30&&gapMid<player.x+250){
+      if(magmaFireballs.some(fb=>Math.abs(fb.originX-gapMid)<gapW))continue;
+      if(packRng()<0.25){
+        magmaFireCD=45+Math.floor(packRng()*35);
+        const fx=gapMid;
+        const fy=-10; // start from above screen (ceiling magma)
+        const jumpVy=4+packRng()*2.5; // downward
+        const jumpVx=(packRng()-0.5)*1.5;
+        magmaFireballs.push({x:fx,y:fy,vx:jumpVx,vy:jumpVy,originX:fx,originY:fy,
+          isFloor:false,sz:10+packRng()*4,phase:packRng()*6.28,alive:true,
+          returning:false});
+        return;
+      }
+    }
+  }
+  magmaFireCD=10+Math.floor(packRng()*8);
 }
