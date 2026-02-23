@@ -130,7 +130,7 @@ function update(dt){
     if(itemEff.invincible>0)itemEff.invincible--;
     return;
   }
-  if(state===ST.STAGE_SEL){frame++;return;}
+  if(state===ST.STAGE_SEL){frame++;if(stageSelGuardT>0)stageSelGuardT--;return;}
   if(state===ST.TITLE){
     // Auto-show update info on first title entry (if not dismissed)
     if(!updateInfoShown&&localStorage.getItem('gd5updateDismissed')!==UPDATE_VER){
@@ -425,16 +425,8 @@ function update(dt){
     // Stage mode gimmicks based on stageType
     const nearGoal=dist>=currentPackStage.dist*0.92;
     if(sType==='gravity'){
-      // Gravity stage: gravity zones + moving hills (only way to traverse)
+      // Gravity stage: moving hills only (only way to traverse abyss)
       if(!nearGoal){
-        if(gravZoneCD>0)gravZoneCD--;
-        if(gravZoneCD<=0){
-          const gx=W+20+packRng()*80;
-          const gw=50+packRng()*60;
-          const gdir=packRng()<0.5?1:-1;
-          gravZones.push({x:gx,w:gw,triggered:false,fadeT:0,dir:gdir});
-          gravZoneCD=8+Math.floor(packRng()*30);
-        }
         // Spawn moving hills directly (no gap detection needed for abyss)
         if(hillCD>0)hillCD--;
         if(hillCD<=0){
@@ -444,11 +436,11 @@ function update(dt){
           const baseH=GROUND_H;
           const ampH=20+packRng()*35;
           movingHills.push({x:hx,w:hw,baseH:baseH,ampH:ampH,phase:packRng()*6.28,spd:0.03+packRng()*0.02,isFloor:isFloor});
-          hillCD=35+Math.floor(packRng()*35);
+          hillCD=25+Math.floor(packRng()*30);
         }
       }
     } else if(sType==='void'){
-      // Void stage: wall-heavy stage with gravity navigation
+      // Void stage: wall-heavy stage with gravity navigation only
       if(!nearGoal){
         // Dense gravity zones for wall avoidance
         if(gravZoneCD>0)gravZoneCD--;
@@ -459,8 +451,6 @@ function update(dt){
           gravZones.push({x:gx,w:gw,triggered:false,fadeT:0,dir:gdir});
           gravZoneCD=15+Math.floor(packRng()*25);
         }
-        trySpawnMovingHill();trySpawnMovingHill(); // some dynamic obstacles
-        trySpawnFloatPlat(); // helpful floating platforms
       }
     } else if(sType==='chasm'){
       // Chasm stage: gravity zones + floating platforms for up/down navigation

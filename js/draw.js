@@ -3143,22 +3143,35 @@ function drawPause(){
   }
   // HP in pause
   for(let i=0;i<maxHp();i++)drawHeart(W/2-((maxHp()-1)*13)+i*26,H*0.37,16,i<hp);
+  // Button layout: pack mode has 4 buttons, others have 3
+  const hasStageSelBtn=isPackMode&&!isChallengeMode;
+  const bBase=hasStageSelBtn?0.40:0.42;
+  const bStep=hasStageSelBtn?0.10:0.11;
+  const resumeY=H*bBase, restartY=H*(bBase+bStep);
+  const stageSelY=hasStageSelBtn?H*(bBase+bStep*2):0;
+  const quitY=H*(bBase+bStep*(hasStageSelBtn?3:2));
   // Resume button
-  ctx.fillStyle='#00e5ff33';rr(W/2-80,H*0.42,160,44,10);ctx.fill();
-  ctx.strokeStyle='#00e5ff';ctx.lineWidth=2;rr(W/2-80,H*0.42,160,44,10);ctx.stroke();
-  ctx.fillStyle='#00e5ff';ctx.font='bold 18px monospace';ctx.fillText('\u25B6 \u518D\u958B',W/2,H*0.42+28);
+  ctx.fillStyle='#00e5ff33';rr(W/2-80,resumeY,160,44,10);ctx.fill();
+  ctx.strokeStyle='#00e5ff';ctx.lineWidth=2;rr(W/2-80,resumeY,160,44,10);ctx.stroke();
+  ctx.fillStyle='#00e5ff';ctx.font='bold 18px monospace';ctx.fillText('\u25B6 \u518D\u958B',W/2,resumeY+28);
   // Restart button
-  ctx.fillStyle='#ffa50033';rr(W/2-80,H*0.53,160,44,10);ctx.fill();
-  ctx.strokeStyle='#ffa500';ctx.lineWidth=2;rr(W/2-80,H*0.53,160,44,10);ctx.stroke();
-  ctx.fillStyle='#ffa500';ctx.font='bold 18px monospace';ctx.fillText('\u21BA \u3084\u308A\u76F4\u3059',W/2,H*0.53+28);
+  ctx.fillStyle='#ffa50033';rr(W/2-80,restartY,160,44,10);ctx.fill();
+  ctx.strokeStyle='#ffa500';ctx.lineWidth=2;rr(W/2-80,restartY,160,44,10);ctx.stroke();
+  ctx.fillStyle='#ffa500';ctx.font='bold 18px monospace';ctx.fillText('\u21BA \u3084\u308A\u76F4\u3059',W/2,restartY+28);
+  // Stage select button (pack mode only)
+  if(hasStageSelBtn){
+    ctx.fillStyle='#34d39933';rr(W/2-80,stageSelY,160,44,10);ctx.fill();
+    ctx.strokeStyle='#34d399';ctx.lineWidth=2;rr(W/2-80,stageSelY,160,44,10);ctx.stroke();
+    ctx.fillStyle='#34d399';ctx.font='bold 18px monospace';ctx.fillText('\u25C0 \u30B9\u30C6\u30FC\u30B8\u9078\u629E',W/2,stageSelY+28);
+  }
   // Quit button (retire in challenge mode)
-  ctx.fillStyle='#ff386033';rr(W/2-80,H*0.64,160,44,10);ctx.fill();
-  ctx.strokeStyle='#ff3860';ctx.lineWidth=2;rr(W/2-80,H*0.64,160,44,10);ctx.stroke();
+  ctx.fillStyle='#ff386033';rr(W/2-80,quitY,160,44,10);ctx.fill();
+  ctx.strokeStyle='#ff3860';ctx.lineWidth=2;rr(W/2-80,quitY,160,44,10);ctx.stroke();
   ctx.fillStyle='#ff3860';ctx.font='bold 18px monospace';
-  ctx.fillText(isChallengeMode?'\u25A0 \u30EA\u30BF\u30A4\u30A2':'\u2716 \u30BF\u30A4\u30C8\u30EB\u3078',W/2,H*0.64+28);
+  ctx.fillText(isChallengeMode?'\u25A0 \u30EA\u30BF\u30A4\u30A2':'\u2716 \u30BF\u30A4\u30C8\u30EB\u3078',W/2,quitY+28);
   // Hint
   ctx.fillStyle='#fff3';ctx.font='11px monospace';
-  ctx.fillText('ESC:\u518D\u958B / R:\u3084\u308A\u76F4\u3059',W/2,H*0.75);
+  ctx.fillText('ESC:\u518D\u958B / R:\u3084\u308A\u76F4\u3059',W/2,H*0.78);
 }
 
 // ===== INVENTORY MODAL (title screen) =====
@@ -4423,6 +4436,7 @@ function drawStageSel(){
   }
 }
 function handleStageSelTouch(tx,ty){
+  if(stageSelGuardT>0)return; // ignore taps right after transitioning to stage select
   // Back button
   if(tx>=10&&tx<=60&&ty>=22+safeTop&&ty<=52+safeTop){
     sfx('cancel');titleTouchPos=null;state=ST.TITLE;isPackMode=false;switchBGM('title');return;

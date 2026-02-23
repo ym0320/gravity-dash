@@ -289,13 +289,16 @@ function generatePackPlatform(arr,isCeil,stage){
   // --- Default terrain generation ---
   let gap=0;
   const gc=stage.gapChance||0.12;
-  if(rng()<gc){gap=20+rng()*60;}
+  if(rng()<gc){gap=20+rng()*80;}
   let h=lastH;
   const hc=stage.hillChance||0.08;
   if(rng()<hc){
-    const dh=(rng()<0.5?1:-1)*(8+rng()*35);
-    h=Math.max(65+safeBot,Math.min(H*0.38,h+dh));
+    const dh=(rng()<0.5?1:-1)*(10+rng()*50);
+    h=Math.max(65+safeBot,Math.min(H*0.42,h+dh));
   }
-  const w=70+rng()*140;
+  // Narrow platforms when gapChance is high
+  const wBase=gc>=0.40?40:70;
+  const wRange=gc>=0.40?80:140;
+  const w=wBase+rng()*wRange;
   arr.push({x:lastRight+gap,w:w,h:h});
 }

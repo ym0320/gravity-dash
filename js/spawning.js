@@ -125,7 +125,10 @@ function trySpawnEnemy(){
         else eType=0; // walker
       } else {
         // Normal/moving stages: progressive enemy types
-        if(stageIdx>=4&&progress>0.5&&tr<0.20) eType=8;
+        // bombWeight override: force bomber (type 3) at given probability
+        const bw=currentPackStage.bombWeight||0;
+        if(bw>0&&tr<bw) eType=3;
+        else if(stageIdx>=4&&progress>0.5&&tr<0.20) eType=8;
         else if(stageIdx>=3&&progress>0.4&&tr<0.22) eType=3;
         else if(stageIdx>=3&&tr<0.20) eType=6;
         else if(stageIdx>=2&&progress>0.3&&tr<0.18) eType=5;
@@ -220,6 +223,8 @@ function trySpawnFloatPlat(){
   if(floatCD>0){floatCD--;return;}
   if(!isPackMode&&score<100)return; // appear after more progression (endless only)
   if(bossPhase.active)return;
+  // Stage flag: disable floating platforms entirely
+  if(isPackMode&&currentPackStage&&currentPackStage.noFloatPlat)return;
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
   const isFloatStage=isPackMode&&currentPackStage&&(currentPackStage.stageType==='moving'||currentPackStage.stageType==='swarm'||currentPackStage.stageType==='chasm'||currentPackStage.stageType==='void');
@@ -360,6 +365,8 @@ function trySpawnMovingHill(){
   if(hillCD>0){hillCD--;return;}
   if(!isPackMode&&(bossPhase.bossCount<2||bossPhase.active))return; // endless: only after 2nd boss
   if(isPackMode&&bossPhase.active)return;
+  // Stage flag: disable moving hills entirely
+  if(isPackMode&&currentPackStage&&currentPackStage.noMovingHill)return;
   // During terrain gimmick phase (falling type), skip moving hill spawns
   if(terrainGimmickPhase.active&&terrainGimmickPhase.type==='falling')return;
   const isGimmickMoving=terrainGimmickPhase.active&&terrainGimmickPhase.type==='moving';

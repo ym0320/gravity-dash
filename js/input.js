@@ -17,9 +17,16 @@ function hitPauseBtn(px,py){return px>=W-58&&px<=W-4&&py>=safeTop+8&&py<=safeTop
 function itemBtnLayout(){const btnSz=44,btnGap=12,totalW=btnSz*2+btnGap,sx=W/2-totalW/2,by=H-PANEL_H+6;return{invX:sx,bombX:sx+btnSz+btnGap,y:by,sz:btnSz};}
 function hitInvBtn(px,py){const b=itemBtnLayout();return px>=b.invX&&px<=b.invX+b.sz&&py>=b.y&&py<=b.y+b.sz;}
 function hitBombBtn(px,py){const b=itemBtnLayout();return px>=b.bombX&&px<=b.bombX+b.sz&&py>=b.y&&py<=b.y+b.sz;}
-function hitResumeBtn(px,py){return px>=W/2-80&&px<=W/2+80&&py>=H*0.42&&py<=H*0.42+44;}
-function hitRestartBtn(px,py){return px>=W/2-80&&px<=W/2+80&&py>=H*0.53&&py<=H*0.53+44;}
-function hitQuitBtn(px,py){return px>=W/2-80&&px<=W/2+80&&py>=H*0.64&&py<=H*0.64+44;}
+function pauseBtnLayout(){
+  const hasSSel=isPackMode&&!isChallengeMode;
+  const bBase=hasSSel?0.40:0.42;
+  const bStep=hasSSel?0.10:0.11;
+  return{resumeY:H*bBase,restartY:H*(bBase+bStep),stageSelY:hasSSel?H*(bBase+bStep*2):0,quitY:H*(bBase+bStep*(hasSSel?3:2)),hasStageSel:hasSSel};
+}
+function hitResumeBtn(px,py){const l=pauseBtnLayout();return px>=W/2-80&&px<=W/2+80&&py>=l.resumeY&&py<=l.resumeY+44;}
+function hitRestartBtn(px,py){const l=pauseBtnLayout();return px>=W/2-80&&px<=W/2+80&&py>=l.restartY&&py<=l.restartY+44;}
+function hitPauseStageSelBtn(px,py){const l=pauseBtnLayout();return l.hasStageSel&&px>=W/2-80&&px<=W/2+80&&py>=l.stageSelY&&py<=l.stageSelY+44;}
+function hitQuitBtn(px,py){const l=pauseBtnLayout();return px>=W/2-80&&px<=W/2+80&&py>=l.quitY&&py<=l.quitY+44;}
 // Game over screen buttons (must match drawDead layout exactly)
 function deadBtnLayout(){
   const btnW2=Math.min(220,W-40),btnH2=38,btnX2=W/2-btnW2/2;
@@ -77,7 +84,7 @@ function handleDeadBtn(btnId){
   } else if(btnId==='title'){
     sfx('cancel');titleTouchPos=null;
     isChallengeMode=false;
-    if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');}
+    if(isPackMode){state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;stageSelGuardT=30;switchBGM('title');}
     else{state=ST.TITLE;switchBGM('title');}
   }
 }
@@ -645,6 +652,7 @@ canvas.addEventListener('touchstart',e=>{
   if(state===ST.PAUSE){
     if(hitResumeBtn(p.x,p.y)){sfx('select');state=ST.PLAY;switchBGM('play');return;}
     if(hitRestartBtn(p.x,p.y)){restartFromPause();return;}
+    if(hitPauseStageSelBtn(p.x,p.y)){sfx('cancel');state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;stageSelGuardT=30;switchBGM('title');return;}
     if(hitQuitBtn(p.x,p.y)){if(isChallengeMode){challengeRetired=true;sfx('cancel');player.alive=false;state=ST.DEAD;deadT=0;switchBGM('dead');return;}sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     return;
   }
@@ -905,6 +913,7 @@ canvas.addEventListener('mousedown',e=>{
   if(state===ST.PAUSE){
     if(hitResumeBtn(p.x,p.y)){sfx('select');state=ST.PLAY;switchBGM('play');return;}
     if(hitRestartBtn(p.x,p.y)){restartFromPause();return;}
+    if(hitPauseStageSelBtn(p.x,p.y)){sfx('cancel');state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;stageSelGuardT=30;switchBGM('title');return;}
     if(hitQuitBtn(p.x,p.y)){if(isChallengeMode){challengeRetired=true;sfx('cancel');player.alive=false;state=ST.DEAD;deadT=0;switchBGM('dead');return;}sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     return;
   }
