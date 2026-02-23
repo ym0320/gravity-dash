@@ -394,7 +394,7 @@ function trySpawnMovingHill(){
   // During terrain gimmick phase (falling type), skip moving hill spawns
   if(terrainGimmickPhase.active&&terrainGimmickPhase.type==='falling')return;
   const isGimmickMoving=terrainGimmickPhase.active&&terrainGimmickPhase.type==='moving';
-  const isMovingStage=isPackMode&&currentPackStage&&(currentPackStage.stageType==='moving'||currentPackStage.stageType==='void');
+  const isMovingStage=isPackMode&&currentPackStage&&(currentPackStage.stageType==='moving'||currentPackStage.stageType==='void'||currentPackStage.stageType==='gravity');
   let chance=isPackMode?(isMovingStage?0.40:0.18):Math.min(0.1,0.02+(score-120)*0.001);
   if(isGimmickMoving)chance=0.35;
   if(packRng()<chance){
@@ -412,16 +412,17 @@ function trySpawnMovingHill(){
       }
     }
     if(gapX<0){hillCD=30+Math.floor(packRng()*15);return;}
-    // Check overlap: don't spawn where a fallingMtn or another movingHill already exists
-    const hasFalling=fallingMtns.some(fm=>Math.abs(fm.x-gapX)<gapW);
+    // Compute hill dimensions first for accurate overlap check
+    const hw=Math.min(gapW*0.85,150+packRng()*200); // wide: 150-350px
+    const hx=gapX+(gapW-hw)/2; // center in gap
+    // Check overlap: don't spawn where new hill overlaps existing movingHill or fallingMtn (20px buffer)
+    const hasFalling=fallingMtns.some(fm=>hx<fm.x+fm.w+20&&hx+hw>fm.x-20);
     if(hasFalling){hillCD=30+Math.floor(packRng()*15);return;}
-    const hasMH=movingHills.some(mh=>Math.abs(mh.x-gapX)<gapW);
+    const hasMH=movingHills.some(mh=>hx<mh.x+mh.w+20&&hx+hw>mh.x-20);
     if(hasMH){hillCD=30+Math.floor(packRng()*15);return;}
     const isGimmickMoving2=terrainGimmickPhase.active&&terrainGimmickPhase.type==='moving';
     hillCD=isGimmickMoving2?(40+Math.floor(packRng()*30)):(120+Math.floor(packRng()*80));
     if(isGimmickMoving2){terrainGimmickPhase.len--;if(terrainGimmickPhase.len<=0){terrainGimmickPhase.active=false;terrainGimmickPhase.cd=800+Math.floor(packRng()*400);}}
-    const hw=Math.min(gapW*0.85,150+packRng()*200); // wide: 150-350px (2-5x original)
-    const hx=gapX+(gapW-hw)/2; // center in gap
     const baseH=GROUND_H;
     const ampH=40+packRng()*50;
     movingHills.push({x:hx,w:hw,baseH:baseH,ampH:ampH,phase:packRng()*6.28,spd:0.03+packRng()*0.02,isFloor:isFloor});
@@ -438,6 +439,11 @@ function trySpawnGravZone(){
   if(!isPackMode&&(bossPhase.bossCount<1||bossPhase.active))return;
   if(isPackMode&&bossPhase.active)return;
   if(!isPackMode&&score<150)return;
+  // Void boss stage (1-5 etc): no gravity zones near goal area
+  if(isPackMode&&currentPackStage&&currentPackStage.stageType==='void'&&currentPackStage.boss){
+    const progress=dist/(currentPackStage.dist||1);
+    if(progress>=0.85)return;
+  }
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
   let doSpawn=false;
