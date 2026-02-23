@@ -605,6 +605,19 @@ function sfx(type){
       case'item':o.type='sine';o.frequency.setValueAtTime(400,t);o.frequency.exponentialRampToValueAtTime(1200,t+0.18);g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);o.start(t);o.stop(t+0.25);break;
       case'death':o.type='sawtooth';o.frequency.setValueAtTime(300,t);o.frequency.exponentialRampToValueAtTime(40,t+0.45);g.gain.setValueAtTime(0.18,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.5);o.start(t);o.stop(t+0.5);break;
       case'milestone':o.type='sine';o.frequency.setValueAtTime(523,t);g.gain.setValueAtTime(0.1,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.4);o.start(t);o.stop(t+0.4);[659,784,1047].forEach((f,i)=>{const x=audioCtx.createOscillator(),y=audioCtx.createGain();x.connect(y);y.connect(sfxGain);x.type='sine';x.frequency.setValueAtTime(f,t+0.1*(i+1));y.gain.setValueAtTime(0.08,t+0.1*(i+1));y.gain.exponentialRampToValueAtTime(0.001,t+0.1*(i+1)+0.25);x.start(t+0.1*(i+1));x.stop(t+0.1*(i+1)+0.25);});break;
+      case'bigcoin':
+        // Sparkling ascending arpeggio: C-E-G-C with shimmer
+        o.type='triangle';o.frequency.setValueAtTime(1047,t);o.frequency.exponentialRampToValueAtTime(2093,t+0.12);
+        g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.5);o.start(t);o.stop(t+0.5);
+        [1319,1568,2093,2637].forEach((f,i)=>{const x=audioCtx.createOscillator(),y=audioCtx.createGain();x.connect(y);y.connect(sfxGain);
+        x.type='sine';x.frequency.setValueAtTime(f,t+0.08*(i+1));x.frequency.exponentialRampToValueAtTime(f*1.05,t+0.08*(i+1)+0.2);
+        y.gain.setValueAtTime(0.1,t+0.08*(i+1));y.gain.exponentialRampToValueAtTime(0.001,t+0.08*(i+1)+0.35);
+        x.start(t+0.08*(i+1));x.stop(t+0.08*(i+1)+0.4);});
+        // Shimmer overtone
+        {const sh=audioCtx.createOscillator(),shg=audioCtx.createGain();sh.connect(shg);shg.connect(sfxGain);
+        sh.type='sine';sh.frequency.setValueAtTime(3520,t+0.15);sh.frequency.exponentialRampToValueAtTime(4186,t+0.5);
+        shg.gain.setValueAtTime(0.04,t+0.15);shg.gain.exponentialRampToValueAtTime(0.001,t+0.6);sh.start(t+0.15);sh.stop(t+0.6);}
+        break;
       case'combo':o.type='sine';{const cf=Math.min(1200,600+combo*80);o.frequency.setValueAtTime(cf,t);o.frequency.exponentialRampToValueAtTime(cf*1.5,t+0.07);g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.1);o.start(t);o.stop(t+0.1);}break;
       case'stomp':o.type='square';o.frequency.setValueAtTime(200,t);o.frequency.exponentialRampToValueAtTime(80,t+0.12);g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.15);o.start(t);o.stop(t+0.15);break;
       case'shoot':o.type='sawtooth';o.frequency.setValueAtTime(600,t);o.frequency.exponentialRampToValueAtTime(200,t+0.15);g.gain.setValueAtTime(0.1,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);o.start(t);o.stop(t+0.18);break;
@@ -1049,11 +1062,16 @@ const STAGE_THEMES=[
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t^=t+Math.imul(t^t>>>7,61|t);return((t^t>>>14)>>>0)/4294967296;};}
 const STAGE_PACKS=[
   {name:'宇宙',theme:0,unlock:0,starsPerStage:2,stages:[
-    {id:'1-1',name:'1-1',dist:120,spdMul:1.0,seed:1001,hillChance:0.04,gapChance:0.05,enemyChance:0.05},
-    {id:'1-2',name:'1-2',dist:160,spdMul:1.0,seed:1002,hillChance:0.06,gapChance:0.06,enemyChance:0.08},
-    {id:'1-3',name:'1-3',dist:200,spdMul:1.0,seed:1003,hillChance:0.08,gapChance:0.08,enemyChance:0.10},
-    {id:'1-4',name:'1-4',dist:250,spdMul:1.0,seed:1004,hillChance:0.10,gapChance:0.10,enemyChance:0.13},
-    {id:'1-5',name:'1-5',dist:300,spdMul:1.0,seed:1005,hillChance:0.12,gapChance:0.12,enemyChance:0.16},
+    {id:'1-1',name:'1-1',dist:750,spdMul:1.0,seed:1001,hillChance:0.03,gapChance:0.03,enemyChance:0.04,
+      coins:[{pos:0.20,yOff:-60},{pos:0.50,yOff:-160},{pos:0.82,yOff:-70}]},
+    {id:'1-2',name:'1-2',dist:750,spdMul:1.0,seed:1002,hillChance:0.05,gapChance:0.04,enemyChance:0.06,
+      coins:[{pos:0.18,yOff:-130},{pos:0.48,yOff:-320},{pos:0.78,yOff:-80}]},
+    {id:'1-3',name:'1-3',dist:750,spdMul:1.0,seed:1003,hillChance:0.06,gapChance:0.05,enemyChance:0.08,
+      coins:[{pos:0.22,yOff:-220},{pos:0.55,yOff:-70},{pos:0.83,yOff:-380}]},
+    {id:'1-4',name:'1-4',dist:750,spdMul:1.0,seed:1004,hillChance:0.08,gapChance:0.07,enemyChance:0.10,
+      coins:[{pos:0.20,yOff:-320},{pos:0.50,yOff:-90},{pos:0.80,yOff:-480}]},
+    {id:'1-5',name:'1-5',dist:750,spdMul:1.0,seed:1005,hillChance:0.10,gapChance:0.08,enemyChance:0.12,
+      coins:[{pos:0.15,yOff:-380},{pos:0.48,yOff:-120},{pos:0.80,yOff:-540}]},
   ]},
   {name:'雪山',theme:1,unlock:12,starsPerStage:2,stages:[
     {id:'2-1',name:'2-1',dist:150,spdMul:1.0,seed:2001,hillChance:0.06,gapChance:0.07,enemyChance:0.08},

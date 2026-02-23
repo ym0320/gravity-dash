@@ -543,7 +543,7 @@ canvas.addEventListener('touchstart',e=>{
   if(state===ST.TITLE&&!charModal.show&&hitHelpBtn(p.x,p.y)){sfx('select');helpOpen=true;return;}
   // Update info button on title screen
   if(state===ST.TITLE&&!charModal.show&&hitUpdateBtn(p.x,p.y)){sfx('select');updateInfoPage=0;updateInfoOpen=true;return;}
-  if(state===ST.STAGE_SEL){stageSelTouchY=t.clientY;stageSelDragging=false;handleStageSelTouch(p.x,p.y);return;}
+  if(state===ST.STAGE_SEL){stageSelTouchY=t.clientY;stageSelDragging=false;return;}
   if(state===ST.STAGE_CLEAR&&stageClearT>60){
     sfx('click');state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;
   }
@@ -641,8 +641,10 @@ canvas.addEventListener('touchmove',e=>{
   if(state===ST.STAGE_SEL){
     const scrollDy=t.clientY-stageSelTouchY;
     if(Math.abs(scrollDy)>5){stageSelDragging=true;stageSelScroll+=scrollDy;stageSelTouchY=t.clientY;
-    const maxScroll=0,minScroll=-(STAGE_PACKS.length*144-H+120);
-    stageSelScroll=Math.max(minScroll,Math.min(maxScroll,stageSelScroll));}
+    const viewH=H-70-safeTop-safeBot;
+    const totalH=STAGE_PACKS.length*(130+14);
+    const minScroll=totalH>viewH?-(totalH-viewH):0;
+    stageSelScroll=Math.max(minScroll,Math.min(0,stageSelScroll));}
   }
 },{passive:false});
 
@@ -659,6 +661,11 @@ canvas.addEventListener('touchend',e=>{
     return;
   }
   if(updateInfoOpen||helpOpen||settingsOpen||rankingOpen||inventoryOpen)return;
+  // Stage selection: handle tap only if user didn't drag
+  if(state===ST.STAGE_SEL){
+    if(!stageSelDragging){const ct3=e.changedTouches[0];const cp2=canvasXY(ct3.clientX,ct3.clientY);handleStageSelTouch(cp2.x,cp2.y);}
+    stageSelDragging=false;return;
+  }
   // Shop/cosmetic: confirm pending item taps if user didn't scroll
   if(shopOpen){
     if(!touchMoved&&shopPendingTap){confirmShopTap();}
@@ -1067,6 +1074,13 @@ canvas.addEventListener('wheel',e=>{
     const mH2=Math.min(500,H-30),listH2=mH2-184,totalH2=ownedList.length*48;
     const maxS=Math.max(0,totalH2-listH2);
     cosmeticScroll=Math.max(0,Math.min(maxS,cosmeticScroll+e.deltaY*1.5));
+  }
+  if(state===ST.STAGE_SEL){
+    e.preventDefault();
+    const viewH2=H-70-safeTop-safeBot;
+    const totalH2=STAGE_PACKS.length*(130+14);
+    const minScroll2=totalH2>viewH2?-(totalH2-viewH2):0;
+    stageSelScroll=Math.max(minScroll2,Math.min(0,stageSelScroll-e.deltaY*1.5));
   }
 },{passive:false});
 
