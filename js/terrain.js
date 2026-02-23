@@ -102,6 +102,8 @@ let gravZoneCD=0;
 let icicles=[]; // {x, y, w, h, vy, isFloor, state:'wait'|'fall'|'stuck'|'gone', timer}
 let icicleCD=0;
 let magmaFireballs=[]; // {x, y, vx, vy, originX, originY, isFloor, sz, phase, alive, returning}
+// Deterministic terrain generation tracking (cumulative px generated, not affected by scrolling)
+let packFloorGenX=0,packCeilGenX=0;
 
 // ===== BOSS PHASE =====
 // Boss appears periodically in endless mode
@@ -188,6 +190,9 @@ function resetPackStage(pi,si,fromCheckpoint){
   platforms=[];ceilPlats=[];
   platforms.push({x:-20,w:W*0.9,h:GROUND_H});
   ceilPlats.push({x:-20,w:W*0.9,h:GROUND_H});
+  // Initialize deterministic generation distance trackers
+  packFloorGenX=W*0.9-20; // initial platform right edge
+  packCeilGenX=W*0.9-20;
   for(let i=0;i<5;i++){generatePackPlatform(platforms,false,stage);generatePackPlatform(ceilPlats,true,stage);}
   player.y=floorSurfaceY(player.x)-PLAYER_R;
   coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];floatPlats=[];floatCD=0;
@@ -241,90 +246,88 @@ function generatePackPlatform(arr,isCeil,stage){
   const lastRight=last?last.x+last.w:0;
   const rng=isCeil?(stageCeilRng||stageRng):stageRng;if(!rng)return;
   const sType=stage.stageType||'';
+  // Deterministic distance estimate based on cumulative generation (not runtime dist)
+  const genX=isCeil?packCeilGenX:packFloorGenX;
+  const approxDist=Math.max(0,(genX-W*0.5)*0.08);
+  let addedGap=0,addedW=0;
   // Boss phase: flat terrain for fighting
   if(bossPhase.active||bossPhase.prepare>0){
-    arr.push({x:lastRight,w:150+rng()*100,h:GROUND_H});
-    return;
+    addedW=150+rng()*100;
+    arr.push({x:lastRight,w:addedW,h:GROUND_H});
   }
   // Post-goal area: flat runway → solid wall (dead end)
-  const approxDist=dist+(lastRight-(player?player.x:W*0.2))*0.08;
-  if(approxDist>=stage.dist){
+  else if(approxDist>=stage.dist){
     const pastGoalDist=approxDist-stage.dist;
     if(pastGoalDist<80){
-      // Flat runway up to the wall
-      arr.push({x:lastRight,w:60+rng()*40,h:GROUND_H});
+      addedW=60+rng()*40;
+      arr.push({x:lastRight,w:addedW,h:GROUND_H});
     } else {
-      // Solid wall (floor-to-ceiling block) = dead end
-      arr.push({x:lastRight,w:300,h:H*0.48});
+      addedW=300;
+      arr.push({x:lastRight,w:addedW,h:H*0.48});
     }
-    return;
   }
-  // --- VOID stage (1-5): walls protrude, floor-level only (no mid-height landing) ---
-  if(sType==='void'){
-    const progress=approxDist/stage.dist; // 0→1
+  // --- VOID stage: walls protrude, floor-level only ---
+  else if(sType==='void'){
+    const progress=approxDist/stage.dist;
     if(approxDist<30){
-      arr.push({x:lastRight,w:120+rng()*60,h:GROUND_H});
-      return;
-    }
-    if(progress>=0.88){
+      addedW=120+rng()*60;
+      arr.push({x:lastRight,w:addedW,h:GROUND_H});
+    } else if(progress>=0.88){
       const goalH=H*0.45;
-      const gap=rng()*15;
-      arr.push({x:lastRight+gap,w:40+rng()*20,h:goalH});
-      return;
-    }
-    // Middle: walls protrude as obstacles, landing platforms are always floor-level
-    const wallChance=0.6+progress*0.2;
-    if(rng()<wallChance){
-      // Large protruding wall (obstacle, not a landing point)
-      const wallH=H*0.28+rng()*H*0.15;
-      const wallW=60+rng()*80;
-      const gap=20+rng()*40;
-      arr.push({x:lastRight+gap,w:wallW,h:wallH});
+      addedGap=rng()*15;
+      addedW=40+rng()*20;
+      arr.push({x:lastRight+addedGap,w:addedW,h:goalH});
     } else {
-      // Floor-level platform only
-      const gap=30+rng()*60;
-      arr.push({x:lastRight+gap,w:40+rng()*50,h:GROUND_H});
+      const wallChance=0.6+progress*0.2;
+      if(rng()<wallChance){
+        const wallH=H*0.28+rng()*H*0.15;
+        addedW=60+rng()*80;
+        addedGap=20+rng()*40;
+        arr.push({x:lastRight+addedGap,w:addedW,h:wallH});
+      } else {
+        addedGap=30+rng()*60;
+        addedW=40+rng()*50;
+        arr.push({x:lastRight+addedGap,w:addedW,h:GROUND_H});
+      }
     }
-    return;
   }
-  // --- GRAVITY stage (1-4): start land → all abyss (moving hills only) → goal ---
-  if(sType==='gravity'){
+  // --- GRAVITY stage: start land → all abyss (moving hills only) → goal ---
+  else if(sType==='gravity'){
     if(approxDist<30){
-      // Starting area: solid platform
-      arr.push({x:lastRight,w:120+rng()*80,h:GROUND_H});
-      return;
-    }
-    if(approxDist>=stage.dist*0.92){
+      addedW=120+rng()*80;
+      arr.push({x:lastRight,w:addedW,h:GROUND_H});
+    } else if(approxDist>=stage.dist*0.92){
       const goalH=H*0.45;
+      addedGap=10;addedW=40;
       arr.push({x:lastRight+10,w:40,h:goalH});
-      return;
+    } else {
+      addedGap=400+rng()*600;addedW=1;
+      arr.push({x:lastRight+addedGap,w:1,h:0});
     }
-    // Middle: complete abyss - only moving hills provide footing
-    const gap=400+rng()*600;
-    arr.push({x:lastRight+gap,w:1,h:0}); // invisible spacer
-    return;
   }
-  // --- CHASM stage (1-3): deep gaps, floor-level only (no mid-height landing) ---
-  if(sType==='chasm'){
+  // --- CHASM stage: deep gaps, floor-level only ---
+  else if(sType==='chasm'){
     const doGap=rng()<0.55;
-    const gap=doGap?(100+rng()*180):0; // frequent deep gaps
-    const w=45+rng()*70; // short platforms
-    arr.push({x:lastRight+gap,w:w,h:GROUND_H}); // always floor-level
-    return;
+    addedGap=doGap?(100+rng()*180):0;
+    addedW=45+rng()*70;
+    arr.push({x:lastRight+addedGap,w:addedW,h:GROUND_H});
   }
   // --- Default terrain generation ---
-  let gap=0;
-  const gc=stage.gapChance||0.12;
-  if(rng()<gc){gap=20+rng()*80;}
-  let h=lastH;
-  const hc=stage.hillChance||0.08;
-  if(rng()<hc){
-    const dh=(rng()<0.5?1:-1)*(10+rng()*50);
-    h=Math.max(65+safeBot,Math.min(H*0.42,h+dh));
+  else {
+    const gc=stage.gapChance||0.12;
+    if(rng()<gc){addedGap=20+rng()*80;}
+    let h=lastH;
+    const hc=stage.hillChance||0.08;
+    if(rng()<hc){
+      const dh=(rng()<0.5?1:-1)*(10+rng()*50);
+      h=Math.max(65+safeBot,Math.min(H*0.42,h+dh));
+    }
+    const wBase=gc>=0.40?40:70;
+    const wRange=gc>=0.40?80:140;
+    addedW=wBase+rng()*wRange;
+    arr.push({x:lastRight+addedGap,w:addedW,h:h});
   }
-  // Narrow platforms when gapChance is high
-  const wBase=gc>=0.40?40:70;
-  const wRange=gc>=0.40?80:140;
-  const w=wBase+rng()*wRange;
-  arr.push({x:lastRight+gap,w:w,h:h});
+  // Update deterministic generation tracker
+  if(isCeil) packCeilGenX+=addedGap+addedW;
+  else packFloorGenX+=addedGap+addedW;
 }

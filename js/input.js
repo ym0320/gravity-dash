@@ -661,8 +661,8 @@ canvas.addEventListener('touchstart',e=>{
     if(hitQuitBtn(p.x,p.y)){if(isChallengeMode){challengeRetired=true;sfx('cancel');player.alive=false;state=ST.DEAD;deadT=0;switchBGM('dead');return;}sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     return;
   }
-  if(state===ST.PLAY&&hitInvBtn(p.x,p.y)){useInvincible();touchBtnUsed=true;return;}
-  if(state===ST.PLAY&&hitBombBtn(p.x,p.y)){useBomb();touchBtnUsed=true;return;}
+  if(state===ST.PLAY&&!isPackMode&&hitInvBtn(p.x,p.y)){useInvincible();touchBtnUsed=true;return;}
+  if(state===ST.PLAY&&!isPackMode&&hitBombBtn(p.x,p.y)){useBomb();touchBtnUsed=true;return;}
   if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');state=ST.PAUSE;touchBtnUsed=true;return;}
   if(state===ST.TITLE){
     // Shop modal intercepts all input when open
@@ -922,8 +922,8 @@ canvas.addEventListener('mousedown',e=>{
     if(hitQuitBtn(p.x,p.y)){if(isChallengeMode){challengeRetired=true;sfx('cancel');player.alive=false;state=ST.DEAD;deadT=0;switchBGM('dead');return;}sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     return;
   }
-  if(state===ST.PLAY&&hitInvBtn(p.x,p.y)){useInvincible();return;}
-  if(state===ST.PLAY&&hitBombBtn(p.x,p.y)){useBomb();return;}
+  if(state===ST.PLAY&&!isPackMode&&hitInvBtn(p.x,p.y)){useInvincible();return;}
+  if(state===ST.PLAY&&!isPackMode&&hitBombBtn(p.x,p.y)){useBomb();return;}
   if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');state=ST.PAUSE;return;}
   if(state===ST.TITLE){
     if(shopOpen){handleShopTouch(p.x,p.y);return;}

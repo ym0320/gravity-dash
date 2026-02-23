@@ -2174,49 +2174,7 @@ function drawUI(){
     drawHeart(hx+14,hpY,28,i<hp);
   }
 
-  // === TOP: Pack mode progress bar with character icon ===
-  if(isPackMode&&currentPackStage){
-    const packTop=hpY+22;
-    const prog=Math.min(1,dist/currentPackStage.dist);
-    const barX=24,barY=packTop,barW=W-48,barH=8;
-    // Bar background
-    ctx.fillStyle='#ffffff15';rr(barX,barY,barW,barH,4);ctx.fill();
-    // Bar fill (gradient)
-    const barGr=ctx.createLinearGradient(barX,barY,barX+barW*prog,barY);
-    barGr.addColorStop(0,tc('ply'));barGr.addColorStop(1,'#ffd700');
-    ctx.fillStyle=barGr;ctx.shadowColor=tc('ply');ctx.shadowBlur=4;
-    rr(barX,barY,Math.max(2,barW*prog),barH,4);ctx.fill();ctx.shadowBlur=0;
-    // Checkpoint flag at 50%
-    const cpX=barX+barW*0.5;
-    const cpCollected=checkpointReached||checkpointFlag.collected;
-    ctx.fillStyle=cpCollected?'#34d399':'#ffffff44';
-    ctx.font='bold 12px monospace';ctx.textAlign='center';
-    ctx.fillText('\u2691',cpX,barY-2); // flag icon
-    // Small tick mark at 50%
-    ctx.fillStyle=cpCollected?'#34d399':'#ffffff33';
-    ctx.fillRect(cpX-0.5,barY,1,barH);
-    // Goal flag at end
-    ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';ctx.textAlign='center';
-    ctx.fillText('\u2691',barX+barW+6,barY-2);
-    // Character icon moving along bar
-    const charIconX=barX+barW*prog;
-    const charIconY=barY+barH+10;
-    drawCharacter(charIconX,charIconY,selChar,8,player.rot,1,player.face,0,true);
-    // Stage name + distance below bar
-    const infoY=barY+barH+22;
-    const pname=STAGE_PACKS[currentPackIdx].name+' '+currentPackStage.name;
-    ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';ctx.textAlign='left';
-    ctx.fillText(pname,10,infoY);
-    ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.textAlign='right';
-    ctx.fillText(Math.floor(dist)+'m / '+currentPackStage.dist+'m',W-10,infoY);
-    // Stars collected (compact, next to stage name)
-    ctx.textAlign='left';
-    for(let i=0;i<3;i++){
-      const collected=i<stageBigCollected;
-      ctx.fillStyle=collected?'#ffd700':'#ffffff22';ctx.font='bold 12px monospace';
-      ctx.fillText('\u2605',10+i*16,infoY+14);
-    }
-  }
+  // Pack mode progress bar is now drawn in drawActionPanel() (bottom panel)
 
   // === TOP: Challenge mode label (no kill/phase info) ===
   if(isChallengeMode){
@@ -2254,13 +2212,52 @@ function drawActionPanel(){
   ctx.fillStyle='rgba(0,0,0,0.55)';ctx.fillRect(0,py,W,PANEL_H);
   ctx.fillStyle='rgba(255,255,255,0.06)';ctx.fillRect(0,py,W,1);
 
-  // Item buttons centered in panel (hidden in challenge mode)
-  if(!isChallengeMode){
+  // Center area: item buttons (endless/challenge) OR progress bar (pack mode)
+  if(isPackMode&&currentPackStage){
+    // === PACK MODE: Progress bar in center of action panel ===
+    const prog=Math.min(1,dist/currentPackStage.dist);
+    const barW=W-120,barH=8;
+    const barX=(W-barW)/2,barY=py+10;
+    // Bar background
+    ctx.fillStyle='#ffffff15';rr(barX,barY,barW,barH,4);ctx.fill();
+    // Bar fill (gradient)
+    const barGr=ctx.createLinearGradient(barX,barY,barX+barW*prog,barY);
+    barGr.addColorStop(0,tc('ply'));barGr.addColorStop(1,'#ffd700');
+    ctx.fillStyle=barGr;ctx.shadowColor=tc('ply');ctx.shadowBlur=4;
+    rr(barX,barY,Math.max(2,barW*prog),barH,4);ctx.fill();ctx.shadowBlur=0;
+    // Checkpoint flag at 50%
+    const cpX=barX+barW*0.5;
+    const cpCollected=checkpointReached||checkpointFlag.collected;
+    ctx.fillStyle=cpCollected?'#34d399':'#ffffff44';
+    ctx.font='bold 11px monospace';ctx.textAlign='center';
+    ctx.fillText('\u2691',cpX,barY-1);
+    ctx.fillStyle=cpCollected?'#34d399':'#ffffff33';
+    ctx.fillRect(cpX-0.5,barY,1,barH);
+    // Goal flag at end
+    ctx.fillStyle='#ffd700';ctx.font='bold 11px monospace';ctx.textAlign='center';
+    ctx.fillText('\u2691',barX+barW+6,barY-1);
+    // Character icon moving along bar
+    const charIconX=barX+barW*prog;
+    const charIconY=barY+barH+8;
+    drawCharacter(charIconX,charIconY,selChar,7,player.rot,1,player.face,0,true);
+    // Stage name + distance + stars below bar
+    const pname=STAGE_PACKS[currentPackIdx].name+' '+currentPackStage.name;
+    ctx.fillStyle='#ffd700';ctx.font='bold 11px monospace';ctx.textAlign='left';
+    ctx.fillText(pname,barX,barY+barH+22);
+    ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.textAlign='right';
+    ctx.fillText(Math.floor(dist)+'m / '+currentPackStage.dist+'m',barX+barW,barY+barH+22);
+    // Stars collected
+    ctx.textAlign='left';
+    for(let si2=0;si2<3;si2++){
+      ctx.fillStyle=si2<stageBigCollected?'#ffd700':'#ffffff22';ctx.font='bold 11px monospace';
+      ctx.fillText('\u2605',barX+si2*14,barY+barH+34);
+    }
+  } else if(!isChallengeMode){
+    // === ENDLESS MODE: Item buttons centered ===
     const btnSz=44,btnGap=12;
     const totalBtnW=btnSz*2+btnGap;
     const btnStartX=W/2-totalBtnW/2;
     const btnY=py+6;
-    // Helper to draw an item button
     function drawItemBtn(bx,has,col,icon,count){
       if(has){
         ctx.fillStyle=col+'33';rr(bx,btnY,btnSz,btnSz,10);ctx.fill();
@@ -2282,9 +2279,7 @@ function drawActionPanel(){
         ctx.fillText(count,badgeX,badgeY2+4);
       }
     }
-    // Invincible button (left)
     drawItemBtn(btnStartX,invCount>0,'#ff00ff','\u2B50\uFE0F',invCount);
-    // Bomb button (right)
     drawItemBtn(btnStartX+btnSz+btnGap,bombCount>0,'#ff4400','\uD83D\uDCA3',bombCount);
   }
 

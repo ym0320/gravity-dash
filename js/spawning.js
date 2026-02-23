@@ -10,6 +10,14 @@ function findEdgeSpawnPlat(){
   // Find a platform that extends past or starts at the right screen edge
   return platforms.find(p=>p.x<W+40&&p.x+p.w>W)||platforms.find(p=>p.x>=W&&p.x<W+100);
 }
+function findEdgeMovingHill(){
+  // Find a moving hill or falling floor near the right screen edge for enemy spawning
+  const mh=movingHills.find(m=>m.isFloor&&m.x<W+40&&m.x+m.w>W-30);
+  if(mh){const curH=mh.baseH+Math.sin(mh.phase)*mh.ampH;return{x:mh.x,w:mh.w,h:curH,isMH:true};}
+  const fm=fallingMtns.find(f=>f.isFloor&&f.state==='idle'&&f.x<W+40&&f.x+f.w>W-30);
+  if(fm)return{x:fm.x,w:fm.w,h:fm.curH,isFM:true};
+  return null;
+}
 let lastCoinCourse=''; // track last coin placement: 'floor' or 'ceil'
 function coinOverlaps(cx,cy){
   // Check if a proposed coin position overlaps with any existing coin (min 30px apart)
@@ -95,12 +103,22 @@ function trySpawnEnemy(){
   if(enemyCD>0){enemyCD--;return;}
   if(!isPackMode&&score<30)return; // enemies appear later (endless only)
   if(bossPhase.active)return; // no normal enemies during boss
-  const plat=findEdgeSpawnPlat();
+  // Try normal platform first, then moving hills / falling floors
+  let plat=findEdgeSpawnPlat();
+  let useMH=false;
+  if(!plat){
+    const mhPlat=findEdgeMovingHill();
+    if(mhPlat){plat=mhPlat;useMH=true;}
+  } else if(packRng()<0.3){
+    // 30% chance to spawn on moving hill/falling floor even if regular platform exists
+    const mhPlat=findEdgeMovingHill();
+    if(mhPlat){plat=mhPlat;useMH=true;}
+  }
   if(!plat)return;
   const chance=isPackMode?0.5:Math.min(0.3,0.04+(score-30)*0.002);
   if(packRng()<chance){
     enemyCD=isPackMode?(25+Math.floor(packRng()*25)):(55+Math.floor(packRng()*50));
-    const ex=Math.max(W+13,plat.x);
+    const ex=Math.max(useMH?plat.x+plat.w*0.3:W+13,plat.x);
     const sz=13;
     // Choose enemy type
     let eType=0;
@@ -333,7 +351,7 @@ function trySpawnFallingMtn(){
     const isGimmickFalling2=terrainGimmickPhase.active&&terrainGimmickPhase.type==='falling';
     fallingMtnCD=isGimmickFalling2?(40+Math.floor(packRng()*30)):(180+Math.floor(packRng()*120));
     if(isGimmickFalling2){terrainGimmickPhase.len--;if(terrainGimmickPhase.len<=0){terrainGimmickPhase.active=false;terrainGimmickPhase.cd=800+Math.floor(packRng()*400);}}
-    const fw=Math.min(gapW*0.8,50+packRng()*60);
+    const fw=Math.min(gapW*0.85,140+packRng()*180); // wide: 140-320px (2-5x original)
     const fx=gapX+(gapW-fw)/2; // center in gap
     const fh=GROUND_H+10+packRng()*20;
     fallingMtns.push({x:fx,w:fw,baseH:fh,curH:fh,vy:0,state:'idle',shakeT:0,shakeAmt:0,triggerDist:80,isFloor:isFloor,alpha:1});
@@ -402,7 +420,7 @@ function trySpawnMovingHill(){
     const isGimmickMoving2=terrainGimmickPhase.active&&terrainGimmickPhase.type==='moving';
     hillCD=isGimmickMoving2?(40+Math.floor(packRng()*30)):(120+Math.floor(packRng()*80));
     if(isGimmickMoving2){terrainGimmickPhase.len--;if(terrainGimmickPhase.len<=0){terrainGimmickPhase.active=false;terrainGimmickPhase.cd=800+Math.floor(packRng()*400);}}
-    const hw=Math.min(gapW*0.7,60+packRng()*50);
+    const hw=Math.min(gapW*0.85,150+packRng()*200); // wide: 150-350px (2-5x original)
     const hx=gapX+(gapW-hw)/2; // center in gap
     const baseH=GROUND_H;
     const ampH=40+packRng()*50;
