@@ -413,20 +413,34 @@ function update(dt){
       }
     });
     // Enemy spawning in pack mode (much more aggressive than endless)
+    const sType=currentPackStage.stageType||'';
     if(currentPackStage.enemyChance){
-      // Stage progression: how far through the stage (0.0 to 1.0)
       const stageProgress=dist/currentPackStage.dist;
-      // Spawn rate scales with progress - higher toward end of stage
       const baseRate=currentPackStage.enemyChance;
-      const progressBoost=1+stageProgress*1.5; // up to 2.5x at end
-      if(Math.random()<baseRate*progressBoost*0.5) trySpawnEnemy();
+      const progressBoost=1+stageProgress*1.5;
+      // Swarm stages: spawn enemies very frequently
+      const swarmMul=sType==='swarm'?1.8:1;
+      if(Math.random()<baseRate*progressBoost*0.5*swarmMul) trySpawnEnemy();
     }
-    // Stage mode gimmicks: floating platforms, spikes, moving hills, gravity zones, falling floors
-    trySpawnFloatPlat();
-    trySpawnSpike();
-    trySpawnMovingHill();
-    trySpawnGravZone();
-    trySpawnFallingMtn();
+    // Stage mode gimmicks based on stageType
+    if(sType==='moving'){
+      // Moving-only stage: heavy moving hills + floating platforms, no other gimmicks
+      trySpawnMovingHill();trySpawnMovingHill(); // double spawn rate
+      trySpawnFloatPlat();trySpawnFloatPlat();   // double spawn rate
+      trySpawnFallingMtn();                       // falling floors over gaps
+    } else if(sType==='swarm'){
+      // Swarm stage: primarily enemies, but add floating platforms too
+      trySpawnFloatPlat();trySpawnFloatPlat();
+      trySpawnMovingHill();
+      trySpawnSpike();
+    } else {
+      // Normal stage: all gimmicks
+      trySpawnFloatPlat();
+      trySpawnSpike();
+      trySpawnMovingHill();
+      trySpawnGravZone();
+      trySpawnFallingMtn();
+    }
     // Ambient particles for theme
     updateAmbient();
   }

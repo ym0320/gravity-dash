@@ -1710,7 +1710,7 @@ function drawPlayer(){
   if(ghostInvis){
     ghostA*=0.15+Math.sin(frame*0.3)*0.05; // very transparent + shimmer
   }
-  const dmgLv=maxHp()-hp; // 0=full, 1=hurt once, 2=critical
+  const dmgLv=isPackMode?0:(maxHp()-hp); // stage mode: always look undamaged
 
   // Invincible ring (rainbow pulsing)
   if(itemEff.invincible>0){

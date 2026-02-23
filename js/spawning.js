@@ -103,19 +103,24 @@ function trySpawnEnemy(){
     let eType=0;
     const tr=Math.random();
     if(isPackMode&&currentPackStage){
-      // Pack mode: enemy types based on stage index (later stages = stronger enemies)
-      // Also stronger enemies toward end of stage (progress-based)
       const stageIdx=currentPackStageIdx; // 0-4
       const progress=dist/currentPackStage.dist;
-      if(stageIdx>=4&&progress>0.5&&tr<0.20) eType=8; // splitter (stage X-5 late)
-      else if(stageIdx>=3&&progress>0.4&&tr<0.22) eType=3; // bomber (stage X-4+)
-      else if(stageIdx>=3&&tr<0.20) eType=6; // dasher (stage X-4+)
-      else if(stageIdx>=2&&progress>0.3&&tr<0.18) eType=5; // phantom (stage X-3+)
-      else if(stageIdx>=2&&tr<0.22) eType=4; // vertical mover (stage X-3+)
-      else if(stageIdx>=1&&tr<0.28) eType=2; // flyer (stage X-2+)
-      else if(stageIdx>=1&&tr<0.35) eType=1; // cannon (stage X-2+)
-      else if(stageIdx>=0&&tr<0.40) eType=1; // cannon available from X-1
-      else eType=0; // walker/patrol (always)
+      const sType2=currentPackStage.stageType||'';
+      if(sType2==='swarm'){
+        // Swarm stage: walkers and cannons only, very dense
+        eType=tr<0.55?0:1; // 55% walker, 45% cannon
+      } else {
+        // Normal/moving stages: progressive enemy types
+        if(stageIdx>=4&&progress>0.5&&tr<0.20) eType=8;
+        else if(stageIdx>=3&&progress>0.4&&tr<0.22) eType=3;
+        else if(stageIdx>=3&&tr<0.20) eType=6;
+        else if(stageIdx>=2&&progress>0.3&&tr<0.18) eType=5;
+        else if(stageIdx>=2&&tr<0.22) eType=4;
+        else if(stageIdx>=1&&tr<0.28) eType=2;
+        else if(stageIdx>=1&&tr<0.35) eType=1;
+        else if(stageIdx>=0&&tr<0.40) eType=1;
+        else eType=0;
+      }
     } else {
       // Endless mode: score-based enemy types
       if(score>=600&&bossPhase.bossCount>=3&&tr<0.10) eType=8;
@@ -203,9 +208,10 @@ function trySpawnFloatPlat(){
   if(bossPhase.active)return;
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
-  const chance=isPackMode?0.30:Math.min(0.18,0.04+(score-35)*0.002);
+  const isFloatStage=isPackMode&&currentPackStage&&(currentPackStage.stageType==='moving'||currentPackStage.stageType==='swarm');
+  const chance=isPackMode?(isFloatStage?0.45:0.30):Math.min(0.18,0.04+(score-35)*0.002);
   if(Math.random()<chance){
-    floatCD=isPackMode?(40+Math.floor(Math.random()*30)):(80+Math.floor(Math.random()*60));
+    floatCD=isPackMode?(isFloatStage?20+Math.floor(Math.random()*20):40+Math.floor(Math.random()*30)):(80+Math.floor(Math.random()*60));
     const fx=Math.max(W+20,plat.x);
     const fw=50+Math.random()*60; // width: 50-110px
     const floorY=H-plat.h;
@@ -343,8 +349,9 @@ function trySpawnMovingHill(){
   // During terrain gimmick phase (falling type), skip moving hill spawns
   if(terrainGimmickPhase.active&&terrainGimmickPhase.type==='falling')return;
   const isGimmickMoving=terrainGimmickPhase.active&&terrainGimmickPhase.type==='moving';
-  let chance=isPackMode?0.18:Math.min(0.1,0.02+(score-120)*0.001);
-  if(isGimmickMoving)chance=0.35; // high spawn rate during gimmick phase
+  const isMovingStage=isPackMode&&currentPackStage&&currentPackStage.stageType==='moving';
+  let chance=isPackMode?(isMovingStage?0.40:0.18):Math.min(0.1,0.02+(score-120)*0.001);
+  if(isGimmickMoving)chance=0.35;
   if(Math.random()<chance){
     const isFloor=Math.random()<0.5;
     const platArr=isFloor?platforms:ceilPlats;
