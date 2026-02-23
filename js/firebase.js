@@ -404,7 +404,8 @@ function fbCheckNameExists(name) {
 
 // --- Firestore: find user data by name and migrate to current Google UID ---
 // Used when Google login has no data but an old anonymous account exists
-function fbFindAndMigrateByName(name) {
+// Optional expectedOldUid: only migrate if the found doc belongs to this UID (safety)
+function fbFindAndMigrateByName(name, expectedOldUid) {
   if (!fbDb || !fbUser) return Promise.resolve(null);
   return fbDb.collection('users').where('name', '==', name).limit(1).get()
     .then(snap => {
@@ -415,6 +416,8 @@ function fbFindAndMigrateByName(name) {
       if (!found) return null;
       const newUid = fbUser.uid;
       if (oldDocId === newUid) return found;
+      // Safety: if expectedOldUid provided, only migrate from that specific account
+      if (expectedOldUid && oldDocId !== expectedOldUid) return null;
       return fbDb.collection('users').doc(newUid).set(found, { merge: true }).then(() => {
         // Migrate ranking entries and clean up old documents
         return fbDb.collection('rankings').doc(oldDocId).get().then(rdoc => {

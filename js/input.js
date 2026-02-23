@@ -1424,22 +1424,16 @@ loginBtn.addEventListener('click',()=>{
   }
   nameError.textContent='';
   loginBtn.disabled=true;
-  // If already signed in with Google, try to migrate existing data by name
+  // If already signed in with Google/Twitter, check name uniqueness (same as guest)
   if(fbUser&&!fbUser.isAnonymous){
-    fbFindAndMigrateByName(name).then(migrated=>{
-      if(migrated){
-        // Found and migrated old data to Google UID
-        fbMergeCloudData(migrated);
-        fbSynced=true;
-        loginOverlay.classList.remove('active');
-        sfx('select');vibrate(15);
-        if(!tutorialDone){startTutorial();}
-        else{state=ST.TITLE;switchBGM('title');}
-      } else {
-        // No existing data with this name – create new
-        fbSynced=true;
-        _finishLogin(name);
+    fbCheckNameExists(name).then(taken=>{
+      if(taken){
+        nameError.textContent='この名前は使われています';
+        sfx('hurt');vibrate(10);
+        return;
       }
+      fbSynced=true;
+      _finishLogin(name);
     }).finally(()=>{loginBtn.disabled=false;});
     return;
   }
@@ -1464,6 +1458,7 @@ if(googleBtn){
     initAudio();
     googleBtn.disabled=true;
     const prevMethod=fbLoginMethod; // capture before auth changes it
+    const prevAnonUid=(fbUser&&fbUser.isAnonymous)?fbUser.uid:null;
     _fbGoogleLoginInProgress=true;
     fbSignInGoogle().then(cred=>{
       const user=cred.user;
@@ -1486,7 +1481,7 @@ if(googleBtn){
         const localName=playerName||localStorage.getItem('gd5username')||'';
         const canMigrate=prevMethod===''||prevMethod==='anonymous';
         if(localName&&canMigrate){
-          return fbFindAndMigrateByName(localName).then(migrated=>{
+          return fbFindAndMigrateByName(localName, prevAnonUid).then(migrated=>{
             if(migrated&&migrated.name){
               fbMergeCloudData(migrated);
               fbSynced=true;
@@ -1546,6 +1541,7 @@ if(twitterBtn){
     initAudio();
     twitterBtn.disabled=true;
     const prevMethod=fbLoginMethod; // capture before auth changes it
+    const prevAnonUid=(fbUser&&fbUser.isAnonymous)?fbUser.uid:null;
     _fbGoogleLoginInProgress=true;
     fbSignInTwitter().then(cred=>{
       const user=cred.user;
@@ -1566,7 +1562,7 @@ if(twitterBtn){
         const localName=playerName||localStorage.getItem('gd5username')||'';
         const canMigrate=prevMethod===''||prevMethod==='anonymous';
         if(localName&&canMigrate){
-          return fbFindAndMigrateByName(localName).then(migrated=>{
+          return fbFindAndMigrateByName(localName, prevAnonUid).then(migrated=>{
             if(migrated&&migrated.name){
               fbMergeCloudData(migrated);
               fbSynced=true;
