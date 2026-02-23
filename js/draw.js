@@ -1037,7 +1037,7 @@ function drawItem(it){
 }
 
 function drawEnemy(en){
-  if(en.bossType==='charge'||en.bossType==='dodge'){drawBossCharge(en);return;}
+  if(en.bossType==='dodge'){drawBossDodge(en);return;}
   if(en.bossType==='bruiser'){drawBossBruiser(en);return;}
   if(en.bossType==='guardian'){drawBossGuardian(en);return;}
   if(en.bossType==='wizard'){drawBossWizard(en);return;}

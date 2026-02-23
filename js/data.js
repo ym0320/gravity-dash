@@ -818,20 +818,7 @@ function sfxEnemyDeath(type){
 function sfxBossRoar(bossType){
   if(!audioCtx)return;try{
     const t=audioCtx.currentTime;
-    if(bossType==='charge'){
-      // Metallic charge horn
-      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
-      o.connect(g);g.connect(sfxGain);o.type='sawtooth';
-      o.frequency.setValueAtTime(60,t);o.frequency.exponentialRampToValueAtTime(120,t+0.3);
-      o.frequency.exponentialRampToValueAtTime(50,t+0.8);
-      g.gain.setValueAtTime(0.10,t);g.gain.linearRampToValueAtTime(0.13,t+0.3);g.gain.exponentialRampToValueAtTime(0.001,t+0.9);
-      o.start(t);o.stop(t+1.0);
-      const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
-      o2.connect(g2);g2.connect(sfxGain);o2.type='square';
-      o2.frequency.setValueAtTime(90,t+0.1);o2.frequency.exponentialRampToValueAtTime(45,t+0.7);
-      g2.gain.setValueAtTime(0.05,t+0.1);g2.gain.exponentialRampToValueAtTime(0.001,t+0.7);
-      o2.start(t+0.1);o2.stop(t+0.8);
-    } else if(bossType==='bruiser'){
+    if(bossType==='bruiser'){
       // Deep rumbling growl
       const o=audioCtx.createOscillator(),g=audioCtx.createGain();
       o.connect(g);g.connect(sfxGain);o.type='sawtooth';

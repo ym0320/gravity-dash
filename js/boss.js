@@ -10,8 +10,6 @@ function startBossPhase(){
   bossPhase.defeated=0;
   bossPhase.reward=false;
   bossPhase.rewardT=0;
-  bossPhase.chargeQueue=[]; // queue of charge enemies to spawn
-  bossPhase.chargeIdx=0;
   bossPhase.bruiser=null; // the multi-stomp boss
   bossPhase.wizard=null; // the teleporting wizard boss
   bossPhase.guardian=null; // the shockwave knight boss
@@ -32,23 +30,30 @@ function spawnBossEnemies(){
   const bc=bossPhase.bossCount; // 1-based count of boss fights
   const floorY=H-GROUND_H;
   const ceilY=GROUND_H;
-  bossPhase.chargeQueue=[];
-  bossPhase.chargeIdx=0;
   bossPhase.bruiser=null;
   bossPhase.wizard=null;
   bossPhase.guardian=null;
   bossPhase.dodgeQueue=[];
   bossPhase.dodgeIdx=0;
   bossPhase.dodgeKills=0;
+  // Phase system: every 5 fights, phase escalates
+  // bc 1-5: phase 1, bc 6-10: phase 2, bc 11-15: phase 3
+  // bc 16-20: dual phase 1, bc 21-25: dual phase 2, bc 26-30: dual phase 3
+  // then repeats (bc 31-35: dual phase 1, ...)
+  const cyclePos=(bc-1)%15; // 0-14 within a 15-fight cycle
+  const bigCycle=Math.floor((bc-1)/15); // 0=solo, 1+=dual
+  const phaseLevel=Math.floor(cyclePos/5)+1; // 1, 2, or 3
+  const isDual=bigCycle>=1; // 2nd cycle onwards = dual bosses
+  // Effective bc for stat scaling based on phase level
+  const effectiveBc=phaseLevel===1?1:phaseLevel===2?6:11;
   // Randomly choose boss type
   let bossType;
   if(isChallengeMode){
-    // Challenge mode: all 5 boss types randomly
+    // Challenge mode: 3 boss types + dodge randomly
     const roll=Math.random();
-    if(roll<0.20) bossType='charge';
-    else if(roll<0.40) bossType='wizard';
-    else if(roll<0.60) bossType='bruiser';
-    else if(roll<0.80) bossType='guardian';
+    if(roll<0.25) bossType='wizard';
+    else if(roll<0.50) bossType='bruiser';
+    else if(roll<0.75) bossType='guardian';
     else bossType='dodge';
   } else if(isPackMode&&currentPackStage&&currentPackStage.boss){
     // Stage mode X-5: pick bruiser or guardian (2 of same type will spawn)
@@ -61,73 +66,24 @@ function spawnBossEnemies(){
     else bossType='dodge';
   }
   bossPhase.bossType=bossType;
-  if(bossType==='charge'){
-    // Charge type: vertical movement from 1st encounter, progressive mechanics
-    const chargeCount=5+Math.min(Math.floor((bc-1)/3),3); // 5→8 at high bc
-    const baseSpd=3+Math.min(bc-1,12)*0.3;
-    const spdVariance=Math.min(bc,12)*0.5;
-    for(let i=0;i<chargeCount;i++){
-      const fromCeil=Math.random()<0.5;
-      const gDir=fromCeil?-1:1;
-      const sy=gDir===1?floorY:ceilY;
-      const sz=PLAYER_R*5;
-      const ey=gDir===1?sy-sz:sy+sz;
-      const fromLeft=Math.random()<0.5;
-      const spd=baseSpd+Math.random()*(1.5+spdVariance);
-      // Vertical movement from 1st encounter (60%+ chance, increases with bc)
-      const diagProb=0.6+Math.min(bc-1,10)*0.04;
-      const diagMag=1.5+Math.min(bc-1,10)*0.35;
-      const diagVy=Math.random()<diagProb?(gDir===1?-diagMag-Math.random()*1.5:diagMag+Math.random()*1.5):0;
-      // Feint from 1st encounter (20%→80% with bc)
-      const feintProb=0.2+Math.min(bc-1,8)*0.075;
-      const hasFeint=Math.random()<feintProb;
-      // Multiple feints at higher bc
-      const feintCount=bc>=3?1+Math.floor(Math.random()*Math.min(bc-1,5)):hasFeint?1:0;
-      // Speed changes from 2nd encounter (30%→70%)
-      const accelProb=bc>=2?0.3+Math.min(bc-2,8)*0.05:0;
-      const hasAccel=Math.random()<accelProb;
-      // Ranged attack from 3rd encounter
-      const hasShot=bc>=3&&Math.random()<0.4+Math.min(bc-3,6)*0.06;
-      // Random direction changes at high bc
-      const hasDirChange=bc>=4&&Math.random()<0.3+Math.min(bc-4,6)*0.05;
-      bossPhase.chargeQueue.push({
-        x:fromLeft?-80-i*10:W+80+i*10,y:ey,vy:0,gDir:gDir,sz:sz,alive:true,fr:Math.random()*100,
-        type:10,shootT:999,boss:true,bossType:'charge',
-        chargeVx:fromLeft?(spd):(-spd),
-        diagVy:diagVy,
-        chargeState:'wait',
-        rushDelay:30+Math.floor(Math.random()*90),
-        timer:0,
-        feintPause:feintCount>0?30+Math.floor(Math.random()*20):0,
-        feintTriggered:false,feintCount:feintCount,feintsDone:0,
-        chargeAccel:hasAccel?(Math.random()<0.5?0.04:-0.02):0,
-        shootOnce:hasShot,shotFired:false,
-        dirChange:hasDirChange
-      });
-    }
-    bossPhase.total=chargeCount;
-  } else if(bossType==='dodge'){
-    // Dodge type: 10+ enemies rush from RIGHT, player dodges/stomps
-    // Each enemy has spikes on top or bottom - must stomp the safe side
-    const dodgeCount=10+Math.min(Math.floor((bc-1)/3),4); // 10→14 at high bc
-    const phase=bc;
-    const baseSpd=2.2+(phase>=3?Math.min(phase-2,10)*0.25:0);
+  if(bossType==='dodge'){
+    // Dodge type: enemies rush from RIGHT, player dodges/stomps
+    const dodgeCount=10+Math.min(Math.floor((effectiveBc-1)/3),4);
+    const baseSpd=2.2+(phaseLevel>=2?Math.min(phaseLevel-1,10)*0.25:0);
     for(let i=0;i<dodgeCount;i++){
-      const spd=baseSpd+Math.random()*(1.2+Math.min(phase-1,8)*0.1);
+      const spd=baseSpd+Math.random()*(1.2+Math.min(effectiveBc-1,8)*0.1);
       const onFloor=Math.random()<0.5;
       const gDir=onFloor?1:-1;
-      // Diagonal: always home toward player Y (no safe "stay on floor" cheese)
-      const diagStrength=phase>=2?(1.0+Math.min(phase-2,8)*0.2):0;
+      const diagStrength=phaseLevel>=2?(1.0+Math.min(phaseLevel-1,8)*0.2):0;
       const sz=PLAYER_R*5;
-      // Spawn interval: base 8 frames apart, reduced by 1 per phase (min 3)
-      const baseInterval=Math.max(3,12-Math.min(phase-1,8));
+      const baseInterval=Math.max(3,12-Math.min(effectiveBc-1,8));
       bossPhase.dodgeQueue.push({
         x:W+80+i*10,y:onFloor?floorY-sz:ceilY+sz,vy:0,gDir:gDir,sz:sz,alive:true,fr:Math.random()*100,
         type:10,shootT:999,boss:true,bossType:'dodge',
         chargeVx:-spd,
         diagStrength:diagStrength,
         chargeState:'wait',
-        rushDelay:10+i*baseInterval+Math.floor(Math.random()*4), // tight intervals, tighter with phase
+        rushDelay:10+i*baseInterval+Math.floor(Math.random()*4),
         timer:0,
         missCount:0
       });
@@ -135,94 +91,97 @@ function spawnBossEnemies(){
     bossPhase.total=dodgeCount;
     bossPhase.dodgeKills=0;
   } else if(bossType==='bruiser'){
-    // Bruiser type: 2x previous size, always 3 stomps, from 2nd encounter moves between floor/ceiling
-    const bsz=(30+Math.min(bc-1,6)*2)*2;
+    // Bruiser type
+    const bsz=(30+Math.min(effectiveBc-1,6)*2)*2;
     const packBoss=isPackMode&&currentPackStage&&currentPackStage.boss;
-    const bruiserHP=packBoss?3:(3+Math.min(Math.floor((bc-1)/4),2));
-    const bruiser={
-      x:W+80,y:floorY-bsz,vy:0,gDir:1,sz:bsz,alive:true,fr:0,
-      type:11,shootT:999,boss:true,bossType:'bruiser',
-      hp:bruiserHP, maxHp:bruiserHP,
-      chargeVx:-(3.5+Math.min(bc-1,12)*0.3), retreatVx:2.5+Math.min(bc-1,10)*0.15,
-      state:'enter',
-      timer:0, stunT:0, hurtFlash:0, invT:0, feinted:false,
-      flipEnabled:true,
-      patrolDir:1,patrolOriginX:W*0.6,patrolRange:0
-    };
-    bossPhase.bruiser=bruiser;
-    bossPhase.total=1;
-    // Stage X-5: spawn 2nd bruiser on ceiling
-    if(packBoss){
-      const bruiser2={
-        x:W+120,y:ceilY+bsz,vy:0,gDir:-1,sz:bsz,alive:true,fr:50,
+    const bruiserHP=packBoss?3:(3+Math.min(Math.floor((effectiveBc-1)/4),2));
+    function makeBruiser(bx,by,bgd,offsetFr){
+      return {
+        x:bx,y:by,vy:0,gDir:bgd,sz:bsz,alive:true,fr:offsetFr,
         type:11,shootT:999,boss:true,bossType:'bruiser',
         hp:bruiserHP, maxHp:bruiserHP,
-        chargeVx:-(3.0+Math.min(bc-1,12)*0.3), retreatVx:2.2+Math.min(bc-1,10)*0.15,
+        chargeVx:-(3.5+Math.min(effectiveBc-1,12)*0.3), retreatVx:2.5+Math.min(effectiveBc-1,10)*0.15,
         state:'enter',
         timer:0, stunT:0, hurtFlash:0, invT:0, feinted:false,
         flipEnabled:true,
-        patrolDir:-1,patrolOriginX:W*0.5,patrolRange:0
+        patrolDir:bgd,patrolOriginX:bgd===1?W*0.6:W*0.5,patrolRange:0
       };
+    }
+    const bruiser=makeBruiser(W+80,floorY-bsz,1,0);
+    bossPhase.bruiser=bruiser;
+    bossPhase.total=1;
+    // Dual mode or Stage X-5: spawn 2nd bruiser on ceiling
+    if(isDual||packBoss){
+      const bruiser2=makeBruiser(W+120,ceilY+bsz,-1,50);
       bossPhase.enemies.push(bruiser2);
       bossPhase.total=2;
     }
   } else if(bossType==='guardian'){
-    // Guardian type: armored knight - jump → earthquake → charge → sword attack
+    // Guardian type: armored knight
     const packBoss2=isPackMode&&currentPackStage&&currentPackStage.boss;
-    const gsz=(28+Math.min(bc-1,6)*2)*2;
-    const guardianHP=packBoss2?3:(3+Math.min(Math.floor((bc-1)/4),2));
+    const gsz=(28+Math.min(effectiveBc-1,6)*2)*2;
+    const guardianHP=packBoss2?3:(3+Math.min(Math.floor((effectiveBc-1)/4),2));
     function makeGuardian(gx,gy,gd,offsetFr){
       return {
         x:gx,y:gy,vy:0,gDir:gd,sz:gsz,alive:true,fr:offsetFr,
         type:13,shootT:999,boss:true,bossType:'guardian',
         hp:guardianHP,maxHp:guardianHP,
-        chargeSpd:4.0+Math.min(bc-1,12)*0.3,
-        retreatSpd:4+Math.min(bc-1,10)*0.25,
+        chargeSpd:4.0+Math.min(effectiveBc-1,12)*0.3,
+        retreatSpd:4+Math.min(effectiveBc-1,10)*0.25,
         state:'enter',
         timer:0,stunT:0,hurtFlash:0,invT:0,
         jumpVy:0,
-        bigJumpBase:10+Math.min(bc-1,10)*0.6,
-        bigJumpVariance:3+Math.min(bc-1,8)*0.4,
-        jumpPrepBase:Math.max(2,12-Math.min(bc-1,8)*1.2),
-        jumpPrepVariance:Math.max(2,10-Math.min(bc-1,8)*1.0),
+        bigJumpBase:10+Math.min(effectiveBc-1,10)*0.6,
+        bigJumpVariance:3+Math.min(effectiveBc-1,8)*0.4,
+        jumpPrepBase:Math.max(2,12-Math.min(effectiveBc-1,8)*1.2),
+        jumpPrepVariance:Math.max(2,10-Math.min(effectiveBc-1,8)*1.0),
         onCeiling:gd===-1,
         flipEnabled:true,
-        quakeStunDuration:50+Math.min(bc-1,8)*6,
-        quakeDuration:25+Math.min(bc-1,6)*2,
+        quakeStunDuration:50+Math.min(effectiveBc-1,8)*6,
+        quakeDuration:25+Math.min(effectiveBc-1,6)*2,
         quakeT:0,
         feintEnabled:false,feintCount:0,feintsDone:0,feintCooldown:0,
         swordSwingT:0,
-        swordDuration:25+Math.min(bc-1,8)*2,
-        swordReach:gsz*(1.2+Math.min(bc-1,8)*0.05),
-        stunDuration:Math.max(25,55-Math.min(bc-1,8)*3.5),
+        swordDuration:25+Math.min(effectiveBc-1,8)*2,
+        swordReach:gsz*(1.2+Math.min(effectiveBc-1,8)*0.05),
+        stunDuration:Math.max(25,55-Math.min(effectiveBc-1,8)*3.5),
         jumpCount:0
       };
     }
     const guardian=makeGuardian(W+90,floorY-gsz,1,0);
     bossPhase.guardian=guardian;
     bossPhase.total=1;
-    // Stage X-5: spawn 2nd guardian on ceiling
-    if(packBoss2){
+    // Dual mode or Stage X-5: spawn 2nd guardian on ceiling
+    if(isDual||packBoss2){
       const guardian2=makeGuardian(W+130,ceilY+gsz,-1,40);
       bossPhase.enemies.push(guardian2);
       bossPhase.total=2;
     }
   } else {
     // Wizard type: floats in air, dashes toward player then returns, shoots patterns
-    const wsz=24+Math.min(bc-1,8)*1.5;
-    const wizard={
-      x:W+60,y:H/2,vy:0,gDir:1,sz:wsz,alive:true,fr:0,
-      type:12,shootT:999,boss:true,bossType:'wizard',
-      hp:1,maxHp:1, // 1-hit kill
-      state:'enter',timer:0,hurtFlash:0,invT:0,
-      castT:0,castType:0, // 0=ring, 1=wave
-      teleportT:0,teleportTarget:{x:0,y:0},
-      alpha:1,
-      rushDir:1,rushT:0,rushReady:false,rushTargetX:0,rushTargetY:0,
-      homeX:W*0.65,homeY:H*0.35+Math.random()*(H*0.3) // floating home position
-    };
+    const wsz=24+Math.min(effectiveBc-1,8)*1.5;
+    function makeWizard(wx,wy,offsetFr){
+      return {
+        x:wx,y:wy,vy:0,gDir:1,sz:wsz,alive:true,fr:offsetFr,
+        type:12,shootT:999,boss:true,bossType:'wizard',
+        hp:1,maxHp:1,
+        state:'enter',timer:0,hurtFlash:0,invT:0,
+        castT:0,castType:0,
+        teleportT:0,teleportTarget:{x:0,y:0},
+        alpha:1,
+        rushDir:1,rushT:0,rushReady:false,rushTargetX:0,rushTargetY:0,
+        homeX:W*0.65,homeY:H*0.35+Math.random()*(H*0.3)
+      };
+    }
+    const wizard=makeWizard(W+60,H/2,0);
     bossPhase.wizard=wizard;
     bossPhase.total=1;
+    // Dual mode: spawn 2nd wizard
+    if(isDual){
+      const wizard2=makeWizard(W+100,H*0.3+Math.random()*(H*0.4),50);
+      bossPhase.enemies.push(wizard2);
+      bossPhase.total=2;
+    }
   }
 }
 function updateBossPhase(){
@@ -238,7 +197,7 @@ function updateBossPhase(){
     }
     if(bossPhase.prepare===0){spawnBossEnemies();
       // Boss roar after spawning
-      const bt=bossPhase.guardian?'guardian':bossPhase.bruiser?'bruiser':bossPhase.wizard?'wizard':bossPhase.dodgeQueue.length>0?'dodge':'charge';
+      const bt=bossPhase.guardian?'guardian':bossPhase.bruiser?'bruiser':bossPhase.wizard?'wizard':'dodge';
       sfxBossRoar(bt);
     }
     return;
@@ -283,90 +242,6 @@ function updateBossPhase(){
   const floorY=H-GROUND_H;
   const ceilY=GROUND_H;
   const pr=PLAYER_R*ct().sizeMul;
-  // Phase A: spawn charge enemies from queue
-  if(bossPhase.chargeIdx<bossPhase.chargeQueue.length){
-    const next=bossPhase.chargeQueue[bossPhase.chargeIdx];
-    next.rushDelay--;
-    if(next.rushDelay<=0){
-      next.chargeState='rush';
-      enemies.push(next);
-      bossPhase.enemies.push(next);
-      bossPhase.chargeIdx++;
-      sfx('shoot');shakeI=4;
-    }
-  }
-  // Update charge enemies
-  enemies.forEach(en=>{
-    if(!en.alive||en.bossType!=='charge')return;
-    if(en.chargeState==='rush'){
-      // Feint pauses: stop briefly mid-rush then resume (supports multiple feints)
-      if(en.feintPause>0&&en.feintsDone<en.feintCount&&en.timer>15+en.feintsDone*25&&en.timer<80){
-        if(!en._feinting){
-          en._feinting=true;en._savedVx=en.chargeVx;en._savedDiag=en.diagVy;
-          en.chargeVx=0;en.diagVy=0;
-          const dur=en.feintPause;
-          setTimeout(()=>{if(en.alive){en.chargeVx=en._savedVx;en.diagVy=en._savedDiag;en._feinting=false;en.feintsDone++;}},dur*16);
-        }
-      }
-      // Acceleration
-      if(en.chargeAccel&&!en._feinting){en.chargeVx+=en.chargeAccel*(en.chargeVx>0?1:-1);}
-      en.x+=en.chargeVx;
-      en.timer++;
-      // Vertical movement (from 1st encounter)
-      if(en.diagVy){
-        en.y+=en.diagVy;
-        // Random direction change at high encounters
-        if(en.dirChange&&!en._dirChanged&&en.timer>30&&en.timer<70&&Math.random()<0.015){
-          en.diagVy*=-1;en._dirChanged=true;
-        }
-        if(en.y-en.sz<ceilY){en.y=ceilY+en.sz;en.diagVy=Math.abs(en.diagVy);}
-        if(en.y+en.sz>floorY){en.y=floorY-en.sz;en.diagVy=-Math.abs(en.diagVy);}
-      }
-      // Single ranged attack (3rd encounter+)
-      if(en.shootOnce&&!en.shotFired&&en.timer>15&&Math.abs(en.x-player.x)<W*0.6){
-        en.shotFired=true;
-        const dx2=player.x-en.x,dy2=player.y-en.y;
-        const d2=Math.sqrt(dx2*dx2+dy2*dy2)||1;
-        bullets.push({x:en.x,y:en.y,vx:dx2/d2*4,vy:dy2/d2*4,sz:6,life:100});
-        sfx('shoot');
-      }
-      en.fr+=0.2;
-      if(frame%2===0){
-        const tc2=en.gDir===1?'#ff4444':'#4444ff';
-        const trailX=en.chargeVx>0?en.x-en.sz:en.x+en.sz;
-        if(parts.length<MAX_PARTS)parts.push({x:trailX,y:en.y,vx:(en.chargeVx>0?-1:1)+Math.random(),vy:(Math.random()-0.5)*2,life:12,ml:12,sz:Math.random()*4+2,col:tc2});
-      }
-      // Off-screen: charge dodged = defeated
-      if(en.x<-en.sz*2||en.x>W+en.sz*2){
-        en.alive=false;
-        addPop(en.x<0?40:W-40,en.y,'回避!','#34d399');
-        emitParts(en.x<0?10:W-10,en.y,8,'#34d399',3,2);
-      }
-      // Collision with player
-      const dx=player.x-en.x,dy=player.y-en.y;
-      if(Math.sqrt(dx*dx+dy*dy)<pr+en.sz*BOSS_HITBOX_SCALE){
-        if(itemEff.invincible>0){
-          en.alive=false;
-          emitParts(en.x,en.y,15,'#ff00ff',4,3);sfx('stomp');shakeI=4;
-        } else {
-          const stomped=en.gDir===1
-            ?(player.y+pr<en.y-en.sz*0.15&&player.vy>=0)
-            :(player.y-pr>en.y+en.sz*0.15&&player.vy<=0);
-          if(stomped){
-            en.alive=false;
-            player.vy=en.gDir===1?-JUMP_POWER*0.8:JUMP_POWER*0.8;
-            player.grounded=false;flipCount=0;player.canFlip=true;djumpUsed=false;djumpAvailable=true;
-            shakeI=8;sfx('bossHit');sfx('gstomp');vibrate([15,10,20]);
-            addPop(en.x,en.y-en.sz*en.gDir,'撃破!','#ffd700');
-            emitParts(en.x,en.y,15,'#ffd700',6,3);
-          } else {
-            hurt();
-            en.alive=false;
-          }
-        }
-      }
-    }
-  });
   // Spawn dodge enemies (allow multiple per frame for tight intervals)
   while(bossPhase.dodgeIdx<bossPhase.dodgeQueue.length){
     const next=bossPhase.dodgeQueue[bossPhase.dodgeIdx];
@@ -405,8 +280,10 @@ function updateBossPhase(){
       }
       // Collision with player - ALL contact = damage (both sides have spikes)
       // Only way to clear is to dodge!
+      // Use minimum hitbox radius of PLAYER_R so small characters still get hit
+      const dodgePr=Math.max(pr,PLAYER_R);
       const dx=player.x-en.x,dy=player.y-en.y;
-      if(Math.sqrt(dx*dx+dy*dy)<pr+en.sz*BOSS_HITBOX_SCALE){
+      if(Math.sqrt(dx*dx+dy*dy)<dodgePr+en.sz*BOSS_HITBOX_SCALE){
         if(itemEff.invincible>0){
           en.alive=false;bossPhase.dodgeKills++;
           emitParts(en.x,en.y,15,'#ff00ff',4,3);sfx('stomp');shakeI=4;
@@ -419,14 +296,15 @@ function updateBossPhase(){
       }
     }
   });
-  // Phase B: bruiser logic (enters immediately if no charges, or after charges cleared)
-  const chargesCleared=bossPhase.chargeQueue.length===0||(bossPhase.chargeIdx>=bossPhase.chargeQueue.length&&
-    bossPhase.enemies.filter(e=>e.bossType==='charge'&&e.alive).length===0);
-  if(chargesCleared&&bossPhase.bruiser&&bossPhase.bruiser.alive){
-    const b=bossPhase.bruiser;
+  // Phase B: bruiser logic (supports multiple bruisers)
+  const allBruisers=bossPhase.enemies.filter(e=>e.bossType==='bruiser'&&e.alive);
+  if(bossPhase.bruiser&&bossPhase.bruiser.alive&&!allBruisers.includes(bossPhase.bruiser)){
+    allBruisers.unshift(bossPhase.bruiser);
+  }
+  allBruisers.forEach(b=>{
     const bc=bossPhase.bossCount;
     if(!enemies.includes(b)){
-      enemies.push(b);bossPhase.enemies.push(b);
+      enemies.push(b);if(!bossPhase.enemies.includes(b))bossPhase.enemies.push(b);
     }
     b.timer++;b.fr+=0.1;
     if(b.hurtFlash>0)b.hurtFlash--;
@@ -438,26 +316,21 @@ function updateBossPhase(){
       b.x+=b.chargeVx;
       b.fr+=0.15;
       if(frame%2===0&&parts.length<MAX_PARTS)parts.push({x:b.x+b.sz,y:b.y,vx:2,vy:(Math.random()-0.5)*1.5,life:15,ml:15,sz:Math.random()*5+2,col:'#ff3860'});
-      // Feint: at higher boss counts, sometimes fake charge then retreat
       if(bc>=2&&b.timer>15&&b.timer<50&&!b.feinted&&Math.random()<0.003*Math.min(bc,12)){
         b.state='feint';b.feintT=25;b.timer=0;b.feinted=true;
       }
       if(b.x<W*0.15){b.state='retreat';b.timer=0;}
     } else if(b.state==='feint'){
-      // Quick retreat (fake-out)
       b.x+=b.retreatVx*1.8;
       b.feintT--;
       if(frame%3===0&&parts.length<MAX_PARTS)parts.push({x:b.x-b.sz*0.3,y:b.y,vx:-1,vy:(Math.random()-0.5),life:10,ml:10,sz:Math.random()*3+1,col:'#ffaa00'});
       if(b.feintT<=0){b.state='charge';b.timer=0;}
     } else if(b.state==='invincible'){
-      // Blinking invincible after being stomped, slowly retreating
-      // invT is already decremented at line 406, no double-decrement
       b.x+=b.retreatVx*0.6;
       if(b.invT<=0){b.state='retreat';b.timer=0;}
     } else if(b.state==='retreat'){
       b.x+=b.retreatVx;
       if(b.x>=W*0.7){
-        // From 2nd encounter: sometimes flip to other surface when re-engaging
         if(b.flipEnabled&&Math.random()<0.4){
           b.gDir*=-1;
         }
@@ -466,30 +339,24 @@ function updateBossPhase(){
     }
     // Collision check - AABB based (skip during bruiser invincibility)
     if(b.invT<=0){
-      // Bruiser bounding box (matches visual: body -0.75sz to +0.5sz, width ±0.65sz)
       const hw=b.sz*0.65;
       const bL=b.x-hw,bR=b.x+hw;
       const headEdge=b.y-b.sz*0.75*b.gDir;
       const feetEdge=b.y+b.sz*0.5*b.gDir;
       const minY=Math.min(headEdge,feetEdge),maxY=Math.max(headEdge,feetEdge);
-      // Player bounds
       const pL=player.x-pr,pR=player.x+pr;
       const pT=player.y-pr,pB=player.y+pr;
-      // AABB overlap test
       if(pR>bL&&pL<bR&&pB>minY&&pT<maxY){
         if(itemEff.invincible>0){
-          // Invincible item: damage bruiser once then set invT
           b.hp--;b.hurtFlash=20;b.invT=60;b.state='invincible';b.timer=0;
           shakeI=8;sfx('bossHit');
           emitParts(b.x,b.y,15,'#ff00ff',4,3);
           if(b.hp<=0){bossBruiserDefeat(b);}
         } else {
-          // Stomp zone: top 35% of bruiser height (head side)
           const stompLine=b.gDir===1?(b.y-b.sz*0.3):(b.y+b.sz*0.3);
           const onHeadSide=b.gDir===1?(pB<stompLine):(pT>stompLine);
           const falling=b.gDir===1?(player.vy>=0):(player.vy<=0);
           if(onHeadSide&&falling){
-            // Stomp success (works even during player hurtT)
             b.hp--;b.hurtFlash=20;
             b.state='invincible';b.invT=60;b.timer=0;
             player.vy=b.gDir===1?-JUMP_POWER*0.8:JUMP_POWER*0.8;player.grounded=false;
@@ -499,13 +366,12 @@ function updateBossPhase(){
             emitParts(b.x,b.y-b.sz*b.gDir,12,'#ff3860',5,3);
             if(b.hp<=0){bossBruiserDefeat(b);}
           } else if(hurtT<=0){
-            // Body hit: damage player only if not hurt-invincible
             hurt();
           }
         }
       }
     }
-    // Keep on correct surface (floor or ceiling based on gDir)
+    // Keep on correct surface
     if(b.gDir===1){
       const sy=floorSurfaceY(b.x);
       if(sy<H+100)b.y=sy-b.sz;
@@ -513,15 +379,17 @@ function updateBossPhase(){
       const sy=ceilSurfaceY(b.x);
       if(sy>-100)b.y=sy+b.sz;
     }
-  }
+  });
   // Phase C: guardian boss logic (jump → earthquake → charge → sword → retreat)
-  // Flips between floor/ceiling at bc>=2, always earthquakes on landing
-  const guardianActive=bossPhase.guardian&&bossPhase.guardian.alive;
-  if(chargesCleared&&guardianActive){
-    const g=bossPhase.guardian;
+  // Supports multiple guardians
+  const allGuardians=bossPhase.enemies.filter(e=>e.bossType==='guardian'&&e.alive);
+  if(bossPhase.guardian&&bossPhase.guardian.alive&&!allGuardians.includes(bossPhase.guardian)){
+    allGuardians.unshift(bossPhase.guardian);
+  }
+  allGuardians.forEach(g=>{
     const bc=bossPhase.bossCount;
     if(!enemies.includes(g)){
-      enemies.push(g);bossPhase.enemies.push(g);
+      enemies.push(g);if(!bossPhase.enemies.includes(g))bossPhase.enemies.push(g);
     }
     g.timer++;g.fr+=0.1;
     if(g.hurtFlash>0)g.hurtFlash--;
@@ -775,14 +643,16 @@ function updateBossPhase(){
         }
       }
     }
+  });
+  // Phase D: wizard boss logic (supports multiple wizards)
+  const allWizards=bossPhase.enemies.filter(e=>e.bossType==='wizard'&&e.alive);
+  if(bossPhase.wizard&&bossPhase.wizard.alive&&!allWizards.includes(bossPhase.wizard)){
+    allWizards.unshift(bossPhase.wizard);
   }
-  // Phase D: wizard boss logic
-  const wizardActive=bossPhase.wizard&&bossPhase.wizard.alive;
-  if(chargesCleared&&wizardActive){
-    const w=bossPhase.wizard;
+  allWizards.forEach(w=>{
     const bc=bossPhase.bossCount;
     if(!enemies.includes(w)){
-      enemies.push(w);bossPhase.enemies.push(w);
+      enemies.push(w);if(!bossPhase.enemies.includes(w))bossPhase.enemies.push(w);
     }
     w.timer++;w.fr+=0.1;
     if(w.hurtFlash>0)w.hurtFlash--;
@@ -928,20 +798,19 @@ function updateBossPhase(){
         }
       }
     }
-  }
+  });
 
   // Check victory
   bossPhase.defeated=0;
   for(let i=0;i<bossPhase.enemies.length;i++){
     if(!bossPhase.enemies[i].alive)bossPhase.defeated++;
   }
-  const bruiserDone=!bossPhase.bruiser||!bossPhase.bruiser.alive;
-  const wizardDone=!bossPhase.wizard||!bossPhase.wizard.alive;
-  const guardianDone=!bossPhase.guardian||!bossPhase.guardian.alive;
-  // Dodge done: all 5 enemies finished their rush (killed or exited screen)
+  const bruiserDone=bossPhase.enemies.filter(e=>e.bossType==='bruiser'&&e.alive).length===0;
+  const wizardDone=bossPhase.enemies.filter(e=>e.bossType==='wizard'&&e.alive).length===0;
+  const guardianDone=bossPhase.enemies.filter(e=>e.bossType==='guardian'&&e.alive).length===0;
   const dodgeDone=bossPhase.bossType!=='dodge'||(bossPhase.dodgeIdx>=bossPhase.dodgeQueue.length&&
     enemies.filter(e=>e.bossType==='dodge'&&e.alive).length===0);
-  const allDone=chargesCleared&&dodgeDone&&bruiserDone&&wizardDone&&guardianDone;
+  const allDone=dodgeDone&&bruiserDone&&wizardDone&&guardianDone;
   if(allDone&&bossPhase.enemies.length>0&&!bossPhase.reward){
     bossPhase.reward=true;bossPhase.rewardT=0;
     // Catch up score that accumulated during boss
@@ -1282,58 +1151,6 @@ function drawBossGuardian(en){
     const slashAng=-1.5+Math.sin(en.swordSwingT*0.3)*1.2;
     ctx.beginPath();ctx.arc(s*0.3,-s*0.2,s*1.0,slashAng-0.5,slashAng+0.5);ctx.stroke();
     ctx.globalAlpha=1;
-  }
-  ctx.restore();
-}
-// === Boss enemy draw: charge type ===
-function drawBossCharge(en){
-  if(en.bossType==='dodge'){drawBossDodge(en);return;}
-  const s=en.sz,flip=en.gDir;
-  ctx.save();ctx.translate(en.x,en.y);
-  if(flip===-1)ctx.scale(1,-1);
-  // Armored rhino shape - dark metallic
-  const gr=ctx.createRadialGradient(-s*0.1,0,s*0.1,-s*0.1,0,s);
-  gr.addColorStop(0,'#6a7a8a');gr.addColorStop(0.6,'#3a4a5a');gr.addColorStop(1,'#1a2a3a');
-  ctx.fillStyle=gr;
-  // Main body (angular armored shape)
-  ctx.beginPath();
-  ctx.moveTo(-s*0.9,-s*0.5);ctx.lineTo(-s*0.3,-s*0.8);ctx.lineTo(s*0.4,-s*0.7);
-  ctx.lineTo(s*0.8,-s*0.3);ctx.lineTo(s*0.9,s*0.1);ctx.lineTo(s*0.6,s*0.6);
-  ctx.lineTo(-s*0.2,s*0.7);ctx.lineTo(-s*0.8,s*0.5);ctx.lineTo(-s*1.0,0);
-  ctx.closePath();ctx.fill();
-  // Horn/spike
-  ctx.fillStyle='#c0d0e0';
-  ctx.beginPath();ctx.moveTo(-s*1.0,-s*0.1);ctx.lineTo(-s*1.5,0);ctx.lineTo(-s*1.0,s*0.1);ctx.closePath();ctx.fill();
-  // Armor plates (chevron lines)
-  ctx.strokeStyle='#8090a0';ctx.lineWidth=Math.max(1.5,s*0.04);
-  ctx.beginPath();ctx.moveTo(-s*0.2,-s*0.6);ctx.lineTo(s*0.1,-s*0.2);ctx.lineTo(-s*0.2,s*0.2);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(s*0.2,-s*0.5);ctx.lineTo(s*0.5,-s*0.1);ctx.lineTo(s*0.2,s*0.3);ctx.stroke();
-  if(s>40){
-    ctx.strokeStyle='#6a7a8a';ctx.lineWidth=s*0.02;
-    ctx.beginPath();ctx.moveTo(-s*0.5,-s*0.4);ctx.lineTo(-s*0.1,0);ctx.lineTo(-s*0.5,s*0.4);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(s*0.5,-s*0.35);ctx.lineTo(s*0.7,0);ctx.lineTo(s*0.5,s*0.35);ctx.stroke();
-    ctx.fillStyle='#c0d0e0';
-    ctx.beginPath();ctx.moveTo(-s*0.3,-s*0.8);ctx.lineTo(-s*0.4,-s*1.0);ctx.lineTo(-s*0.2,-s*0.75);ctx.closePath();ctx.fill();
-    ctx.beginPath();ctx.moveTo(s*0.4,-s*0.7);ctx.lineTo(s*0.5,-s*0.95);ctx.lineTo(s*0.3,-s*0.65);ctx.closePath();ctx.fill();
-  }
-  // Glowing red eye
-  ctx.fillStyle='#ff0000';ctx.shadowColor='#ff0000';ctx.shadowBlur=Math.max(8,s*0.15);
-  ctx.beginPath();ctx.arc(-s*0.5,-s*0.2,s*0.12,0,6.28);ctx.fill();
-  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(-s*0.52,-s*0.22,s*0.04,0,6.28);ctx.fill();
-  ctx.shadowBlur=0;
-  // Speed lines when rushing
-  ctx.strokeStyle='rgba(255,100,100,0.4)';ctx.lineWidth=Math.max(1,s*0.03);
-  const lineCount=s>40?5:3;
-  for(let i=0;i<lineCount;i++){
-    const ly=-s*0.4+i*s*0.8/lineCount;
-    ctx.beginPath();ctx.moveTo(s*0.5,ly);ctx.lineTo(s*1.2+Math.random()*s*0.5,ly);ctx.stroke();
-  }
-  // Exhaust particles from back
-  ctx.fillStyle='rgba(255,80,40,0.3)';
-  const exhaustCount=s>40?4:2;
-  for(let i=0;i<exhaustCount;i++){
-    const px=s*0.7+Math.random()*s*0.4,py=(Math.random()-0.5)*s*0.5;
-    ctx.beginPath();ctx.arc(px,py,s*0.1+Math.random()*s*0.1,0,6.28);ctx.fill();
   }
   ctx.restore();
 }
