@@ -804,32 +804,29 @@ function draw(){
   if(isPackMode)drawAmbient();
   if(state===ST.COUNTDOWN){drawCountdown();ctx.restore();return;}
 
-  // Pack mode: draw death marker from previous attempt
+  // Pack mode: draw death markers from previous attempts (up to 10)
   if(isPackMode&&currentPackStage&&stageDeathMarks[currentPackStage.id]){
-    const dm=stageDeathMarks[currentPackStage.id];
-    // Convert stored dist to screen X position (same logic as stageBigCoins positioning)
-    const markScreenX=player.x+(dm.dist-dist)/(speed*0.08)*speed;
-    if(markScreenX>-40&&markScreenX<W+40){
-      const gSurf=dm.gDir===1?floorSurfaceY(markScreenX):ceilSurfaceY(markScreenX);
-      const markY=dm.gDir===1?gSurf:gSurf;
-      const pulse=Math.sin(frame*0.08)*0.15+0.85;
-      // Skull icon with pulsing glow
-      ctx.save();
-      ctx.globalAlpha=0.85*pulse;
-      ctx.shadowColor='#ff3860';ctx.shadowBlur=16;
-      // Red triangle warning
-      ctx.fillStyle='#ff3860';ctx.beginPath();
-      ctx.moveTo(markScreenX,markY-36*dm.gDir);
-      ctx.lineTo(markScreenX-14,markY-8*dm.gDir);
-      ctx.lineTo(markScreenX+14,markY-8*dm.gDir);
-      ctx.closePath();ctx.fill();
-      // Exclamation mark
-      ctx.shadowBlur=0;ctx.fillStyle='#fff';ctx.font='bold 14px monospace';ctx.textAlign='center';
-      ctx.fillText('!',markScreenX,markY-18*dm.gDir+5);
-      // "前回ここで落ちた" label
-      ctx.fillStyle='#ff3860';ctx.font='bold 10px monospace';
-      ctx.fillText('\u524D\u56DE\u3053\u3053\u3067\u843D\u3061\u305F',markScreenX,markY-40*dm.gDir);
-      ctx.restore();
+    const dmarks=stageDeathMarks[currentPackStage.id];
+    for(let di=0;di<dmarks.length;di++){
+      const dm=dmarks[di];
+      const markScreenX=player.x+(dm.dist-dist)/(speed*0.08)*speed;
+      if(markScreenX>-40&&markScreenX<W+40){
+        // Use stored player.y for pinpoint placement, fallback to surface
+        const markY=dm.py!=null?dm.py:(dm.gDir===1?floorSurfaceY(markScreenX):ceilSurfaceY(markScreenX));
+        const pulse=Math.sin(frame*0.08+di)*0.15+0.85;
+        const r=12;
+        ctx.save();
+        ctx.globalAlpha=0.8*pulse;
+        // White circle
+        ctx.fillStyle='#fff';ctx.shadowColor='#fff';ctx.shadowBlur=8;
+        ctx.beginPath();ctx.arc(markScreenX,markY,r,0,Math.PI*2);ctx.fill();
+        // Red × mark
+        ctx.shadowBlur=0;ctx.strokeStyle='#ff3860';ctx.lineWidth=3;ctx.lineCap='round';
+        const cr=7;
+        ctx.beginPath();ctx.moveTo(markScreenX-cr,markY-cr);ctx.lineTo(markScreenX+cr,markY+cr);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(markScreenX+cr,markY-cr);ctx.lineTo(markScreenX-cr,markY+cr);ctx.stroke();
+        ctx.restore();
+      }
     }
   }
 
@@ -4276,13 +4273,8 @@ function drawStageClear(){
   ctx.fillStyle='#0008';rr(W/2-120,cardY,240,cardH,12);ctx.fill();
   ctx.strokeStyle='#ffd70033';ctx.lineWidth=1;rr(W/2-120,cardY,240,cardH,12);ctx.stroke();
   drawCharacter(W/2,cardY+35,selChar,20,0,1,'happy');
-  // Score info
-  ctx.fillStyle='#fff';ctx.font='bold 24px monospace';ctx.textAlign='center';
-  ctx.fillText(Math.floor(dist)+'m',W/2,cardY+72);
-  ctx.fillStyle='#fff5';ctx.font='11px monospace';
-  ctx.fillText('目標: '+(currentPackStage?currentPackStage.dist:0)+'m  コイン: '+totalCoins,W/2,cardY+92);
   // Stars display (3 stars with animation)
-  const starY=cardY+115;
+  const starY=cardY+75;
   for(let i=0;i<3;i++){
     const sx=W/2-30+i*30,collected=i<stageBigCollected;
     const delay=i*12,ap=stageClearT>20+delay?Math.min(1,(stageClearT-20-delay)/15):0;
@@ -4301,10 +4293,6 @@ function drawStageClear(){
     ctx.fillText('★ +'+gotNewStars+' NEW!',W/2,cardY+150);
     ctx.globalAlpha=e;
   }
-  const starsCollected=stageBigCoins?stageBigCoins.filter(bc=>bc.col).length:0;
-  const reward=10+starsCollected*5+(gotNewStars>0?10:0);
-  ctx.fillStyle='#ffd700';ctx.font='bold 11px monospace';ctx.textAlign='center';
-  ctx.fillText('● +'+reward+' コイン獲得',W/2,cardY+cardH-6);
   if(stageClearT>60){
     const ta=Math.sin(stageClearT*0.07)*0.3+0.7;
     ctx.globalAlpha=ta*e;ctx.fillStyle='#fff';ctx.font='bold 15px monospace';

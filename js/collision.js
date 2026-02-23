@@ -23,9 +23,12 @@ function die(){
   player.alive=false;state=ST.DEAD;deadT=0;shakeI=14;switchBGM('dead');
   player.face='dead';sfx('death');vibrate([30,20,50]);
   bossRetry=null; // clear boss retry on death
-  // Record death position for stage mode marker
+  // Record death position for stage mode marker (up to 10 per stage)
   if(isPackMode&&currentPackStage){
-    stageDeathMarks[currentPackStage.id]={dist:dist,gDir:player.gDir};
+    const sid=currentPackStage.id;
+    if(!stageDeathMarks[sid])stageDeathMarks[sid]=[];
+    stageDeathMarks[sid].push({dist:dist,gDir:player.gDir,py:player.y});
+    if(stageDeathMarks[sid].length>10)stageDeathMarks[sid].shift();
   }
   // Transfer earned chests to inventory storage
   if(bossChests>0){

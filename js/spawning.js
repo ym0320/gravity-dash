@@ -24,6 +24,7 @@ function coinOverlaps(cx,cy){
 }
 function trySpawnCoins(){
   if(coinCD>0){coinCD--;return;}
+  if(isPackMode)return; // no coins in stage mode
   if(bossPhase.active)return;
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
@@ -68,6 +69,7 @@ function trySpawnCoins(){
 }
 function trySpawnItem(){
   if(itemCD>0){itemCD--;return;}
+  if(isPackMode)return; // no items in stage mode
   if(score<5)return;
   if(bossPhase.active)return;
   const plat=findEdgeSpawnPlat();
@@ -223,15 +225,15 @@ function trySpawnFloatPlat(){
     const maxJumpH=JUMP_POWER*JUMP_POWER/(2*GRAVITY)*0.75; // ~109px (comfortable reach)
     const fy=floorY-maxJumpH*(0.5+Math.random()*0.5); // 50-100% of comfortable jump height
     floatPlats.push({x:fx,y:fy,w:fw,th:10});
-    // Sometimes spawn an item on the floating platform
-    if(Math.random()<0.4){
+    // Sometimes spawn an item on the floating platform (not in stage mode)
+    if(!isPackMode&&Math.random()<0.4){
       const pool=[1,2]; // magnet or double jump
       if(hp<maxHp()&&Math.random()<0.3) pool.push(3); // heart if damaged
       const it=pool[Math.floor(Math.random()*pool.length)];
       items.push({x:fx+fw/2,y:fy-25,t:it,sz:14,p:Math.random()*6.28,col:false});
     }
-    // Sometimes spawn coins in an arc above
-    if(Math.random()<0.5){
+    // Sometimes spawn coins in an arc above (not in stage mode)
+    if(!isPackMode&&Math.random()<0.5){
       for(let i=0;i<3;i++){
         coins.push({x:fx+10+i*(fw-20)/2,y:fy-30-Math.sin(i/2*Math.PI)*15,sz:9,col:false,p:0});
       }
