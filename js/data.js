@@ -241,7 +241,7 @@ function initAudio(){
     switchBGM('title');
   }catch(e){}
 }
-function setBgmVol(v){bgmVol=v;localStorage.setItem('gd5bgmVol',v.toString());if(bgmGain)bgmGain.gain.value=0.15*v;}
+function setBgmVol(v){bgmVol=v;localStorage.setItem('gd5bgmVol',v.toString());if(bgmGain){bgmGain.gain.cancelScheduledValues(audioCtx.currentTime);bgmGain.gain.value=0.15*v;}}
 function setSfxVol(v){sfxVol=v;localStorage.setItem('gd5sfxVol',v.toString());if(sfxGain)sfxGain.gain.value=v;}
 
 // Helper: create oscillator routed through bgmGain
@@ -542,21 +542,27 @@ const BGM_STAGE3={tempo:130,
   melWave:'sawtooth',harmWave:'triangle',bassWave:'sawtooth',
   drums:'heavy'};
 
-// Fever: old-style simple oscillator BGM (reverted)
-let feverBI=0,feverTimer=null;
+// Fever: old-style simple oscillator BGM (look-ahead scheduling)
+let feverBI=0,feverTimer=null,feverNextT=0,feverStarted=false;
 const FEVER_NOTES=[784,988,1175,1319, 1175,988,784,988, 880,1175,1319,1568, 1319,1175,1047,880];
 const FEVER_BASS=[196,196,247,247, 196,196,247,247, 220,220,262,262, 220,220,196,196];
 function playFeverBGM(){
   if(bgmCurrent!=='fever')return;
+  if(audioCtx.state!=='running'){feverTimer=setTimeout(playFeverBGM,200);return;}
+  if(!feverStarted){feverNextT=audioCtx.currentTime+0.05;feverStarted=true;}
+  const dur=0.11;
   try{
-    const now=audioCtx.currentTime,dur=0.11;
-    bgmOsc('sawtooth',FEVER_NOTES[feverBI%16],now,dur*0.9,0.3);
-    if(feverBI%2===0)bgmOsc('triangle',FEVER_BASS[feverBI%16],now,dur*1.2,0.25);
-    bgmNoise(now,0.03,0.18);
-    if(feverBI%2===0)bgmKick(now);
-    feverBI++;
+    while(feverNextT<audioCtx.currentTime+0.25){
+      const t=feverNextT;
+      bgmOsc('sawtooth',FEVER_NOTES[feverBI%16],t,dur*0.9,0.3);
+      if(feverBI%2===0)bgmOsc('triangle',FEVER_BASS[feverBI%16],t,dur*1.2,0.25);
+      bgmNoise(t,0.03,0.18);
+      if(feverBI%2===0)bgmKick(t);
+      feverBI++;
+      feverNextT+=dur;
+    }
   }catch(e){}
-  feverTimer=setTimeout(playFeverBGM,110);
+  feverTimer=setTimeout(playFeverBGM,80);
 }
 
 // Speed-linked play BGM selection (uses effective distance from speed reset point)
@@ -595,102 +601,109 @@ function switchBGM(type){
   if(bgmTimer){clearTimeout(bgmTimer);bgmTimer=null;}
   if(feverTimer){clearTimeout(feverTimer);feverTimer=null;}
   // Fever uses old-style simple oscillator
-  if(type==='fever'){feverBI=0;playFeverBGM();return;}
+  if(type==='fever'){feverBI=0;feverStarted=false;playFeverBGM();return;}
   const BGM_MAP={title0:BGM_TITLES[0],title1:BGM_TITLES[1],title2:BGM_TITLES[2],title3:BGM_TITLES[3],title4:BGM_TITLES[4],title5:BGM_TITLES[5],
     play1:BGM_PLAY1,play2:BGM_PLAY2,play3:BGM_PLAY3,play4:BGM_PLAY4,play5:BGM_PLAY5,
     stage1:BGM_STAGE1,stage2:BGM_STAGE2,stage3:BGM_STAGE3,
     boss:BGM_BOSS,dead:BGM_DEAD,challenge:BGM_CHALLENGE,collapse:BGM_COLLAPSE};
   const def=BGM_MAP[type]||BGM_PLAY1;
-  const stepMs=60000/(def.tempo*4); // ms per 16th note step
-  const stepS=stepMs/1000;
+  const stepS=60/(def.tempo*4); // seconds per 16th note step
   const totalSteps=def.melody.length;
   let si=0;
+  let nextT=0; // AudioContext time for next step
+  let started=false;
   (function play(){
     if(bgmCurrent!==type)return;
+    // Don't schedule notes while AudioContext is suspended
+    if(audioCtx.state!=='running'){bgmTimer=setTimeout(play,200);return;}
+    if(!started){
+      nextT=audioCtx.currentTime+0.05;
+      started=true;
+      // Gentle fade-in to prevent initial loud burst
+      if(bgmGain){
+        bgmGain.gain.cancelScheduledValues(audioCtx.currentTime);
+        bgmGain.gain.setValueAtTime(0.001,audioCtx.currentTime);
+        bgmGain.gain.linearRampToValueAtTime(0.15*bgmVol,audioCtx.currentTime+0.35);
+      }
+    }
     try{
-      const now=audioCtx.currentTime;
-      const mi=si%totalSteps;
-      const chordIdx=Math.floor(mi/4)%def.chords.length;
-      // Melody
-      if(def.melody[mi]>0)bgmOsc(def.melWave,def.melody[mi],now,stepS*0.85,def.melVol);
-      // Harmony (sustained pad-like)
-      if(def.harmony[mi]>0&&mi%2===0)bgmOsc(def.harmWave,def.harmony[mi],now,stepS*1.8,def.harmVol);
-      // Bass
-      if(def.bass[mi]>0)bgmOsc(def.bassWave,def.bass[mi],now,stepS*0.9,def.bassVol);
-      // Chord pad (every 4 steps = quarter note)
-      if(mi%4===0){
-        def.chords[chordIdx].forEach(f=>{
-          bgmOsc('sine',f,now,stepS*3.8,def.chordVol);
-        });
-      }
-      // Drums
-      if(def.drums==='pop'){
-        if(mi%4===0)bgmKick(now); // kick on 1
-        if(mi%8===4)bgmSnare(now); // snare on 3
-        if(mi%2===0)bgmNoise(now,0.03,0.08); // hi-hat 8ths
-        if(mi%4===2)bgmNoise(now,0.015,0.05); // ghost hi-hat
-      } else if(def.drums==='drive'){
-        if(mi%4===0||mi%8===6)bgmKick(now); // kick on 1 and "and of 3"
-        if(mi%8===4)bgmSnare(now);
-        bgmNoise(now,0.02,0.06); // 16th hi-hats
-      } else if(def.drums==='soft'){
-        if(mi%8===0)bgmKick(now); // kick only on beat 1
-        if(mi%4===0)bgmNoise(now,0.02,0.04); // gentle hi-hat quarters
-      } else if(def.drums==='edm'){
-        if(mi%4===0)bgmKick(now);
-        if(mi%8===4)bgmSnare(now);
-        bgmNoise(now,0.02,mi%2===0?0.1:0.05);
-        if(mi%4===2)bgmKick(now);
-      } else if(def.drums==='heavy'){
-        if(mi%4===0)bgmKick(now);if(mi%4===2)bgmKick(now); // double kick
-        if(mi%8===4)bgmSnare(now);if(mi%8===0&&mi>0)bgmSnare(now);
-        bgmNoise(now,0.02,0.08); // constant 16th hi-hats
-        if(mi%16>=14)bgmSnare(now); // fill
-      } else if(def.drums==='turbo'){
-        if(mi%2===0)bgmKick(now); // kick every 8th
-        if(mi%4===2)bgmSnare(now);if(mi%8===4)bgmSnare(now);
-        bgmNoise(now,0.015,0.09);
-        if(mi%16>=14){bgmSnare(now);bgmKick(now);} // crash fill
-      } else if(def.drums==='horror'){
-        // Irregular, unpredictable rhythm
-        if(mi===0||mi===6||mi===11||mi===16||mi===22||mi===27)bgmKick(now);
-        if(mi===4||mi===13||mi===20||mi===29)bgmSnare(now);
-        if(mi%3===0)bgmNoise(now,0.04,0.1); // triplet hi-hats
-        if(mi===15||mi===31){bgmSnare(now);bgmKick(now);} // tension builds
-      } else if(def.drums==='nightmare'){
-        // Complex polyrhythmic horror: heavy bass hits, irregular snares, metallic scrapes
-        const bar=Math.floor(mi/16)%4;
-        // Deep kick with sub-bass rumble pattern (3+3+2 grouping for unease)
-        if(mi%8<6&&mi%3===0)bgmKick(now);
-        if(mi%8===6||mi%8===7)bgmKick(now); // double kick accent
-        // Irregular snare hits: displaced and syncopated
-        if(mi%16===3||mi%16===7||mi%16===10||mi%16===14)bgmSnare(now);
-        // Triplet hi-hats for disorienting pulse
-        if(mi%3===0)bgmNoise(now,0.05,0.12);
-        // Ghost notes between main hits
-        if(mi%6===1||mi%6===4)bgmNoise(now,0.02,0.04);
-        // Tension ramp: fill at end of every 16-step bar
-        if(mi%16>=13){bgmSnare(now);if(mi%2===0)bgmKick(now);}
-        // Every other bar: double-time section for chaos
-        if(bar===1||bar===3){
-          if(mi%2===0)bgmKick(now);
-          bgmNoise(now,0.015,0.06);
+      // Look-ahead: schedule all steps within the next 250ms
+      // AudioContext plays them at precise times even if JS timers are throttled
+      while(nextT<audioCtx.currentTime+0.25){
+        const t=nextT;
+        const mi=si%totalSteps;
+        const chordIdx=Math.floor(mi/4)%def.chords.length;
+        // Melody
+        if(def.melody[mi]>0)bgmOsc(def.melWave,def.melody[mi],t,stepS*0.85,def.melVol);
+        // Harmony (sustained pad-like)
+        if(def.harmony[mi]>0&&mi%2===0)bgmOsc(def.harmWave,def.harmony[mi],t,stepS*1.8,def.harmVol);
+        // Bass
+        if(def.bass[mi]>0)bgmOsc(def.bassWave,def.bass[mi],t,stepS*0.9,def.bassVol);
+        // Chord pad (every 4 steps = quarter note)
+        if(mi%4===0){
+          def.chords[chordIdx].forEach(f=>{
+            bgmOsc('sine',f,t,stepS*3.8,def.chordVol);
+          });
         }
-        // Metallic scrape effect (low noise burst) at phrase boundaries
-        if(mi%32===0||mi%32===24)bgmNoise(now,0.12,0.15);
-        // Sub-bass drone (very low oscillator)
-        bgmOsc('sine',32+Math.sin(si*0.1)*4,now,stepS*0.9,0.15);
-      } else if(def.drums==='rumble'){
-        // Deep earthquake rumble: constant sub-bass kicks, random impacts
-        if(mi%2===0)bgmKick(now);
-        if(mi%4===0)bgmNoise(now,0.15,0.20); // heavy debris sounds
-        if(mi%8===3||mi%8===7)bgmSnare(now); // cracking sounds
-        if(mi%16===0)bgmNoise(now,0.25,0.18); // big impact
-        bgmOsc('sine',25+Math.sin(si*0.05)*5,now,stepS*0.9,0.20); // sub-bass drone
+        // Drums
+        if(def.drums==='pop'){
+          if(mi%4===0)bgmKick(t);
+          if(mi%8===4)bgmSnare(t);
+          if(mi%2===0)bgmNoise(t,0.03,0.08);
+          if(mi%4===2)bgmNoise(t,0.015,0.05);
+        } else if(def.drums==='drive'){
+          if(mi%4===0||mi%8===6)bgmKick(t);
+          if(mi%8===4)bgmSnare(t);
+          bgmNoise(t,0.02,0.06);
+        } else if(def.drums==='soft'){
+          if(mi%8===0)bgmKick(t);
+          if(mi%4===0)bgmNoise(t,0.02,0.04);
+        } else if(def.drums==='edm'){
+          if(mi%4===0)bgmKick(t);
+          if(mi%8===4)bgmSnare(t);
+          bgmNoise(t,0.02,mi%2===0?0.1:0.05);
+          if(mi%4===2)bgmKick(t);
+        } else if(def.drums==='heavy'){
+          if(mi%4===0)bgmKick(t);if(mi%4===2)bgmKick(t);
+          if(mi%8===4)bgmSnare(t);if(mi%8===0&&mi>0)bgmSnare(t);
+          bgmNoise(t,0.02,0.08);
+          if(mi%16>=14)bgmSnare(t);
+        } else if(def.drums==='turbo'){
+          if(mi%2===0)bgmKick(t);
+          if(mi%4===2)bgmSnare(t);if(mi%8===4)bgmSnare(t);
+          bgmNoise(t,0.015,0.09);
+          if(mi%16>=14){bgmSnare(t);bgmKick(t);}
+        } else if(def.drums==='horror'){
+          if(mi===0||mi===6||mi===11||mi===16||mi===22||mi===27)bgmKick(t);
+          if(mi===4||mi===13||mi===20||mi===29)bgmSnare(t);
+          if(mi%3===0)bgmNoise(t,0.04,0.1);
+          if(mi===15||mi===31){bgmSnare(t);bgmKick(t);}
+        } else if(def.drums==='nightmare'){
+          const bar=Math.floor(mi/16)%4;
+          if(mi%8<6&&mi%3===0)bgmKick(t);
+          if(mi%8===6||mi%8===7)bgmKick(t);
+          if(mi%16===3||mi%16===7||mi%16===10||mi%16===14)bgmSnare(t);
+          if(mi%3===0)bgmNoise(t,0.05,0.12);
+          if(mi%6===1||mi%6===4)bgmNoise(t,0.02,0.04);
+          if(mi%16>=13){bgmSnare(t);if(mi%2===0)bgmKick(t);}
+          if(bar===1||bar===3){
+            if(mi%2===0)bgmKick(t);
+            bgmNoise(t,0.015,0.06);
+          }
+          if(mi%32===0||mi%32===24)bgmNoise(t,0.12,0.15);
+          bgmOsc('sine',32+Math.sin(si*0.1)*4,t,stepS*0.9,0.15);
+        } else if(def.drums==='rumble'){
+          if(mi%2===0)bgmKick(t);
+          if(mi%4===0)bgmNoise(t,0.15,0.20);
+          if(mi%8===3||mi%8===7)bgmSnare(t);
+          if(mi%16===0)bgmNoise(t,0.25,0.18);
+          bgmOsc('sine',25+Math.sin(si*0.05)*5,t,stepS*0.9,0.20);
+        }
+        nextT+=stepS;
+        si++;
       }
-      si++;
     }catch(e){}
-    bgmTimer=setTimeout(play,stepMs);
+    bgmTimer=setTimeout(play,80); // Poll every 80ms (well within 250ms look-ahead)
   })();
 }
 function sfx(type){
