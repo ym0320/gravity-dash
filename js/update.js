@@ -701,30 +701,6 @@ function update(dt){
       }
     }
   }
-  // Floating platform wall collision (side push-back) - skip during drop-through
-  if(!player._dropThrough){
-    for(let fi=0;fi<floatPlats.length;fi++){
-      const fp=floatPlats[fi];
-      if(player._onFloatPlat===fp)continue; // don't wall-push from platform we're standing on
-      if(player.y+pr>fp.y&&player.y-pr<fp.y+fp.th){
-        if(player.x+pr>fp.x&&player.x-pr<fp.x+fp.w){
-          // Only push if approaching from the side (significant horizontal overlap vs vertical)
-          const overlapL=player.x+pr-fp.x;
-          const overlapR=fp.x+fp.w-(player.x-pr);
-          const overlapT=player.y+pr-fp.y;
-          const overlapB=fp.y+fp.th-(player.y-pr);
-          const minHOverlap=Math.min(overlapL,overlapR);
-          const minVOverlap=Math.min(overlapT,overlapB);
-          // Only wall-push if horizontal overlap is smaller (approaching from side, not top/bottom)
-          if(minHOverlap<minVOverlap){
-            if(overlapL<overlapR){player.x=fp.x-pr;}
-            else{player.x=fp.x+fp.w+pr;}
-          }
-        }
-      }
-    }
-  }
-
   // Reset air combo when grounded
   if(player.grounded)airCombo=0;
 
@@ -773,13 +749,6 @@ function update(dt){
             player.y=surfY+pr;
           }
         }
-        // Ceiling hill wall: block player from entering from side
-        if(player.y-pr<surfY+thickness&&player.y+pr>surfY-curH){
-          const overlapL=player.x+pr-mh.x;
-          const overlapR=mh.x+mh.w-(player.x-pr);
-          if(overlapL>0&&overlapR>0&&overlapL<overlapR){player.x=mh.x-pr;}
-          else if(overlapL>0&&overlapR>0){player.x=mh.x+mh.w+pr;}
-        }
       } else {
         // Floor moving hill - landing
         if(player.gDir===1){
@@ -788,13 +757,6 @@ function update(dt){
           } else if(player.y+pr>surfY+4&&player.y-pr<surfY&&player.grounded){
             player.y=surfY-pr;
           }
-        }
-        // Floor hill wall: block player from entering from side
-        if(player.y+pr>surfY&&player.y-pr<surfY+curH){
-          const overlapL=player.x+pr-mh.x;
-          const overlapR=mh.x+mh.w-(player.x-pr);
-          if(overlapL>0&&overlapR>0&&overlapL<overlapR){player.x=mh.x-pr;}
-          else if(overlapL>0&&overlapR>0){player.x=mh.x+mh.w+pr;}
         }
       }
     }
@@ -879,21 +841,6 @@ function update(dt){
         }
         if(fm.curH<=-50)fm.state='gone';
         if(frame%3===0)emitParts(fm.x+Math.random()*fm.w,Math.max(0,fm.curH),2,tc('gnd'),2,1);
-      }
-    }
-    // Wall collision for falling mountains (side push-back)
-    if(fm.state!=='gone'&&fm.curH>0&&player.x+pr>fm.x&&player.x-pr<fm.x+fm.w){
-      const isCeil2=!fm.isFloor;
-      const surfY3=isCeil2?fm.curH:(H-fm.curH);
-      const botY=isCeil2?0:surfY3;
-      const topY=isCeil2?surfY3:H;
-      if(player.y+pr>botY&&player.y-pr<topY){
-        const overlapL=player.x+pr-fm.x;
-        const overlapR=fm.x+fm.w-(player.x-pr);
-        if(overlapL>0&&overlapR>0){
-          if(overlapL<overlapR){player.x=fm.x-pr;}
-          else{player.x=fm.x+fm.w+pr;}
-        }
       }
     }
   });

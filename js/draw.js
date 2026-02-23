@@ -2518,8 +2518,25 @@ function drawTitle(){
     ctx.fillStyle='#fff3';ctx.font='9px monospace';ctx.textAlign='center';
     const methodStr=fbLoginMethod==='google'?'Google\u30A2\u30AB\u30A6\u30F3\u30C8':fbLoginMethod==='twitter'?'X\u30A2\u30AB\u30A6\u30F3\u30C8':fbLoginMethod==='anonymous'?'\u30B2\u30B9\u30C8\u30ED\u30B0\u30A4\u30F3':'';
     if(methodStr)ctx.fillText(methodStr,W/2,methodY);
+    // Account linking buttons (guest users only)
+    let linkBtnOffset=0;
+    if(fbLoginMethod==='anonymous'){
+      const linkY=methodY+10;
+      const linkBW=(pw-48)/2;
+      // Google link
+      ctx.fillStyle='#4285f422';rr(px+20,linkY,linkBW,28,6);ctx.fill();
+      ctx.strokeStyle='#4285f466';ctx.lineWidth=1;rr(px+20,linkY,linkBW,28,6);ctx.stroke();
+      ctx.fillStyle='#4285f4';ctx.font='bold 10px monospace';ctx.textAlign='center';
+      ctx.fillText('Google\u9023\u643A',px+20+linkBW/2,linkY+18);
+      // X link
+      ctx.fillStyle='#1da1f222';rr(px+20+linkBW+8,linkY,linkBW,28,6);ctx.fill();
+      ctx.strokeStyle='#1da1f266';ctx.lineWidth=1;rr(px+20+linkBW+8,linkY,linkBW,28,6);ctx.stroke();
+      ctx.fillStyle='#1da1f2';ctx.font='bold 10px monospace';ctx.textAlign='center';
+      ctx.fillText('X\u9023\u643A',px+20+linkBW+8+linkBW/2,linkY+18);
+      linkBtnOffset=42;
+    }
     // Logout button
-    const logoutBtnY=methodY+8;
+    const logoutBtnY=methodY+8+linkBtnOffset;
     if(!logoutConfirm){
       ctx.fillStyle='#ff860022';rr(px+20,logoutBtnY,pw-40,30,6);ctx.fill();
       ctx.strokeStyle='#ff860066';ctx.lineWidth=1;rr(px+20,logoutBtnY,pw-40,30,6);ctx.stroke();

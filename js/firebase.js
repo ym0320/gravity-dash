@@ -46,6 +46,25 @@ function fbSignInTwitter() {
   const provider = new firebase.auth.TwitterAuthProvider();
   return fbAuth.signInWithPopup(provider);
 }
+// Link anonymous account to a provider (keeps same UID & data)
+function fbLinkGoogle() {
+  if (!fbAuth || !fbUser) return Promise.reject('no-user');
+  const provider = new firebase.auth.GoogleAuthProvider();
+  return fbUser.linkWithPopup(provider).then(cred => {
+    fbLoginMethod = 'google';
+    localStorage.setItem('gd5loginMethod', 'google');
+    return cred;
+  });
+}
+function fbLinkTwitter() {
+  if (!fbAuth || !fbUser) return Promise.reject('no-user');
+  const provider = new firebase.auth.TwitterAuthProvider();
+  return fbUser.linkWithPopup(provider).then(cred => {
+    fbLoginMethod = 'twitter';
+    localStorage.setItem('gd5loginMethod', 'twitter');
+    return cred;
+  });
+}
 function fbSignOut() {
   if (!fbAuth) return Promise.resolve();
   return fbAuth.signOut();

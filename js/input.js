@@ -316,8 +316,11 @@ function settingsLayout(){
   const tutBtnY=nameY+22;
   const resetBtnY=tutBtnY+38;
   const methodY=resetBtnY+42;
-  const logoutBtnY=methodY+8;
-  return{px,py,pw,ph,slX,barX,barW,barY1:slY1-8,barY2:slY2-8,barH,nameY,tutBtnY,resetBtnY,logoutBtnY,closeY:py+ph-42};
+  const linkBtnOffset=fbLoginMethod==='anonymous'?42:0;
+  const linkY=methodY+10;
+  const linkBW=(pw-48)/2;
+  const logoutBtnY=methodY+8+linkBtnOffset;
+  return{px,py,pw,ph,slX,barX,barW,barY1:slY1-8,barY2:slY2-8,barH,nameY,tutBtnY,resetBtnY,linkY,linkBW,logoutBtnY,closeY:py+ph-42};
 }
 function hitSettingsGear(tx,ty){return tx>=W-44&&tx<=W-8&&ty>=safeTop+6&&ty<=safeTop+42;}
 function hitHelpBtn(tx,ty){return tx>=W-44&&tx<=W-8&&ty>=safeTop+44&&ty<=safeTop+80;}
@@ -416,6 +419,45 @@ function handleSettingsTouch(tx,ty){
   if(tx>=s.px+20&&tx<=s.px+s.pw-20&&ty>=s.resetBtnY&&ty<=s.resetBtnY+30){
     confirmModal={type:'reset',step:0};sfx('hurt');vibrate(20);return true;
   }
+  // Account linking buttons (guest only)
+  if(fbLoginMethod==='anonymous'&&ty>=s.linkY&&ty<=s.linkY+28){
+    // Google link
+    if(tx>=s.px+20&&tx<=s.px+20+s.linkBW){
+      sfx('select');
+      if(typeof fbLinkGoogle==='function'){
+        fbLinkGoogle().then(()=>{
+          addPop(W/2,H/2,'Google\u9023\u643A\u5B8C\u4E86!','#4285f4');sfx('item');vibrate(15);
+        }).catch(e=>{
+          console.warn('[Firebase] Link Google error:',e);
+          if(e.code==='auth/credential-already-in-use'){
+            addPop(W/2,H/2,'\u3053\u306EGoogle\u30A2\u30AB\u30A6\u30F3\u30C8\u306F\u4ED6\u306E\u30E6\u30FC\u30B6\u30FC\u304C\u4F7F\u7528\u4E2D','#ff3860');
+          } else {
+            addPop(W/2,H/2,'\u9023\u643A\u306B\u5931\u6557\u3057\u307E\u3057\u305F','#ff3860');
+          }
+          sfx('hurt');vibrate(10);
+        });
+      }
+      return true;
+    }
+    // X link
+    if(tx>=s.px+20+s.linkBW+8&&tx<=s.px+20+s.linkBW+8+s.linkBW){
+      sfx('select');
+      if(typeof fbLinkTwitter==='function'){
+        fbLinkTwitter().then(()=>{
+          addPop(W/2,H/2,'X\u9023\u643A\u5B8C\u4E86!','#1da1f2');sfx('item');vibrate(15);
+        }).catch(e=>{
+          console.warn('[Firebase] Link Twitter error:',e);
+          if(e.code==='auth/credential-already-in-use'){
+            addPop(W/2,H/2,'\u3053\u306EX\u30A2\u30AB\u30A6\u30F3\u30C8\u306F\u4ED6\u306E\u30E6\u30FC\u30B6\u30FC\u304C\u4F7F\u7528\u4E2D','#ff3860');
+          } else {
+            addPop(W/2,H/2,'\u9023\u643A\u306B\u5931\u6557\u3057\u307E\u3057\u305F','#ff3860');
+          }
+          sfx('hurt');vibrate(10);
+        });
+      }
+      return true;
+    }
+  }
   // Logout button - always show confirmation modal
   if(tx>=s.px+20&&tx<=s.px+s.pw-20&&ty>=s.logoutBtnY&&ty<=s.logoutBtnY+30){
     confirmModal={type:'logout',step:0};sfx('hurt');vibrate(15);
@@ -470,10 +512,20 @@ document.addEventListener('visibilitychange',()=>{
     if(typeof feverTimer!=='undefined'&&feverTimer){clearTimeout(feverTimer);feverTimer=null;}
     bgmCurrent=''; // allow restart
   } else {
-    // Page visible again: try resume audio and restart BGM
-    if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();
-    if(bgmBeforePause){switchBGM(bgmBeforePause);bgmBeforePause='';}
-    else if(audioCtx&&!bgmCurrent)switchBGM('title');
+    // Page visible again: resume AudioContext then restart BGM
+    const _restoreBGM=()=>{
+      if(bgmBeforePause){switchBGM(bgmBeforePause);bgmBeforePause='';}
+      else if(audioCtx&&!bgmCurrent){
+        // Restore BGM based on current game state
+        if(state===ST.PLAY||state===ST.PAUSE){switchBGM(isChallengeMode?'challenge':'play');}
+        else if(state===ST.TITLE||state===ST.LOGIN){switchBGM('title');}
+      }
+    };
+    if(audioCtx&&audioCtx.state==='suspended'){
+      audioCtx.resume().then(_restoreBGM).catch(()=>{});
+    } else {
+      _restoreBGM();
+    }
   }
 });
 // Try auto-init audio on page load (works if browser allows or user previously interacted)
