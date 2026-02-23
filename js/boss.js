@@ -40,9 +40,12 @@ function spawnBossEnemies(){
   bossPhase.dodgeQueue=[];
   bossPhase.dodgeIdx=0;
   bossPhase.dodgeKills=0;
-  // Randomly choose boss type: 4 types equally likely (25% each)
+  // Randomly choose boss type
   let bossType;
-  {
+  if(isPackMode&&currentPackStage&&currentPackStage.boss){
+    // Stage mode X-5: pick bruiser or guardian (2 of same type will spawn)
+    bossType=Math.random()<0.5?'bruiser':'guardian';
+  } else {
     const roll=Math.random();
     if(roll<0.25) bossType='wizard';
     else if(roll<0.50) bossType='bruiser';
@@ -126,59 +129,76 @@ function spawnBossEnemies(){
   } else if(bossType==='bruiser'){
     // Bruiser type: 2x previous size, always 3 stomps, from 2nd encounter moves between floor/ceiling
     const bsz=(30+Math.min(bc-1,6)*2)*2;
+    const packBoss=isPackMode&&currentPackStage&&currentPackStage.boss;
+    const bruiserHP=packBoss?3:(3+Math.min(Math.floor((bc-1)/4),2));
     const bruiser={
       x:W+80,y:floorY-bsz,vy:0,gDir:1,sz:bsz,alive:true,fr:0,
       type:11,shootT:999,boss:true,bossType:'bruiser',
-      hp:3+Math.min(Math.floor((bc-1)/4),2), maxHp:3+Math.min(Math.floor((bc-1)/4),2),
+      hp:bruiserHP, maxHp:bruiserHP,
       chargeVx:-(3.5+Math.min(bc-1,12)*0.3), retreatVx:2.5+Math.min(bc-1,10)*0.15,
       state:'enter',
       timer:0, stunT:0, hurtFlash:0, invT:0, feinted:false,
-      flipEnabled:bc>=2, // from 2nd encounter: can move between floor and ceiling
+      flipEnabled:true,
       patrolDir:1,patrolOriginX:W*0.6,patrolRange:0
     };
     bossPhase.bruiser=bruiser;
     bossPhase.total=1;
+    // Stage X-5: spawn 2nd bruiser on ceiling
+    if(packBoss){
+      const bruiser2={
+        x:W+120,y:ceilY+bsz,vy:0,gDir:-1,sz:bsz,alive:true,fr:50,
+        type:11,shootT:999,boss:true,bossType:'bruiser',
+        hp:bruiserHP, maxHp:bruiserHP,
+        chargeVx:-(3.0+Math.min(bc-1,12)*0.3), retreatVx:2.2+Math.min(bc-1,10)*0.15,
+        state:'enter',
+        timer:0, stunT:0, hurtFlash:0, invT:0, feinted:false,
+        flipEnabled:true,
+        patrolDir:-1,patrolOriginX:W*0.5,patrolRange:0
+      };
+      bossPhase.enemies.push(bruiser2);
+      bossPhase.total=2;
+    }
   } else if(bossType==='guardian'){
     // Guardian type: armored knight - jump → earthquake → charge → sword attack
-    // Player avoids earthquake by jumping, stomps guardian during charge phase
-    // Can flip between floor/ceiling, always earthquakes on landing
+    const packBoss2=isPackMode&&currentPackStage&&currentPackStage.boss;
     const gsz=(28+Math.min(bc-1,6)*2)*2;
-    const guardian={
-      x:W+90,y:floorY-gsz,vy:0,gDir:1,sz:gsz,alive:true,fr:0,
-      type:13,shootT:999,boss:true,bossType:'guardian',
-      hp:3+Math.min(Math.floor((bc-1)/4),2),maxHp:3+Math.min(Math.floor((bc-1)/4),2),
-      chargeSpd:4.0+Math.min(bc-1,12)*0.3,
-      retreatSpd:4+Math.min(bc-1,10)*0.25,
-      state:'enter',
-      timer:0,stunT:0,hurtFlash:0,invT:0,
-      jumpVy:0,
-      // Jump parameters - irregular height/timing, faster at higher phases
-      bigJumpBase:10+Math.min(bc-1,10)*0.6, // base jump power (randomized each jump)
-      bigJumpVariance:3+Math.min(bc-1,8)*0.4, // random range added to base
-      jumpPrepBase:Math.max(2,12-Math.min(bc-1,8)*1.2), // base prep time (shorter at higher bc)
-      jumpPrepVariance:Math.max(2,10-Math.min(bc-1,8)*1.0), // random extra prep frames
-      onCeiling:false, // whether currently on ceiling
-      flipEnabled:bc>=2, // can flip between floor/ceiling from bc>=2
-      // Earthquake parameters
-      quakeStunDuration:50+Math.min(bc-1,8)*6, // moderate stun, charge is still dodgeable
-      quakeDuration:25+Math.min(bc-1,6)*2, // visual earthquake frames
-      quakeT:0,
-      // Feint parameters (disabled - no feint jumps)
-      feintEnabled:false,
-      feintCount:0,
-      feintsDone:0,
-      feintCooldown:0,
-      // Sword attack
-      swordSwingT:0,
-      swordDuration:25+Math.min(bc-1,8)*2,
-      swordReach:gsz*(1.2+Math.min(bc-1,8)*0.05),
-      // Stunned (after being stomped)
-      stunDuration:Math.max(25,55-Math.min(bc-1,8)*3.5),
-      // Jump progression: each jump gets smaller and faster
-      jumpCount:0
-    };
+    const guardianHP=packBoss2?3:(3+Math.min(Math.floor((bc-1)/4),2));
+    function makeGuardian(gx,gy,gd,offsetFr){
+      return {
+        x:gx,y:gy,vy:0,gDir:gd,sz:gsz,alive:true,fr:offsetFr,
+        type:13,shootT:999,boss:true,bossType:'guardian',
+        hp:guardianHP,maxHp:guardianHP,
+        chargeSpd:4.0+Math.min(bc-1,12)*0.3,
+        retreatSpd:4+Math.min(bc-1,10)*0.25,
+        state:'enter',
+        timer:0,stunT:0,hurtFlash:0,invT:0,
+        jumpVy:0,
+        bigJumpBase:10+Math.min(bc-1,10)*0.6,
+        bigJumpVariance:3+Math.min(bc-1,8)*0.4,
+        jumpPrepBase:Math.max(2,12-Math.min(bc-1,8)*1.2),
+        jumpPrepVariance:Math.max(2,10-Math.min(bc-1,8)*1.0),
+        onCeiling:gd===-1,
+        flipEnabled:true,
+        quakeStunDuration:50+Math.min(bc-1,8)*6,
+        quakeDuration:25+Math.min(bc-1,6)*2,
+        quakeT:0,
+        feintEnabled:false,feintCount:0,feintsDone:0,feintCooldown:0,
+        swordSwingT:0,
+        swordDuration:25+Math.min(bc-1,8)*2,
+        swordReach:gsz*(1.2+Math.min(bc-1,8)*0.05),
+        stunDuration:Math.max(25,55-Math.min(bc-1,8)*3.5),
+        jumpCount:0
+      };
+    }
+    const guardian=makeGuardian(W+90,floorY-gsz,1,0);
     bossPhase.guardian=guardian;
     bossPhase.total=1;
+    // Stage X-5: spawn 2nd guardian on ceiling
+    if(packBoss2){
+      const guardian2=makeGuardian(W+130,ceilY+gsz,-1,40);
+      bossPhase.enemies.push(guardian2);
+      bossPhase.total=2;
+    }
   } else {
     // Wizard type: floats in air, dashes toward player then returns, shoots patterns
     const wsz=24+Math.min(bc-1,8)*1.5;

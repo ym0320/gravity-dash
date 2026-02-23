@@ -239,9 +239,20 @@ function update(dt){
   if(state===ST.STAGE_CLEAR){
     stageClearT++;
     fip(parts,p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.05;p.vx*=0.99;p.life--;return p.life>0;});
-    // Spawn celebration particles
-    if(stageClearT<60&&stageClearT%3===0){
-      for(let i=0;i<3;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*2,vy:1+Math.random()*2,life:50+Math.random()*30,ml:80,sz:Math.random()*5+2,col:['#ffd700','#00e5ff','#ff3860','#34d399'][i%4]});
+    // Spawn celebration particles — massive confetti burst
+    if(stageClearT<90&&stageClearT%2===0){
+      for(let i=0;i<5;i++){
+        const cx=W*Math.random(),cy=-10;
+        parts.push({x:cx,y:cy,vx:(Math.random()-0.5)*4,vy:1.5+Math.random()*3,life:70+Math.random()*40,ml:110,sz:Math.random()*6+2,col:['#ffd700','#00e5ff','#ff3860','#34d399','#a855f7','#ff6600'][Math.floor(Math.random()*6)]});
+      }
+    }
+    // Firework bursts at specific frames
+    if(stageClearT===15||stageClearT===35||stageClearT===55||stageClearT===75){
+      const bx=W*0.2+Math.random()*W*0.6,by=H*0.15+Math.random()*H*0.3;
+      for(let i=0;i<20;i++){
+        const a=6.28/20*i,s=3+Math.random()*5;
+        parts.push({x:bx,y:by,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:40+Math.random()*20,ml:60,sz:Math.random()*4+2,col:['#ffd700','#ff3860','#00e5ff','#34d399'][i%4]});
+      }
     }
     return;
   }
@@ -332,11 +343,41 @@ function update(dt){
     while(ceilPlats.length>0&&ceilPlats[ceilPlats.length-1].x+ceilPlats[ceilPlats.length-1].w<W+300){
       generatePackPlatform(ceilPlats,true,currentPackStage);
     }
-    // Pack mode clear check
-    if(dist>=currentPackStage.dist){
+    // Pack mode: boss stage trigger at 90% distance
+    if(currentPackStage.boss&&!bossPhase.active&&!bossPhase.reward&&dist>=currentPackStage.dist*0.9&&bossPhase.bossCount===0){
+      // Trigger boss fight - set HP to 3 for boss fight
+      hp=3;
+      bossPhase.nextAt=0; // trigger immediately
+      startBossPhase();
+    }
+    // Pack mode: update boss phase
+    if(bossPhase.active||bossPhase.reward){
+      updateBossPhase();
+      // After boss reward phase completes in pack mode, trigger stage clear
+      if(!bossPhase.active&&!bossPhase.reward&&bossPhase.bossCount>0){
+        // Boss defeated → stage clear
+        state=ST.STAGE_CLEAR;stageClearT=0;gotNewStars=0;
+        sfxFanfare();vibrate([30,20,30,20,60]);shakeI=8;
+        const starsThisRun=stageBigCoins.filter(bc=>bc.col).length;
+        const sid=currentPackStage.id;
+        const prev=packProgress[sid];
+        const prevStars=prev?prev.stars:0;
+        const newStars=Math.max(prevStars,starsThisRun);
+        gotNewStars=Math.max(0,newStars-prevStars);
+        packProgress[sid]={cleared:true,stars:newStars};
+        localStorage.setItem('gd5pp',JSON.stringify(packProgress));
+        totalStars=getTotalStars();
+        const reward=10+starsThisRun*5+(gotNewStars>0?10:0);
+        walletCoins+=reward;localStorage.setItem('gd5wallet',walletCoins.toString());
+        fbSaveUserData();
+        switchBGM('title');
+        for(let i=0;i<50;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*4,vy:1+Math.random()*4,life:80+Math.random()*40,ml:120,sz:Math.random()*6+2,col:['#ffd700','#00e5ff','#ff3860','#34d399','#a855f7'][i%5]});
+      }
+    }
+    // Pack mode clear check (non-boss stages)
+    if(!currentPackStage.boss&&dist>=currentPackStage.dist){
       state=ST.STAGE_CLEAR;stageClearT=0;gotNewStars=0;
       sfxFanfare();vibrate([30,20,30,20,60]);shakeI=8;
-      // Count stars collected this run
       const starsThisRun=stageBigCoins.filter(bc=>bc.col).length;
       const sid=currentPackStage.id;
       const prev=packProgress[sid];
@@ -371,10 +412,21 @@ function update(dt){
         emitParts(bc.x,bc.y,25,'#ffd700',6,4);
       }
     });
-    // Enemy spawning in pack mode (based on stage enemyChance)
-    if(currentPackStage.enemyChance&&Math.random()<currentPackStage.enemyChance*0.3){
-      trySpawnEnemy();
+    // Enemy spawning in pack mode (much more aggressive than endless)
+    if(currentPackStage.enemyChance){
+      // Stage progression: how far through the stage (0.0 to 1.0)
+      const stageProgress=dist/currentPackStage.dist;
+      // Spawn rate scales with progress - higher toward end of stage
+      const baseRate=currentPackStage.enemyChance;
+      const progressBoost=1+stageProgress*1.5; // up to 2.5x at end
+      if(Math.random()<baseRate*progressBoost*0.5) trySpawnEnemy();
     }
+    // Stage mode gimmicks: floating platforms, spikes, moving hills, gravity zones, falling floors
+    trySpawnFloatPlat();
+    trySpawnSpike();
+    trySpawnMovingHill();
+    trySpawnGravZone();
+    trySpawnFallingMtn();
     // Ambient particles for theme
     updateAmbient();
   }

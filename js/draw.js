@@ -833,6 +833,42 @@ function draw(){
     }
   }
 
+  // Pack mode: draw goal flag at target distance
+  if(isPackMode&&currentPackStage){
+    const goalDist=currentPackStage.dist;
+    const goalScreenX=player.x+(goalDist-dist)/(speed*0.08)*speed;
+    if(goalScreenX>-60&&goalScreenX<W+200){
+      const gSurf=floorSurfaceY(goalScreenX);
+      const flagBase=gSurf;
+      const poleH=100;
+      const flagW=40,flagH=30;
+      const wave=Math.sin(frame*0.06)*3;
+      ctx.save();
+      // Flag pole
+      ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.shadowColor='#ffd700';ctx.shadowBlur=8;
+      ctx.beginPath();ctx.moveTo(goalScreenX,flagBase);ctx.lineTo(goalScreenX,flagBase-poleH);ctx.stroke();
+      // Flag cloth (waving)
+      const fTop=flagBase-poleH;
+      ctx.fillStyle='#ffd700';ctx.beginPath();
+      ctx.moveTo(goalScreenX,fTop);
+      ctx.quadraticCurveTo(goalScreenX+flagW*0.5,fTop+flagH*0.3+wave,goalScreenX+flagW,fTop+flagH*0.5+wave*0.5);
+      ctx.lineTo(goalScreenX,fTop+flagH);
+      ctx.closePath();ctx.fill();
+      // Star on flag
+      ctx.shadowBlur=0;ctx.fillStyle='#fff';ctx.font='bold 14px monospace';ctx.textAlign='center';
+      ctx.fillText('\u2605',goalScreenX+flagW*0.4,fTop+flagH*0.6+wave*0.3);
+      // "GOAL" label
+      ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';
+      const labelPulse=0.7+Math.sin(frame*0.08)*0.3;
+      ctx.globalAlpha=labelPulse;
+      ctx.fillText('GOAL',goalScreenX,flagBase-poleH-12);
+      ctx.globalAlpha=1;
+      // Pole base ornament
+      ctx.fillStyle='#ffd700';ctx.beginPath();ctx.arc(goalScreenX,flagBase,5,0,6.28);ctx.fill();
+      ctx.restore();
+    }
+  }
+
   // Pack mode: draw stars (stageBigCoins)
   if(isPackMode){
     stageBigCoins.forEach(bc=>{
@@ -4221,9 +4257,16 @@ function drawStageClear(){
   const si2=Math.min((stageClearT-10)/20,1),e=1-Math.pow(1-si2,3);
   ctx.save();ctx.translate(0,-40*(1-e));ctx.globalAlpha=e;
 
-  ctx.fillStyle='#ffd700';ctx.font='bold 36px monospace';ctx.textAlign='center';
-  ctx.shadowColor='#ffd70066';ctx.shadowBlur=20;
-  ctx.fillText('クリア！',W/2,H*0.25);ctx.shadowBlur=0;
+  // Big bouncing "STAGE CLEAR!" text
+  const clearBounce=stageClearT<40?Math.sin((stageClearT-10)/30*Math.PI)*8:0;
+  const clearScale=stageClearT<25?0.5+((stageClearT-10)/15)*0.5:1;
+  ctx.save();ctx.translate(W/2,H*0.24-clearBounce);ctx.scale(clearScale,clearScale);
+  ctx.fillStyle='#ffd700';ctx.font='bold 42px monospace';ctx.textAlign='center';
+  ctx.shadowColor='#ffd700';ctx.shadowBlur=30;
+  ctx.fillText('STAGE CLEAR!',0,0);
+  ctx.shadowColor='#fff';ctx.shadowBlur=8;
+  ctx.fillText('STAGE CLEAR!',0,0);
+  ctx.shadowBlur=0;ctx.restore();
 
   // Stage clear display (unified - always pack mode)
   const pname=currentPackStage?STAGE_PACKS[currentPackIdx].name+' '+currentPackStage.name:'';
