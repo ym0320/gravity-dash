@@ -1246,6 +1246,8 @@ function getPackStageStars(stageId){return (packProgress[stageId]&&packProgress[
 function getTotalStars(){let t=0;for(const k in packProgress)t+=(packProgress[k].stars||0);return t;}
 let totalStars=getTotalStars();
 let isPackMode=false,currentPackIdx=0,currentPackStageIdx=0,currentPackStage=null,stageRng=null;
+var stageSpawnRng=null; // seeded RNG for enemy/gimmick spawning in stage mode
+function packRng(){return isPackMode&&stageSpawnRng?stageSpawnRng():Math.random();}
 let stageSelScroll=0,stageSelTarget=0;
 let gotNewStars=0; // how many new stars obtained this clear
 // Death markers for stage mode: {stageId: {dist, gDir}} — records where player last died

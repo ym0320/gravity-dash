@@ -172,7 +172,7 @@ function resetPackStage(pi,si){
   const pack=STAGE_PACKS[pi];if(!pack)return;
   const stage=pack.stages[si];if(!stage)return;
   isPackMode=true;currentPackIdx=pi;currentPackStageIdx=si;currentPackStage=stage;
-  stageRng=mulberry32(stage.seed);gotNewStars=0;
+  stageRng=mulberry32(stage.seed);stageSpawnRng=mulberry32(stage.seed+555);gotNewStars=0;
   player.x=W*0.2;player.gDir=1;player.vy=0;
   player.rot=0;player.rotTarget=0;player.trail=[];player.alive=true;
   player.grounded=false;player.face='normal';player.canFlip=true;

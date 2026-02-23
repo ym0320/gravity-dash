@@ -420,7 +420,7 @@ function update(dt){
       const progressBoost=1+stageProgress*1.5;
       // Swarm stages: spawn enemies very frequently
       const swarmMul=sType==='swarm'?1.8:1;
-      if(Math.random()<baseRate*progressBoost*0.5*swarmMul) trySpawnEnemy();
+      if(packRng()<baseRate*progressBoost*0.5*swarmMul) trySpawnEnemy();
     }
     // Stage mode gimmicks based on stageType
     const nearGoal=dist>=currentPackStage.dist*0.92;
@@ -429,11 +429,11 @@ function update(dt){
       if(!nearGoal){
         if(gravZoneCD>0)gravZoneCD--;
         if(gravZoneCD<=0){
-          const gx=W+20+Math.random()*80;
-          const gw=50+Math.random()*60;
-          const gdir=Math.random()<0.5?1:-1;
+          const gx=W+20+packRng()*80;
+          const gw=50+packRng()*60;
+          const gdir=packRng()<0.5?1:-1;
           gravZones.push({x:gx,w:gw,triggered:false,fadeT:0,dir:gdir});
-          gravZoneCD=8+Math.floor(Math.random()*30); // very dense: 8-37 frames
+          gravZoneCD=8+Math.floor(packRng()*30); // very dense: 8-37 frames
         }
       }
     } else if(sType==='void'){
@@ -442,11 +442,11 @@ function update(dt){
         // Dense gravity zones for wall avoidance
         if(gravZoneCD>0)gravZoneCD--;
         if(gravZoneCD<=0){
-          const gx=W+20+Math.random()*60;
-          const gw=40+Math.random()*50;
-          const gdir=Math.random()<0.5?1:-1;
+          const gx=W+20+packRng()*60;
+          const gw=40+packRng()*50;
+          const gdir=packRng()<0.5?1:-1;
           gravZones.push({x:gx,w:gw,triggered:false,fadeT:0,dir:gdir});
-          gravZoneCD=15+Math.floor(Math.random()*25);
+          gravZoneCD=15+Math.floor(packRng()*25);
         }
         trySpawnMovingHill();trySpawnMovingHill(); // some dynamic obstacles
         trySpawnFloatPlat(); // helpful floating platforms
@@ -645,25 +645,8 @@ function update(dt){
     }
   }
 
-  // Wall collision for floor/ceiling platform edges
-  {
-    const wallArr=player.gDir===1?platforms:ceilPlats;
-    for(let wi=0;wi<wallArr.length;wi++){
-      const wp=wallArr[wi];
-      const surfY=player.gDir===1?(H-wp.h):wp.h;
-      // Check if player is at platform height level (between surface and edge)
-      const inY=player.gDir===1?(player.y+pr>surfY&&player.y-pr<H):(player.y-pr<surfY&&player.y+pr>0);
-      if(!inY)continue;
-      // Left edge wall: player hitting the left side of the platform
-      if(player.x+pr>wp.x&&player.x+pr<wp.x+8&&player.x<wp.x){
-        player.x=wp.x-pr;
-      }
-      // Right edge wall: player hitting the right side
-      if(player.x-pr<wp.x+wp.w&&player.x-pr>wp.x+wp.w-8&&player.x>wp.x+wp.w){
-        player.x=wp.x+wp.w+pr;
-      }
-    }
-  }
+  // Wall collision removed: was causing players to get caught on floor edges
+  // and pushed offscreen. Step-up collision at bottom of update handles edge cases.
 
   // Drop-through timer countdown (extend while still overlapping a float plat)
   if(player._dropThrough>0){

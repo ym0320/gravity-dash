@@ -28,16 +28,16 @@ function trySpawnCoins(){
   if(bossPhase.active)return;
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
-  if(Math.random()<0.18){ // reduced frequency (was 0.30)
-    coinCD=50+Math.floor(Math.random()*30); // longer cooldown (was 28+20)
+  if(packRng()<0.18){ // reduced frequency (was 0.30)
+    coinCD=50+Math.floor(packRng()*30); // longer cooldown (was 28+20)
     // Alternate between floor and ceiling to prevent overlap
     let onFloor;
     if(lastCoinCourse==='floor') {onFloor=false;lastCoinCourse='ceil';}
     else if(lastCoinCourse==='ceil') {onFloor=true;lastCoinCourse='floor';}
-    else {onFloor=player.gDir===1||Math.random()<0.5;lastCoinCourse=onFloor?'floor':'ceil';}
+    else {onFloor=player.gDir===1||packRng()<0.5;lastCoinCourse=onFloor?'floor':'ceil';}
     const surfY=onFloor?H-plat.h:(()=>{const cp=ceilPlats.find(p=>plat.x+plat.w*0.3>=p.x&&plat.x+plat.w*0.3<=p.x+p.w);return cp?cp.h:GROUND_H;})();
-    const pattern=Math.random();
-    const n=3+Math.floor(Math.random()*2); // 3-4 coins per group (was 3-5)
+    const pattern=packRng();
+    const n=3+Math.floor(packRng()*2); // 3-4 coins per group (was 3-5)
     const startX=Math.max(W+9,plat.x); // spawn at right screen edge
 
     if(pattern<0.5){
@@ -64,7 +64,7 @@ function trySpawnCoins(){
       }
     }
   } else {
-    coinCD=20+Math.floor(Math.random()*15); // longer no-spawn cooldown (was 12+8)
+    coinCD=20+Math.floor(packRng()*15); // longer no-spawn cooldown (was 12+8)
   }
 }
 function trySpawnItem(){
@@ -75,17 +75,17 @@ function trySpawnItem(){
   if(bossPhase.active)return;
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
-  if(Math.random()<0.12){
-    itemCD=140+Math.floor(Math.random()*80);
+  if(packRng()<0.12){
+    itemCD=140+Math.floor(packRng()*80);
     const ix=Math.max(W+14,plat.x); // spawn at right screen edge
     const surfY=H-plat.h;
     // Pick random item: 0=invincible, 1=magnet, 2=bomb, 3=heart
     let it;
-    if(hp<maxHp()&&Math.random()<0.3){it=3;} // higher chance for heart when damaged
-    else{const r=Math.random();if(r<0.01){it=0;}else if(r<0.025){it=2;}else if(r<0.045){it=1;}else{itemCD=60+Math.floor(Math.random()*30);return;}}
-    items.push({x:ix,y:surfY-55-Math.random()*25,t:it,sz:14,p:Math.random()*6.28,col:false});
+    if(hp<maxHp()&&packRng()<0.3){it=3;} // higher chance for heart when damaged
+    else{const r=packRng();if(r<0.01){it=0;}else if(r<0.025){it=2;}else if(r<0.045){it=1;}else{itemCD=60+Math.floor(packRng()*30);return;}}
+    items.push({x:ix,y:surfY-55-packRng()*25,t:it,sz:14,p:packRng()*6.28,col:false});
   } else {
-    itemCD=20+Math.floor(Math.random()*15);
+    itemCD=20+Math.floor(packRng()*15);
   }
 }
 
@@ -98,13 +98,13 @@ function trySpawnEnemy(){
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
   const chance=isPackMode?0.5:Math.min(0.3,0.04+(score-30)*0.002);
-  if(Math.random()<chance){
-    enemyCD=isPackMode?(25+Math.floor(Math.random()*25)):(55+Math.floor(Math.random()*50));
+  if(packRng()<chance){
+    enemyCD=isPackMode?(25+Math.floor(packRng()*25)):(55+Math.floor(packRng()*50));
     const ex=Math.max(W+13,plat.x);
     const sz=13;
     // Choose enemy type
     let eType=0;
-    const tr=Math.random();
+    const tr=packRng();
     if(isPackMode&&currentPackStage){
       const stageIdx=currentPackStageIdx; // 0-4
       const progress=dist/currentPackStage.dist;
@@ -149,69 +149,69 @@ function trySpawnEnemy(){
 
     if(eType===4){
       // Vertical mover: bounces between floor and ceiling
-      const onCeil4=Math.random()<0.4;
+      const onCeil4=packRng()<0.4;
       const gd4=onCeil4?-1:1;
       const surfY=gd4===1?H-plat.h:ceilSurfaceY(ex);
       const sz=14;
-      enemies.push({x:ex,y:gd4===1?surfY-sz:surfY+sz,vy:gd4===1?(-2.5-Math.random()*1.5):(2.5+Math.random()*1.5),gDir:gd4,walkSpd:0,sz:sz,alive:true,fr:Math.random()*100,type:4,shootT:999,
-        moveDir:gd4===1?-1:1,moveSpd:2.5+Math.random()*1.5,pauseT:0});
+      enemies.push({x:ex,y:gd4===1?surfY-sz:surfY+sz,vy:gd4===1?(-2.5-packRng()*1.5):(2.5+packRng()*1.5),gDir:gd4,walkSpd:0,sz:sz,alive:true,fr:packRng()*100,type:4,shootT:999,
+        moveDir:gd4===1?-1:1,moveSpd:2.5+packRng()*1.5,pauseT:0});
     } else if(eType===5){
       // Phantom: floats in air, periodically becomes invisible
-      const onCeil5=Math.random()<0.4;
+      const onCeil5=packRng()<0.4;
       const gd5=onCeil5?-1:1;
       const surfY=gd5===1?H-plat.h:ceilSurfaceY(ex);
-      const flyY=gd5===1?surfY-50-Math.random()*60:surfY+50+Math.random()*60;
+      const flyY=gd5===1?surfY-50-packRng()*60:surfY+50+packRng()*60;
       const sz=13;
-      enemies.push({x:ex,y:flyY,vy:0,gDir:gd5,walkSpd:0,sz:sz,alive:true,fr:Math.random()*100,type:5,shootT:999,
-        baseY:flyY,flyPhase:Math.random()*6.28,flyAmp:15+Math.random()*15,
-        visTimer:0,visCycle:90+Math.floor(Math.random()*60),visible:true,fadeT:0});
+      enemies.push({x:ex,y:flyY,vy:0,gDir:gd5,walkSpd:0,sz:sz,alive:true,fr:packRng()*100,type:5,shootT:999,
+        baseY:flyY,flyPhase:packRng()*6.28,flyAmp:15+packRng()*15,
+        visTimer:0,visCycle:90+Math.floor(packRng()*60),visible:true,fadeT:0});
     } else if(eType===2){
       // Flying enemy: spawns in the air between floor and ceiling
-      const onCeil2=Math.random()<0.4;
+      const onCeil2=packRng()<0.4;
       const gd2=onCeil2?-1:1;
       const surfY=gd2===1?H-plat.h:ceilSurfaceY(ex);
-      const flyY=gd2===1?surfY-60-Math.random()*80:surfY+60+Math.random()*80;
-      enemies.push({x:ex,y:flyY,vy:0,gDir:gd2,walkSpd:0,sz:sz,alive:true,fr:Math.random()*100,type:2,shootT:999,
-        baseY:flyY,flyPhase:Math.random()*6.28,flyAmp:20+Math.random()*25});
+      const flyY=gd2===1?surfY-60-packRng()*80:surfY+60+packRng()*80;
+      enemies.push({x:ex,y:flyY,vy:0,gDir:gd2,walkSpd:0,sz:sz,alive:true,fr:packRng()*100,type:2,shootT:999,
+        baseY:flyY,flyPhase:packRng()*6.28,flyAmp:20+packRng()*25});
     } else if(eType===3){
       // Bomber (Hammer Bros style): stationary, throws bombs in an arc
       const surfY=H-plat.h;
-      enemies.push({x:ex,y:surfY-sz,vy:0,gDir:1,walkSpd:0.1,sz:sz+2,alive:true,fr:Math.random()*100,type:3,
-        shootT:130+Math.floor(Math.random()*50),bombCD:130+Math.floor(Math.random()*50),
-        patrolDir:1,patrolOriginX:ex,patrolRange:15+Math.random()*20});
+      enemies.push({x:ex,y:surfY-sz,vy:0,gDir:1,walkSpd:0.1,sz:sz+2,alive:true,fr:packRng()*100,type:3,
+        shootT:130+Math.floor(packRng()*50),bombCD:130+Math.floor(packRng()*50),
+        patrolDir:1,patrolOriginX:ex,patrolRange:15+packRng()*20});
     } else if(eType===6){
       // Dasher: walks slowly, then charges at player when close
-      const onCeil6=Math.random()<0.4;
+      const onCeil6=packRng()<0.4;
       const gd6=onCeil6?-1:1;
       const surfY=gd6===1?H-plat.h:ceilSurfaceY(ex);
       const sz=14;
-      enemies.push({x:ex,y:gd6===1?surfY-sz:surfY+sz,vy:0,gDir:gd6,walkSpd:0.3,sz:sz,alive:true,fr:Math.random()*100,type:6,shootT:999,
-        patrolDir:-1,patrolOriginX:ex,patrolRange:25+Math.random()*20,
-        dashState:'patrol',dashTimer:0,dashSpd:6+Math.random()*3,dashDir:-1,warnT:0});
+      enemies.push({x:ex,y:gd6===1?surfY-sz:surfY+sz,vy:0,gDir:gd6,walkSpd:0.3,sz:sz,alive:true,fr:packRng()*100,type:6,shootT:999,
+        patrolDir:-1,patrolOriginX:ex,patrolRange:25+packRng()*20,
+        dashState:'patrol',dashTimer:0,dashSpd:6+packRng()*3,dashDir:-1,warnT:0});
     } else if(eType===8){
       // Splitter: medium enemy that splits into 2 small ones when killed
-      const onCeil8=Math.random()<0.4;
+      const onCeil8=packRng()<0.4;
       const gd8=onCeil8?-1:1;
       const surfY=gd8===1?H-plat.h:ceilSurfaceY(ex);
       const sz=16;
-      enemies.push({x:ex,y:gd8===1?surfY-sz:surfY+sz,vy:0,gDir:gd8,walkSpd:0.2+Math.random()*0.3,sz:sz,alive:true,fr:Math.random()*100,type:8,shootT:999,
-        patrolDir:1,patrolOriginX:ex,patrolRange:25+Math.random()*35,
+      enemies.push({x:ex,y:gd8===1?surfY-sz:surfY+sz,vy:0,gDir:gd8,walkSpd:0.2+packRng()*0.3,sz:sz,alive:true,fr:packRng()*100,type:8,shootT:999,
+        patrolDir:1,patrolOriginX:ex,patrolRange:25+packRng()*35,
         splitDone:false});
     } else {
-      const onCeil=Math.random()<0.4;
+      const onCeil=packRng()<0.4;
       const gd=onCeil?-1:1;
       const surfY=gd===1?H-plat.h:ceilSurfaceY(ex);
       if(eType===0){
         // Walker with left-right patrol
-        enemies.push({x:ex,y:gd===1?surfY-sz:surfY+sz,vy:0,gDir:gd,walkSpd:0.3+Math.random()*0.4,sz:sz,alive:true,fr:Math.random()*100,type:0,shootT:999,
-          patrolDir:1,patrolOriginX:ex,patrolRange:30+Math.random()*40});
+        enemies.push({x:ex,y:gd===1?surfY-sz:surfY+sz,vy:0,gDir:gd,walkSpd:0.3+packRng()*0.4,sz:sz,alive:true,fr:packRng()*100,type:0,shootT:999,
+          patrolDir:1,patrolOriginX:ex,patrolRange:30+packRng()*40});
       } else {
         // Cannon (shooter) - stationary
-        enemies.push({x:ex,y:gd===1?surfY-sz:surfY+sz,vy:0,gDir:gd,walkSpd:0.15+Math.random()*0.2,sz:sz,alive:true,fr:Math.random()*100,type:1,shootT:60+Math.floor(Math.random()*60)});
+        enemies.push({x:ex,y:gd===1?surfY-sz:surfY+sz,vy:0,gDir:gd,walkSpd:0.15+packRng()*0.2,sz:sz,alive:true,fr:packRng()*100,type:1,shootT:60+Math.floor(packRng()*60)});
       }
     }
   } else {
-    enemyCD=15+Math.floor(Math.random()*10);
+    enemyCD=15+Math.floor(packRng()*10);
   }
 }
 
@@ -224,10 +224,10 @@ function trySpawnFloatPlat(){
   if(!plat)return;
   const isFloatStage=isPackMode&&currentPackStage&&(currentPackStage.stageType==='moving'||currentPackStage.stageType==='swarm'||currentPackStage.stageType==='chasm'||currentPackStage.stageType==='void');
   const chance=isPackMode?(isFloatStage?0.45:0.30):Math.min(0.18,0.04+(score-35)*0.002);
-  if(Math.random()<chance){
-    floatCD=isPackMode?(isFloatStage?20+Math.floor(Math.random()*20):40+Math.floor(Math.random()*30)):(80+Math.floor(Math.random()*60));
+  if(packRng()<chance){
+    floatCD=isPackMode?(isFloatStage?20+Math.floor(packRng()*20):40+Math.floor(packRng()*30)):(80+Math.floor(packRng()*60));
     const fx=Math.max(W+20,plat.x);
-    const fw=50+Math.random()*60; // width: 50-110px
+    const fw=50+packRng()*60; // width: 50-110px
     const floorY=H-plat.h;
     const ceilY=ceilSurfaceY(fx);
     const gap=floorY-ceilY;
@@ -235,23 +235,23 @@ function trySpawnFloatPlat(){
     // Place at a height reachable by jumping from the floor
     // Max jump height ≈ JUMP_POWER^2 / (2*GRAVITY) ≈ 145px
     const maxJumpH=JUMP_POWER*JUMP_POWER/(2*GRAVITY)*0.75; // ~109px (comfortable reach)
-    const fy=floorY-maxJumpH*(0.5+Math.random()*0.5); // 50-100% of comfortable jump height
+    const fy=floorY-maxJumpH*(0.5+packRng()*0.5); // 50-100% of comfortable jump height
     floatPlats.push({x:fx,y:fy,w:fw,th:10});
     // Sometimes spawn an item on the floating platform (not in stage mode)
-    if(!isPackMode&&Math.random()<0.4){
+    if(!isPackMode&&packRng()<0.4){
       const pool=[1,2]; // magnet or double jump
-      if(hp<maxHp()&&Math.random()<0.3) pool.push(3); // heart if damaged
-      const it=pool[Math.floor(Math.random()*pool.length)];
-      items.push({x:fx+fw/2,y:fy-25,t:it,sz:14,p:Math.random()*6.28,col:false});
+      if(hp<maxHp()&&packRng()<0.3) pool.push(3); // heart if damaged
+      const it=pool[Math.floor(packRng()*pool.length)];
+      items.push({x:fx+fw/2,y:fy-25,t:it,sz:14,p:packRng()*6.28,col:false});
     }
     // Sometimes spawn coins in an arc above (not in stage mode)
-    if(!isPackMode&&Math.random()<0.5){
+    if(!isPackMode&&packRng()<0.5){
       for(let i=0;i<3;i++){
         coins.push({x:fx+10+i*(fw-20)/2,y:fy-30-Math.sin(i/2*Math.PI)*15,sz:9,col:false,p:0});
       }
     }
   } else {
-    floatCD=20+Math.floor(Math.random()*15);
+    floatCD=20+Math.floor(packRng()*15);
   }
 }
 
@@ -263,29 +263,29 @@ function trySpawnSpike(){
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
   const chance=isPackMode?0.20:Math.min(0.15,0.03+(score-80)*0.001);
-  if(Math.random()<chance){
-    const sx=Math.max(W+10,plat.x+Math.random()*plat.w*0.5);
+  if(packRng()<chance){
+    const sx=Math.max(W+10,plat.x+packRng()*plat.w*0.5);
     // Only place spikes where both floor AND ceiling terrain exist
     const ceilHere=ceilPlats.find(p=>sx>=p.x&&sx<=p.x+p.w);
-    if(!ceilHere){spikeCD=25+Math.floor(Math.random()*15);return;}
-    spikeCD=80+Math.floor(Math.random()*60);
+    if(!ceilHere){spikeCD=25+Math.floor(packRng()*15);return;}
+    spikeCD=80+Math.floor(packRng()*60);
     // Randomly choose floor or ceiling spike
-    const isFloor=Math.random()<0.5;
+    const isFloor=packRng()<0.5;
     // Clamp spike width to not exceed platform edges
     const maxW=isFloor?(plat.x+plat.w-sx):(ceilHere.x+ceilHere.w-sx);
-    const sw=Math.min(30+Math.random()*30,Math.max(10,maxW));
+    const sw=Math.min(30+packRng()*30,Math.max(10,maxW));
     if(sw<10){spikeCD=25;return;} // platform too narrow
     if(isFloor){
       spikes.push({x:sx,w:sw,h:H-plat.h,spikeH:22,phase:0,timer:0,state:'hidden',
-        cycle:120+Math.floor(Math.random()*80),upTime:60+Math.floor(Math.random()*30),
+        cycle:120+Math.floor(packRng()*80),upTime:60+Math.floor(packRng()*30),
         isFloor:true});
     } else {
       spikes.push({x:sx,w:sw,h:ceilHere.h,spikeH:22,phase:0,timer:0,state:'hidden',
-        cycle:120+Math.floor(Math.random()*80),upTime:60+Math.floor(Math.random()*30),
+        cycle:120+Math.floor(packRng()*80),upTime:60+Math.floor(packRng()*30),
         isFloor:false});
     }
   } else {
-    spikeCD=25+Math.floor(Math.random()*15);
+    spikeCD=25+Math.floor(packRng()*15);
   }
 }
 
@@ -301,8 +301,8 @@ function trySpawnFallingMtn(){
   const isGimmickFalling=terrainGimmickPhase.active&&terrainGimmickPhase.type==='falling';
   let chance=isPackMode?0.15:(score>=6000?Math.min(0.12,0.04+(score-6000)*0.0002):Math.min(0.06,0.01+(score-4000)*0.0003));
   if(isGimmickFalling)chance=0.35; // high spawn rate during gimmick phase
-  if(Math.random()<chance){
-    const isFloor=Math.random()<0.5;
+  if(packRng()<chance){
+    const isFloor=packRng()<0.5;
     const platArr=isFloor?platforms:ceilPlats;
     // Look for gaps between platforms in the upcoming area
     let gapX=-1,gapW=0;
@@ -315,19 +315,19 @@ function trySpawnFallingMtn(){
         gapX=gStart;gapW=gap;break;
       }
     }
-    if(gapX<0){fallingMtnCD=30+Math.floor(Math.random()*20);return;}
+    if(gapX<0){fallingMtnCD=30+Math.floor(packRng()*20);return;}
     // Check overlap: don't spawn where a movingHill already exists
     const hasHill=movingHills.some(mh=>Math.abs(mh.x-gapX)<gapW&&mh.isFloor===isFloor);
-    if(hasHill){fallingMtnCD=30+Math.floor(Math.random()*15);return;}
+    if(hasHill){fallingMtnCD=30+Math.floor(packRng()*15);return;}
     const isGimmickFalling2=terrainGimmickPhase.active&&terrainGimmickPhase.type==='falling';
-    fallingMtnCD=isGimmickFalling2?(40+Math.floor(Math.random()*30)):(180+Math.floor(Math.random()*120));
-    if(isGimmickFalling2){terrainGimmickPhase.len--;if(terrainGimmickPhase.len<=0){terrainGimmickPhase.active=false;terrainGimmickPhase.cd=800+Math.floor(Math.random()*400);}}
-    const fw=Math.min(gapW*0.8,50+Math.random()*60);
+    fallingMtnCD=isGimmickFalling2?(40+Math.floor(packRng()*30)):(180+Math.floor(packRng()*120));
+    if(isGimmickFalling2){terrainGimmickPhase.len--;if(terrainGimmickPhase.len<=0){terrainGimmickPhase.active=false;terrainGimmickPhase.cd=800+Math.floor(packRng()*400);}}
+    const fw=Math.min(gapW*0.8,50+packRng()*60);
     const fx=gapX+(gapW-fw)/2; // center in gap
-    const fh=GROUND_H+10+Math.random()*20;
+    const fh=GROUND_H+10+packRng()*20;
     fallingMtns.push({x:fx,w:fw,baseH:fh,curH:fh,vy:0,state:'idle',shakeT:0,shakeAmt:0,triggerDist:80,isFloor:isFloor,alpha:1});
   } else {
-    fallingMtnCD=30+Math.floor(Math.random()*20);
+    fallingMtnCD=30+Math.floor(packRng()*20);
   }
 }
 
@@ -338,10 +338,10 @@ function trySpawnCoinSwitch(){
   if(score<60)return;
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
-  if(Math.random()<0.05){
-    coinSwitchCD=250+Math.floor(Math.random()*150);
-    const sx=Math.max(W+10,plat.x+Math.random()*plat.w*0.5);
-    const isFloor=Math.random()<0.7;
+  if(packRng()<0.05){
+    coinSwitchCD=250+Math.floor(packRng()*150);
+    const sx=Math.max(W+10,plat.x+packRng()*plat.w*0.5);
+    const isFloor=packRng()<0.7;
     let sy;
     if(isFloor){
       sy=H-plat.h-COIN_SW_R;
@@ -352,7 +352,7 @@ function trySpawnCoinSwitch(){
     }
     coinSwitches.push({x:sx,y:sy,r:COIN_SW_R,isFloor:isFloor,activated:false,flashT:0});
   } else {
-    coinSwitchCD=40+Math.floor(Math.random()*25);
+    coinSwitchCD=40+Math.floor(packRng()*25);
   }
 }
 
@@ -366,8 +366,8 @@ function trySpawnMovingHill(){
   const isMovingStage=isPackMode&&currentPackStage&&(currentPackStage.stageType==='moving'||currentPackStage.stageType==='void');
   let chance=isPackMode?(isMovingStage?0.40:0.18):Math.min(0.1,0.02+(score-120)*0.001);
   if(isGimmickMoving)chance=0.35;
-  if(Math.random()<chance){
-    const isFloor=Math.random()<0.5;
+  if(packRng()<chance){
+    const isFloor=packRng()<0.5;
     const platArr=isFloor?platforms:ceilPlats;
     // Find a gap (abyss) in platforms to place the moving hill over
     let gapX=-1,gapW=0;
@@ -380,20 +380,20 @@ function trySpawnMovingHill(){
         gapX=gStart;gapW=gap;break;
       }
     }
-    if(gapX<0){hillCD=30+Math.floor(Math.random()*15);return;}
+    if(gapX<0){hillCD=30+Math.floor(packRng()*15);return;}
     // Check overlap: don't spawn where a fallingMtn already exists
     const hasFalling=fallingMtns.some(fm=>Math.abs(fm.x-gapX)<gapW&&fm.isFloor===isFloor);
-    if(hasFalling){hillCD=30+Math.floor(Math.random()*15);return;}
+    if(hasFalling){hillCD=30+Math.floor(packRng()*15);return;}
     const isGimmickMoving2=terrainGimmickPhase.active&&terrainGimmickPhase.type==='moving';
-    hillCD=isGimmickMoving2?(40+Math.floor(Math.random()*30)):(120+Math.floor(Math.random()*80));
-    if(isGimmickMoving2){terrainGimmickPhase.len--;if(terrainGimmickPhase.len<=0){terrainGimmickPhase.active=false;terrainGimmickPhase.cd=800+Math.floor(Math.random()*400);}}
-    const hw=Math.min(gapW*0.7,60+Math.random()*50);
+    hillCD=isGimmickMoving2?(40+Math.floor(packRng()*30)):(120+Math.floor(packRng()*80));
+    if(isGimmickMoving2){terrainGimmickPhase.len--;if(terrainGimmickPhase.len<=0){terrainGimmickPhase.active=false;terrainGimmickPhase.cd=800+Math.floor(packRng()*400);}}
+    const hw=Math.min(gapW*0.7,60+packRng()*50);
     const hx=gapX+(gapW-hw)/2; // center in gap
     const baseH=GROUND_H;
-    const ampH=25+Math.random()*30;
-    movingHills.push({x:hx,w:hw,baseH:baseH,ampH:ampH,phase:Math.random()*6.28,spd:0.03+Math.random()*0.02,isFloor:isFloor});
+    const ampH=25+packRng()*30;
+    movingHills.push({x:hx,w:hw,baseH:baseH,ampH:ampH,phase:packRng()*6.28,spd:0.03+packRng()*0.02,isFloor:isFloor});
   } else {
-    hillCD=30+Math.floor(Math.random()*15);
+    hillCD=30+Math.floor(packRng()*15);
   }
 }
 
@@ -415,45 +415,45 @@ function trySpawnGravZone(){
     doSpawn=true;
   } else {
     const chance=isPackMode?0.08:Math.min(0.04,0.008+(score-150)*0.0003);
-    doSpawn=Math.random()<chance;
+    doSpawn=packRng()<chance;
   }
   if(doSpawn){
     const gx=Math.max(W+20,plat.x+plat.w*0.3);
-    const gw=60+Math.random()*50;
+    const gw=60+packRng()*50;
     // dir: 1=force down (blue), -1=force up (pink)
-    const gdir=Math.random()<0.5?1:-1;
+    const gdir=packRng()<0.5?1:-1;
     gravZones.push({x:gx,w:gw,triggered:false,fadeT:0,dir:gdir});
     if(gravRushPhase.active){
       // Gravity rush: rapid short gaps, count down
       gravRushPhase.len--;
-      if(gravRushPhase.len<=0){gravRushPhase.active=false;gravRushPhase.cd=600+Math.floor(Math.random()*400);}
-      gravZoneCD=15+Math.floor(Math.random()*25); // very tight spacing
+      if(gravRushPhase.len<=0){gravRushPhase.active=false;gravRushPhase.cd=600+Math.floor(packRng()*400);}
+      gravZoneCD=15+Math.floor(packRng()*25); // very tight spacing
     } else if(gravZoneChain===0){
       // Start new chain: determine count based on score
       let maxCount=1;
       if(score>=5000)maxCount=3;
       else if(score>=4000)maxCount=2;
-      gravZoneChainTarget=1+Math.floor(Math.random()*maxCount);
+      gravZoneChainTarget=1+Math.floor(packRng()*maxCount);
       gravZoneChain=1;
       if(gravZoneChainTarget>1){
         // Random uneven gap before next zone in chain
-        gravZoneCD=30+Math.floor(Math.random()*80); // 30-110 frames gap (uneven)
+        gravZoneCD=30+Math.floor(packRng()*80); // 30-110 frames gap (uneven)
       } else {
         gravZoneChain=0;gravZoneChainTarget=0;
-        gravZoneCD=300+Math.floor(Math.random()*150);
+        gravZoneCD=300+Math.floor(packRng()*150);
       }
     } else {
       gravZoneChain++;
       if(gravZoneChain>=gravZoneChainTarget){
         gravZoneChain=0;gravZoneChainTarget=0;
-        gravZoneCD=300+Math.floor(Math.random()*150);
+        gravZoneCD=300+Math.floor(packRng()*150);
       } else {
         // Random uneven spacing: sometimes close, sometimes far apart
-        gravZoneCD=20+Math.floor(Math.random()*100); // 20-120 frames (very uneven)
+        gravZoneCD=20+Math.floor(packRng()*100); // 20-120 frames (very uneven)
       }
     }
   } else {
     gravZoneChain=0;gravZoneChainTarget=0;
-    gravZoneCD=40+Math.floor(Math.random()*20);
+    gravZoneCD=40+Math.floor(packRng()*20);
   }
 }
