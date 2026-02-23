@@ -327,13 +327,16 @@ function fbFindAndMigrateByName(name) {
       const newUid = fbUser.uid;
       if (oldDocId === newUid) return found;
       return fbDb.collection('users').doc(newUid).set(found, { merge: true }).then(() => {
-        // Migrate ranking entry
+        // Migrate ranking entry and clean up old documents
         return fbDb.collection('rankings').doc(oldDocId).get().then(rdoc => {
           if (rdoc.exists) {
             return fbDb.collection('rankings').doc(newUid).set(rdoc.data(), { merge: true }).then(() => {
               fbDb.collection('rankings').doc(oldDocId).delete().catch(() => {});
             });
           }
+        }).then(() => {
+          // Delete old user document to prevent ghost data / duplicate rankings
+          fbDb.collection('users').doc(oldDocId).delete().catch(() => {});
         });
       }).then(() => found);
     })
