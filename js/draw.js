@@ -2640,11 +2640,11 @@ function drawTitle(){
   ctx.strokeStyle='#4488ff44';ctx.lineWidth=1;rr(W-44,safeTop+44,36,36,8);ctx.stroke();
   ctx.fillStyle='#4488ff';ctx.font='16px monospace';ctx.textAlign='center';
   ctx.fillText('\u2753',W-26,safeTop+67);
-  // Update info button (top right, below help)
-  ctx.fillStyle='#ffffff14';rr(W-44,safeTop+82,36,36,8);ctx.fill();
-  ctx.strokeStyle='#ffd70044';ctx.lineWidth=1;rr(W-44,safeTop+82,36,36,8);ctx.stroke();
-  ctx.fillStyle='#ffd700';ctx.font='14px monospace';ctx.textAlign='center';
-  ctx.fillText('\uD83D\uDCE2',W-26,safeTop+105);
+  // Update info button (disabled for now)
+  // ctx.fillStyle='#ffffff14';rr(W-44,safeTop+82,36,36,8);ctx.fill();
+  // ctx.strokeStyle='#ffd70044';ctx.lineWidth=1;rr(W-44,safeTop+82,36,36,8);ctx.stroke();
+  // ctx.fillStyle='#ffd700';ctx.font='14px monospace';ctx.textAlign='center';
+  // ctx.fillText('\uD83D\uDCE2',W-26,safeTop+105);
 
   // Settings panel overlay
   if(settingsOpen){
