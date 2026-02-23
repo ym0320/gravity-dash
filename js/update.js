@@ -666,8 +666,18 @@ function update(dt){
     }
   }
 
-  // Drop-through timer countdown
-  if(player._dropThrough>0)player._dropThrough--;
+  // Drop-through timer countdown (extend while still overlapping a float plat)
+  if(player._dropThrough>0){
+    let stillInside=false;
+    for(let fi=0;fi<floatPlats.length;fi++){
+      const fp=floatPlats[fi];
+      if(player.x+pr>fp.x&&player.x-pr<fp.x+fp.w&&player.y+pr>fp.y&&player.y-pr<fp.y+fp.th){
+        stillInside=true;break;
+      }
+    }
+    if(stillInside){player._dropThrough=Math.max(player._dropThrough,4);} // keep active while overlapping
+    else{player._dropThrough--;}
+  }
   // Clear onFloatPlat when not grounded
   if(!player.grounded)player._onFloatPlat=null;
   // Floating platform collision (mid-air landing + wall)
@@ -691,16 +701,26 @@ function update(dt){
       }
     }
   }
-  // Floating platform wall collision (side push-back)
-  for(let fi=0;fi<floatPlats.length;fi++){
-    const fp=floatPlats[fi];
-    if(player.y+pr>fp.y&&player.y-pr<fp.y+fp.th){
-      if(player.x+pr>fp.x&&player.x-pr<fp.x+fp.w){
-        // Player overlaps platform vertically - push out from nearest side
-        const overlapL=player.x+pr-fp.x;
-        const overlapR=fp.x+fp.w-(player.x-pr);
-        if(overlapL<overlapR){player.x=fp.x-pr;}
-        else{player.x=fp.x+fp.w+pr;}
+  // Floating platform wall collision (side push-back) - skip during drop-through
+  if(!player._dropThrough){
+    for(let fi=0;fi<floatPlats.length;fi++){
+      const fp=floatPlats[fi];
+      if(player._onFloatPlat===fp)continue; // don't wall-push from platform we're standing on
+      if(player.y+pr>fp.y&&player.y-pr<fp.y+fp.th){
+        if(player.x+pr>fp.x&&player.x-pr<fp.x+fp.w){
+          // Only push if approaching from the side (significant horizontal overlap vs vertical)
+          const overlapL=player.x+pr-fp.x;
+          const overlapR=fp.x+fp.w-(player.x-pr);
+          const overlapT=player.y+pr-fp.y;
+          const overlapB=fp.y+fp.th-(player.y-pr);
+          const minHOverlap=Math.min(overlapL,overlapR);
+          const minVOverlap=Math.min(overlapT,overlapB);
+          // Only wall-push if horizontal overlap is smaller (approaching from side, not top/bottom)
+          if(minHOverlap<minVOverlap){
+            if(overlapL<overlapR){player.x=fp.x-pr;}
+            else{player.x=fp.x+fp.w+pr;}
+          }
+        }
       }
     }
   }
