@@ -267,13 +267,14 @@ function trySpawnSpike(){
   if(isPackMode&&bossPhase.active)return;
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
-  const chance=isPackMode?0.20:Math.min(0.15,0.03+(score-80)*0.001);
+  const isDense=isPackMode&&currentPackStage&&currentPackStage.denseSpikes;
+  const chance=isDense?0.50:(isPackMode?0.20:Math.min(0.15,0.03+(score-80)*0.001));
   if(packRng()<chance){
     const sx=Math.max(W+10,plat.x+packRng()*plat.w*0.5);
     // Only place spikes where both floor AND ceiling terrain exist
     const ceilHere=ceilPlats.find(p=>sx>=p.x&&sx<=p.x+p.w);
     if(!ceilHere){spikeCD=25+Math.floor(packRng()*15);return;}
-    spikeCD=80+Math.floor(packRng()*60);
+    spikeCD=isDense?(20+Math.floor(packRng()*20)):(80+Math.floor(packRng()*60));
     // Randomly choose floor or ceiling spike
     const isFloor=packRng()<0.5;
     // Clamp spike width to not exceed platform edges
@@ -321,9 +322,11 @@ function trySpawnFallingMtn(){
       }
     }
     if(gapX<0){fallingMtnCD=30+Math.floor(packRng()*20);return;}
-    // Check overlap: don't spawn where a movingHill already exists
-    const hasHill=movingHills.some(mh=>Math.abs(mh.x-gapX)<gapW&&mh.isFloor===isFloor);
+    // Check overlap: don't spawn where a movingHill or another fallingMtn already exists
+    const hasHill=movingHills.some(mh=>Math.abs(mh.x-gapX)<gapW);
     if(hasHill){fallingMtnCD=30+Math.floor(packRng()*15);return;}
+    const hasFM=fallingMtns.some(fm=>Math.abs(fm.x-gapX)<gapW);
+    if(hasFM){fallingMtnCD=30+Math.floor(packRng()*15);return;}
     const isGimmickFalling2=terrainGimmickPhase.active&&terrainGimmickPhase.type==='falling';
     fallingMtnCD=isGimmickFalling2?(40+Math.floor(packRng()*30)):(180+Math.floor(packRng()*120));
     if(isGimmickFalling2){terrainGimmickPhase.len--;if(terrainGimmickPhase.len<=0){terrainGimmickPhase.active=false;terrainGimmickPhase.cd=800+Math.floor(packRng()*400);}}
@@ -388,9 +391,11 @@ function trySpawnMovingHill(){
       }
     }
     if(gapX<0){hillCD=30+Math.floor(packRng()*15);return;}
-    // Check overlap: don't spawn where a fallingMtn already exists
-    const hasFalling=fallingMtns.some(fm=>Math.abs(fm.x-gapX)<gapW&&fm.isFloor===isFloor);
+    // Check overlap: don't spawn where a fallingMtn or another movingHill already exists
+    const hasFalling=fallingMtns.some(fm=>Math.abs(fm.x-gapX)<gapW);
     if(hasFalling){hillCD=30+Math.floor(packRng()*15);return;}
+    const hasMH=movingHills.some(mh=>Math.abs(mh.x-gapX)<gapW);
+    if(hasMH){hillCD=30+Math.floor(packRng()*15);return;}
     const isGimmickMoving2=terrainGimmickPhase.active&&terrainGimmickPhase.type==='moving';
     hillCD=isGimmickMoving2?(40+Math.floor(packRng()*30)):(120+Math.floor(packRng()*80));
     if(isGimmickMoving2){terrainGimmickPhase.len--;if(terrainGimmickPhase.len<=0){terrainGimmickPhase.active=false;terrainGimmickPhase.cd=800+Math.floor(packRng()*400);}}
@@ -462,5 +467,37 @@ function trySpawnGravZone(){
   } else {
     gravZoneChain=0;gravZoneChainTarget=0;
     gravZoneCD=40+Math.floor(packRng()*20);
+  }
+}
+
+// ===== ICICLES (snow stage gimmick) =====
+// Large icicles fall from ceiling and rise from floor to block the player's path
+function trySpawnIcicle(){
+  if(icicleCD>0){icicleCD--;return;}
+  if(bossPhase.active)return;
+  // Only spawn in stages with icicleChance defined
+  if(!isPackMode||!currentPackStage||!currentPackStage.icicleChance)return;
+  const chance=currentPackStage.icicleChance;
+  if(packRng()<chance){
+    icicleCD=25+Math.floor(packRng()*30);
+    const isFloor=packRng()<0.45; // slightly more from ceiling (icicle theme)
+    const ix=W+20+packRng()*80;
+    const iw=18+packRng()*22; // width 18-40
+    const ih=50+packRng()*60; // height 50-110 (big obstacle)
+    if(isFloor){
+      // Floor icicle: stalagmite rises up from floor
+      const plat=platforms.find(p=>ix>=p.x&&ix<=p.x+p.w);
+      if(!plat){icicleCD=15;return;}
+      const baseY=H-plat.h;
+      icicles.push({x:ix,y:baseY+ih,w:iw,h:ih,baseY:baseY,vy:0,isFloor:true,state:'wait',timer:60+Math.floor(packRng()*40),warnT:0,alpha:1});
+    } else {
+      // Ceiling icicle: stalactite falls from ceiling
+      const cp=ceilPlats.find(p=>ix>=p.x&&ix<=p.x+p.w);
+      if(!cp){icicleCD=15;return;}
+      const baseY=cp.h;
+      icicles.push({x:ix,y:baseY-ih,w:iw,h:ih,baseY:baseY,vy:0,isFloor:false,state:'wait',timer:60+Math.floor(packRng()*40),warnT:0,alpha:1});
+    }
+  } else {
+    icicleCD=15+Math.floor(packRng()*15);
   }
 }

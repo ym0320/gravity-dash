@@ -711,6 +711,61 @@ function drawFallingMtns(){
   });
 }
 
+function drawIcicles(){
+  icicles.forEach(ic=>{
+    if(ic.x+ic.w<-10||ic.x>W+10||ic.state==='gone')return;
+    ctx.save();
+    ctx.globalAlpha=(ic.alpha||1);
+    // Warning shake before falling
+    if(ic.state==='wait'&&ic.warnT>10){
+      const shk=Math.sin(ic.warnT*1.2)*(1+ic.warnT*0.06);
+      ctx.translate(shk,0);
+    }
+    const cx=ic.x+ic.w/2;
+    if(!ic.isFloor){
+      // Ceiling icicle (stalactite) - hangs from baseY, tip points down
+      const tipY=ic.state==='wait'?ic.baseY+ic.h*0.3:ic.y;
+      // Icicle body: tapered triangle
+      const gr=ctx.createLinearGradient(cx,ic.baseY,cx,tipY);
+      gr.addColorStop(0,'rgba(180,220,255,0.9)');gr.addColorStop(0.5,'rgba(140,200,255,0.85)');gr.addColorStop(1,'rgba(200,240,255,0.6)');
+      ctx.fillStyle=gr;
+      ctx.beginPath();
+      ctx.moveTo(ic.x,ic.baseY);
+      ctx.lineTo(cx,tipY);
+      ctx.lineTo(ic.x+ic.w,ic.baseY);
+      ctx.closePath();ctx.fill();
+      // Highlight edge
+      ctx.strokeStyle='rgba(220,240,255,0.7)';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(ic.x+ic.w*0.3,ic.baseY);ctx.lineTo(cx,tipY);ctx.stroke();
+      // Frost glow
+      ctx.shadowColor='#88ccff';ctx.shadowBlur=6;
+      ctx.strokeStyle='rgba(136,204,255,0.4)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(ic.x,ic.baseY);ctx.lineTo(cx,tipY);ctx.lineTo(ic.x+ic.w,ic.baseY);ctx.stroke();
+      ctx.shadowBlur=0;
+    } else {
+      // Floor icicle (stalagmite) - rises from baseY, tip points up
+      const tipY=ic.state==='wait'?ic.baseY-ic.h*0.3:ic.y;
+      const gr=ctx.createLinearGradient(cx,ic.baseY,cx,tipY);
+      gr.addColorStop(0,'rgba(180,220,255,0.9)');gr.addColorStop(0.5,'rgba(140,200,255,0.85)');gr.addColorStop(1,'rgba(200,240,255,0.6)');
+      ctx.fillStyle=gr;
+      ctx.beginPath();
+      ctx.moveTo(ic.x,ic.baseY);
+      ctx.lineTo(cx,tipY);
+      ctx.lineTo(ic.x+ic.w,ic.baseY);
+      ctx.closePath();ctx.fill();
+      // Highlight edge
+      ctx.strokeStyle='rgba(220,240,255,0.7)';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(ic.x+ic.w*0.3,ic.baseY);ctx.lineTo(cx,tipY);ctx.stroke();
+      // Frost glow
+      ctx.shadowColor='#88ccff';ctx.shadowBlur=6;
+      ctx.strokeStyle='rgba(136,204,255,0.4)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(ic.x,ic.baseY);ctx.lineTo(cx,tipY);ctx.lineTo(ic.x+ic.w,ic.baseY);ctx.stroke();
+      ctx.shadowBlur=0;
+    }
+    ctx.restore();
+  });
+}
+
 function drawCoinSwitches(){
   coinSwitches.forEach(cs=>{
     if(cs.x+cs.r<-10||cs.x-cs.r>W+10)return;
@@ -769,6 +824,7 @@ function draw(){
   drawMovingHills();
   drawGravZones();
   drawFallingMtns();
+  drawIcicles();
   drawCoinSwitches();
 
   if(isPackMode)drawAmbient();
@@ -1015,7 +1071,7 @@ function drawEnemy(en){
   if(en.bossType==='dodge'){drawBossDodge(en);return;}
   if(en.bossType==='bruiser'){drawBossBruiser(en);return;}
   if(en.bossType==='guardian'){drawBossGuardian(en);return;}
-  if(en.bossType==='wizard'){drawBossWizard(en);return;}
+  if(en.bossType==='wizard'){if(en.variant==='snowman')drawBossSnowman(en);else drawBossWizard(en);return;}
   if(en.type===1){drawShooter(en);return;}
   if(en.type===2){drawFlyer(en);return;}
   if(en.type===3){drawBomber(en);return;}
@@ -1365,11 +1421,22 @@ function drawBullet(b){
     ctx.beginPath();ctx.arc(b.sz*0.3,-b.sz*1.8,2+Math.random()*2,0,6.28);ctx.fill();
     ctx.shadowBlur=0;
   } else if(b.wizBullet){
-    // Wizard magic bullet - purple energy orb
-    ctx.shadowColor='#aa44ff';ctx.shadowBlur=10;
-    ctx.fillStyle='#aa44ff';ctx.beginPath();ctx.arc(0,0,b.sz,0,6.28);ctx.fill();
-    ctx.fillStyle='#eeccff';ctx.beginPath();ctx.arc(0,0,b.sz*0.4,0,6.28);ctx.fill();
-    ctx.shadowBlur=0;
+    if(b.icicle){
+      // Icicle projectile - horizontal ice spike pointing left
+      ctx.shadowColor='#88ccff';ctx.shadowBlur=6;
+      const iw=b.sz*3,ih=b.sz*0.8;
+      ctx.fillStyle='rgba(160,220,255,0.9)';
+      ctx.beginPath();ctx.moveTo(iw/2,0);ctx.lineTo(-iw/2,-ih);ctx.lineTo(-iw/2,ih);ctx.closePath();ctx.fill();
+      ctx.fillStyle='rgba(220,240,255,0.6)';
+      ctx.beginPath();ctx.moveTo(iw/2,0);ctx.lineTo(-iw/2,-ih*0.4);ctx.lineTo(-iw/2,ih*0.4);ctx.closePath();ctx.fill();
+      ctx.shadowBlur=0;
+    } else {
+      // Wizard magic bullet - purple energy orb
+      ctx.shadowColor='#aa44ff';ctx.shadowBlur=10;
+      ctx.fillStyle='#aa44ff';ctx.beginPath();ctx.arc(0,0,b.sz,0,6.28);ctx.fill();
+      ctx.fillStyle='#eeccff';ctx.beginPath();ctx.arc(0,0,b.sz*0.4,0,6.28);ctx.fill();
+      ctx.shadowBlur=0;
+    }
   } else {
     ctx.shadowColor='#ef4444';ctx.shadowBlur=10;
     ctx.fillStyle='#ef4444';ctx.beginPath();ctx.arc(0,0,b.sz,0,6.28);ctx.fill();

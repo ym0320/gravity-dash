@@ -88,6 +88,7 @@ function spawnBossEnemies(){
     };
   }
   function makeWizard(wx,wy,offsetFr){
+    const isSnowman=isPackMode&&currentPackStage&&currentPackStage.bossVariant==='snowman';
     return {
       x:wx,y:wy,vy:0,gDir:1,sz:wsz,alive:true,fr:offsetFr,
       type:12,shootT:999,boss:true,bossType:'wizard',
@@ -97,7 +98,8 @@ function spawnBossEnemies(){
       teleportT:0,teleportTarget:{x:0,y:0},
       alpha:1,
       rushDir:1,rushT:0,rushReady:false,rushTargetX:0,rushTargetY:0,
-      homeX:W*0.65,homeY:H*0.35+Math.random()*(H*0.3)
+      homeX:W*0.65,homeY:H*0.35+Math.random()*(H*0.3),
+      variant:isSnowman?'snowman':''
     };
   }
   function addDodgeQueue(delayOffset){
@@ -148,7 +150,12 @@ function spawnBossEnemies(){
   if(isChallengeMode){
     bossType=pickType();
   } else if(isPackMode&&currentPackStage&&currentPackStage.boss){
-    bossType=Math.random()<0.5?'bruiser':'guardian';
+    // Snowman variant forces wizard boss type
+    if(currentPackStage.bossVariant==='snowman'){
+      bossType='wizard';
+    } else {
+      bossType=Math.random()<0.5?'bruiser':'guardian';
+    }
   } else {
     bossType=pickType();
   }
@@ -708,7 +715,16 @@ function updateBossPhase(){
       if(w.castT===30){
         // Phase scaling: slightly more bullets as phases progress
         const extra=Math.floor((bc-1)/2);
-        if(w.castType===0){
+        if(w.variant==='snowman'){
+          // Snowman: parallel icicle barrage from right to left
+          const icicleCount=5+extra;
+          const spacing=(H-GROUND_H*2)/(icicleCount+1);
+          for(let i=0;i<icicleCount;i++){
+            const iy=GROUND_H+spacing*(i+1);
+            const spd=-(3.5+Math.random()*1.5);
+            bullets.push({x:W+20,y:iy,vx:spd,vy:0,sz:9,life:999,wizBullet:true,icicle:true});
+          }
+        } else if(w.castType===0){
           // Spread shot: 3 + phase bonus, fan out from wizard toward player vicinity
           const shotCount=3+extra;
           const dx=player.x-w.x,dy=player.y-w.y;
@@ -1005,6 +1021,120 @@ function drawBossWizard(en){
   ctx.globalAlpha=1;
   ctx.restore();
 }
+// === Boss enemy draw: snowman wizard variant ===
+function drawBossSnowman(en){
+  const s=en.sz,t=en.fr;
+  const dmg=en.maxHp-en.hp;
+  ctx.save();ctx.translate(en.x,en.y);
+  ctx.globalAlpha=en.alpha||1;
+  if(en.invT>0&&en.invT%6<3)ctx.globalAlpha*=0.25;
+  if(en.hurtFlash>0&&en.hurtFlash%4<2)ctx.globalAlpha*=0.5;
+  // Rush telegraph
+  if(en.state==='rush'){
+    const rushAlpha=en.rushReady?(.3+Math.sin(t*3)*.15):(.1+Math.sin(t*3)*.05);
+    ctx.save();
+    const dx=en.rushTargetX-en.homeX,dy=en.rushTargetY-en.homeY;
+    ctx.rotate(Math.atan2(dy,dx));
+    const beamLen=Math.sqrt(dx*dx+dy*dy)||1;
+    ctx.fillStyle='rgba(100,180,255,'+rushAlpha+')';
+    ctx.fillRect(-beamLen*0.5,-s*0.12,beamLen,s*0.24);
+    ctx.restore();
+  }
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,0.2)';ctx.beginPath();ctx.ellipse(0,s*1.1,s*0.6,s*0.12,0,0,6.28);ctx.fill();
+  // Bottom body (large snowball)
+  const bodyGr=ctx.createRadialGradient(-s*0.1,-s*0.1,0,0,0,s*0.85);
+  bodyGr.addColorStop(0,'#fff');bodyGr.addColorStop(0.6,'#e8f0ff');bodyGr.addColorStop(1,'#c0d8f0');
+  ctx.fillStyle=bodyGr;
+  ctx.beginPath();ctx.arc(0,s*0.15,s*0.75,0,6.28);ctx.fill();
+  ctx.strokeStyle='rgba(160,200,240,0.4)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(0,s*0.15,s*0.75,0,6.28);ctx.stroke();
+  // Head (smaller snowball on top)
+  const headGr=ctx.createRadialGradient(-s*0.05,-s*0.6,0,0,-s*0.55,s*0.5);
+  headGr.addColorStop(0,'#fff');headGr.addColorStop(0.6,'#e8f0ff');headGr.addColorStop(1,'#c0d8f0');
+  ctx.fillStyle=headGr;
+  ctx.beginPath();ctx.arc(0,-s*0.55,s*0.5,0,6.28);ctx.fill();
+  ctx.strokeStyle='rgba(160,200,240,0.4)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.arc(0,-s*0.55,s*0.5,0,6.28);ctx.stroke();
+  // Top hat
+  ctx.fillStyle='#1a1a3a';
+  ctx.fillRect(-s*0.3,-s*1.15,s*0.6,s*0.35);
+  ctx.fillRect(-s*0.4,-s*0.82,s*0.8,s*0.08);
+  // Hat band
+  ctx.fillStyle='#88ccff';ctx.shadowColor='#88ccff';ctx.shadowBlur=4;
+  ctx.fillRect(-s*0.3,-s*0.82,s*0.6,s*0.06);ctx.shadowBlur=0;
+  // Eyes (glowing ice blue)
+  ctx.fillStyle='#44aaff';ctx.shadowColor='#44aaff';ctx.shadowBlur=8;
+  ctx.beginPath();ctx.arc(-s*0.18,-s*0.6,s*0.09,0,6.28);ctx.fill();
+  ctx.beginPath();ctx.arc(s*0.18,-s*0.6,s*0.09,0,6.28);ctx.fill();
+  ctx.shadowBlur=0;
+  // Carrot nose
+  ctx.fillStyle='#ff8800';
+  ctx.beginPath();ctx.moveTo(0,-s*0.5);ctx.lineTo(s*0.3,-s*0.45);ctx.lineTo(0,-s*0.4);ctx.closePath();ctx.fill();
+  // Coal mouth
+  ctx.fillStyle='#333';
+  for(let i=0;i<5;i++){
+    const ma=-0.3+i*0.15;
+    ctx.beginPath();ctx.arc(Math.cos(ma)*s*0.22,-s*0.32+Math.sin(ma)*s*0.05,s*0.03,0,6.28);ctx.fill();
+  }
+  // Coal buttons
+  ctx.fillStyle='#333';
+  ctx.beginPath();ctx.arc(0,-s*0.05,s*0.05,0,6.28);ctx.fill();
+  ctx.beginPath();ctx.arc(0,s*0.2,s*0.05,0,6.28);ctx.fill();
+  ctx.beginPath();ctx.arc(0,s*0.45,s*0.05,0,6.28);ctx.fill();
+  // Stick arms
+  ctx.strokeStyle='#5a3a1a';ctx.lineWidth=s*0.06;ctx.lineCap='round';
+  // Left arm
+  ctx.beginPath();ctx.moveTo(-s*0.6,0);ctx.lineTo(-s*1.0,-s*0.3);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-s*0.85,-s*0.2);ctx.lineTo(-s*0.9,-s*0.45);ctx.stroke();
+  // Right arm (holds icicle staff)
+  ctx.beginPath();ctx.moveTo(s*0.6,0);ctx.lineTo(s*0.9,-s*0.25);ctx.stroke();
+  // Icicle staff
+  const staffGlow=en.state==='cast'?0.9:0.4;
+  ctx.strokeStyle='rgba(140,200,255,'+staffGlow+')';ctx.lineWidth=s*0.05;
+  ctx.beginPath();ctx.moveTo(s*0.85,-s*0.3);ctx.lineTo(s*1.0,-s*0.8);ctx.stroke();
+  ctx.fillStyle='rgba(180,230,255,'+staffGlow+')';ctx.shadowColor='#88ccff';ctx.shadowBlur=en.state==='cast'?12:4;
+  ctx.beginPath();
+  ctx.moveTo(s*0.92,-s*0.8);ctx.lineTo(s*1.0,-s*1.1);ctx.lineTo(s*1.08,-s*0.8);
+  ctx.closePath();ctx.fill();ctx.shadowBlur=0;
+  // Rush indicator
+  if(en.state==='rush'){
+    const pulse=0.6+Math.sin(t*4)*0.4;
+    ctx.strokeStyle='rgba(100,200,255,'+pulse*0.6+')';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(0,0,s*1.3+Math.sin(t*3)*s*0.15,0,6.28);ctx.stroke();
+    if(en.rushReady){
+      ctx.fillStyle='#88ccff';ctx.shadowColor='#88ccff';ctx.shadowBlur=12;
+      ctx.font='bold '+(s*0.8)+'px monospace';ctx.textAlign='center';
+      ctx.fillText('!',0,-s*1.6-Math.sin(t*4)*3);ctx.shadowBlur=0;
+    }
+  }
+  // Casting: snowflake circle
+  if(en.state==='cast'){
+    ctx.strokeStyle='rgba(136,204,255,'+0.5*Math.abs(Math.sin(t))+')';
+    ctx.lineWidth=1.5;
+    const cr=s*1.5+Math.sin(t*2)*s*0.2;
+    ctx.beginPath();ctx.arc(0,0,cr,0,6.28);ctx.stroke();
+    for(let i=0;i<6;i++){
+      const ra=t*0.4+i*Math.PI/3;
+      ctx.fillStyle='rgba(200,240,255,0.6)';ctx.font=(s*0.25)+'px monospace';
+      ctx.fillText('\u2744',Math.cos(ra)*cr,Math.sin(ra)*cr);
+    }
+  }
+  // Frost particles
+  if(frame%5===0){
+    const px2=(Math.random()-0.5)*s*1.2,py2=-s*0.5+Math.random()*s*1.5;
+    if(parts.length<MAX_PARTS)parts.push({x:en.x+px2,y:en.y+py2,vx:(Math.random()-0.5)*0.5,vy:-0.3-Math.random()*0.5,
+      life:15+Math.random()*10,ml:25,sz:Math.random()*2+1,col:'#cceeff'});
+  }
+  // Damage cracks (ice cracks)
+  if(dmg>=1){
+    ctx.strokeStyle='rgba(100,180,255,0.5)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(-s*0.2,s*0.1);ctx.lineTo(s*0.1,s*0.4);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(s*0.1,-s*0.4);ctx.lineTo(-s*0.05,-s*0.1);ctx.stroke();
+  }
+  ctx.globalAlpha=1;ctx.restore();
+}
+
 // === Boss enemy draw: guardian type (armored knight with shield) ===
 function drawBossGuardian(en){
   const s=en.sz,t=en.fr;

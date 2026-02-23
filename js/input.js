@@ -268,14 +268,14 @@ function continueFromDeath(){
   player.x=W*0.2;
   player.y=floorSurfaceY(player.x)-PLAYER_R;player.grounded=false;
   // Clear hazards
-  enemies=[];bullets=[];spikes=[];items=[];floatPlats=[];movingHills=[];gravZones=[];
+  enemies=[];bullets=[];spikes=[];items=[];floatPlats=[];movingHills=[];gravZones=[];icicles=[];
   bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:(Math.floor(rawDist/BOSS_INTERVAL)+1)*BOSS_INTERVAL,lastBossScore:score,lastBossRawDist:rawDist,bossCount:bossPhase.bossCount||0,bossType:'',noDamage:true};
   itemEff={invincible:0,magnet:0};bombCount=0;bombFlashT=0;invCount=0;
   djumpAvailable=!!ct().hasDjump;djumpUsed=false;ghostPhaseT=0;ghostInvis=false;
   player._quakeStunned=false;player._quakeStunT=0;
   deadT=0;newHi=false;combo=0;comboT=0;comboDsp=0;comboDspT=0;airCombo=0;
   shakeX=0;shakeY=0;shakeI=0;flipCount=0;flipTimer=999;
-  coinCD=0;itemCD=0;enemyCD=0;spikeCD=0;hillCD=0;floatCD=0;gravZoneCD=0;
+  coinCD=0;itemCD=0;enemyCD=0;spikeCD=0;hillCD=0;floatCD=0;gravZoneCD=0;icicleCD=0;
   flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
   bossChests=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null};
   state=ST.COUNTDOWN;countdownT=180;

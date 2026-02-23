@@ -325,6 +325,7 @@ function update(dt){
   spikes.forEach(s=>s.x-=speed);
   movingHills.forEach(h=>{h.x-=speed;h.phase+=h.spd;});
   gravZones.forEach(g=>g.x-=speed);
+  icicles.forEach(ic=>ic.x-=speed);
   // Remove off-screen platforms
   fip(platforms,p=>p.x+p.w>-50);
   fip(ceilPlats,p=>p.x+p.w>-50);
@@ -332,6 +333,7 @@ function update(dt){
   fip(spikes,s=>s.x+s.w>-50);
   fip(movingHills,h=>h.x+h.w>-50);
   fip(gravZones,g=>g.x+g.w>-50&&g.fadeT<60);
+  fip(icicles,ic=>ic.state!=='gone'&&ic.x+ic.w>-80);
   // Generate new platforms ahead (pack mode: seeded terrain)
   if(isPackMode&&currentPackStage){
     if(platforms.length===0)platforms.push({x:player.x-30,w:200,h:GROUND_H});
@@ -451,6 +453,10 @@ function update(dt){
           gravZones.push({x:gx,w:gw,triggered:false,fadeT:0,dir:gdir});
           gravZoneCD=15+Math.floor(packRng()*25);
         }
+        // Dense spikes: lots of red spikes on both floor and ceiling (limited safe landing)
+        if(currentPackStage.denseSpikes){
+          trySpawnSpike();trySpawnSpike();trySpawnSpike();
+        }
       }
     } else if(sType==='chasm'){
       // Chasm stage: gravity zones + floating platforms for up/down navigation
@@ -483,6 +489,8 @@ function update(dt){
         trySpawnFallingMtn();
       }
     }
+    // Icicle spawning (snow stages, controlled by icicleChance)
+    if(!nearGoal) trySpawnIcicle();
     // Ambient particles for theme
     updateAmbient();
   }
@@ -828,6 +836,58 @@ function update(dt){
     }
   });
   fip(fallingMtns,fm=>fm.state!=='gone'&&fm.x+fm.w>-50);
+
+  // Icicle update & collision (snow stage gimmick)
+  icicles.forEach(ic=>{
+    ic.timer--;
+    if(ic.state==='wait'){
+      // Waiting off-screen or approaching - start warning when near player
+      if(ic.x<W+40){
+        ic.warnT++;
+        // Shake warning before falling/rising
+        if(ic.warnT>30){
+          ic.state='fall';ic.vy=0;
+          sfx('death');
+        }
+      }
+    } else if(ic.state==='fall'){
+      // Ceiling icicle falls down, floor icicle rises up
+      const accel=0.25;
+      if(ic.isFloor){
+        ic.vy-=accel; // rises up
+        ic.y+=ic.vy;
+        // Stop when tip reaches surface
+        if(ic.y<=ic.baseY-ic.h){ic.y=ic.baseY-ic.h;ic.state='stuck';ic.timer=120+Math.floor(Math.random()*60);}
+      } else {
+        ic.vy+=accel; // falls down
+        ic.y+=ic.vy;
+        // Stop when tip reaches surface
+        if(ic.y>=ic.baseY+ic.h){ic.y=ic.baseY+ic.h;ic.state='stuck';ic.timer=120+Math.floor(Math.random()*60);}
+      }
+    } else if(ic.state==='stuck'){
+      // Stuck in place for a while, then fade out
+      if(ic.timer<=0){ic.state='fade';ic.timer=30;}
+    } else if(ic.state==='fade'){
+      ic.alpha=Math.max(0,ic.timer/30);
+      if(ic.timer<=0)ic.state='gone';
+    }
+    // Collision: icicle is a solid obstacle while falling or stuck
+    if((ic.state==='fall'||ic.state==='stuck')&&itemEff.invincible<=0&&hurtT<=0){
+      let icTop,icBot;
+      if(ic.isFloor){
+        icBot=ic.baseY;
+        icTop=ic.y;
+      } else {
+        icTop=ic.baseY;
+        icBot=ic.y;
+      }
+      if(player.x+pr>ic.x&&player.x-pr<ic.x+ic.w){
+        if(player.y+pr>icTop&&player.y-pr<icBot){
+          hurt(true);
+        }
+      }
+    }
+  });
 
   // Coin switch update (round button)
   coinSwitches.forEach(cs=>{cs.x-=speed;if(cs.flashT>0)cs.flashT--;});
