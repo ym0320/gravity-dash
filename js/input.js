@@ -788,7 +788,7 @@ canvas.addEventListener('touchend',e=>{
       if((dy>0&&player.gDir===1)||(dy<0&&player.gDir===-1)){
         player.grounded=false;
         player.vy=player.gDir*3;
-        player._dropThrough=8; // ignore float plat landing for 8 frames
+        player._dropThrough=15; // ignore float plat landing+wall while passing through
         sfx('jump');vibrate(10);
       }
     }
