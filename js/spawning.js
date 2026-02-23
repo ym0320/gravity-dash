@@ -397,7 +397,7 @@ function trySpawnMovingHill(){
     const hw=Math.min(gapW*0.7,60+packRng()*50);
     const hx=gapX+(gapW-hw)/2; // center in gap
     const baseH=GROUND_H;
-    const ampH=25+packRng()*30;
+    const ampH=40+packRng()*50;
     movingHills.push({x:hx,w:hw,baseH:baseH,ampH:ampH,phase:packRng()*6.28,spd:0.03+packRng()*0.02,isFloor:isFloor});
   } else {
     hillCD=30+Math.floor(packRng()*15);

@@ -600,41 +600,23 @@ function drawMovingHills(){
     if(mh.x+mh.w<-10||mh.x>W+10)return;
     const curH=mh.baseH+Math.sin(mh.phase)*mh.ampH;
     if(!mh.isFloor){
-      // Ceiling moving hill
       const surfY=curH;
-      const gr=ctx.createLinearGradient(0,0,0,surfY);
+      const gr=ctx.createLinearGradient(0,-10,0,surfY);
       gr.addColorStop(0,tc('gnd2'));gr.addColorStop(1,tc('gnd'));
-      ctx.fillStyle=gr;
-      ctx.fillRect(mh.x,0,mh.w,surfY);
-      ctx.strokeStyle=tc('line');ctx.lineWidth=2;
-      ctx.shadowColor=tc('line');ctx.shadowBlur=8;
+      ctx.fillStyle=gr;ctx.fillRect(mh.x,-10,mh.w,surfY+10);
+      ctx.strokeStyle=tc('line');ctx.lineWidth=2;ctx.shadowColor=tc('line');ctx.shadowBlur=8;
       ctx.beginPath();ctx.moveTo(mh.x,surfY);ctx.lineTo(mh.x+mh.w,surfY);ctx.stroke();
-      ctx.shadowBlur=0;
-      const dir=Math.cos(mh.phase);
-      ctx.fillStyle='rgba(255,255,255,0.15)';
-      const ax=mh.x+mh.w/2,ay=surfY-15;
-      ctx.beginPath();
-      if(dir<0){ctx.moveTo(ax-6,ay-6);ctx.lineTo(ax,ay+6);ctx.lineTo(ax+6,ay-6);}
-      else{ctx.moveTo(ax-6,ay+6);ctx.lineTo(ax,ay-6);ctx.lineTo(ax+6,ay+6);}
-      ctx.closePath();ctx.fill();
+      ctx.moveTo(mh.x,surfY);ctx.lineTo(mh.x,-10);ctx.moveTo(mh.x+mh.w,surfY);ctx.lineTo(mh.x+mh.w,-10);
+      ctx.stroke();ctx.shadowBlur=0;
     } else {
-      // Floor moving hill
       const surfY=H-curH;
-      const gr=ctx.createLinearGradient(0,surfY,0,H);
+      const gr=ctx.createLinearGradient(0,surfY,0,H+10);
       gr.addColorStop(0,tc('gnd'));gr.addColorStop(1,tc('gnd2'));
-      ctx.fillStyle=gr;
-      ctx.fillRect(mh.x,surfY,mh.w,H-surfY);
-      ctx.strokeStyle=tc('line');ctx.lineWidth=2;
-      ctx.shadowColor=tc('line');ctx.shadowBlur=8;
+      ctx.fillStyle=gr;ctx.fillRect(mh.x,surfY,mh.w,H-surfY+10);
+      ctx.strokeStyle=tc('line');ctx.lineWidth=2;ctx.shadowColor=tc('line');ctx.shadowBlur=8;
       ctx.beginPath();ctx.moveTo(mh.x,surfY);ctx.lineTo(mh.x+mh.w,surfY);ctx.stroke();
-      ctx.shadowBlur=0;
-      const dir=Math.cos(mh.phase);
-      ctx.fillStyle='rgba(255,255,255,0.15)';
-      const ax=mh.x+mh.w/2,ay=surfY+15;
-      ctx.beginPath();
-      if(dir<0){ctx.moveTo(ax-6,ay+6);ctx.lineTo(ax,ay-6);ctx.lineTo(ax+6,ay+6);}
-      else{ctx.moveTo(ax-6,ay-6);ctx.lineTo(ax,ay+6);ctx.lineTo(ax+6,ay-6);}
-      ctx.closePath();ctx.fill();
+      ctx.moveTo(mh.x,surfY);ctx.lineTo(mh.x,H+10);ctx.moveTo(mh.x+mh.w,surfY);ctx.lineTo(mh.x+mh.w,H+10);
+      ctx.stroke();ctx.shadowBlur=0;
     }
   });
 }
@@ -704,42 +686,26 @@ function drawFallingMtns(){
   fallingMtns.forEach(fm=>{
     if(fm.x+fm.w<-10||fm.x>W+10||fm.state==='gone')return;
     const isCeil=!fm.isFloor;
-    const shakeOff=fm.state==='shaking'?fm.shakeAmt:0;
+    const shakeOff=fm.state==='shaking'?(Math.sin(fm.shakeT*0.8)*(2+(60-fm.shakeT)*0.05)):0;
     ctx.save();ctx.globalAlpha=fm.alpha;ctx.translate(shakeOff,0);
     if(!isCeil){
       const surfY=H-Math.max(0,fm.curH);
-      const gr=ctx.createLinearGradient(0,surfY,0,H);
+      const gr=ctx.createLinearGradient(0,surfY,0,H+10);
       gr.addColorStop(0,tc('gnd'));gr.addColorStop(1,tc('gnd2'));
       ctx.fillStyle=gr;ctx.fillRect(fm.x,surfY,fm.w,H-surfY+10);
       ctx.strokeStyle=tc('line');ctx.lineWidth=2;ctx.shadowColor=tc('line');ctx.shadowBlur=8;
-      ctx.beginPath();ctx.moveTo(fm.x,surfY);ctx.lineTo(fm.x+fm.w,surfY);ctx.stroke();ctx.shadowBlur=0;
-      if(fm.state==='shaking'){
-        const wa=Math.abs(Math.sin(fm.shakeT*0.3));
-        ctx.fillStyle='rgba(255,60,60,'+wa*0.3+')';ctx.fillRect(fm.x,surfY,fm.w,6);
-        ctx.fillStyle='rgba(255,100,100,'+wa+')';ctx.font='bold 16px monospace';ctx.textAlign='center';
-        ctx.fillText('!',fm.x+fm.w/2,surfY-10);
-        if(fm.shakeT<30){
-          ctx.strokeStyle='rgba(255,100,100,0.5)';ctx.lineWidth=1.5;
-          ctx.beginPath();ctx.moveTo(fm.x+fm.w*0.3,surfY);ctx.lineTo(fm.x+fm.w*0.5,surfY+15);ctx.lineTo(fm.x+fm.w*0.4,surfY+30);ctx.stroke();
-        }
-      }
+      ctx.beginPath();ctx.moveTo(fm.x,surfY);ctx.lineTo(fm.x+fm.w,surfY);ctx.stroke();
+      ctx.moveTo(fm.x,surfY);ctx.lineTo(fm.x,H+10);ctx.moveTo(fm.x+fm.w,surfY);ctx.lineTo(fm.x+fm.w,H+10);
+      ctx.stroke();ctx.shadowBlur=0;
     } else {
       const surfY=Math.max(0,fm.curH);
-      const gr=ctx.createLinearGradient(0,0,0,surfY);
+      const gr=ctx.createLinearGradient(0,-10,0,surfY);
       gr.addColorStop(0,tc('gnd2'));gr.addColorStop(1,tc('gnd'));
       ctx.fillStyle=gr;ctx.fillRect(fm.x,-10,fm.w,surfY+10);
       ctx.strokeStyle=tc('line');ctx.lineWidth=2;ctx.shadowColor=tc('line');ctx.shadowBlur=8;
-      ctx.beginPath();ctx.moveTo(fm.x,surfY);ctx.lineTo(fm.x+fm.w,surfY);ctx.stroke();ctx.shadowBlur=0;
-      if(fm.state==='shaking'){
-        const wa=Math.abs(Math.sin(fm.shakeT*0.3));
-        ctx.fillStyle='rgba(255,60,60,'+wa*0.3+')';ctx.fillRect(fm.x,surfY-6,fm.w,6);
-        ctx.fillStyle='rgba(255,100,100,'+wa+')';ctx.font='bold 16px monospace';ctx.textAlign='center';
-        ctx.fillText('!',fm.x+fm.w/2,surfY+20);
-        if(fm.shakeT<30){
-          ctx.strokeStyle='rgba(255,100,100,0.5)';ctx.lineWidth=1.5;
-          ctx.beginPath();ctx.moveTo(fm.x+fm.w*0.3,surfY);ctx.lineTo(fm.x+fm.w*0.5,surfY-15);ctx.lineTo(fm.x+fm.w*0.4,surfY-30);ctx.stroke();
-        }
-      }
+      ctx.beginPath();ctx.moveTo(fm.x,surfY);ctx.lineTo(fm.x+fm.w,surfY);ctx.stroke();
+      ctx.moveTo(fm.x,surfY);ctx.lineTo(fm.x,-10);ctx.moveTo(fm.x+fm.w,surfY);ctx.lineTo(fm.x+fm.w,-10);
+      ctx.stroke();ctx.shadowBlur=0;
     }
     ctx.restore();
   });
@@ -911,7 +877,6 @@ function draw(){
   ctx.globalAlpha=1;
 
   drawChestFall();
-  drawUI();
   pops.forEach(p=>{const a=p.life/p.ml;ctx.globalAlpha=a;ctx.fillStyle=p.col;ctx.font='bold 16px monospace';ctx.textAlign='center';ctx.fillText(p.txt,p.x,p.y);});
   ctx.globalAlpha=1;
   if(mileT>0)drawMile();
@@ -1016,6 +981,9 @@ function draw(){
   if(state===ST.PLAY){
     drawActionPanel();
   }
+  ctx.restore();
+  // === Draw UI and overlays OUTSIDE shake translate (fixed position) ===
+  drawUI();
   // Challenge floor collapse overlay
   if(isChallengeMode&&challCollapse.active){
     drawChallCollapse();
@@ -1023,7 +991,6 @@ function draw(){
   if(state===ST.DEAD){drawDead();if(deadChestOpen&&chestOpen.phase!=='none')drawChestOpen();}
   if(state===ST.PAUSE)drawPause();
   if(state===ST.STAGE_CLEAR)drawStageClear();
-  ctx.restore();
 }
 
 function drawCoin(c){

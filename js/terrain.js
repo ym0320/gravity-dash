@@ -172,12 +172,12 @@ function resetPackStage(pi,si){
   const pack=STAGE_PACKS[pi];if(!pack)return;
   const stage=pack.stages[si];if(!stage)return;
   isPackMode=true;currentPackIdx=pi;currentPackStageIdx=si;currentPackStage=stage;
-  stageRng=mulberry32(stage.seed);stageSpawnRng=mulberry32(stage.seed+555);gotNewStars=0;
+  stageRng=mulberry32(stage.seed);stageCeilRng=mulberry32(stage.seed+111);stageSpawnRng=mulberry32(stage.seed+555);gotNewStars=0;
   player.x=W*0.2;player.gDir=1;player.vy=0;
   player.rot=0;player.rotTarget=0;player.trail=[];player.alive=true;
   player.grounded=false;player.face='normal';player.canFlip=true;
   player._quakeStunned=false;player._quakeStunT=0;player._swordHitThisSwing=false;
-  // Generate deterministic terrain from seed
+  // Generate deterministic terrain from seed (separate RNGs for floor/ceiling)
   platforms=[];ceilPlats=[];
   platforms.push({x:-20,w:W*0.9,h:GROUND_H});
   ceilPlats.push({x:-20,w:W*0.9,h:GROUND_H});
@@ -220,17 +220,24 @@ function generatePackPlatform(arr,isCeil,stage){
   const last=arr.length>0?arr[arr.length-1]:null;
   const lastH=last?last.h:GROUND_H;
   const lastRight=last?last.x+last.w:0;
-  const rng=stageRng;if(!rng)return;
+  const rng=isCeil?(stageCeilRng||stageRng):stageRng;if(!rng)return;
   const sType=stage.stageType||'';
   // Boss phase: flat terrain for fighting
   if(bossPhase.active||bossPhase.prepare>0){
     arr.push({x:lastRight,w:150+rng()*100,h:GROUND_H});
     return;
   }
-  // Post-goal area: flat continuous terrain with nothing
+  // Post-goal area: flat runway → solid wall (dead end)
   const approxDist=dist+(lastRight-(player?player.x:W*0.2))*0.08;
   if(approxDist>=stage.dist){
-    arr.push({x:lastRight,w:200+rng()*100,h:GROUND_H});
+    const pastGoalDist=approxDist-stage.dist;
+    if(pastGoalDist<80){
+      // Flat runway up to the wall
+      arr.push({x:lastRight,w:60+rng()*40,h:GROUND_H});
+    } else {
+      // Solid wall (floor-to-ceiling block) = dead end
+      arr.push({x:lastRight,w:300,h:H*0.48});
+    }
     return;
   }
   // --- VOID stage (1-5): walls protrude, floor-level only (no mid-height landing) ---

@@ -434,7 +434,7 @@ function update(dt){
           const hw=50+packRng()*45;
           const isFloor=packRng()<0.5;
           const baseH=GROUND_H;
-          const ampH=20+packRng()*35;
+          const ampH=40+packRng()*50;
           movingHills.push({x:hx,w:hw,baseH:baseH,ampH:ampH,phase:packRng()*6.28,spd:0.03+packRng()*0.02,isFloor:isFloor});
           hillCD=25+Math.floor(packRng()*30);
         }
@@ -768,8 +768,8 @@ function update(dt){
     fm.x-=speed;
     const isCeil=!fm.isFloor;
     if(fm.state==='idle'){
-      // Auto-trigger when visible on screen (before player reaches it)
-      if(fm.x<W+20){fm.state='shaking';fm.shakeT=60;}
+      // Trigger shaking when player is close (just before passing over)
+      if(fm.x<player.x+fm.triggerDist+fm.w){fm.state='shaking';fm.shakeT=45;}
       if(!isCeil){
         const surfY2=H-fm.curH;
         if(player.gDir===1&&player.x+pr>fm.x&&player.x-pr<fm.x+fm.w){

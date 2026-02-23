@@ -1291,6 +1291,7 @@ function getTotalStars(){let t=0;for(const k in packProgress)t+=(packProgress[k]
 let totalStars=getTotalStars();
 let isPackMode=false,currentPackIdx=0,currentPackStageIdx=0,currentPackStage=null,stageRng=null;
 var stageSpawnRng=null; // seeded RNG for enemy/gimmick spawning in stage mode
+var stageCeilRng=null; // seeded RNG for ceiling platform generation (separate from floor)
 function packRng(){return isPackMode&&stageSpawnRng?stageSpawnRng():Math.random();}
 let stageSelScroll=0,stageSelTarget=0;
 let gotNewStars=0; // how many new stars obtained this clear

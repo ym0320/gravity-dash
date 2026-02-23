@@ -696,7 +696,7 @@ canvas.addEventListener('touchstart',e=>{
   else if(state===ST.DEAD&&deadT>45){
     if(hitDeadChestBtn(p.x,p.y)){deadChestOpen=true;chestBatchMode=false;startInventoryChestOpen();sfx('select');return;}
     const btnId=hitDeadBtn(p.x,p.y);
-    if(btnId)handleDeadBtn(btnId);
+    if(btnId){handleDeadBtn(btnId);touchBtnUsed=true;return;}
   }
 },{passive:false});
 
