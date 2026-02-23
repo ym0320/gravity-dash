@@ -2729,12 +2729,35 @@ function drawTitle(){
     ctx.fillStyle='#0a0a1a';rr(mX,mY,mW,mH,12);ctx.fill();
     ctx.strokeStyle='#ffd70044';ctx.lineWidth=2;rr(mX,mY,mW,mH,12);ctx.stroke();
     // Header
-    const hdrH=52;
+    const hdrH=76;
     ctx.fillStyle='#1a1a2e';rr(mX,mY,mW,hdrH,12);ctx.fill();
     ctx.fillStyle='#ffd700';ctx.font='bold 18px monospace';ctx.textAlign='center';
     ctx.fillText('\uD83C\uDFC6 \u30E9\u30F3\u30AD\u30F3\u30B0',W/2,mY+22);
-    ctx.fillStyle='#fff6';ctx.font='10px monospace';
-    ctx.fillText('TOP 100 \u30D7\u30EC\u30A4\u30E4\u30FC',W/2,mY+40);
+    // Tab buttons
+    const tabY=mY+34,tabH=24,tabW=Math.floor((mW-24)/2);
+    const tabLX=mX+8,tabRX=mX+8+tabW+8;
+    // Endless tab
+    if(rankingTab==='endless'){
+      ctx.fillStyle='#ffd70033';rr(tabLX,tabY,tabW,tabH,6);ctx.fill();
+      ctx.strokeStyle='#ffd700';ctx.lineWidth=1.5;rr(tabLX,tabY,tabW,tabH,6);ctx.stroke();
+      ctx.fillStyle='#ffd700';
+    } else {
+      ctx.fillStyle='#ffffff10';rr(tabLX,tabY,tabW,tabH,6);ctx.fill();
+      ctx.fillStyle='#fff6';
+    }
+    ctx.font='bold 11px monospace';ctx.textAlign='center';
+    ctx.fillText('\u30A8\u30F3\u30C9\u30EC\u30B9',tabLX+tabW/2,tabY+16);
+    // Challenge tab
+    if(rankingTab==='challenge'){
+      ctx.fillStyle='#ff386033';rr(tabRX,tabY,tabW,tabH,6);ctx.fill();
+      ctx.strokeStyle='#ff3860';ctx.lineWidth=1.5;rr(tabRX,tabY,tabW,tabH,6);ctx.stroke();
+      ctx.fillStyle='#ff3860';
+    } else {
+      ctx.fillStyle='#ffffff10';rr(tabRX,tabY,tabW,tabH,6);ctx.fill();
+      ctx.fillStyle='#fff6';
+    }
+    ctx.font='bold 11px monospace';ctx.textAlign='center';
+    ctx.fillText('\u30C1\u30E3\u30EC\u30F3\u30B8',tabRX+tabW/2,tabY+16);
     // List area
     const listY=mY+hdrH+4;
     const listH=mH-hdrH-50;
@@ -2742,6 +2765,15 @@ function drawTitle(){
     ctx.beginPath();ctx.rect(mX,listY,mW,listH);ctx.clip();
     const rowH=36;
     const scrollOff=-rankingScroll;
+    if(rankingTab==='challenge'){
+      // Coming soon placeholder
+      ctx.fillStyle='#fff4';ctx.font='bold 14px monospace';ctx.textAlign='center';
+      ctx.fillText('\u{1F6A7} Coming Soon',W/2,listY+listH*0.4);
+      ctx.fillStyle='#fff3';ctx.font='11px monospace';
+      ctx.fillText('\u30C1\u30E3\u30EC\u30F3\u30B8\u30E2\u30FC\u30C9\u306E',W/2,listY+listH*0.4+24);
+      ctx.fillText('\u30E9\u30F3\u30AD\u30F3\u30B0\u306F\u6E96\u5099\u4E2D\u3067\u3059',W/2,listY+listH*0.4+40);
+      ctx.restore();
+    } else {
     RANKING_DATA.forEach((entry,i)=>{
       const ry=listY+i*rowH+scrollOff;
       if(ry+rowH<listY||ry>listY+listH)return; // skip offscreen
@@ -2813,6 +2845,7 @@ function drawTitle(){
       ctx.fillText(entry.score.toLocaleString(),scX,ry+22);
     });
     ctx.restore();
+    } // end else (endless tab)
     // Scroll indicator
     const totalH=RANKING_DATA.length*rowH;
     if(totalH>listH){
@@ -4224,43 +4257,36 @@ function drawChallCollapse(){
   }
 
   if(cc.phase==='fall'){
-    // Dark overlay increasing as we fall deeper
-    const darkA=Math.min(0.6,cc.timer/120*0.6);
-    ctx.fillStyle=`rgba(0,0,0,${darkA})`;ctx.fillRect(-20,-20,W+40,H+40);
-    // Speed lines
-    const numLines=8;
-    for(let i=0;i<numLines;i++){
-      const lx=(W/(numLines+1))*(i+1)+(Math.sin(frame*0.3+i)*20);
-      const ly=(cc.timer*10+i*80)%H;
-      ctx.strokeStyle='#ffffff15';ctx.lineWidth=2;
-      ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(lx,ly+40+cc.timer*0.5);ctx.stroke();
+    // Fade to black over first 20 frames, stay black, then fade in from frame 50
+    let blackA;
+    if(cc.timer<20) blackA=cc.timer/20; // fade to black
+    else if(cc.timer<50) blackA=1; // fully black
+    else blackA=Math.max(0,1-(cc.timer-50)/30); // fade in
+    ctx.fillStyle=`rgba(0,0,0,${blackA})`;ctx.fillRect(-20,-20,W+40,H+40);
+    // Show floor text during blackout
+    if(cc.timer>=20&&cc.timer<60){
+      const txtA=cc.timer<30?((cc.timer-20)/10):cc.timer>50?Math.max(0,1-(cc.timer-50)/10):1;
+      ctx.globalAlpha=txtA;
+      ctx.fillStyle='#ff3860';ctx.font='bold 20px monospace';ctx.textAlign='center';
+      ctx.shadowColor='#ff386066';ctx.shadowBlur=15;
+      ctx.fillText('B'+cc.waveNum+'F',W/2,H*0.45);
+      ctx.shadowBlur=0;ctx.globalAlpha=1;
     }
-    // "Falling deeper" text
-    const fallA=Math.min(1,cc.timer/30);
-    ctx.globalAlpha=fallA;
-    ctx.fillStyle='#ff3860';ctx.font='bold 18px monospace';ctx.textAlign='center';
-    ctx.shadowColor='#ff386066';ctx.shadowBlur=15;
-    const depth=cc.waveNum;
-    ctx.fillText('B'+depth+'F へ降下中...',W/2,H*0.45);
-    ctx.shadowBlur=0;ctx.globalAlpha=1;
   }
 
   if(cc.phase==='land'){
-    // Wave number display (big center text)
-    const landA=Math.min(1,cc.timer/20);
-    const sc=1+Math.max(0,(1-cc.timer/15)*0.5);
+    // Wave number display (fade in then out)
+    const landA=Math.min(1,cc.timer/15);
+    const outA=cc.timer>50?Math.max(0,1-(cc.timer-50)/20):1;
     ctx.save();
-    ctx.globalAlpha=cc.timer<70?landA:Math.max(0,1-(cc.timer-70)/20);
-    ctx.translate(W/2,H*0.35);ctx.scale(sc,sc);
-    // Dark backdrop
+    ctx.globalAlpha=landA*outA;
+    ctx.translate(W/2,H*0.35);
     ctx.fillStyle='rgba(0,0,0,0.5)';
     rr(-100,-30,200,60,10);ctx.fill();
-    // Wave text
     ctx.fillStyle='#ffd700';ctx.font='bold 28px monospace';ctx.textAlign='center';
     ctx.shadowColor='#ffd70066';ctx.shadowBlur=20;
     ctx.fillText('WAVE '+cc.waveNum,0,10);
     ctx.shadowBlur=0;
-    // Sub text
     ctx.fillStyle='#fff8';ctx.font='bold 12px monospace';
     ctx.fillText('撃破: '+challengeKills+'  フェーズ: '+(challengePhase+1),0,30);
     ctx.restore();ctx.globalAlpha=1;

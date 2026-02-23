@@ -649,7 +649,7 @@ canvas.addEventListener('touchmove',e=>{
     touchStartY=t.clientY;
     const rowH=36;
     const topPad=safeTop+8;
-    const mH=H-topPad-10,hdrH=52,listH=mH-hdrH-50;
+    const mH=H-topPad-10,hdrH=76,listH=mH-hdrH-50;
     const totalH=RANKING_DATA.length*rowH;
     const maxScroll=Math.max(0,totalH-listH);
     rankingScrollTarget=Math.max(0,Math.min(maxScroll,rankingScrollTarget-dy2*2.5));
@@ -1034,7 +1034,7 @@ function getCharGridIdx(tx,ty){
 function handleTitleTouch(tx,ty){
   // Ranking button (top-left, row 1)
   if(tx>=8&&tx<=44&&ty>=safeTop+6&&ty<=safeTop+42){
-    rebuildRankingData();if(typeof fbRefreshRankings==='function')fbRefreshRankings();rankingOpen=true;rankingScroll=0;rankingScrollTarget=0;notifNewHighScore=false;localStorage.removeItem('gd5notifHi');sfx('select');return;
+    rebuildRankingData();if(typeof fbRefreshRankings==='function')fbRefreshRankings();rankingOpen=true;rankingTab='endless';rankingScroll=0;rankingScrollTarget=0;notifNewHighScore=false;localStorage.removeItem('gd5notifHi');sfx('select');return;
   }
   // Inventory button (top-left, row 2)
   if(tx>=8&&tx<=44&&ty>=safeTop+44&&ty<=safeTop+80){
@@ -1103,6 +1103,13 @@ function handleRankingTouch(tx,ty){
   const mW=Math.min(340,W-16),topPad=safeTop+8;
   const mH=H-topPad-10;
   const mX=(W-mW)/2,mY=topPad;
+  // Tab buttons
+  const tabY=mY+34,tabH=24,tabW=Math.floor((mW-24)/2);
+  const tabLX=mX+8,tabRX=mX+8+tabW+8;
+  if(ty>=tabY&&ty<=tabY+tabH){
+    if(tx>=tabLX&&tx<=tabLX+tabW){rankingTab='endless';rankingScroll=0;rankingScrollTarget=0;sfx('click');return;}
+    if(tx>=tabRX&&tx<=tabRX+tabW){rankingTab='challenge';rankingScroll=0;rankingScrollTarget=0;sfx('click');return;}
+  }
   // Footer close button
   const ftY=mY+mH-40;
   if(tx>=W/2-50&&tx<=W/2+50&&ty>=ftY&&ty<=ftY+30){
@@ -1118,7 +1125,7 @@ canvas.addEventListener('wheel',e=>{
   if(rankingOpen){
     e.preventDefault();
     const rowH=36;
-    const topPad=safeTop+8,mH=H-topPad-10,hdrH=52,listH=mH-hdrH-50;
+    const topPad=safeTop+8,mH=H-topPad-10,hdrH=76,listH=mH-hdrH-50;
     const totalH=RANKING_DATA.length*rowH;
     const maxScroll=Math.max(0,totalH-listH);
     rankingScrollTarget=Math.max(0,Math.min(maxScroll,rankingScrollTarget+e.deltaY*1.5));
@@ -1317,7 +1324,6 @@ nameInput.addEventListener('input',()=>{
 });
 // Helper: finish login and enter the game
 function _finishLogin(name){
-  console.log('[FB] _finishLogin called, name=',name);
   playerName=name;localStorage.setItem('gd5username',playerName);
   loginOverlay.classList.remove('active');
   sfx('select');vibrate(15);
@@ -1325,7 +1331,6 @@ function _finishLogin(name){
   let _saveRetries=0;
   const _doInitialSave=()=>{
     _saveRetries++;
-    console.log('[FB] _doInitialSave retry=',_saveRetries,'user=',!!fbUser,'synced=',fbSynced);
     if(fbUser&&fbSynced){
       if(typeof fbForceSave==='function')fbForceSave();
     } else if(_saveRetries<30){

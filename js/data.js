@@ -203,6 +203,7 @@ const UPDATE_NOTES=UPDATE_HISTORY[0].notes;
 let rankingOpen=false;
 let rankingScroll=0;
 let rankingScrollTarget=0;
+let rankingTab='endless'; // 'endless' | 'challenge'
 // Dynamic ranking data (cloud only, no sample data)
 let RANKING_DATA=[];
 function rebuildRankingData(){
@@ -1070,7 +1071,7 @@ function sfxFloorCrumble(){
     const r=audioCtx.createOscillator(),rg=audioCtx.createGain();
     r.connect(rg);rg.connect(sfxGain);r.type='sawtooth';
     r.frequency.setValueAtTime(60,t);r.frequency.linearRampToValueAtTime(25,t+1.5);
-    rg.gain.setValueAtTime(0.15,t);rg.gain.linearRampToValueAtTime(0.20,t+0.5);rg.gain.linearRampToValueAtTime(0.001,t+2.0);
+    rg.gain.setValueAtTime(0.06,t);rg.gain.linearRampToValueAtTime(0.08,t+0.5);rg.gain.linearRampToValueAtTime(0.001,t+2.0);
     r.start(t);r.stop(t+2.1);
     // Rock cracking impacts
     [0,0.15,0.35,0.5,0.7,0.9,1.1,1.3].forEach(d=>{
@@ -1078,7 +1079,7 @@ function sfxFloorCrumble(){
       const buf=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.12)),audioCtx.sampleRate);
       const data=buf.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1);
       n.buffer=buf;const ng=audioCtx.createGain();n.connect(ng);ng.connect(sfxGain);
-      ng.gain.setValueAtTime(0.12+Math.random()*0.08,t+d);ng.gain.exponentialRampToValueAtTime(0.001,t+d+0.1);
+      ng.gain.setValueAtTime(0.04+Math.random()*0.03,t+d);ng.gain.exponentialRampToValueAtTime(0.001,t+d+0.1);
       n.start(t+d);n.stop(t+d+0.12);
     });
     // Sub-bass thud impacts
@@ -1086,9 +1087,43 @@ function sfxFloorCrumble(){
       const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
       o2.connect(g2);g2.connect(sfxGain);o2.type='sine';
       o2.frequency.setValueAtTime(80,t+d);o2.frequency.exponentialRampToValueAtTime(25,t+d+0.15);
-      g2.gain.setValueAtTime(0.18,t+d);g2.gain.exponentialRampToValueAtTime(0.001,t+d+0.2);
+      g2.gain.setValueAtTime(0.07,t+d);g2.gain.exponentialRampToValueAtTime(0.001,t+d+0.2);
       o2.start(t+d);o2.stop(t+d+0.22);
     });
+  }catch(e){}
+}
+// Gravity zone SE: ascending whoosh for UP (dir=-1)
+function sfxGravUp(){
+  if(!audioCtx)return;try{
+    const t=audioCtx.currentTime;
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.connect(g);g.connect(sfxGain);o.type='sine';
+    o.frequency.setValueAtTime(200,t);o.frequency.exponentialRampToValueAtTime(800,t+0.2);
+    g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);
+    o.start(t);o.stop(t+0.3);
+    // Shimmer overtone
+    const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
+    o2.connect(g2);g2.connect(sfxGain);o2.type='triangle';
+    o2.frequency.setValueAtTime(400,t+0.05);o2.frequency.exponentialRampToValueAtTime(1200,t+0.2);
+    g2.gain.setValueAtTime(0.06,t+0.05);g2.gain.exponentialRampToValueAtTime(0.001,t+0.25);
+    o2.start(t+0.05);o2.stop(t+0.3);
+  }catch(e){}
+}
+// Gravity zone SE: descending whoosh for DOWN (dir=1)
+function sfxGravDown(){
+  if(!audioCtx)return;try{
+    const t=audioCtx.currentTime;
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.connect(g);g.connect(sfxGain);o.type='sine';
+    o.frequency.setValueAtTime(800,t);o.frequency.exponentialRampToValueAtTime(200,t+0.2);
+    g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);
+    o.start(t);o.stop(t+0.3);
+    // Low thud
+    const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
+    o2.connect(g2);g2.connect(sfxGain);o2.type='triangle';
+    o2.frequency.setValueAtTime(500,t+0.05);o2.frequency.exponentialRampToValueAtTime(120,t+0.2);
+    g2.gain.setValueAtTime(0.06,t+0.05);g2.gain.exponentialRampToValueAtTime(0.001,t+0.25);
+    o2.start(t+0.05);o2.stop(t+0.3);
   }catch(e){}
 }
 function sfxChallengeDefeat(){

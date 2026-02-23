@@ -284,8 +284,10 @@ function updateBossPhase(){
       // Only way to clear is to dodge!
       // Use minimum hitbox radius of PLAYER_R so small characters still get hit
       const dodgePr=Math.max(pr,PLAYER_R);
-      const dx=player.x-en.x,dy=player.y-en.y;
-      if(Math.sqrt(dx*dx+dy*dy)<dodgePr+en.sz*BOSS_HITBOX_SCALE){
+      const dx=player.x-en.x;
+      // Extend vertical hitbox to Y=0 so small characters can't avoid by standing still
+      const clampedDy=player.y<en.y?0:(player.y-en.y);
+      if(Math.sqrt(dx*dx+clampedDy*clampedDy)<dodgePr+en.sz*BOSS_HITBOX_SCALE){
         if(itemEff.invincible>0){
           en.alive=false;bossPhase.dodgeKills++;
           emitParts(en.x,en.y,15,'#ff00ff',4,3);sfx('stomp');shakeI=4;
@@ -345,7 +347,8 @@ function updateBossPhase(){
       const bL=b.x-hw,bR=b.x+hw;
       const headEdge=b.y-b.sz*0.75*b.gDir;
       const feetEdge=b.y+b.sz*0.5*b.gDir;
-      const minY=Math.min(headEdge,feetEdge),maxY=Math.max(headEdge,feetEdge);
+      // Extend hitbox to Y=0 so small characters can't avoid by standing still
+      const minY=0,maxY=Math.max(headEdge,feetEdge);
       const pL=player.x-pr,pR=player.x+pr;
       const pT=player.y-pr,pB=player.y+pr;
       if(pR>bL&&pL<bR&&pB>minY&&pT<maxY){

@@ -811,7 +811,8 @@ function update(dt){
       player.gDir=forceDir;player.vy=0;
       flipCount=0;player.canFlip=true;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
       const col=forceDir===1?'#4488ff':'#ff66aa';
-      sfx('milestone');vibrate([20,10,30]);shakeI=8;
+      if(forceDir===1)sfxGravDown();else sfxGravUp();
+      vibrate([20,10,30]);shakeI=8;
       emitParts(player.x,player.y,15,col,4,3);
       addPop(player.x,player.y-20*player.gDir,forceDir===1?'DOWN!':'UP!',col);
     }
@@ -1538,50 +1539,33 @@ function updateChallCollapse(){
   }
 
   if(cc.phase==='fall'){
-    // Player falls through darkness to next level
-    cc.fallY+=3+cc.timer*0.15; // accelerating scroll
-    player.vy=0; // player stays centered-ish, world scrolls
-    shakeI=Math.max(shakeI,3);
-    // Speed lines / wind particles
-    if(cc.timer%2===0){
-      parts.push({x:Math.random()*W,y:-10,vx:0,vy:8+Math.random()*6,
-        life:40,ml:40,sz:Math.random()*2+1,col:'#ffffff44'});
+    // Player falls briefly then screen fades to black
+    if(cc.timer<15){
+      // Player drops rapidly
+      player.vy+=1.5;player.grounded=false;
+      shakeI=Math.max(shakeI,5);
     }
-    // Rumble particles from sides
-    if(cc.timer%4===0){
-      const side=Math.random()<0.5?-5:W+5;
-      parts.push({x:side,y:Math.random()*H,vx:side<0?3:-3,vy:2+Math.random()*2,
-        life:20,ml:20,sz:Math.random()*4+2,col:'#665544'});
-    }
-    // After 120 frames, land on new floor
-    if(cc.timer>=120){
-      cc.phase='land';cc.timer=0;
-      // Rebuild platforms
+    // At frame 25: fully black – rebuild level
+    if(cc.timer===25){
       platforms.length=0;ceilPlats.length=0;
       platforms.push({x:player.x-100,w:300,h:GROUND_H});
       ceilPlats.push({x:player.x-100,w:300,h:GROUND_H});
       player.y=H-GROUND_H-PLAYER_R*ct().sizeMul;
       player.vy=0;player.grounded=true;player.gDir=1;
-      sfx('gstompHeavy');shakeI=20;vibrate([40,20,60]);
+    }
+    // After 80 frames: fade-in complete, transition to land
+    if(cc.timer>=80){
+      cc.phase='land';cc.timer=0;
+      sfx('gstompHeavy');shakeI=8;vibrate([30,15,40]);
     }
     return;
   }
 
   if(cc.phase==='land'){
-    // Landing impact, show wave number
-    shakeI=Math.max(shakeI,Math.max(0,10-cc.timer*0.3));
-    // Dust burst on landing
-    if(cc.timer===1){
-      for(let i=0;i<20;i++){
-        const a=(6.28/20)*i;const s=2+Math.random()*4;
-        parts.push({x:player.x,y:H-GROUND_H,vx:Math.cos(a)*s,vy:Math.sin(a)*s-2,
-          life:30+Math.random()*20,ml:50,sz:Math.random()*5+2,col:['#8a7060','#a09070','#c0b080'][i%3]});
-      }
-    }
-    // After 90 frames, transition to next boss
-    if(cc.timer>=90){
+    // Show wave number overlay then transition
+    if(cc.timer>=70){
       cc.active=false;cc.phase='none';cc.timer=0;cc.debris=[];cc.fallY=0;
-      challengeNextBossT=60; // brief pause then next boss
+      challengeNextBossT=60;
       switchBGM('challenge');
     }
     return;
