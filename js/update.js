@@ -132,10 +132,10 @@ function update(dt){
   }
   if(state===ST.STAGE_SEL){frame++;if(stageSelGuardT>0)stageSelGuardT--;return;}
   if(state===ST.TITLE){
-    // Auto-show update info on first title entry (if not dismissed)
-    if(!updateInfoShown&&localStorage.getItem('gd5updateDismissed')!==UPDATE_VER){
-      updateInfoShown=true;updateInfoOpen=true;
-    }
+    // Auto-show update info on first title entry (disabled for now)
+    // if(!updateInfoShown&&localStorage.getItem('gd5updateDismissed')!==UPDATE_VER){
+    //   updateInfoShown=true;updateInfoOpen=true;
+    // }
     titleT+=0.03;
     if(screenFadeIn>0)screenFadeIn--;
     if(unlockCelebT>0)unlockCelebT--;
