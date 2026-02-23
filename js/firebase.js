@@ -69,6 +69,57 @@ function fbSignOut() {
   if (!fbAuth) return Promise.resolve();
   return fbAuth.signOut();
 }
+// Handle auth/credential-already-in-use: sign in as existing user & migrate anon data
+function fbHandleCredentialInUse(credential, providerName) {
+  if (!fbAuth) return Promise.reject('no-firebase');
+  const oldUid = (fbUser && fbUser.isAnonymous) ? fbUser.uid : null;
+  _fbGoogleLoginInProgress = true;
+  return fbAuth.signInWithCredential(credential).then(result => {
+    fbUser = result.user;
+    fbLoginMethod = providerName;
+    localStorage.setItem('gd5loginMethod', providerName);
+    const newUid = result.user.uid;
+    // Check if the target user already has cloud data
+    return fbLoadUserData(newUid).then(existingData => {
+      if (existingData && existingData.name) {
+        // Target user has data — use it, just clean up anon
+        if (oldUid && fbDb) {
+          fbDb.collection('users').doc(oldUid).delete().catch(() => {});
+          fbDb.collection('rankings').doc(oldUid).delete().catch(() => {});
+        }
+        _fbGoogleLoginInProgress = false;
+        return existingData;
+      }
+      // Target user has no data — migrate from anonymous
+      if (oldUid && fbDb) {
+        return fbDb.collection('users').doc(oldUid).get().then(doc => {
+          if (!doc.exists) { _fbGoogleLoginInProgress = false; return null; }
+          const anonData = doc.data();
+          // Copy user data to new UID
+          return fbDb.collection('users').doc(newUid).set(anonData).then(() => {
+            // Copy ranking data too
+            return fbDb.collection('rankings').doc(oldUid).get().then(rDoc => {
+              if (rDoc.exists) {
+                return fbDb.collection('rankings').doc(newUid).set(rDoc.data());
+              }
+            });
+          }).then(() => {
+            // Delete old anonymous documents
+            fbDb.collection('users').doc(oldUid).delete().catch(() => {});
+            fbDb.collection('rankings').doc(oldUid).delete().catch(() => {});
+            _fbGoogleLoginInProgress = false;
+            return anonData;
+          });
+        }).catch(() => { _fbGoogleLoginInProgress = false; return null; });
+      }
+      _fbGoogleLoginInProgress = false;
+      return null;
+    });
+  }).catch(e => {
+    _fbGoogleLoginInProgress = false;
+    throw e;
+  });
+}
 
 // --- Auth state listener ---
 const _fbAuthReadyCallbacks = [];

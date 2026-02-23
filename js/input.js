@@ -439,12 +439,21 @@ function handleSettingsTouch(tx,ty){
           addPop(W/2,H/2,'Google\u9023\u643A\u5B8C\u4E86!','#4285f4');sfx('item');vibrate(15);
         }).catch(e=>{
           console.warn('[Firebase] Link Google error:',e);
-          if(e.code==='auth/credential-already-in-use'){
-            addPop(W/2,H/2,'\u3053\u306EGoogle\u30A2\u30AB\u30A6\u30F3\u30C8\u306F\u4ED6\u306E\u30E6\u30FC\u30B6\u30FC\u304C\u4F7F\u7528\u4E2D','#ff3860');
+          if(e.code==='auth/credential-already-in-use'&&e.credential){
+            // Credential belongs to existing user — sign in as that user & migrate data
+            fbHandleCredentialInUse(e.credential,'google').then(data=>{
+              if(data&&data.name){fbMergeCloudData(data);}
+              fbSynced=true;fbSaveUserData();
+              addPop(W/2,H/2,'Google\u9023\u643A\u5B8C\u4E86!','#4285f4');sfx('item');vibrate(15);
+            }).catch(e2=>{
+              console.warn('[Firebase] Switch error:',e2);
+              addPop(W/2,H/2,'\u9023\u643A\u306B\u5931\u6557\u3057\u307E\u3057\u305F','#ff3860');sfx('hurt');vibrate(10);
+            });
+          } else if(e.code==='auth/credential-already-in-use'){
+            addPop(W/2,H/2,'\u9023\u643A\u306B\u5931\u6557\u3057\u307E\u3057\u305F\n\u30ED\u30B0\u30A2\u30A6\u30C8\u5F8CGoogle\u3067\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044','#ff3860');sfx('hurt');vibrate(10);
           } else {
-            addPop(W/2,H/2,'\u9023\u643A\u306B\u5931\u6557\u3057\u307E\u3057\u305F','#ff3860');
+            addPop(W/2,H/2,'\u9023\u643A\u306B\u5931\u6557\u3057\u307E\u3057\u305F','#ff3860');sfx('hurt');vibrate(10);
           }
-          sfx('hurt');vibrate(10);
         });
       }
       return true;
@@ -457,12 +466,20 @@ function handleSettingsTouch(tx,ty){
           addPop(W/2,H/2,'X\u9023\u643A\u5B8C\u4E86!','#1da1f2');sfx('item');vibrate(15);
         }).catch(e=>{
           console.warn('[Firebase] Link Twitter error:',e);
-          if(e.code==='auth/credential-already-in-use'){
-            addPop(W/2,H/2,'\u3053\u306EX\u30A2\u30AB\u30A6\u30F3\u30C8\u306F\u4ED6\u306E\u30E6\u30FC\u30B6\u30FC\u304C\u4F7F\u7528\u4E2D','#ff3860');
+          if(e.code==='auth/credential-already-in-use'&&e.credential){
+            fbHandleCredentialInUse(e.credential,'twitter').then(data=>{
+              if(data&&data.name){fbMergeCloudData(data);}
+              fbSynced=true;fbSaveUserData();
+              addPop(W/2,H/2,'X\u9023\u643A\u5B8C\u4E86!','#1da1f2');sfx('item');vibrate(15);
+            }).catch(e2=>{
+              console.warn('[Firebase] Switch error:',e2);
+              addPop(W/2,H/2,'\u9023\u643A\u306B\u5931\u6557\u3057\u307E\u3057\u305F','#ff3860');sfx('hurt');vibrate(10);
+            });
+          } else if(e.code==='auth/credential-already-in-use'){
+            addPop(W/2,H/2,'\u9023\u643A\u306B\u5931\u6557\u3057\u307E\u3057\u305F\n\u30ED\u30B0\u30A2\u30A6\u30C8\u5F8CX\u3067\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044','#ff3860');sfx('hurt');vibrate(10);
           } else {
-            addPop(W/2,H/2,'\u9023\u643A\u306B\u5931\u6557\u3057\u307E\u3057\u305F','#ff3860');
+            addPop(W/2,H/2,'\u9023\u643A\u306B\u5931\u6557\u3057\u307E\u3057\u305F','#ff3860');sfx('hurt');vibrate(10);
           }
-          sfx('hurt');vibrate(10);
         });
       }
       return true;
