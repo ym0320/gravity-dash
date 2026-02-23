@@ -2635,11 +2635,11 @@ function drawTitle(){
   ctx.fillStyle='#ffffff14';rr(W-44,safeTop+6,36,36,8);ctx.fill();
   ctx.fillStyle='#fff6';ctx.font='18px monospace';ctx.textAlign='center';
   ctx.fillText('\u2699\uFE0F',W-26,safeTop+30);
-  // Help button (top right, below settings)
-  ctx.fillStyle='#ffffff14';rr(W-44,safeTop+44,36,36,8);ctx.fill();
-  ctx.strokeStyle='#4488ff44';ctx.lineWidth=1;rr(W-44,safeTop+44,36,36,8);ctx.stroke();
-  ctx.fillStyle='#4488ff';ctx.font='16px monospace';ctx.textAlign='center';
-  ctx.fillText('\u2753',W-26,safeTop+67);
+  // Help button (disabled for now)
+  // ctx.fillStyle='#ffffff14';rr(W-44,safeTop+44,36,36,8);ctx.fill();
+  // ctx.strokeStyle='#4488ff44';ctx.lineWidth=1;rr(W-44,safeTop+44,36,36,8);ctx.stroke();
+  // ctx.fillStyle='#4488ff';ctx.font='16px monospace';ctx.textAlign='center';
+  // ctx.fillText('\u2753',W-26,safeTop+67);
   // Update info button (disabled for now)
   // ctx.fillStyle='#ffffff14';rr(W-44,safeTop+82,36,36,8);ctx.fill();
   // ctx.strokeStyle='#ffd70044';ctx.lineWidth=1;rr(W-44,safeTop+82,36,36,8);ctx.stroke();
@@ -2862,24 +2862,6 @@ function drawTitle(){
       ['\u9577\u62BC\u3057','\u30AD\u30E3\u30E9\u30AF\u30BF\u30FC\u9078\u629E']
     ];
     for(const[k,v]of mobileHelp){
-      ctx.fillStyle='#fffa';ctx.textAlign='left';ctx.fillText(k,lx+8,ly);
-      ctx.fillStyle='#fff6';ctx.textAlign='right';ctx.fillText(v,rx-4,ly);
-      ly+=18;
-    }
-    ly+=10;
-    // PC section
-    ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';ctx.textAlign='left';
-    ctx.fillText('\uD83D\uDDA5 PC / \u30AD\u30FC\u30DC\u30FC\u30C9',lx,ly);
-    ly+=22;
-    ctx.font='11px monospace';
-    const pcHelp=[
-      ['Space','\u30B8\u30E3\u30F3\u30D7'],
-      ['\u2191 / \u30AF\u30EA\u30C3\u30AF\u4E0A\u534A\u5206','\u91CD\u529B\u3092\u4E0A\u306B'],
-      ['\u2193 / \u30AF\u30EA\u30C3\u30AF\u4E0B\u534A\u5206','\u91CD\u529B\u3092\u4E0B\u306B'],
-      ['\u53F3\u30AF\u30EA\u30C3\u30AF / B','\u30A2\u30A4\u30C6\u30E0\u4F7F\u7528'],
-      ['Esc','\u30DD\u30FC\u30BA / \u9589\u3058\u308B']
-    ];
-    for(const[k,v]of pcHelp){
       ctx.fillStyle='#fffa';ctx.textAlign='left';ctx.fillText(k,lx+8,ly);
       ctx.fillStyle='#fff6';ctx.textAlign='right';ctx.fillText(v,rx-4,ly);
       ly+=18;
@@ -3377,9 +3359,9 @@ function drawPause(){
   ctx.strokeStyle='#ff3860';ctx.lineWidth=2;rr(W/2-80,quitY,160,44,10);ctx.stroke();
   ctx.fillStyle='#ff3860';ctx.font='bold 18px monospace';
   ctx.fillText(isChallengeMode?'\u25A0 \u30EA\u30BF\u30A4\u30A2':'\u2716 \u30BF\u30A4\u30C8\u30EB\u3078',W/2,quitY+28);
-  // Hint
-  ctx.fillStyle='#fff3';ctx.font='11px monospace';
-  ctx.fillText('ESC:\u518D\u958B / R:\u3084\u308A\u76F4\u3059',W/2,H*0.78);
+  // PC keyboard hint (disabled for now – mobile only)
+  // ctx.fillStyle='#fff3';ctx.font='11px monospace';
+  // ctx.fillText('ESC:\u518D\u958B / R:\u3084\u308A\u76F4\u3059',W/2,H*0.78);
 }
 
 // ===== INVENTORY MODAL (title screen) =====

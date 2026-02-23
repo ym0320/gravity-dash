@@ -646,8 +646,8 @@ canvas.addEventListener('touchstart',e=>{
   if(state===ST.TUTORIAL){handleTutorialTouch(p.x,p.y);return;}
   // Settings gear button on title screen (delay for dev mode combo)
   if(state===ST.TITLE&&!charModal.show&&hitSettingsGear(p.x,p.y)){devModeGearHeld=true;return;}
-  // Help button on title screen
-  if(state===ST.TITLE&&!charModal.show&&hitHelpBtn(p.x,p.y)){sfx('select');helpOpen=true;return;}
+  // Help button on title screen (disabled for now)
+  // if(state===ST.TITLE&&!charModal.show&&hitHelpBtn(p.x,p.y)){sfx('select');helpOpen=true;return;}
   // Update info button on title screen (disabled for now)
   // if(state===ST.TITLE&&!charModal.show&&hitUpdateBtn(p.x,p.y)){sfx('select');updateInfoPage=0;updateInfoOpen=true;return;}
   if(state===ST.STAGE_SEL){stageSelTouchY=t.clientY;stageSelDragging=false;return;}
@@ -909,7 +909,7 @@ canvas.addEventListener('mousedown',e=>{
   if(state===ST.LOGIN){handleLoginTouch(p.x,p.y);return;}
   if(state===ST.TUTORIAL){handleTutorialTouch(p.x,p.y);return;}
   if(state===ST.TITLE&&!charModal.show&&hitSettingsGear(p.x,p.y)){devModeGearHeld=true;devModeGearTimer=setTimeout(()=>{if(devModeGearHeld){devModeGearHeld=false;sfx('click');settingsOpen=true;}},500);return;}
-  if(state===ST.TITLE&&!charModal.show&&hitHelpBtn(p.x,p.y)){sfx('select');helpOpen=true;return;}
+  // if(state===ST.TITLE&&!charModal.show&&hitHelpBtn(p.x,p.y)){sfx('select');helpOpen=true;return;}
   // if(state===ST.TITLE&&!charModal.show&&hitUpdateBtn(p.x,p.y)){sfx('select');updateInfoPage=0;updateInfoOpen=true;return;}
   if(state===ST.STAGE_SEL){handleStageSelTouch(p.x,p.y);return;}
   if(state===ST.STAGE_CLEAR&&stageClearT>60){
