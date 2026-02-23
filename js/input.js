@@ -783,6 +783,14 @@ canvas.addEventListener('touchend',e=>{
       player.face='flip';setTimeout(()=>{if(player.alive)player.face='normal';},250);
       emitParts(player.x,player.y,10,tc('ply'),3,2.5);
       player.rotTarget-=Math.PI;
+    } else if(player.grounded&&player._onFloatPlat){
+      // Drop through floating platform: swipe same direction as gravity
+      if((dy>0&&player.gDir===1)||(dy<0&&player.gDir===-1)){
+        player.grounded=false;
+        player.vy=player.gDir*3;
+        player._dropThrough=8; // ignore float plat landing for 8 frames
+        sfx('jump');vibrate(10);
+      }
     }
   } else if(!touchMoved||dt<200){
     // Tap: jump from current surface
