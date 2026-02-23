@@ -1067,12 +1067,13 @@ const STAGE_PACKS=[
     {id:'1-2',name:'1-2',dist:750,spdMul:1.35,seed:1002,hillChance:0.35,gapChance:0.33,enemyChance:0.28,
       coins:[{pos:0.18,yOff:-130},{pos:0.48,yOff:-320},{pos:0.78,yOff:-80}]},
     {id:'1-3',name:'1-3',dist:750,spdMul:1.5,seed:1003,hillChance:0.40,gapChance:0.38,enemyChance:0.34,
+      stageType:'chasm',
       coins:[{pos:0.22,yOff:-220},{pos:0.55,yOff:-70},{pos:0.83,yOff:-380}]},
-    {id:'1-4',name:'1-4',dist:750,spdMul:1.65,seed:1004,hillChance:0.45,gapChance:0.42,enemyChance:0.60,
-      stageType:'swarm',
+    {id:'1-4',name:'1-4',dist:750,spdMul:1.65,seed:1004,hillChance:0.45,gapChance:0.42,enemyChance:0.15,
+      stageType:'gravity',
       coins:[{pos:0.20,yOff:-320},{pos:0.50,yOff:-90},{pos:0.80,yOff:-480}]},
     {id:'1-5',name:'1-5',dist:750,spdMul:1.8,seed:1005,hillChance:0.50,gapChance:0.48,enemyChance:0.46,boss:true,
-      stageType:'moving',
+      stageType:'void',
       coins:[{pos:0.15,yOff:-380},{pos:0.48,yOff:-120},{pos:0.80,yOff:-540}]},
   ]},
   {name:'雪山',theme:1,unlock:12,starsPerStage:2,stages:[
@@ -1118,6 +1119,12 @@ let gotNewStars=0; // how many new stars obtained this clear
 let stageDeathMarks={};
 // Ambient particles for stage themes
 let ambientParts=[];
+// Challenge mode (boss rush)
+let isChallengeMode=false;
+let challengeKills=0; // total bosses defeated
+let challengePhase=0; // difficulty phase (increases every 3 kills)
+let challengeRetired=false; // true if player retired (vs died)
+let challengeNextBossT=0; // countdown timer between bosses
 
 // ===== STATE =====
 const ST={TITLE:0,PLAY:1,DEAD:2,PAUSE:3,STAGE_CLEAR:4,STAGE_SEL:5,COUNTDOWN:6,LOGIN:7,TUTORIAL:8};

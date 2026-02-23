@@ -2000,6 +2000,15 @@ function drawUI(){
     }
   }
 
+  // === TOP: Challenge mode info ===
+  if(isChallengeMode){
+    const cTop=hpY+22;
+    ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='left';
+    ctx.fillText('\u30C1\u30E3\u30EC\u30F3\u30B8',10,cTop);
+    ctx.fillStyle='#fff8';ctx.font='11px monospace';
+    ctx.fillText('\u64C3\u7834: '+challengeKills+'  \u30D5\u30A7\u30FC\u30BA: '+(challengePhase+1),10,cTop+16);
+  }
+
   // Combo display (center area)
   if(comboDspT>0&&comboDsp>1){
     const a=comboDspT/55,sc=1+(1-a)*0.25;
@@ -2295,11 +2304,11 @@ function drawTitle(){
   ctx.fillStyle='#fff5';ctx.font='10px monospace';ctx.textAlign='center';
   ctx.fillText('\u9577\u62BC\u3057\u3067\u30AD\u30E3\u30E9\u8A73\u7D30\u8868\u793A',W/2,hintY);
 
-  // Mode selection buttons (2 buttons: Endless, Stage)
+  // Mode selection buttons (2+1 layout: Endless/Stage row, Challenge below)
   const btnW=W*0.35,btnH=38,btnGap=12;
   const totalBtnW=btnW*2+btnGap;
   const btnStartX=W/2-totalBtnW/2;
-  const btnY=H*0.82;
+  const btnY=H*0.77;
 
   // Stats panel (between character grid and mode buttons)
   const statsY=hintY+16;
@@ -2331,6 +2340,16 @@ function drawTitle(){
   ctx.fillText('\u30B9\u30C6\u30FC\u30B8',sbx+btnW/2,btnY+20);
   ctx.fillStyle='#ffffff33';ctx.font='9px monospace';
   ctx.fillText('\u8FD1\u65E5\u516C\u958B',sbx+btnW/2,btnY+34);
+
+  // Challenge mode button (below, centered)
+  const cbtnW=W*0.45,cbtnH=34;
+  const cbx=W/2-cbtnW/2,cbtnY=btnY+btnH+6;
+  ctx.fillStyle='#ffffff08';rr(cbx,cbtnY,cbtnW,cbtnH,8);ctx.fill();
+  ctx.strokeStyle='#ffffff33';ctx.lineWidth=1.5;rr(cbx,cbtnY,cbtnW,cbtnH,8);ctx.stroke();
+  ctx.fillStyle='#ffffff44';ctx.font='bold 13px monospace';
+  ctx.fillText('\u30C1\u30E3\u30EC\u30F3\u30B8',W/2,cbtnY+18);
+  ctx.fillStyle='#ffffff33';ctx.font='9px monospace';
+  ctx.fillText('\u8FD1\u65E5\u516C\u958B',W/2,cbtnY+31);
 
   // Copyright (bottom center)
   ctx.fillStyle='#fff2';ctx.font='8px monospace';ctx.textAlign='center';
@@ -3043,7 +3062,11 @@ function drawPause(){
   ctx.shadowColor='#fff3';ctx.shadowBlur=12;
   ctx.fillText('\u4E00\u6642\u505C\u6B62',W/2,H*0.28);ctx.shadowBlur=0;
   ctx.fillStyle='#fff5';ctx.font='13px monospace';
-  ctx.fillText('\u30B9\u30B3\u30A2: '+score,W/2,H*0.33);
+  if(isChallengeMode){
+    ctx.fillText('\u64C3\u7834: '+challengeKills+'  \u30D5\u30A7\u30FC\u30BA: '+(challengePhase+1),W/2,H*0.33);
+  } else {
+    ctx.fillText('\u30B9\u30B3\u30A2: '+score,W/2,H*0.33);
+  }
   // HP in pause
   for(let i=0;i<maxHp();i++)drawHeart(W/2-((maxHp()-1)*13)+i*26,H*0.37,16,i<hp);
   // Resume button
@@ -3054,10 +3077,11 @@ function drawPause(){
   ctx.fillStyle='#ffa50033';rr(W/2-80,H*0.53,160,44,10);ctx.fill();
   ctx.strokeStyle='#ffa500';ctx.lineWidth=2;rr(W/2-80,H*0.53,160,44,10);ctx.stroke();
   ctx.fillStyle='#ffa500';ctx.font='bold 18px monospace';ctx.fillText('\u21BA \u3084\u308A\u76F4\u3059',W/2,H*0.53+28);
-  // Quit button
+  // Quit button (retire in challenge mode)
   ctx.fillStyle='#ff386033';rr(W/2-80,H*0.64,160,44,10);ctx.fill();
   ctx.strokeStyle='#ff3860';ctx.lineWidth=2;rr(W/2-80,H*0.64,160,44,10);ctx.stroke();
-  ctx.fillStyle='#ff3860';ctx.font='bold 18px monospace';ctx.fillText('\u2716 \u30BF\u30A4\u30C8\u30EB\u3078',W/2,H*0.64+28);
+  ctx.fillStyle='#ff3860';ctx.font='bold 18px monospace';
+  ctx.fillText(isChallengeMode?'\u25A0 \u30EA\u30BF\u30A4\u30A2':'\u2716 \u30BF\u30A4\u30C8\u30EB\u3078',W/2,H*0.64+28);
   // Hint
   ctx.fillStyle='#fff3';ctx.font='11px monospace';
   ctx.fillText('ESC:\u518D\u958B / R:\u3084\u308A\u76F4\u3059',W/2,H*0.75);
@@ -3955,6 +3979,11 @@ function drawDead(){
   const si=Math.min((deadT-15)/20,1),e=1-Math.pow(1-si,3);
   ctx.save();ctx.translate(0,-50*(1-e));ctx.globalAlpha=e;
 
+  // Challenge mode: show challenge result instead of normal game over
+  if(isChallengeMode){
+    drawChallengeResult(e);ctx.restore();ctx.globalAlpha=1;return;
+  }
+
   // "GAME OVER" title with glow
   ctx.fillStyle=tc('obs');ctx.font='bold 36px monospace';ctx.textAlign='center';
   ctx.shadowColor=tca('obs',0x66);ctx.shadowBlur=25;
@@ -4086,6 +4115,65 @@ function drawDead(){
   }
 
   ctx.restore();ctx.globalAlpha=1;
+}
+
+// ===== CHALLENGE RESULT SCREEN =====
+function drawChallengeResult(e){
+  // Title
+  const titleText=challengeRetired?'\u30EA\u30BF\u30A4\u30A2':'\u30B2\u30FC\u30E0\u30AA\u30FC\u30D0\u30FC';
+  ctx.fillStyle=challengeRetired?'#ffd700':'#ff3860';ctx.font='bold 34px monospace';ctx.textAlign='center';
+  ctx.shadowColor=(challengeRetired?'#ffd700':'#ff3860')+'66';ctx.shadowBlur=20;
+  ctx.fillText(titleText,W/2,H*0.15);ctx.shadowBlur=0;
+  // Rating based on kills
+  let cRating='',cRatingCol='#fff6';
+  if(challengeKills>=20){cRating='\u4F1D\u8AAC\u7D1A\uFF01 \u2605';cRatingCol='#ffd700';}
+  else if(challengeKills>=15){cRating='\u795E\u696D\uFF01';cRatingCol='#ff44ff';}
+  else if(challengeKills>=10){cRating='\u5320\u306E\u6280\uFF01';cRatingCol='#00e5ff';}
+  else if(challengeKills>=6){cRating='\u7D20\u6674\u3089\u3057\u3044\uFF01';cRatingCol='#34d399';}
+  else if(challengeKills>=3){cRating='\u306A\u304B\u306A\u304B\uFF01';cRatingCol='#a0d0ff';}
+  if(cRating){
+    const rp=Math.sin(deadT*0.08)*0.15+0.85;
+    ctx.globalAlpha=rp*e;ctx.fillStyle=cRatingCol;ctx.font='bold 15px monospace';
+    ctx.shadowColor=cRatingCol+'66';ctx.shadowBlur=10;
+    ctx.fillText(cRating,W/2,H*0.20);ctx.shadowBlur=0;ctx.globalAlpha=e;
+  }
+  // Result card
+  const cardW=Math.min(260,W-30),cardX=W/2-cardW/2;
+  const cardY=H*0.25,cardH=180;
+  const cardGr=ctx.createLinearGradient(cardX,cardY,cardX,cardY+cardH);
+  cardGr.addColorStop(0,'rgba(10,10,30,0.92)');cardGr.addColorStop(1,'rgba(5,5,20,0.92)');
+  ctx.fillStyle=cardGr;rr(cardX,cardY,cardW,cardH,14);ctx.fill();
+  ctx.strokeStyle='#ffd70033';ctx.lineWidth=1;rr(cardX,cardY,cardW,cardH,14);ctx.stroke();
+  // Character
+  drawCharacter(W/2,cardY+35,selChar,18,0,1,challengeRetired?'normal':'dead');
+  // Kill count (big)
+  ctx.fillStyle='#fff6';ctx.font='11px monospace';ctx.textAlign='center';
+  ctx.fillText('\u64C3\u7834\u6570',W/2,cardY+68);
+  ctx.fillStyle='#ffd700';ctx.font='bold 42px monospace';
+  ctx.shadowColor='#ffd70044';ctx.shadowBlur=12;
+  ctx.fillText(challengeKills,W/2,cardY+110);ctx.shadowBlur=0;
+  // Phase reached
+  ctx.fillStyle='#00e5ff';ctx.font='bold 14px monospace';
+  ctx.fillText('\u30D5\u30A7\u30FC\u30BA '+(challengePhase+1),W/2,cardY+135);
+  // HP display
+  ctx.fillStyle='#fff4';ctx.font='11px monospace';
+  ctx.fillText('HP: '+hp+' / '+maxHp(),W/2,cardY+158);
+  // Buttons
+  if(deadT>45){
+    const btnW2=Math.min(220,W-40),btnH2=38,btnX2=W/2-btnW2/2;
+    let btnTop=cardY+cardH+14;
+    // Retry button
+    ctx.fillStyle='#ff860018';rr(btnX2,btnTop,btnW2,btnH2,8);ctx.fill();
+    ctx.strokeStyle='#ff8600';ctx.lineWidth=1.5;rr(btnX2,btnTop,btnW2,btnH2,8);ctx.stroke();
+    ctx.fillStyle='#ff8600';ctx.font='bold 13px monospace';
+    ctx.fillText('\u21BB \u3082\u3046\u4E00\u5EA6',W/2,btnTop+24);
+    btnTop+=btnH2+8;
+    // Title button
+    ctx.fillStyle='#ff386018';rr(btnX2,btnTop,btnW2,btnH2,8);ctx.fill();
+    ctx.strokeStyle='#ff3860';ctx.lineWidth=1.5;rr(btnX2,btnTop,btnW2,btnH2,8);ctx.stroke();
+    ctx.fillStyle='#ff3860';ctx.font='bold 13px monospace';
+    ctx.fillText('\u2190 \u30BF\u30A4\u30C8\u30EB\u3078',W/2,btnTop+24);
+  }
 }
 
 // ===== STAGE SELECTION SCREEN =====

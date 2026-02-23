@@ -21,7 +21,12 @@ function update(dt){
     // Play GO sound and transition to play
     if(countdownT<=0){
       sfx('countgo');
-      state=ST.PLAY;switchBGM('play');
+      state=ST.PLAY;
+      if(isChallengeMode){
+        switchBGM('boss');challengeNextBossT=60; // brief delay then first boss
+      } else {
+        switchBGM('play');
+      }
     }
     // Animate background during countdown
     stars.forEach(s=>{s.x-=s.sp*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
@@ -414,7 +419,8 @@ function update(dt){
     });
     // Enemy spawning in pack mode (much more aggressive than endless)
     const sType=currentPackStage.stageType||'';
-    if(currentPackStage.enemyChance){
+    const pastGoal=dist>=currentPackStage.dist*0.92;
+    if(currentPackStage.enemyChance&&!pastGoal){
       const stageProgress=dist/currentPackStage.dist;
       const baseRate=currentPackStage.enemyChance;
       const progressBoost=1+stageProgress*1.5;
@@ -423,26 +429,96 @@ function update(dt){
       if(Math.random()<baseRate*progressBoost*0.5*swarmMul) trySpawnEnemy();
     }
     // Stage mode gimmicks based on stageType
-    if(sType==='moving'){
-      // Moving-only stage: heavy moving hills + floating platforms, no other gimmicks
-      trySpawnMovingHill();trySpawnMovingHill(); // double spawn rate
-      trySpawnFloatPlat();trySpawnFloatPlat();   // double spawn rate
-      trySpawnFallingMtn();                       // falling floors over gaps
+    const nearGoal=dist>=currentPackStage.dist*0.92;
+    if(sType==='gravity'){
+      // Gravity stage: massive gravity zone spawning (no platform needed)
+      if(!nearGoal){
+        if(gravZoneCD>0)gravZoneCD--;
+        if(gravZoneCD<=0){
+          const gx=W+20+Math.random()*80;
+          const gw=50+Math.random()*60;
+          const gdir=Math.random()<0.5?1:-1;
+          gravZones.push({x:gx,w:gw,triggered:false,fadeT:0,dir:gdir});
+          gravZoneCD=8+Math.floor(Math.random()*30); // very dense: 8-37 frames
+        }
+      }
+    } else if(sType==='void'){
+      // Void stage: only moving hills + falling floors, enemies still spawn
+      if(!nearGoal){
+        trySpawnMovingHill();trySpawnMovingHill();trySpawnMovingHill(); // triple
+        trySpawnFallingMtn();trySpawnFallingMtn(); // double
+      }
+    } else if(sType==='chasm'){
+      // Chasm stage: gravity zones + floating platforms for up/down navigation
+      if(!nearGoal){
+        trySpawnGravZone();
+        trySpawnFloatPlat();trySpawnFloatPlat();
+        trySpawnMovingHill();
+      }
+    } else if(sType==='moving'){
+      // Moving-only stage: heavy moving hills + floating platforms
+      if(!nearGoal){
+        trySpawnMovingHill();trySpawnMovingHill();
+        trySpawnFloatPlat();trySpawnFloatPlat();
+        trySpawnFallingMtn();
+      }
     } else if(sType==='swarm'){
-      // Swarm stage: primarily enemies, but add floating platforms too
-      trySpawnFloatPlat();trySpawnFloatPlat();
-      trySpawnMovingHill();
-      trySpawnSpike();
+      // Swarm stage: primarily enemies, add floating platforms
+      if(!nearGoal){
+        trySpawnFloatPlat();trySpawnFloatPlat();
+        trySpawnMovingHill();
+        trySpawnSpike();
+      }
     } else {
       // Normal stage: all gimmicks
-      trySpawnFloatPlat();
-      trySpawnSpike();
-      trySpawnMovingHill();
-      trySpawnGravZone();
-      trySpawnFallingMtn();
+      if(!nearGoal){
+        trySpawnFloatPlat();
+        trySpawnSpike();
+        trySpawnMovingHill();
+        trySpawnGravZone();
+        trySpawnFallingMtn();
+      }
     }
     // Ambient particles for theme
     updateAmbient();
+  }
+  // === CHALLENGE MODE: flat terrain + boss rush ===
+  if(isChallengeMode){
+    // Generate flat terrain (always)
+    if(platforms.length===0)platforms.push({x:player.x-30,w:200,h:GROUND_H});
+    if(ceilPlats.length===0)ceilPlats.push({x:player.x-30,w:200,h:GROUND_H});
+    while(platforms[platforms.length-1].x+platforms[platforms.length-1].w<W+300){
+      const last=platforms[platforms.length-1];
+      platforms.push({x:last.x+last.w,w:150+Math.random()*100,h:GROUND_H});
+    }
+    while(ceilPlats[ceilPlats.length-1].x+ceilPlats[ceilPlats.length-1].w<W+300){
+      const last=ceilPlats[ceilPlats.length-1];
+      ceilPlats.push({x:last.x+last.w,w:150+Math.random()*100,h:GROUND_H});
+    }
+    // Boss chaining: spawn next boss after reward phase ends
+    if(challengeNextBossT>0){
+      challengeNextBossT--;
+      if(challengeNextBossT<=0){
+        // Recover HP between bosses
+        hp=maxHp();
+        // Set bossCount for scaling: base + phase boost
+        bossPhase.bossCount=challengeKills+challengePhase*3;
+        startBossPhase();
+      }
+    }
+    // After boss reward ends, queue next boss
+    if(!bossPhase.active&&!bossPhase.reward&&bossPhase.bossCount>0&&challengeNextBossT<=0){
+      challengeKills++;
+      challengePhase=Math.floor(challengeKills/3);
+      // Brief pause before next boss
+      challengeNextBossT=120; // 2 seconds
+      addPop(W/2,H*0.3,'\u64C3\u7834: '+challengeKills,'#ffd700');
+      addPop(W/2,H*0.4,'\u6B21\u306E\u30DC\u30B9\u307E\u3067\u4F11\u61A9...','#fff8');
+    }
+    // Update boss phase during challenge
+    if(bossPhase.active||bossPhase.reward){
+      updateBossPhase();
+    }
   }
   // Generate new platforms ahead (endless mode only)
   if(gameMode==='endless'&&!isPackMode){
