@@ -23,7 +23,7 @@ function update(dt){
       sfx('countgo');
       state=ST.PLAY;
       if(isChallengeMode){
-        switchBGM('boss');challengeNextBossT=60; // brief delay then first boss
+        switchBGM('challenge');challengeNextBossT=60; // brief delay then first boss
       } else {
         switchBGM('play');
       }
@@ -46,14 +46,8 @@ function update(dt){
     if(tutWarpPhase==='welcome'||tutWarpPhase==='warp'){
       tutWarpT++;
       if(tutWarpPhase==='warp'&&tutWarpT>150){
-        if(tutIsIntro){
-          // Intro done – start actual tutorial gameplay
-          tutWarpPhase='';tutWarpT=0;tutIsIntro=false;
-          screenFadeIn=30;
-        } else {
-          state=ST.TITLE;switchBGM('title');tutWarpPhase='';tutWarpT=0;
-          screenFadeIn=90;
-        }
+        state=ST.TITLE;switchBGM('title');tutWarpPhase='';tutWarpT=0;
+        screenFadeIn=90;
       }
       return;
     }
@@ -443,11 +437,19 @@ function update(dt){
         }
       }
     } else if(sType==='void'){
-      // Void stage: massive platform-only gauntlet, no enemies
+      // Void stage: wall-heavy stage with gravity navigation
       if(!nearGoal){
-        trySpawnMovingHill();trySpawnMovingHill();trySpawnMovingHill();trySpawnMovingHill(); // quad
-        trySpawnFallingMtn();trySpawnFallingMtn();trySpawnFallingMtn(); // triple
-        trySpawnFloatPlat();trySpawnFloatPlat(); // floating platforms too
+        // Dense gravity zones for wall avoidance
+        if(gravZoneCD>0)gravZoneCD--;
+        if(gravZoneCD<=0){
+          const gx=W+20+Math.random()*60;
+          const gw=40+Math.random()*50;
+          const gdir=Math.random()<0.5?1:-1;
+          gravZones.push({x:gx,w:gw,triggered:false,fadeT:0,dir:gdir});
+          gravZoneCD=15+Math.floor(Math.random()*25);
+        }
+        trySpawnMovingHill();trySpawnMovingHill(); // some dynamic obstacles
+        trySpawnFloatPlat(); // helpful floating platforms
       }
     } else if(sType==='chasm'){
       // Chasm stage: gravity zones + floating platforms for up/down navigation
@@ -496,8 +498,12 @@ function update(dt){
       const last=ceilPlats[ceilPlats.length-1];
       ceilPlats.push({x:last.x+last.w,w:150+Math.random()*100,h:GROUND_H});
     }
-    // Boss chaining: spawn next boss after reward phase ends
-    if(challengeNextBossT>0){
+    // Floor collapse animation update
+    if(challCollapse.active){
+      updateChallCollapse();
+    }
+    // Boss chaining: spawn next boss after collapse ends
+    if(challengeNextBossT>0&&!challCollapse.active){
       challengeNextBossT--;
       if(challengeNextBossT<=0){
         // Recover HP between bosses
@@ -507,14 +513,13 @@ function update(dt){
         startBossPhase();
       }
     }
-    // After boss reward ends, queue next boss
-    if(!bossPhase.active&&!bossPhase.reward&&bossPhase.bossCount>0&&challengeNextBossT<=0){
+    // After boss reward ends, trigger floor collapse
+    if(!bossPhase.active&&!bossPhase.reward&&bossPhase.bossCount>0&&challengeNextBossT<=0&&!challCollapse.active){
       challengeKills++;
       challengePhase=Math.floor(challengeKills/3);
-      // Brief pause before next boss
-      challengeNextBossT=120; // 2 seconds
-      addPop(W/2,H*0.3,'\u64C3\u7834: '+challengeKills,'#ffd700');
-      addPop(W/2,H*0.4,'\u6B21\u306E\u30DC\u30B9\u307E\u3067\u4F11\u61A9...','#fff8');
+      challCollapse.waveNum=challengeKills+1;
+      // Start floor collapse sequence
+      startChallCollapse();
     }
     // Update boss phase during challenge
     if(bossPhase.active||bossPhase.reward){
@@ -638,6 +643,26 @@ function update(dt){
     }
     if(player.y-pr<=surfY&&surfY>-100){
       player.y=surfY+pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
+    }
+  }
+
+  // Wall collision for floor/ceiling platform edges
+  {
+    const wallArr=player.gDir===1?platforms:ceilPlats;
+    for(let wi=0;wi<wallArr.length;wi++){
+      const wp=wallArr[wi];
+      const surfY=player.gDir===1?(H-wp.h):wp.h;
+      // Check if player is at platform height level (between surface and edge)
+      const inY=player.gDir===1?(player.y+pr>surfY&&player.y-pr<H):(player.y-pr<surfY&&player.y+pr>0);
+      if(!inY)continue;
+      // Left edge wall: player hitting the left side of the platform
+      if(player.x+pr>wp.x&&player.x+pr<wp.x+8&&player.x<wp.x){
+        player.x=wp.x-pr;
+      }
+      // Right edge wall: player hitting the right side
+      if(player.x-pr<wp.x+wp.w&&player.x-pr>wp.x+wp.w-8&&player.x>wp.x+wp.w){
+        player.x=wp.x+wp.w+pr;
+      }
     }
   }
 
@@ -1378,4 +1403,167 @@ function drawAmbient(){
     }
   });
   ctx.globalAlpha=1;
+}
+
+// ===== CHALLENGE MODE: FLOOR COLLAPSE SYSTEM =====
+function startChallCollapse(){
+  const cc=challCollapse;
+  cc.active=true;
+  cc.timer=0;
+  cc.debris=[];
+  cc.shakeAmt=0;
+  cc.fallY=0;
+  // If player is on ceiling, force them down first
+  if(player.gDir===-1){
+    cc.phase='forceDown';
+  } else {
+    cc.phase='rumble';
+    sfxFloorCrumble();switchBGM('collapse');
+  }
+}
+function updateChallCollapse(){
+  const cc=challCollapse;
+  cc.timer++;
+  const floorY=H-GROUND_H;
+  const ceilY=GROUND_H;
+
+  if(cc.phase==='forceDown'){
+    // Force player off ceiling to floor
+    player.gDir=1;player.grounded=false;
+    player.vy=2; // gentle push down
+    // Check if player landed on floor
+    const sy=floorSurfaceY(player.x);
+    if(player.y+PLAYER_R*ct().sizeMul>=sy-5){
+      player.y=sy-PLAYER_R*ct().sizeMul;
+      player.vy=0;player.grounded=true;
+      cc.phase='rumble';cc.timer=0;
+      sfxFloorCrumble();switchBGM('collapse');
+    }
+    // Timeout safety
+    if(cc.timer>120){
+      player.y=floorY-PLAYER_R*ct().sizeMul;
+      player.vy=0;player.grounded=true;player.gDir=1;
+      cc.phase='rumble';cc.timer=0;
+      sfxFloorCrumble();switchBGM('collapse');
+    }
+    return;
+  }
+
+  if(cc.phase==='rumble'){
+    // Ground shaking builds up over 90 frames
+    cc.shakeAmt=Math.min(20,cc.timer*0.25);
+    shakeI=Math.max(shakeI,cc.shakeAmt);
+    // Generate cracks and dust from floor
+    if(cc.timer%3===0){
+      const cx=Math.random()*W;
+      parts.push({x:cx,y:floorY,vx:(Math.random()-0.5)*3,vy:-2-Math.random()*4,
+        life:25+Math.random()*15,ml:40,sz:Math.random()*4+2,col:['#8a7060','#a09070','#665544'][Math.floor(Math.random()*3)]});
+    }
+    // Ceiling dust too
+    if(cc.timer%5===0){
+      const cx=Math.random()*W;
+      parts.push({x:cx,y:ceilY,vx:(Math.random()-0.5)*2,vy:1+Math.random()*3,
+        life:20+Math.random()*10,ml:30,sz:Math.random()*3+1,col:'#8a7060'});
+    }
+    // After 90 frames, start the collapse
+    if(cc.timer>=90){
+      cc.phase='collapse';cc.timer=0;
+      // Generate debris pieces from floor breaking apart
+      const numDebris=30;
+      for(let i=0;i<numDebris;i++){
+        const dw=15+Math.random()*35;
+        const dh=10+Math.random()*25;
+        const dx=Math.random()*W;
+        const dy=floorY-Math.random()*GROUND_H;
+        cc.debris.push({
+          x:dx,y:dy,w:dw,h:dh,
+          vx:(Math.random()-0.5)*4,
+          vy:2+Math.random()*5,
+          rot:Math.random()*6.28,
+          rotV:(Math.random()-0.5)*0.15,
+          col:['#4a3a2a','#5a4a3a','#6a5a4a','#3a2a1a','#8a7060'][Math.floor(Math.random()*5)],
+          alpha:1
+        });
+      }
+      sfx('earthquake');shakeI=25;vibrate([60,30,80,40,100,50,80]);
+    }
+    return;
+  }
+
+  if(cc.phase==='collapse'){
+    // Floor breaks apart - debris falls with gravity and rotation
+    shakeI=Math.max(shakeI,15-cc.timer*0.1);
+    // Remove floor platforms visually (shift them down)
+    platforms.forEach(p=>{p.h=Math.max(0,p.h-2);});
+    // Update debris
+    cc.debris.forEach(d=>{
+      d.vy+=0.3; // gravity
+      d.x+=d.vx;
+      d.y+=d.vy;
+      d.rot+=d.rotV;
+      d.alpha=Math.max(0,1-(d.y-H)/200);
+    });
+    cc.debris=cc.debris.filter(d=>d.y<H+300);
+    // Generate extra falling dust
+    if(cc.timer%2===0){
+      parts.push({x:Math.random()*W,y:floorY+cc.timer*2,vx:(Math.random()-0.5)*2,vy:3+Math.random()*3,
+        life:30,ml:30,sz:Math.random()*5+2,col:'#8a7060'});
+    }
+    // After 60 frames, player starts falling
+    if(cc.timer>=60){
+      cc.phase='fall';cc.timer=0;
+      player.grounded=false;player.vy=0;
+    }
+    return;
+  }
+
+  if(cc.phase==='fall'){
+    // Player falls through darkness to next level
+    cc.fallY+=3+cc.timer*0.15; // accelerating scroll
+    player.vy=0; // player stays centered-ish, world scrolls
+    shakeI=Math.max(shakeI,3);
+    // Speed lines / wind particles
+    if(cc.timer%2===0){
+      parts.push({x:Math.random()*W,y:-10,vx:0,vy:8+Math.random()*6,
+        life:40,ml:40,sz:Math.random()*2+1,col:'#ffffff44'});
+    }
+    // Rumble particles from sides
+    if(cc.timer%4===0){
+      const side=Math.random()<0.5?-5:W+5;
+      parts.push({x:side,y:Math.random()*H,vx:side<0?3:-3,vy:2+Math.random()*2,
+        life:20,ml:20,sz:Math.random()*4+2,col:'#665544'});
+    }
+    // After 120 frames, land on new floor
+    if(cc.timer>=120){
+      cc.phase='land';cc.timer=0;
+      // Rebuild platforms
+      platforms.length=0;ceilPlats.length=0;
+      platforms.push({x:player.x-100,w:300,h:GROUND_H});
+      ceilPlats.push({x:player.x-100,w:300,h:GROUND_H});
+      player.y=H-GROUND_H-PLAYER_R*ct().sizeMul;
+      player.vy=0;player.grounded=true;player.gDir=1;
+      sfx('gstompHeavy');shakeI=20;vibrate([40,20,60]);
+    }
+    return;
+  }
+
+  if(cc.phase==='land'){
+    // Landing impact, show wave number
+    shakeI=Math.max(shakeI,Math.max(0,10-cc.timer*0.3));
+    // Dust burst on landing
+    if(cc.timer===1){
+      for(let i=0;i<20;i++){
+        const a=(6.28/20)*i;const s=2+Math.random()*4;
+        parts.push({x:player.x,y:H-GROUND_H,vx:Math.cos(a)*s,vy:Math.sin(a)*s-2,
+          life:30+Math.random()*20,ml:50,sz:Math.random()*5+2,col:['#8a7060','#a09070','#c0b080'][i%3]});
+      }
+    }
+    // After 90 frames, transition to next boss
+    if(cc.timer>=90){
+      cc.active=false;cc.phase='none';cc.timer=0;cc.debris=[];cc.fallY=0;
+      challengeNextBossT=60; // brief pause then next boss
+      switchBGM('challenge');
+    }
+    return;
+  }
 }

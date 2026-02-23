@@ -1575,7 +1575,8 @@ function startTutorial(){
   tutStep=0;tutStepT=0;tutDone=false;tutEnemySpawned=false;
   tutScrollX=0;tutSpeed=1.5;tutWaiting=false;
   tutPhase='scroll';tutSuccessT=0;tutFlipCount=0;
-  tutWarpT=0;tutWarpPhase='welcome';tutIsIntro=true;tutFreezePlayer=false;
+  tutWarpT=0;tutWarpPhase='';tutIsIntro=false;tutFreezePlayer=false;
+  screenFadeIn=30;
   bombCount=0;invCount=0;
   buildTutorialCourse();
   player.x=W*0.25;player.gDir=1;player.vy=0;

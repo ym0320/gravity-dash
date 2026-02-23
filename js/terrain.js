@@ -233,10 +233,35 @@ function generatePackPlatform(arr,isCeil,stage){
     arr.push({x:lastRight,w:200+rng()*100,h:GROUND_H});
     return;
   }
-  // --- VOID stage (1-5): all abyss, tiny ref platforms ---
+  // --- VOID stage (1-5): walls protrude from center, gravity navigation ---
   if(sType==='void'){
-    const gap=150+rng()*250;
-    arr.push({x:lastRight+gap,w:25+rng()*30,h:GROUND_H});
+    const progress=approxDist/stage.dist; // 0→1
+    if(approxDist<30){
+      // Starting area: safe flat platform
+      arr.push({x:lastRight,w:120+rng()*60,h:GROUND_H});
+      return;
+    }
+    if(progress>=0.88){
+      // Goal area: massive walls from both sides converge, very narrow gap
+      const goalH=H*0.45; // walls protrude to 45% of screen
+      const gap=rng()*15;
+      arr.push({x:lastRight+gap,w:40+rng()*20,h:goalH});
+      return;
+    }
+    // Middle: alternating large walls that protrude into center
+    // Player must weave through by switching gravity
+    const wallChance=0.6+progress*0.2;
+    if(rng()<wallChance){
+      // Large protruding wall
+      const wallH=H*0.28+rng()*H*0.15; // 28-43% of screen height
+      const wallW=60+rng()*80;
+      const gap=20+rng()*40;
+      arr.push({x:lastRight+gap,w:wallW,h:wallH});
+    } else {
+      // Normal segment or small gap
+      const gap=30+rng()*60;
+      arr.push({x:lastRight+gap,w:40+rng()*50,h:GROUND_H});
+    }
     return;
   }
   // --- GRAVITY stage (1-4): start land → all abyss → narrow goal ---
