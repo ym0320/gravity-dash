@@ -443,10 +443,11 @@ function update(dt){
         }
       }
     } else if(sType==='void'){
-      // Void stage: only moving hills + falling floors, enemies still spawn
+      // Void stage: massive platform-only gauntlet, no enemies
       if(!nearGoal){
-        trySpawnMovingHill();trySpawnMovingHill();trySpawnMovingHill(); // triple
-        trySpawnFallingMtn();trySpawnFallingMtn(); // double
+        trySpawnMovingHill();trySpawnMovingHill();trySpawnMovingHill();trySpawnMovingHill(); // quad
+        trySpawnFallingMtn();trySpawnFallingMtn();trySpawnFallingMtn(); // triple
+        trySpawnFloatPlat();trySpawnFloatPlat(); // floating platforms too
       }
     } else if(sType==='chasm'){
       // Chasm stage: gravity zones + floating platforms for up/down navigation
@@ -640,24 +641,41 @@ function update(dt){
     }
   }
 
-  // Floating platform collision (mid-air landing)
-  if(!player.grounded){
+  // Drop-through timer countdown
+  if(player._dropThrough>0)player._dropThrough--;
+  // Clear onFloatPlat when not grounded
+  if(!player.grounded)player._onFloatPlat=null;
+  // Floating platform collision (mid-air landing + wall)
+  if(!player.grounded&&!player._dropThrough){
     for(let fi=0;fi<floatPlats.length;fi++){
       const fp=floatPlats[fi];
       if(player.x>=fp.x-pr*0.5&&player.x<=fp.x+fp.w+pr*0.5){
         if(player.gDir===1&&player.vy>=0){
-          // Falling onto top of float plat
           if(player.y+pr>=fp.y&&player.y+pr<fp.y+fp.th+8){
             player.y=fp.y-pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
+            player._onFloatPlat=fp;
             break;
           }
         } else if(player.gDir===-1&&player.vy<=0){
-          // Rising into bottom of float plat
           if(player.y-pr<=fp.y+fp.th&&player.y-pr>fp.y-8){
             player.y=fp.y+fp.th+pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
+            player._onFloatPlat=fp;
             break;
           }
         }
+      }
+    }
+  }
+  // Floating platform wall collision (side push-back)
+  for(let fi=0;fi<floatPlats.length;fi++){
+    const fp=floatPlats[fi];
+    if(player.y+pr>fp.y&&player.y-pr<fp.y+fp.th){
+      if(player.x+pr>fp.x&&player.x-pr<fp.x+fp.w){
+        // Player overlaps platform vertically - push out from nearest side
+        const overlapL=player.x+pr-fp.x;
+        const overlapR=fp.x+fp.w-(player.x-pr);
+        if(overlapL<overlapR){player.x=fp.x-pr;}
+        else{player.x=fp.x+fp.w+pr;}
       }
     }
   }
@@ -699,9 +717,10 @@ function update(dt){
   movingHills.forEach(mh=>{
     const curH=mh.baseH+Math.sin(mh.phase)*mh.ampH;
     if(player.x+pr>mh.x&&player.x-pr<mh.x+mh.w){
+      const surfY=mh.isFloor?H-curH:curH;
+      const thickness=20;
       if(!mh.isFloor){
-        // Ceiling moving hill
-        const surfY=curH;
+        // Ceiling moving hill - landing
         if(player.gDir===-1){
           if(player.y-pr<=surfY&&player.y-pr>surfY-20&&player.vy<=0){
             player.y=surfY+pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
@@ -709,15 +728,28 @@ function update(dt){
             player.y=surfY+pr;
           }
         }
+        // Ceiling hill wall: block player from entering from side
+        if(player.y-pr<surfY+thickness&&player.y+pr>surfY-curH){
+          const overlapL=player.x+pr-mh.x;
+          const overlapR=mh.x+mh.w-(player.x-pr);
+          if(overlapL>0&&overlapR>0&&overlapL<overlapR){player.x=mh.x-pr;}
+          else if(overlapL>0&&overlapR>0){player.x=mh.x+mh.w+pr;}
+        }
       } else {
-        // Floor moving hill
-        const surfY=H-curH;
+        // Floor moving hill - landing
         if(player.gDir===1){
           if(player.y+pr>=surfY&&player.y+pr<surfY+20&&player.vy>=0){
             player.y=surfY-pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
           } else if(player.y+pr>surfY+4&&player.y-pr<surfY&&player.grounded){
             player.y=surfY-pr;
           }
+        }
+        // Floor hill wall: block player from entering from side
+        if(player.y+pr>surfY&&player.y-pr<surfY+curH){
+          const overlapL=player.x+pr-mh.x;
+          const overlapR=mh.x+mh.w-(player.x-pr);
+          if(overlapL>0&&overlapR>0&&overlapL<overlapR){player.x=mh.x-pr;}
+          else if(overlapL>0&&overlapR>0){player.x=mh.x+mh.w+pr;}
         }
       }
     }
@@ -801,6 +833,21 @@ function update(dt){
         }
         if(fm.curH<=-50)fm.state='gone';
         if(frame%3===0)emitParts(fm.x+Math.random()*fm.w,Math.max(0,fm.curH),2,tc('gnd'),2,1);
+      }
+    }
+    // Wall collision for falling mountains (side push-back)
+    if(fm.state!=='gone'&&fm.curH>0&&player.x+pr>fm.x&&player.x-pr<fm.x+fm.w){
+      const isCeil2=!fm.isFloor;
+      const surfY3=isCeil2?fm.curH:(H-fm.curH);
+      const botY=isCeil2?0:surfY3;
+      const topY=isCeil2?surfY3:H;
+      if(player.y+pr>botY&&player.y-pr<topY){
+        const overlapL=player.x+pr-fm.x;
+        const overlapR=fm.x+fm.w-(player.x-pr);
+        if(overlapL>0&&overlapR>0){
+          if(overlapL<overlapR){player.x=fm.x-pr;}
+          else{player.x=fm.x+fm.w+pr;}
+        }
       }
     }
   });

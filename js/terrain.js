@@ -239,17 +239,19 @@ function generatePackPlatform(arr,isCeil,stage){
     arr.push({x:lastRight+gap,w:25+rng()*30,h:GROUND_H});
     return;
   }
-  // --- GRAVITY stage (1-4): start land → all abyss → high land at end ---
+  // --- GRAVITY stage (1-4): start land → all abyss → narrow goal ---
   if(sType==='gravity'){
     if(approxDist<30){
       // Starting area: solid platform
       arr.push({x:lastRight,w:120+rng()*80,h:GROUND_H});
       return;
     }
-    if(approxDist>=stage.dist*0.88){
-      // Near goal: high altitude landing platform
-      const highH=Math.min(H*0.38,H*0.28+rng()*30);
-      arr.push({x:lastRight+15+rng()*25,w:180+rng()*120,h:highH});
+    if(approxDist>=stage.dist*0.92){
+      // Goal area: terrain converges from top and bottom, leaving only flag-width gap
+      // Floor rises very high (H*0.45) and ceiling descends (H*0.45)
+      // Only a narrow ~40px landing strip at the goal point
+      const goalH=H*0.45; // floor rises to 45% of screen height
+      arr.push({x:lastRight+10,w:40,h:goalH});
       return;
     }
     // Middle: all void with tiny reference platforms
