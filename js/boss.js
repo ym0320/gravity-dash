@@ -4,6 +4,7 @@ function startBossPhase(){
   bossPhase.active=true;
   bossPhase.prepare=120;
   bossPhase.alertT=0;
+  bossPhase.hintT=0;
   bossPhase.noDamage=true; // track if player takes no damage during boss
   bossPhase.bossType=''; // track boss type for victory check
   bossPhase.enemies=[];
@@ -193,6 +194,8 @@ function updateBossPhase(){
       // Boss roar after spawning
       const bt=bossPhase.guardian?'guardian':bossPhase.bruiser?'bruiser':bossPhase.wizard?'wizard':'dodge';
       sfxBossRoar(bt);
+      // Show boss instruction hint
+      bossPhase.hintT=300; // display for ~5 seconds
     }
     return;
   }
@@ -283,6 +286,8 @@ function updateBossPhase(){
       }
     }
   });
+  // Decrement boss hint timer
+  if(bossPhase.hintT>0)bossPhase.hintT--;
   // Phase B: bruiser logic (supports multiple bruisers)
   const allBruisers=bossPhase.enemies.filter(e=>e.bossType==='bruiser'&&e.alive);
   if(bossPhase.bruiser&&bossPhase.bruiser.alive&&!allBruisers.includes(bossPhase.bruiser)){
@@ -329,7 +334,7 @@ function updateBossPhase(){
       const hw=b.sz*0.65;
       const bL=b.x-hw,bR=b.x+hw;
       const headEdge=b.y-b.sz*0.75*b.gDir;
-      const feetEdge=b.y+b.sz*0.5*b.gDir;
+      const feetEdge=b.y+b.sz*0.9*b.gDir;
       const minY=Math.min(headEdge,feetEdge),maxY=Math.max(headEdge,feetEdge);
       const pL=player.x-pr,pR=player.x+pr;
       const pT=player.y-pr,pB=player.y+pr;

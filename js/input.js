@@ -1087,14 +1087,18 @@ document.addEventListener('keydown',e=>{
     if(state===ST.PLAY&&player.canFlip&&!player._quakeStunned&&player.gDir===1){
       flipCount++;flipTimer=0;
       player.gDir=-1;player.vy=-2;totalFlips++;player.canFlip=flipCount<ct().maxFlip;sfx('flip');vibrate(20);player.rotTarget-=Math.PI;emitParts(player.x,player.y,10,tc('ply'),3,2.5);
+    } else if(state===ST.PLAY&&player.grounded&&player._onFloatPlat&&player.gDir===-1){
+      player.grounded=false;player.vy=player.gDir*3;player._dropThrough=15;sfx('jump');vibrate(10);
     }
   }
-  // ArrowDown: gravity flip to floor (gDir -1→1)
+  // ArrowDown: gravity flip to floor (gDir -1→1) OR drop through floatPlat (gDir 1)
   if(e.code==='ArrowDown'){
     e.preventDefault();
     if(state===ST.PLAY&&player.canFlip&&!player._quakeStunned&&player.gDir===-1){
       flipCount++;flipTimer=0;
       player.gDir=1;player.vy=2;totalFlips++;player.canFlip=flipCount<ct().maxFlip;sfx('flip');vibrate(20);player.rotTarget+=Math.PI;emitParts(player.x,player.y,10,tc('ply'),3,2.5);
+    } else if(state===ST.PLAY&&player.grounded&&player._onFloatPlat&&player.gDir===1){
+      player.grounded=false;player.vy=player.gDir*3;player._dropThrough=15;sfx('jump');vibrate(10);
     }
   }
   if((e.code==='KeyB'||e.code==='KeyX')&&state===ST.PLAY){e.preventDefault();useBomb();}

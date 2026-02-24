@@ -961,8 +961,8 @@ function update(dt){
   coinSwitches.forEach(cs=>{
     if(cs.activated)return;
     const dx3=player.x-cs.x,dy3=player.y-cs.y;
-    const d3=Math.sqrt(dx3*dx3+dy3*dy3);
-    if(d3<pr+cs.r+4){
+    const csR=pr+cs.r+4;
+    if(dx3*dx3+dy3*dy3<csR*csR){
       cs.activated=true;cs.flashT=40;
       sfx('item');vibrate([15,10,15]);shakeI=4;
       addPop(cs.x,cs.y-20,'\u30B3\u30A4\u30F3\u30B9\u30A4\u30C3\u30C1!',COIN_SW_COL);
@@ -1018,13 +1018,13 @@ function update(dt){
       let cd=pr+c.sz;
       const charMag=ct().coinMag;
       if(itemEff.magnet>0||charMag>0){
-        const dx=player.x-c.x,dy=player.y-c.y,d=Math.sqrt(dx*dx+dy*dy);
+        const dx=player.x-c.x,dy=player.y-c.y,d2=dx*dx+dy*dy;
         const magR=itemEff.magnet>0?180:charMag;
         const magStr=itemEff.magnet>0?0.12:0.06;
-        if(d<magR){c.x+=dx*magStr;c.y+=dy*magStr;}if(itemEff.magnet>0)cd*=1.8;
+        if(d2<magR*magR){c.x+=dx*magStr;c.y+=dy*magStr;}if(itemEff.magnet>0)cd*=1.8;
       }
       const dx=player.x-c.x,dy=player.y-c.y;
-      if(Math.sqrt(dx*dx+dy*dy)<cd){
+      if(dx*dx+dy*dy<cd*cd){
         c.col=true;totalCoins++;combo++;comboDsp=combo;comboDspT=55;
         if(combo>maxCombo)maxCombo=combo;
         const pinkMul=score>=PINK_COIN_SCORE?PINK_COIN_MUL:1;
@@ -1053,7 +1053,7 @@ function update(dt){
     it.x-=speed;it.p+=0.06;
     if(!it.col){
       const dx=player.x-it.x,dy=player.y-it.y;
-      if(Math.sqrt(dx*dx+dy*dy)<pr+it.sz){
+      if(dx*dx+dy*dy<(pr+it.sz)*(pr+it.sz)){
         it.col=true;
         applyItem(it.t);
         addPop(it.x,it.y-18,ITEMS[it.t].name+'!',ITEMS[it.t].col);
@@ -1275,8 +1275,8 @@ function update(dt){
       return;
     }
     const dx=player.x-en.x,dy=player.y-en.y;
-    const d=Math.sqrt(dx*dx+dy*dy);
-    if(d<pr+en.sz){
+    const enR=pr+en.sz;
+    if(dx*dx+dy*dy<enR*enR){
       // Invincible: destroy enemy on contact
       if(itemEff.invincible>0){
         en.alive=false;

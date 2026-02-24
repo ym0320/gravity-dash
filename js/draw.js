@@ -98,23 +98,23 @@ function drawLogin(){} // Login is HTML overlay, nothing to draw on canvas
 function drawTutorial(){
   // Draw tutorial course platforms relative to scroll
   ctx.save();
-  // Floor platforms
+  // Floor platforms (cached gradient)
+  const tutFlGr=ctx.createLinearGradient(0,0,0,H);
+  tutFlGr.addColorStop(0,tc('gnd'));tutFlGr.addColorStop(1,tc('gnd2'));
   tutCoursePlats.forEach(p=>{
     const sx=p.x-tutScrollX;
     if(sx+p.w<-20||sx>W+20)return;
     const surfY=H-p.h;
-    const gr=ctx.createLinearGradient(0,surfY,0,H);
-    gr.addColorStop(0,tc('gnd'));gr.addColorStop(1,tc('gnd2'));
-    ctx.fillStyle=gr;ctx.fillRect(sx,surfY,p.w,p.h+10);
+    ctx.fillStyle=tutFlGr;ctx.fillRect(sx,surfY,p.w,p.h+10);
     ctx.fillStyle=tc('line');ctx.fillRect(sx,surfY,p.w,3);
   });
-  // Ceiling platforms
+  // Ceiling platforms (cached gradient)
+  const tutClGr=ctx.createLinearGradient(0,0,0,H);
+  tutClGr.addColorStop(0,tc('gnd2'));tutClGr.addColorStop(1,tc('gnd'));
   tutCourseCeil.forEach(p=>{
     const sx=p.x-tutScrollX;
     if(sx+p.w<-20||sx>W+20)return;
-    const gr=ctx.createLinearGradient(0,0,0,p.h);
-    gr.addColorStop(0,tc('gnd2'));gr.addColorStop(1,tc('gnd'));
-    ctx.fillStyle=gr;ctx.fillRect(sx,-10,p.w,p.h+10);
+    ctx.fillStyle=tutClGr;ctx.fillRect(sx,-10,p.w,p.h+10);
     ctx.fillStyle=tc('line');ctx.fillRect(sx,p.h,p.w,3);
   });
   // Spikes
@@ -496,14 +496,15 @@ function drawIconHanger(cx,cy,col){
 }
 
 function drawPlatforms(arr,isFloor){
+  // Cache gradient once for all platforms (covers full height)
+  const gr=ctx.createLinearGradient(0,isFloor?0:H+10,0,isFloor?H+10:0);
+  gr.addColorStop(0,tc('gnd'));gr.addColorStop(1,tc('gnd2'));
   arr.forEach(p=>{
     if(p.x+p.w<-10||p.x>W+10)return;
     let surfY,y2;
     if(isFloor){surfY=H-p.h;y2=H+10;}
     else{surfY=p.h;y2=-10;}
     // Fill
-    const gr=ctx.createLinearGradient(0,isFloor?surfY:y2,0,isFloor?y2:surfY);
-    gr.addColorStop(0,tc('gnd'));gr.addColorStop(1,tc('gnd2'));
     ctx.fillStyle=gr;
     ctx.fillRect(p.x,Math.min(surfY,y2),p.w,Math.abs(y2-surfY));
     // Neon edges
@@ -520,12 +521,13 @@ function drawPlatforms(arr,isFloor){
 }
 
 function drawFloatPlats(){
+  // Cache gradient once for all float plats (full width)
+  const fpGr=ctx.createLinearGradient(0,0,W,0);
+  fpGr.addColorStop(0,tca('line',0x44));fpGr.addColorStop(0.5,tca('line',0x88));fpGr.addColorStop(1,tca('line',0x44));
   floatPlats.forEach(fp=>{
     if(fp.x+fp.w<-10||fp.x>W+10)return;
     // Glowing thin platform
-    const gr=ctx.createLinearGradient(fp.x,0,fp.x+fp.w,0);
-    gr.addColorStop(0,tca('line',0x44));gr.addColorStop(0.5,tca('line',0x88));gr.addColorStop(1,tca('line',0x44));
-    ctx.fillStyle=gr;
+    ctx.fillStyle=fpGr;
     ctx.fillRect(fp.x,fp.y,fp.w,fp.th);
     // Neon top edge
     ctx.strokeStyle=tc('line');ctx.lineWidth=2;
@@ -596,23 +598,24 @@ function drawSpikes(){
 }
 
 function drawMovingHills(){
+  // Cache gradients once for all moving hills
+  const flGr=ctx.createLinearGradient(0,0,0,H+10);
+  flGr.addColorStop(0,tc('gnd'));flGr.addColorStop(1,tc('gnd2'));
+  const clGr=ctx.createLinearGradient(0,-10,0,H);
+  clGr.addColorStop(0,tc('gnd2'));clGr.addColorStop(1,tc('gnd'));
   movingHills.forEach(mh=>{
     if(mh.x+mh.w<-10||mh.x>W+10)return;
     const curH=mh.baseH+Math.sin(mh.phase)*mh.ampH;
     if(!mh.isFloor){
       const surfY=curH;
-      const gr=ctx.createLinearGradient(0,-10,0,surfY);
-      gr.addColorStop(0,tc('gnd2'));gr.addColorStop(1,tc('gnd'));
-      ctx.fillStyle=gr;ctx.fillRect(mh.x,-10,mh.w,surfY+10);
+      ctx.fillStyle=clGr;ctx.fillRect(mh.x,-10,mh.w,surfY+10);
       ctx.strokeStyle=tc('line');ctx.lineWidth=2;ctx.shadowColor=tc('line');ctx.shadowBlur=8;
       ctx.beginPath();ctx.moveTo(mh.x,surfY);ctx.lineTo(mh.x+mh.w,surfY);ctx.stroke();
       ctx.moveTo(mh.x,surfY);ctx.lineTo(mh.x,-10);ctx.moveTo(mh.x+mh.w,surfY);ctx.lineTo(mh.x+mh.w,-10);
       ctx.stroke();ctx.shadowBlur=0;
     } else {
       const surfY=H-curH;
-      const gr=ctx.createLinearGradient(0,surfY,0,H+10);
-      gr.addColorStop(0,tc('gnd'));gr.addColorStop(1,tc('gnd2'));
-      ctx.fillStyle=gr;ctx.fillRect(mh.x,surfY,mh.w,H-surfY+10);
+      ctx.fillStyle=flGr;ctx.fillRect(mh.x,surfY,mh.w,H-surfY+10);
       ctx.strokeStyle=tc('line');ctx.lineWidth=2;ctx.shadowColor=tc('line');ctx.shadowBlur=8;
       ctx.beginPath();ctx.moveTo(mh.x,surfY);ctx.lineTo(mh.x+mh.w,surfY);ctx.stroke();
       ctx.moveTo(mh.x,surfY);ctx.lineTo(mh.x,H+10);ctx.moveTo(mh.x+mh.w,surfY);ctx.lineTo(mh.x+mh.w,H+10);
@@ -683,6 +686,11 @@ function drawGravZones(){
 }
 
 function drawFallingMtns(){
+  // Cache gradients once for all falling mountains
+  const fmFlGr=ctx.createLinearGradient(0,0,0,H+10);
+  fmFlGr.addColorStop(0,tc('gnd'));fmFlGr.addColorStop(1,tc('gnd2'));
+  const fmClGr=ctx.createLinearGradient(0,-10,0,H);
+  fmClGr.addColorStop(0,tc('gnd2'));fmClGr.addColorStop(1,tc('gnd'));
   fallingMtns.forEach(fm=>{
     if(fm.x+fm.w<-10||fm.x>W+10||fm.state==='gone')return;
     const isCeil=!fm.isFloor;
@@ -690,18 +698,14 @@ function drawFallingMtns(){
     ctx.save();ctx.globalAlpha=fm.alpha;ctx.translate(shakeOff,0);
     if(!isCeil){
       const surfY=H-Math.max(0,fm.curH);
-      const gr=ctx.createLinearGradient(0,surfY,0,H+10);
-      gr.addColorStop(0,tc('gnd'));gr.addColorStop(1,tc('gnd2'));
-      ctx.fillStyle=gr;ctx.fillRect(fm.x,surfY,fm.w,H-surfY+10);
+      ctx.fillStyle=fmFlGr;ctx.fillRect(fm.x,surfY,fm.w,H-surfY+10);
       ctx.strokeStyle=tc('line');ctx.lineWidth=2;ctx.shadowColor=tc('line');ctx.shadowBlur=8;
       ctx.beginPath();ctx.moveTo(fm.x,surfY);ctx.lineTo(fm.x+fm.w,surfY);ctx.stroke();
       ctx.moveTo(fm.x,surfY);ctx.lineTo(fm.x,H+10);ctx.moveTo(fm.x+fm.w,surfY);ctx.lineTo(fm.x+fm.w,H+10);
       ctx.stroke();ctx.shadowBlur=0;
     } else {
       const surfY=Math.max(0,fm.curH);
-      const gr=ctx.createLinearGradient(0,-10,0,surfY);
-      gr.addColorStop(0,tc('gnd2'));gr.addColorStop(1,tc('gnd'));
-      ctx.fillStyle=gr;ctx.fillRect(fm.x,-10,fm.w,surfY+10);
+      ctx.fillStyle=fmClGr;ctx.fillRect(fm.x,-10,fm.w,surfY+10);
       ctx.strokeStyle=tc('line');ctx.lineWidth=2;ctx.shadowColor=tc('line');ctx.shadowBlur=8;
       ctx.beginPath();ctx.moveTo(fm.x,surfY);ctx.lineTo(fm.x+fm.w,surfY);ctx.stroke();
       ctx.moveTo(fm.x,surfY);ctx.lineTo(fm.x,-10);ctx.moveTo(fm.x+fm.w,surfY);ctx.lineTo(fm.x+fm.w,-10);
@@ -1162,6 +1166,31 @@ function draw(){
   if(bossPhase.active&&bossPhase.prepare<=0&&!bossPhase.reward){
     ctx.fillStyle='#ff3860';ctx.font='bold 13px monospace';ctx.textAlign='center';
     ctx.fillText('\u6575: '+(bossPhase.total-bossPhase.defeated)+' / '+bossPhase.total,W/2,96);
+    // Boss instruction hint
+    if(bossPhase.hintT>0){
+      const hintAlpha=bossPhase.hintT<60?bossPhase.hintT/60:1;
+      let hintMsg='';
+      const bt=bossPhase.bossType;
+      if(bt==='bruiser')hintMsg='\u30BF\u30A4\u30DF\u30F3\u30B0\u3092\u5408\u308F\u305B\u3066\u8E0F\u3081\uFF01';
+      else if(bt==='dodge')hintMsg='\u5F53\u305F\u3089\u306A\u3044\u3088\u3046\u306B\u907F\u3051\u308D\uFF01';
+      else if(bt==='wizard')hintMsg='\u653B\u6483\u3092\u907F\u3051\u3066\u30A2\u30BF\u30C3\u30AF\u305B\u3088\uFF01';
+      else if(bt==='guardian')hintMsg='\u7740\u5730\u3092\u898B\u6975\u3081\u3066\u982D\u3092\u8E0F\u3081\uFF01';
+      if(hintMsg){
+        ctx.save();ctx.globalAlpha=hintAlpha;
+        ctx.font='bold 15px monospace';ctx.textAlign='center';
+        // Background pill
+        const tw=ctx.measureText(hintMsg).width+24;
+        const hx=W/2-tw/2,hy=108;
+        ctx.fillStyle='rgba(0,0,0,0.7)';
+        ctx.beginPath();ctx.moveTo(hx+8,hy);ctx.lineTo(hx+tw-8,hy);ctx.quadraticCurveTo(hx+tw,hy,hx+tw,hy+8);
+        ctx.lineTo(hx+tw,hy+22);ctx.quadraticCurveTo(hx+tw,hy+30,hx+tw-8,hy+30);
+        ctx.lineTo(hx+8,hy+30);ctx.quadraticCurveTo(hx,hy+30,hx,hy+22);
+        ctx.lineTo(hx,hy+8);ctx.quadraticCurveTo(hx,hy,hx+8,hy);ctx.closePath();ctx.fill();
+        ctx.fillStyle='#ffdd57';
+        ctx.fillText(hintMsg,W/2,hy+21);
+        ctx.restore();
+      }
+    }
   }
   // Bomb flash overlay
   if(bombFlashT>0&&state===ST.PLAY){
