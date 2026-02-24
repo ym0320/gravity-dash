@@ -1244,11 +1244,12 @@ function drawCoin(c){
 }
 function drawItem(it){
   const pl=Math.sin(it.p)*0.15+1,sz=it.sz*pl,col=ITEMS[it.t].col;
-  ctx.shadowColor=col+'77';ctx.shadowBlur=16;ctx.fillStyle=col;
+  const isHeart=it.t===3;
+  ctx.shadowColor=(isHeart?'#ffffff':col)+'77';ctx.shadowBlur=16;ctx.fillStyle=isHeart?'#fff':col;
   ctx.save();ctx.translate(it.x,it.y);ctx.rotate(Math.PI/4+it.p*0.3);
   rr(-sz/2,-sz/2,sz,sz,3);ctx.fill();ctx.shadowBlur=0;
   ctx.rotate(-(Math.PI/4+it.p*0.3));
-  ctx.fillStyle='#fff';ctx.font='bold 10px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillStyle=isHeart?col:'#fff';ctx.font='bold 10px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillText(ITEMS[it.t].icon,0,1);ctx.textBaseline='alphabetic';ctx.restore();
 }
 
