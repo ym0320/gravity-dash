@@ -523,6 +523,8 @@ function update(dt){
         trySpawnFallingMtn();
       }
     }
+    // Bird enemy spawning (all stages, rare)
+    trySpawnBird();
     // Icicle spawning (snow stages, controlled by icicleChance)
     if(!nearGoal) trySpawnIcicle();
     // Magma fireball spawning (magma stages)
@@ -643,6 +645,7 @@ function update(dt){
     trySpawnGravZone();
     trySpawnFallingMtn();
     trySpawnCoinSwitch();
+    trySpawnBird();
     // Boss phase trigger
     if(!bossPhase.active&&rawDist>=bossPhase.nextAt){
       startBossPhase();
@@ -1192,6 +1195,9 @@ function update(dt){
         en.dashTimer--;
         if(en.dashTimer<=0){en.dashState='patrol';en.patrolOriginX=en.x;}
       }
+    } else if(en.type===7){
+      // Bird: fly straight from right to left at constant speed
+      en.x-=en.flySpd;
     } else if(en.type===8){
       // Splitter: patrol, detect player, then self-split into 2 small bouncing slimes
       en.x+=en.patrolDir*en.walkSpd*esm;

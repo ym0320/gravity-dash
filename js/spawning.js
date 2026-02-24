@@ -1,6 +1,6 @@
 'use strict';
 // ===== SPAWNING (cooldown-based for reliable continuous generation) =====
-let coinCD=0,itemCD=0,enemyCD=0;
+let coinCD=0,itemCD=0,enemyCD=0,birdCD=0;
 
 function findSpawnPlat(){
   // Find a platform that is ahead of screen (right side)
@@ -581,4 +581,27 @@ function trySpawnMagmaFire(){
     }
   }
   magmaFireCD=10+Math.floor(packRng()*8);
+}
+
+// ===== BIRD ENEMY =====
+function trySpawnBird(){
+  if(birdCD>0){birdCD--;return;}
+  if(bossPhase.active)return;
+  if(!isPackMode&&score<30)return;
+  // Rare spawn chance
+  const chance=isPackMode?0.015:0.012;
+  if(packRng()<chance){
+    birdCD=180+Math.floor(packRng()*120); // long cooldown (rare)
+    const onCeil=packRng()<0.5;
+    const gd=onCeil?-1:1;
+    const sz=11;
+    // Spawn at a y position not too close to edges (15%-85% of screen)
+    const minY=H*0.15,maxY=H*0.85;
+    const fy=minY+packRng()*(maxY-minY);
+    const flySpd=2.5+packRng()*1.5; // constant horizontal speed
+    enemies.push({x:W+30,y:fy,vy:0,gDir:gd,walkSpd:0,sz:sz,alive:true,fr:packRng()*100,
+      type:7,shootT:999,flySpd:flySpd});
+  } else {
+    birdCD=30+Math.floor(packRng()*20);
+  }
 }

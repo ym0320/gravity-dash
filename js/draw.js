@@ -1263,6 +1263,7 @@ function drawEnemy(en){
   if(en.type===4){drawVertMover(en);return;}
   if(en.type===5){drawPhantom(en);return;}
   if(en.type===6){drawDasher(en);return;}
+  if(en.type===7){drawBird(en);return;}
   if(en.type===8){drawSplitter(en);return;}
   if(en.type===9){drawMiniSlime(en);return;}
   const s=en.sz,flip=en.gDir;
@@ -1512,6 +1513,52 @@ function drawDasher(en){
     ctx.globalAlpha=wa;ctx.fillStyle='#ff0';ctx.font='bold 14px monospace';ctx.textAlign='center';
     ctx.fillText('!',0,-s*1.4);ctx.globalAlpha=1;
   }
+  ctx.restore();
+}
+function drawBird(en){
+  const s=en.sz;
+  ctx.save();ctx.translate(en.x,en.y);
+  if(en.gDir===-1)ctx.scale(1,-1);
+  // Wing flap animation
+  const wf=Math.sin(en.fr*1.8)*0.6;
+  // Body (white/light gray round seagull)
+  ctx.fillStyle='#f0f0f0';
+  ctx.beginPath();ctx.ellipse(0,0,s*0.7,s*0.55,0,0,6.28);ctx.fill();
+  // Belly (slightly lighter)
+  ctx.fillStyle='#fff';
+  ctx.beginPath();ctx.ellipse(0,s*0.1,s*0.45,s*0.35,0,0,6.28);ctx.fill();
+  // Wings (flapping)
+  ctx.fillStyle='#d0d0d0';
+  // Left wing
+  ctx.save();ctx.translate(-s*0.5,-s*0.1);ctx.rotate(wf);
+  ctx.beginPath();ctx.moveTo(0,0);ctx.quadraticCurveTo(-s*0.4,-s*0.7,-s*0.8,-s*0.5);ctx.quadraticCurveTo(-s*0.5,s*0.1,0,0);ctx.fill();
+  ctx.restore();
+  // Right wing
+  ctx.save();ctx.translate(s*0.5,-s*0.1);ctx.rotate(-wf);
+  ctx.beginPath();ctx.moveTo(0,0);ctx.quadraticCurveTo(s*0.4,-s*0.7,s*0.8,-s*0.5);ctx.quadraticCurveTo(s*0.5,s*0.1,0,0);ctx.fill();
+  ctx.restore();
+  // Wing tips (darker gray)
+  ctx.fillStyle='#999';
+  ctx.save();ctx.translate(-s*0.5,-s*0.1);ctx.rotate(wf);
+  ctx.beginPath();ctx.moveTo(-s*0.5,-s*0.5);ctx.quadraticCurveTo(-s*0.6,-s*0.6,-s*0.8,-s*0.5);ctx.quadraticCurveTo(-s*0.6,-s*0.35,-s*0.5,-s*0.5);ctx.fill();
+  ctx.restore();
+  ctx.save();ctx.translate(s*0.5,-s*0.1);ctx.rotate(-wf);
+  ctx.beginPath();ctx.moveTo(s*0.5,-s*0.5);ctx.quadraticCurveTo(s*0.6,-s*0.6,s*0.8,-s*0.5);ctx.quadraticCurveTo(s*0.6,-s*0.35,s*0.5,-s*0.5);ctx.fill();
+  ctx.restore();
+  // Eyes (small, cute)
+  ctx.fillStyle='#222';
+  ctx.beginPath();ctx.arc(-s*0.2,-s*0.15,s*0.1,0,6.28);ctx.fill();
+  ctx.beginPath();ctx.arc(s*0.2,-s*0.15,s*0.1,0,6.28);ctx.fill();
+  // Eye highlights
+  ctx.fillStyle='#fff';
+  ctx.beginPath();ctx.arc(-s*0.17,-s*0.18,s*0.04,0,6.28);ctx.fill();
+  ctx.beginPath();ctx.arc(s*0.23,-s*0.18,s*0.04,0,6.28);ctx.fill();
+  // Beak (small orange)
+  ctx.fillStyle='#ff8c00';
+  ctx.beginPath();ctx.moveTo(0,-s*0.05);ctx.lineTo(-s*0.12,s*0.05);ctx.lineTo(s*0.12,s*0.05);ctx.closePath();ctx.fill();
+  // Tail feathers (back)
+  ctx.fillStyle='#d0d0d0';
+  ctx.beginPath();ctx.moveTo(s*0.55,-s*0.1);ctx.lineTo(s*0.9,0);ctx.lineTo(s*0.85,-s*0.2);ctx.lineTo(s*0.55,-s*0.1);ctx.fill();
   ctx.restore();
 }
 function drawSplitter(en){
