@@ -523,6 +523,8 @@ function update(dt){
         trySpawnFallingMtn();
       }
     }
+    // Bird enemy spawning (all stages, rare)
+    trySpawnBird();
     // Icicle spawning (snow stages, controlled by icicleChance)
     if(!nearGoal) trySpawnIcicle();
     // Magma fireball spawning (magma stages)
@@ -643,6 +645,7 @@ function update(dt){
     trySpawnGravZone();
     trySpawnFallingMtn();
     trySpawnCoinSwitch();
+    trySpawnBird();
     // Boss phase trigger
     if(!bossPhase.active&&rawDist>=bossPhase.nextAt){
       startBossPhase();
@@ -818,14 +821,14 @@ function update(dt){
         const surfY2=H-fm.curH;
         if(player.gDir===1&&player.x+pr>fm.x&&player.x-pr<fm.x+fm.w){
           if(player.y+pr>=surfY2&&player.y+pr<surfY2+12&&player.vy>=0){
-            player.y=surfY2-pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;djumpAvailable=true;
+            player.y=surfY2-pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
           }
         }
       } else {
         const surfY2=fm.curH;
         if(player.gDir===-1&&player.x+pr>fm.x&&player.x-pr<fm.x+fm.w){
           if(player.y-pr<=surfY2&&player.y-pr>surfY2-12&&player.vy<=0){
-            player.y=surfY2+pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;djumpAvailable=true;
+            player.y=surfY2+pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
           }
         }
       }
@@ -1096,8 +1099,8 @@ function update(dt){
         const aheadSy=floorSurfaceY(en.x+en.patrolDir*(en.sz+4));
         if(sy<H+100){
           en.y=sy-en.sz;en.vy=0;
-          // If the ground ahead is a void or much lower, reverse direction
-          if(aheadSy>H+100||aheadSy>sy+30) en.patrolDir*=-1;
+          // If the ground ahead is a void or even slightly lower, reverse direction
+          if(aheadSy>H+100||aheadSy>sy+5) en.patrolDir*=-1;
         }
         else{en.vy=(en.vy||0)+GRAVITY;en.y+=en.vy;}
       }else{
@@ -1105,8 +1108,8 @@ function update(dt){
         const aheadSy=ceilSurfaceY(en.x+en.patrolDir*(en.sz+4));
         if(sy>-100){
           en.y=sy+en.sz;en.vy=0;
-          // If the ceiling ahead is a void or much higher, reverse direction
-          if(aheadSy<-100||aheadSy<sy-30) en.patrolDir*=-1;
+          // If the ceiling ahead is a void or even slightly higher, reverse direction
+          if(aheadSy<-100||aheadSy<sy-5) en.patrolDir*=-1;
         }
         else{en.vy=(en.vy||0)-GRAVITY;en.y+=en.vy;}
       }
@@ -1192,6 +1195,9 @@ function update(dt){
         en.dashTimer--;
         if(en.dashTimer<=0){en.dashState='patrol';en.patrolOriginX=en.x;}
       }
+    } else if(en.type===7){
+      // Bird: fly straight from right to left at constant speed
+      en.x-=en.flySpd;
     } else if(en.type===8){
       // Splitter: patrol, detect player, then self-split into 2 small bouncing slimes
       en.x+=en.patrolDir*en.walkSpd*esm;
@@ -1246,8 +1252,8 @@ function update(dt){
       // expired: no ground collision → falls off screen
     } else {
       // Default movement (type 1 cannon and legacy)
+      // Cannon moves but can't climb steps (falls off edges naturally)
       en.x-=en.walkSpd*esm;
-      // Keep on surface or fall off cliff
       if(en.gDir===1){
         const sy=floorSurfaceY(en.x);
         if(sy<H+100){en.y=sy-en.sz;en.vy=0;}
@@ -1303,7 +1309,7 @@ function update(dt){
           player.vy=-JUMP_POWER*0.7*player.gDir;
           player.grounded=false;
         }
-        flipCount=0;player.canFlip=true;djumpUsed=false;djumpAvailable=true;
+        flipCount=0;player.canFlip=true;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
         // Gravity stomp bonus: 3x if flipped recently
         const gstomp=flipTimer<40;
         const gsMul=gstomp?3:1;

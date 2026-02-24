@@ -23,6 +23,17 @@ function startBossPhase(){
   bossPhase.lastBossScore=score;
   bossPhase.lastBossRawDist=rawDist;
   bossPhase.nextAt=(Math.floor(rawDist/BOSS_INTERVAL)+1)*BOSS_INTERVAL;
+  // Pre-determine boss type for display during warning screen
+  const _allTypes=['wizard','bruiser','guardian','dodge'];
+  const _pickType=()=>_allTypes[Math.floor(Math.random()*4)];
+  if(isChallengeMode){
+    bossPhase.bossType=_pickType();
+  } else if(isPackMode&&currentPackStage&&currentPackStage.boss){
+    if(currentPackStage.bossVariant==='snowman') bossPhase.bossType='wizard';
+    else bossPhase.bossType=Math.random()<0.5?'bruiser':'guardian';
+  } else {
+    bossPhase.bossType=_pickType();
+  }
   shakeI=18;vibrate([50,30,50,30,80,40,100]);
   if(isChallengeMode){sfxChallengeBossAlert();switchBGM('challenge');}
   else{sfxBossAlert();switchBGM('boss');}
@@ -146,23 +157,8 @@ function spawnBossEnemies(){
       return 1;
     }
   }
-  // Pick boss type(s)
-  const allTypes=['wizard','bruiser','guardian','dodge'];
-  function pickType(){return allTypes[Math.floor(Math.random()*4)];}
-  let bossType;
-  if(isChallengeMode){
-    bossType=pickType();
-  } else if(isPackMode&&currentPackStage&&currentPackStage.boss){
-    // Snowman variant forces wizard boss type
-    if(currentPackStage.bossVariant==='snowman'){
-      bossType='wizard';
-    } else {
-      bossType=Math.random()<0.5?'bruiser':'guardian';
-    }
-  } else {
-    bossType=pickType();
-  }
-  bossPhase.bossType=bossType;
+  // Use pre-determined boss type from startBossPhase
+  const bossType=bossPhase.bossType;
   // Spawn primary boss (floor side)
   bossPhase.total=spawnBoss(bossType,1,0,0);
   bossPhase.dodgeKills=0;
@@ -352,7 +348,7 @@ function updateBossPhase(){
             b.hp--;b.hurtFlash=20;
             b.state='invincible';b.invT=60;b.timer=0;
             player.vy=b.gDir===1?-JUMP_POWER*0.8:JUMP_POWER*0.8;player.grounded=false;
-            flipCount=0;player.canFlip=true;djumpUsed=false;djumpAvailable=true;
+            flipCount=0;player.canFlip=true;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
             shakeI=12;sfx('bossHit');sfx('gstompHeavy');vibrate([20,10,30]);
             addPop(b.x,b.y-b.sz*b.gDir-10,'HP '+b.hp+'/'+b.maxHp,'#ff3860');
             emitParts(b.x,b.y-b.sz*b.gDir,12,'#ff3860',5,3);
@@ -622,7 +618,7 @@ function updateBossPhase(){
             g.hp--;g.hurtFlash=20;g.invT=g.stunDuration+60;
             g.state='stunned';g.stunT=g.stunDuration;g.timer=0;g.jumpVy=0;
             player.vy=g.gDir===1?-JUMP_POWER*0.8:JUMP_POWER*0.8;player.grounded=false;
-            flipCount=0;player.canFlip=true;djumpUsed=false;djumpAvailable=true;
+            flipCount=0;player.canFlip=true;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
             // Clear stun on successful stomp
             player._quakeStunned=false;player._quakeStunT=0;
             shakeI=12;sfx('bossHit');sfx('gstompHeavy');vibrate([20,10,30]);
@@ -785,7 +781,7 @@ function updateBossPhase(){
           if(stomped){
             w.hp--;w.hurtFlash=20;
             player.vy=-JUMP_POWER*0.8*player.gDir;player.grounded=false;
-            flipCount=0;player.canFlip=true;djumpUsed=false;djumpAvailable=true;
+            flipCount=0;player.canFlip=true;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
             shakeI=12;sfx('gstomp');vibrate([20,10,30]);
             addPop(w.x,w.y-20,'撃破!','#ffd700');
             emitParts(w.x,w.y,12,'#aa44ff',5,3);

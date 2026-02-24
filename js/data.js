@@ -909,6 +909,20 @@ function sfxEnemyDeath(type){
       o2.frequency.setValueAtTime(1500,t);o2.frequency.exponentialRampToValueAtTime(500,t+0.2);
       g2.gain.setValueAtTime(0.04,t+0.05);g2.gain.exponentialRampToValueAtTime(0.001,t+0.25);
       o2.start(t+0.05);o2.stop(t+0.27);
+    } else if(type===7){
+      // Bird: high-pitched small chirp cry
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='sine';
+      o.frequency.setValueAtTime(1800,t);o.frequency.exponentialRampToValueAtTime(2400,t+0.04);
+      o.frequency.exponentialRampToValueAtTime(1600,t+0.1);
+      g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.12);
+      o.start(t);o.stop(t+0.14);
+      // Second harmonic for chirpy quality
+      const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
+      o2.connect(g2);g2.connect(sfxGain);o2.type='sine';
+      o2.frequency.setValueAtTime(2800,t+0.02);o2.frequency.exponentialRampToValueAtTime(2000,t+0.08);
+      g2.gain.setValueAtTime(0.04,t+0.02);g2.gain.exponentialRampToValueAtTime(0.001,t+0.1);
+      o2.start(t+0.02);o2.stop(t+0.12);
     } else if(type===8){
       // Splitter: squelch pop
       const o=audioCtx.createOscillator(),g=audioCtx.createGain();
@@ -1240,7 +1254,7 @@ function sfxChallengeBossAlert(){
 // ===== ITEMS (5 types) =====
 const ITEMS=[
   {name:'\u7121\u6575',desc:'10\u79D2\u9593\u7121\u6575',col:'#ff00ff',icon:'\u2B50\uFE0F',dur:600},
-  {name:'\u30B3\u30A4\u30F3\u5438\u53CE',desc:'\u81EA\u52D5\u53CE\u96C6',col:'#f59e0b',icon:'\u25CE',dur:600},
+  {name:'\u30B3\u30A4\u30F3\u5438\u53CE',desc:'\u81EA\u52D5\u53CE\u96C6',col:'#f59e0b',icon:'\u{1F9F2}',dur:600},
   {name:'\u30DC\u30E0',desc:'\u753B\u9762\u4E0A\u306E\u6575\u3092\u4E00\u6383',col:'#ff4400',icon:'\u{1F4A3}',dur:0},
   {name:'\u30CF\u30FC\u30C8',desc:'HP\u56DE\u5FA9',col:'#ff3860',icon:'\u2665',dur:0},
   {name:'\u30B9\u30ED\u30FC',desc:'\u30B9\u30ED\u30FC\u30E2\u30FC\u30B7\u30E7\u30F3',col:'#a855f7',icon:'\u25F7',dur:600},

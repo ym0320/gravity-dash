@@ -1,6 +1,6 @@
 'use strict';
 // ===== SPAWNING (cooldown-based for reliable continuous generation) =====
-let coinCD=0,itemCD=0,enemyCD=0;
+let coinCD=0,itemCD=0,enemyCD=0,birdCD=0;
 
 function findSpawnPlat(){
   // Find a platform that is ahead of screen (right side)
@@ -260,17 +260,20 @@ function trySpawnFloatPlat(){
     const maxJumpH=JUMP_POWER*JUMP_POWER/(2*GRAVITY)*0.75; // ~109px (comfortable reach)
     const fy=floorY-maxJumpH*(0.5+packRng()*0.5); // 50-100% of comfortable jump height
     floatPlats.push({x:fx,y:fy,w:fw,th:10});
-    // Sometimes spawn an item on the floating platform (not in stage mode)
-    if(!isPackMode&&packRng()<0.4){
-      const pool=[1,2]; // magnet or double jump
-      if(hp<maxHp()&&packRng()<0.3) pool.push(3); // heart if damaged
-      const it=pool[Math.floor(packRng()*pool.length)];
-      items.push({x:fx+fw/2,y:fy-25,t:it,sz:14,p:packRng()*6.28,col:false});
-    }
-    // Sometimes spawn coins in an arc above (not in stage mode)
-    if(!isPackMode&&packRng()<0.5){
-      for(let i=0;i<3;i++){
-        coins.push({x:fx+10+i*(fw-20)/2,y:fy-30-Math.sin(i/2*Math.PI)*15,sz:9,col:false,p:0});
+    // Sometimes spawn an item or coins on the floating platform (not in stage mode, mutually exclusive)
+    if(!isPackMode){
+      const fpRoll=packRng();
+      if(fpRoll<0.3){
+        // Item on float plat
+        const pool=[1,2]; // magnet or bomb
+        if(hp<maxHp()&&packRng()<0.3) pool.push(3); // heart if damaged
+        const it=pool[Math.floor(packRng()*pool.length)];
+        items.push({x:fx+fw/2,y:fy-25,t:it,sz:14,p:packRng()*6.28,col:false});
+      } else if(fpRoll<0.65){
+        // Coins in a horizontal line above float plat
+        for(let i=0;i<3;i++){
+          coins.push({x:fx+10+i*(fw-20)/2,y:fy-20,sz:9,col:false,p:0});
+        }
       }
     }
   } else {
@@ -578,4 +581,27 @@ function trySpawnMagmaFire(){
     }
   }
   magmaFireCD=10+Math.floor(packRng()*8);
+}
+
+// ===== BIRD ENEMY =====
+function trySpawnBird(){
+  if(birdCD>0){birdCD--;return;}
+  if(bossPhase.active)return;
+  if(!isPackMode&&score<30)return;
+  // Rare spawn chance
+  const chance=isPackMode?0.015:0.012;
+  if(packRng()<chance){
+    birdCD=180+Math.floor(packRng()*120); // long cooldown (rare)
+    const onCeil=packRng()<0.5;
+    const gd=onCeil?-1:1;
+    const sz=11;
+    // Spawn at a y position not too close to edges (15%-85% of screen)
+    const minY=H*0.15,maxY=H*0.85;
+    const fy=minY+packRng()*(maxY-minY);
+    const flySpd=2.5+packRng()*1.5; // constant horizontal speed
+    enemies.push({x:W+30,y:fy,vy:0,gDir:gd,walkSpd:0,sz:sz,alive:true,fr:packRng()*100,
+      type:7,shootT:999,flySpd:flySpd});
+  } else {
+    birdCD=30+Math.floor(packRng()*20);
+  }
 }
