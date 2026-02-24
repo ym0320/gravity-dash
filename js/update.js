@@ -367,6 +367,9 @@ function update(dt){
         gotNewStars=Math.max(0,newStars-prevStars);
         packProgress[sid]={cleared:true,stars:newStars};
         localStorage.setItem('gd5pp',JSON.stringify(packProgress));
+        // Remove checkpoint pin after clearing
+        delete stageCheckpoints[sid];
+        localStorage.setItem('gd5checkpoints',JSON.stringify(stageCheckpoints));
         totalStars=getTotalStars();
         const reward=10+starsThisRun*5+(gotNewStars>0?10:0);
         walletCoins+=reward;localStorage.setItem('gd5wallet',walletCoins.toString());
@@ -387,6 +390,9 @@ function update(dt){
       gotNewStars=Math.max(0,newStars-prevStars);
       packProgress[sid]={cleared:true,stars:newStars};
       localStorage.setItem('gd5pp',JSON.stringify(packProgress));
+      // Remove checkpoint pin after clearing
+      delete stageCheckpoints[sid];
+      localStorage.setItem('gd5checkpoints',JSON.stringify(stageCheckpoints));
       totalStars=getTotalStars();
       const reward=10+starsThisRun*5+(gotNewStars>0?10:0);
       walletCoins+=reward;localStorage.setItem('gd5wallet',walletCoins.toString());
@@ -418,10 +424,11 @@ function update(dt){
       const cpDist=currentPackStage.dist*0.5; // midpoint
       const cpScreenX=player.x+(cpDist-dist)/(speed*0.08)*speed;
       checkpointFlag.x=cpScreenX;
-      // Collection detection
+      // Collection detection (void stages: flag on ceiling; others: floor)
       if(dist>=cpDist-5&&dist<=cpDist+30){
-        const cpSurf=floorSurfaceY(cpScreenX);
-        const cpFlagY=cpSurf-50; // flag top
+        const isVoidCP=currentPackStage.stageType==='void';
+        const cpSurf=isVoidCP?ceilSurfaceY(cpScreenX)+10:floorSurfaceY(cpScreenX);
+        const cpFlagY=isVoidCP?cpSurf+50:cpSurf-50; // flag center
         const dx2=player.x-cpScreenX,dy2=player.y-cpFlagY;
         if(Math.abs(dx2)<30&&Math.abs(dy2)<60){
           checkpointFlag.collected=true;checkpointReached=true;

@@ -209,9 +209,15 @@ function resetPackStage(pi,si,fromCheckpoint){
   const starRng=mulberry32(stage.seed+777);
   stageBigCoins=[];
   const coinDefs=stage.coins||[{pos:0.25,yOff:-50},{pos:0.5,yOff:-50},{pos:0.8,yOff:-50}];
+  const prevStarCount=getPackStageStars(stage.id); // stars already collected in previous runs
   for(let si2=0;si2<coinDefs.length;si2++){
     const cd=coinDefs[si2];
     const starDist=stage.dist*cd.pos;
+    // Skip stars already collected in previous runs
+    if(si2<prevStarCount){
+      stageBigCoins.push({x:-999,y:-999,yOff:0,sz:16,col:true,p:0,distMark:starDist});
+      continue;
+    }
     // Skip stars before checkpoint start point
     if(cpStart&&starDist<startDist){
       stageBigCoins.push({x:-999,y:-999,yOff:0,sz:16,col:true,p:0,distMark:starDist});
@@ -221,7 +227,7 @@ function resetPackStage(pi,si,fromCheckpoint){
     const yOff=cd.yOff||-50;
     stageBigCoins.push({x:starX,y:0,yOff:yOff,sz:16,col:false,p:0,distMark:starDist});
   }
-  stageBigCollected=cpStart?stageBigCoins.filter(bc=>bc.col).length:0;stageClearT=0;
+  stageBigCollected=stageBigCoins.filter(bc=>bc.col).length;stageClearT=0;
   ambientParts=[];
   score=0;dist=startDist;rawDist=startDist;speedOffset=0;speed=SPEED_INIT*stage.spdMul;frame=0;deadT=0;newHi=false;
   combo=0;comboT=0;comboDsp=0;comboDspT=0;airCombo=0;
@@ -294,8 +300,8 @@ function generatePackPlatform(arr,isCeil,stage){
   }
   // --- GRAVITY stage: all abyss with moving hills only → normal ground goal ---
   else if(sType==='gravity'){
-    if(approxDist<30){
-      addedW=120+rng()*80;
+    if(approxDist<8){
+      addedW=60+rng()*40; // minimal start platform
       arr.push({x:lastRight,w:addedW,h:GROUND_H});
     } else if(approxDist>=stage.dist*0.92){
       // Normal ground-level goal (not protruding wall)

@@ -418,7 +418,7 @@ function trySpawnMovingHill(){
     const hx=gapX+(gapW-hw)/2; // center in gap
     // Check overlap: don't spawn where new hill overlaps existing movingHill or fallingMtn
     // Gravity stage uses larger buffer (80px) to ensure clear visual separation
-    const buf=isGravityStage?80:20;
+    const buf=isGravityStage?200:20;
     const hasFalling=fallingMtns.some(fm=>hx<fm.x+fm.w+buf&&hx+hw>fm.x-buf);
     if(hasFalling){hillCD=30+Math.floor(packRng()*15);return;}
     const hasMH=movingHills.some(mh=>hx<mh.x+mh.w+buf&&hx+hw>mh.x-buf);
