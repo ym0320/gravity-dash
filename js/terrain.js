@@ -154,7 +154,7 @@ function reset(){
   coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];floatPlats=[];floatCD=0;
   spikes=[];spikeCD=0;movingHills=[];hillCD=0;gravZones=[];gravZoneCD=0;gravZoneChain=0;
   fallingMtns=[];fallingMtnCD=0;coinSwitches=[];coinSwitchCD=0;
-  icicles=[];icicleCD=0;magmaFireballs=[];magmaFireCD=0;
+  icicles=[];icicleCD=0;magmaFireballs=[];magmaFireCD=0;magmaHurtT=0;
   score=0;dist=0;rawDist=0;speedOffset=0;speed=SPEED_INIT;frame=0;deadT=0;newHi=false;
   combo=0;comboT=0;comboDsp=0;comboDspT=0;airCombo=0;stompCombo=0;
   shakeX=0;shakeY=0;shakeI=0;
@@ -198,7 +198,7 @@ function resetPackStage(pi,si,fromCheckpoint){
   coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];floatPlats=[];floatCD=0;
   spikes=[];spikeCD=0;movingHills=[];hillCD=0;gravZones=[];gravZoneCD=0;gravZoneChain=0;
   fallingMtns=[];fallingMtnCD=0;coinSwitches=[];coinSwitchCD=0;
-  icicles=[];icicleCD=0;magmaFireballs=[];magmaFireCD=0;
+  icicles=[];icicleCD=0;magmaFireballs=[];magmaFireCD=0;magmaHurtT=0;
   // Checkpoint state
   checkpointReached=cpStart; // already passed checkpoint if starting from it
   checkpointFlag={x:0,collected:cpStart};
@@ -323,6 +323,29 @@ function generatePackPlatform(arr,isCeil,stage){
   else {
     const gc=stage.gapChance||0.12;
     if(rng()<gc){addedGap=20+rng()*80;}
+    // Magma gap sync: force gap when opposite side has a gap at this position
+    if(stage.magma){
+      const checkArr=isCeil?platforms:ceilPlats;
+      if(checkArr.length>0){
+        const oppLastRight=checkArr[checkArr.length-1].x+checkArr[checkArr.length-1].w;
+        if(oppLastRight>lastRight){
+          const myX=lastRight;
+          let inGap=true;
+          for(let gi=0;gi<checkArr.length;gi++){
+            const gp=checkArr[gi];
+            if(myX>=gp.x&&myX<=gp.x+gp.w){inGap=false;break;}
+          }
+          if(inGap){
+            let gapEnd=oppLastRight;
+            for(let gi=0;gi<checkArr.length;gi++){
+              if(checkArr[gi].x>myX){gapEnd=checkArr[gi].x;break;}
+            }
+            const needGap=gapEnd-myX+5;
+            addedGap=Math.max(addedGap,Math.min(needGap,150));
+          }
+        }
+      }
+    }
     let h=lastH;
     const hc=stage.hillChance||0.08;
     if(rng()<hc){

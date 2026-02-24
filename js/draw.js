@@ -2038,12 +2038,33 @@ function drawPlayer(){
     ctx.fillStyle='rgba(255,100,0,0.3)';
     ctx.beginPath();ctx.arc(player.x,player.y,pr*1.2,0,6.28);ctx.fill();
   }
+  // Magma damage red flash overlay
+  if(magmaHurtT>0){
+    const mAlpha=magmaHurtT/30*0.6;
+    ctx.save();ctx.globalAlpha=mAlpha;
+    ctx.fillStyle='#ff2200';
+    ctx.beginPath();ctx.arc(player.x,player.y,pr*1.3,0,6.28);ctx.fill();
+    ctx.restore();
+    // Fire particles rising from player
+    if(frame%3===0&&parts.length<MAX_PARTS){
+      parts.push({x:player.x+(Math.random()-0.5)*pr,y:player.y+pr*0.5,vx:(Math.random()-0.5)*1.5,vy:-1.5-Math.random()*2,
+        life:12,ml:12,sz:Math.random()*3+2,col:['#ff4400','#ff6600','#ffaa00'][Math.floor(Math.random()*3)]});
+    }
+  }
   // All characters rotate with gravity; face direction corrected inside drawCharacter
   const charRot=player.rot;
   // Draw equipped effect behind character
   const fxData=getEquippedEffectData();
   if(fxData)drawPlayerEffect(player.x,player.y,pr,fxData.type,ghostA,player.gDir);
   drawCharacter(player.x,player.y,selChar,pr,charRot,ghostA,player.face,dmgLv);
+  // Magma burn overlay on character (red tint over the character)
+  if(magmaHurtT>0){
+    const mAlpha2=magmaHurtT/30*0.45;
+    ctx.save();ctx.globalAlpha=mAlpha2;ctx.globalCompositeOperation='multiply';
+    ctx.fillStyle='#ff3300';
+    ctx.beginPath();ctx.arc(player.x,player.y,pr,0,6.28);ctx.fill();
+    ctx.restore();
+  }
 }
 
 function drawPlayerEffect(px,py,pr,fxType,alpha,gDir){

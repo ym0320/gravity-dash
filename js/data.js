@@ -817,6 +817,19 @@ function sfx(type){
         bo1.frequency.exponentialRampToValueAtTime(300,t+0.12);
         bo1g.gain.setValueAtTime(0.08,t);bo1g.gain.exponentialRampToValueAtTime(0.001,t+0.14);bo1.start(t);bo1.stop(t+0.16);}
         break;
+      case'icecrack':
+        // Ice cracking: high crystalline crack + shattering noise + chime
+        o.type='sine';o.frequency.setValueAtTime(2000,t);o.frequency.exponentialRampToValueAtTime(500,t+0.12);
+        g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+        o.start(t);o.stop(t+0.2);
+        {const icn=audioCtx.createBufferSource(),icb=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.15)),audioCtx.sampleRate),icd=icb.getChannelData(0);
+        for(let i=0;i<icd.length;i++)icd[i]=(Math.random()*2-1)*0.4*Math.exp(-i/(audioCtx.sampleRate*0.05));
+        icn.buffer=icb;const icng=audioCtx.createGain();icn.connect(icng);icng.connect(sfxGain);
+        icng.gain.setValueAtTime(0.1,t+0.02);icng.gain.exponentialRampToValueAtTime(0.001,t+0.15);icn.start(t+0.02);icn.stop(t+0.18);}
+        {const ich=audioCtx.createOscillator(),ichg=audioCtx.createGain();ich.connect(ichg);ichg.connect(sfxGain);
+        ich.type='sine';ich.frequency.setValueAtTime(3500,t);ich.frequency.exponentialRampToValueAtTime(2500,t+0.15);
+        ichg.gain.setValueAtTime(0.06,t);ichg.gain.exponentialRampToValueAtTime(0.001,t+0.2);ich.start(t);ich.stop(t+0.22);}
+        break;
       case'guardianJump':
         // Heavy launch: deep thud + rising tone
         o.type='sine';o.frequency.setValueAtTime(100,t);o.frequency.exponentialRampToValueAtTime(300,t+0.15);
@@ -1502,6 +1515,7 @@ let djumpAvailable=false; // double jump (Bounce trait or item)
 let djumpUsed=false; // track if the double jump was used
 let bombCount=0; // bombs in inventory
 let bombFlashT=0; // bomb explosion flash timer
+let magmaHurtT=0; // magma damage red flash timer
 let invCount=0; // stockable invincibility items in inventory
 let bossRetry=null; // {score,bossCount} saved when quitting during boss
 let isRetryGame=false; // true if current game is a boss retry (only 1 retry allowed)
