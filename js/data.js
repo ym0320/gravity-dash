@@ -849,6 +849,37 @@ function sfxAirCombo(count){
     }
   }catch(e){}
 }
+function sfxStompCombo(count){
+  if(!audioCtx)return;try{
+    const t=audioCtx.currentTime;
+    // Ascending major scale notes: C5→D5→E5→F5→G5→A5→B5→C6...
+    const notes=[523,587,659,698,784,880,988,1047,1175,1319];
+    const idx=Math.min(count-2,notes.length-1);
+    const freq=notes[idx];
+    // Bright triangle wave — main note
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.connect(g);g.connect(sfxGain);o.type='triangle';
+    o.frequency.setValueAtTime(freq,t);
+    o.frequency.exponentialRampToValueAtTime(freq*1.2,t+0.08);
+    g.gain.setValueAtTime(0.15,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+    o.start(t);o.stop(t+0.2);
+    // Sparkle octave overtone
+    const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
+    o2.connect(g2);g2.connect(sfxGain);o2.type='sine';
+    o2.frequency.setValueAtTime(freq*2,t+0.02);
+    o2.frequency.exponentialRampToValueAtTime(freq*2.4,t+0.1);
+    g2.gain.setValueAtTime(0.08,t+0.02);g2.gain.exponentialRampToValueAtTime(0.001,t+0.15);
+    o2.start(t+0.02);o2.stop(t+0.17);
+    // Extra chime at high combos
+    if(count>=4){
+      const o3=audioCtx.createOscillator(),g3=audioCtx.createGain();
+      o3.connect(g3);g3.connect(sfxGain);o3.type='sine';
+      o3.frequency.setValueAtTime(freq*3,t+0.04);
+      g3.gain.setValueAtTime(0.05,t+0.04);g3.gain.exponentialRampToValueAtTime(0.001,t+0.12);
+      o3.start(t+0.04);o3.stop(t+0.14);
+    }
+  }catch(e){}
+}
 // Per-enemy-type death SE
 function sfxEnemyDeath(type){
   if(!audioCtx)return;try{
@@ -1256,7 +1287,7 @@ const ITEMS=[
   {name:'\u7121\u6575',desc:'10\u79D2\u9593\u7121\u6575',col:'#ff00ff',icon:'\u2B50\uFE0F',dur:600},
   {name:'\u30B3\u30A4\u30F3\u5438\u53CE',desc:'\u81EA\u52D5\u53CE\u96C6',col:'#f59e0b',icon:'\u{1F9F2}',dur:600},
   {name:'\u30DC\u30E0',desc:'\u753B\u9762\u4E0A\u306E\u6575\u3092\u4E00\u6383',col:'#ff4400',icon:'\u{1F4A3}',dur:0},
-  {name:'\u30CF\u30FC\u30C8',desc:'HP\u56DE\u5FA9',col:'#ff3860',icon:'\u2665',dur:0},
+  {name:'\u30CF\u30FC\u30C8',desc:'HP\u56DE\u5FA9',col:'#ff3860',icon:'\u2764\uFE0F',dur:0},
   {name:'\u30B9\u30ED\u30FC',desc:'\u30B9\u30ED\u30FC\u30E2\u30FC\u30B7\u30E7\u30F3',col:'#a855f7',icon:'\u25F7',dur:600},
 ];
 
@@ -1453,10 +1484,12 @@ let rankFx=localStorage.getItem('gd5rankFx')||'';
 let newHi=false,speed=SPEED_INIT,frame=0,deadT=0,titleT=0;
 let combo=0,comboT=0,comboDsp=0,comboDspT=0;
 let airCombo=0; // aerial enemy kill combo (resets on grounded)
+let stompCombo=0; // consecutive stomp combo (resets on grounded)
 let shakeX=0,shakeY=0,shakeI=0;
 let mileT=0,mileTxt='',lastMile=0;
 let pops=[],totalCoins=0,totalFlips=0,maxCombo=0,flipCount=0,flipTimer=999;
 let played=parseInt(localStorage.getItem('gd5plays')||'0');
+let freeRevivesUsed=parseInt(localStorage.getItem('gd5freeRevives')||'0'); // new users get 5 free revives
 let dist=0;
 let rawDist=0; // pure traversal distance (no bonuses) - used for boss timing
 let speedOffset=0; // distance offset for speed calculation (reset on continue)

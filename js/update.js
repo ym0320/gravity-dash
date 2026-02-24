@@ -732,7 +732,7 @@ function update(dt){
     }
   }
   // Reset air combo when grounded
-  if(player.grounded)airCombo=0;
+  if(player.grounded){airCombo=0;stompCombo=0;}
 
   // Spike gimmick update & collision (proximity-triggered: activates when player approaches)
   spikes.forEach(sp=>{
@@ -1310,14 +1310,19 @@ function update(dt){
           player.grounded=false;
         }
         flipCount=0;player.canFlip=true;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
-        // Gravity stomp bonus: 3x if flipped recently
+        // Gravity stomp bonus
         const gstomp=flipTimer<40;
-        const gsMul=gstomp?3:1;
-        const bon=Math.floor((10+Math.min(score*0.1,20))*gsMul);
+        // Stomp combo: normal 30×3^combo, gravity 90×2^combo
+        const baseBon=gstomp?90:30;
+        const comboMul=gstomp?Math.pow(2,stompCombo):Math.pow(3,stompCombo);
+        const bon=Math.floor(baseBon*comboMul);
+        stompCombo++;
         dist+=bon;
         if(gstomp){sfx('gstompHeavy');sfxEnemyDeath(en.type);vibrate([20,10,30]);shakeI=8;}else{sfxEnemyDeath(en.type);vibrate(15);}
+        if(stompCombo>=2)sfxStompCombo(stompCombo);
         addPop(en.x,en.y-en.sz*en.gDir,'+'+bon,gstomp?'#ffd700':'#ff3860');
-        if(gstomp){addPop(en.x,en.y-en.sz*en.gDir-22,'\u91CD\u529B\u30B9\u30C8\u30F3\u30D7!','#ffd700');emitParts(en.x,en.y,20,'#ffd700',5,4);}
+        if(stompCombo>=2){addPop(en.x,en.y-en.sz*en.gDir-22,stompCombo+'\u30B3\u30F3\u30DC!',gstomp?'#ffd700':'#ff6600');emitParts(en.x,en.y,14+stompCombo*3,gstomp?'#ffd700':'#ff6600',4,3);}
+        if(gstomp){addPop(en.x,en.y-en.sz*en.gDir-(stompCombo>=2?40:22),'\u91CD\u529B\u30B9\u30C8\u30F3\u30D7!','#ffd700');emitParts(en.x,en.y,20,'#ffd700',5,4);}
         else{emitParts(en.x,en.y,12,'#ff3860',4,3);}
         // Aerial combo: consecutive kills without touching ground
         if(!player.grounded){airCombo++;sfxAirCombo(airCombo);const acb=airCombo*5;dist+=acb;addPop(en.x,en.y-en.sz*en.gDir-36,airCombo+' AIR COMBO!','#00e5ff');emitParts(en.x,en.y,8,'#00e5ff',3,2);}

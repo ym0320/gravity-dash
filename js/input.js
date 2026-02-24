@@ -68,10 +68,16 @@ function hitDeadBtn(px,py){
   }
   return null;
 }
+function canFreeRevive(){return freeRevivesUsed<5;}
 function handleDeadBtn(btnId){
   if(btnId==='continue'){
     if(usedContinue){sfx('hurt');vibrate(15);return;}
-    if(walletCoins>=100){
+    if(canFreeRevive()){
+      // Free revival for new users (first 5 games)
+      freeRevivesUsed++;localStorage.setItem('gd5freeRevives',freeRevivesUsed.toString());
+      usedContinue=true;
+      sfx('select');continueFromDeath();
+    } else if(walletCoins>=100){
       walletCoins-=100;localStorage.setItem('gd5wallet',walletCoins.toString());
       usedContinue=true;
       sfx('select');continueFromDeath();
@@ -273,9 +279,9 @@ function continueFromDeath(){
   itemEff={invincible:0,magnet:0};bombCount=0;bombFlashT=0;invCount=0;
   djumpAvailable=!!ct().hasDjump;djumpUsed=false;ghostPhaseT=0;ghostInvis=false;
   player._quakeStunned=false;player._quakeStunT=0;
-  deadT=0;newHi=false;combo=0;comboT=0;comboDsp=0;comboDspT=0;airCombo=0;
+  deadT=0;newHi=false;combo=0;comboT=0;comboDsp=0;comboDspT=0;airCombo=0;stompCombo=0;
   shakeX=0;shakeY=0;shakeI=0;flipCount=0;flipTimer=999;
-  coinCD=0;itemCD=0;enemyCD=0;spikeCD=0;hillCD=0;floatCD=0;gravZoneCD=0;icicleCD=0;
+  coinCD=0;itemCD=0;enemyCD=0;birdCD=0;spikeCD=0;hillCD=0;floatCD=0;gravZoneCD=0;icicleCD=0;
   flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
   bossChests=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null};
   state=ST.COUNTDOWN;countdownT=180;
@@ -663,10 +669,7 @@ canvas.addEventListener('touchstart',e=>{
   if(state===ST.TUTORIAL){handleTutorialTouch(p.x,p.y);return;}
   // Settings gear button on title screen (delay for dev mode combo)
   if(state===ST.TITLE&&!charModal.show&&hitSettingsGear(p.x,p.y)){devModeGearHeld=true;return;}
-  // Help button on title screen (disabled for now)
-  // if(state===ST.TITLE&&!charModal.show&&hitHelpBtn(p.x,p.y)){sfx('select');helpOpen=true;return;}
-  // Update info button on title screen (disabled for now)
-  // if(state===ST.TITLE&&!charModal.show&&hitUpdateBtn(p.x,p.y)){sfx('select');updateInfoPage=0;updateInfoOpen=true;return;}
+  if(state===ST.TITLE&&!charModal.show&&hitHelpBtn(p.x,p.y)){sfx('select');helpOpen=true;return;}
   if(state===ST.STAGE_SEL){stageSelTouchY=t.clientY;stageSelDragging=false;return;}
   if(state===ST.STAGE_CLEAR&&stageClearT>60){
     sfx('click');state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;
@@ -926,8 +929,7 @@ canvas.addEventListener('mousedown',e=>{
   if(state===ST.LOGIN){handleLoginTouch(p.x,p.y);return;}
   if(state===ST.TUTORIAL){handleTutorialTouch(p.x,p.y);return;}
   if(state===ST.TITLE&&!charModal.show&&hitSettingsGear(p.x,p.y)){devModeGearHeld=true;devModeGearTimer=setTimeout(()=>{if(devModeGearHeld){devModeGearHeld=false;sfx('click');settingsOpen=true;}},500);return;}
-  // if(state===ST.TITLE&&!charModal.show&&hitHelpBtn(p.x,p.y)){sfx('select');helpOpen=true;return;}
-  // if(state===ST.TITLE&&!charModal.show&&hitUpdateBtn(p.x,p.y)){sfx('select');updateInfoPage=0;updateInfoOpen=true;return;}
+  if(state===ST.TITLE&&!charModal.show&&hitHelpBtn(p.x,p.y)){sfx('select');helpOpen=true;return;}
   if(state===ST.STAGE_SEL){handleStageSelTouch(p.x,p.y);return;}
   if(state===ST.STAGE_CLEAR&&stageClearT>60){
     sfx('click');state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;
@@ -1676,11 +1678,11 @@ fbOnReady(user=>{
 // ===== TUTORIAL (course-based) =====
 // Checkpoint distances calculated for player at W*0.25
 const TUT_CHECKPOINTS=[
-  {dist:160,type:'jump',msg:'障害物をジャンプで\n飛び越えよう！',sub:'画面をタップ！',icon:'tap'},
-  {dist:430,type:'flip_up',msg:'奈落だ！重力反転で\n天井へ避難！',sub:'上にスワイプ！',icon:'swipe_up'},
-  {dist:700,type:'flip_down',msg:'天井が途切れる！\n地面に戻ろう！',sub:'下にスワイプ！',icon:'swipe_down'},
-  {dist:980,type:'double_flip',msg:'空中で重力を\n切り替えよう！',sub:'↑ 上にスワイプ！',icon:'double'},
-  {dist:1300,type:'bomb',msg:'ボムで敵を\n一掃しよう！',sub:'ボムボタンをタップ！',icon:'bomb'},
+  {dist:160,type:'jump',msg:'障害物をジャンプで\n飛び越えよう！',sub:'画面をタップ！',pcSub:'Spaceキー！',icon:'tap'},
+  {dist:430,type:'flip_up',msg:'奈落だ！重力反転で\n天井へ避難！',sub:'上にスワイプ！',pcSub:'↑ 矢印キー！',icon:'swipe_up'},
+  {dist:700,type:'flip_down',msg:'天井が途切れる！\n地面に戻ろう！',sub:'下にスワイプ！',pcSub:'↓ 矢印キー！',icon:'swipe_down'},
+  {dist:980,type:'double_flip',msg:'空中で重力を\n切り替えよう！',sub:'↑ 上にスワイプ！',pcSub:'↑ 矢印キー！',icon:'double'},
+  {dist:1300,type:'bomb',msg:'ボムで敵を\n一掃しよう！',sub:'ボムボタンをタップ！',pcSub:'Bキー！',icon:'bomb'},
 ];
 function buildTutorialCourse(){
   tutCoursePlats=[];tutCourseCeil=[];tutCourseSpikes=[];
