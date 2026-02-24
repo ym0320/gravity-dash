@@ -1096,8 +1096,8 @@ function update(dt){
         const aheadSy=floorSurfaceY(en.x+en.patrolDir*(en.sz+4));
         if(sy<H+100){
           en.y=sy-en.sz;en.vy=0;
-          // If the ground ahead is a void or much lower, reverse direction
-          if(aheadSy>H+100||aheadSy>sy+30) en.patrolDir*=-1;
+          // If the ground ahead is a void or even slightly lower, reverse direction
+          if(aheadSy>H+100||aheadSy>sy+5) en.patrolDir*=-1;
         }
         else{en.vy=(en.vy||0)+GRAVITY;en.y+=en.vy;}
       }else{
@@ -1105,8 +1105,8 @@ function update(dt){
         const aheadSy=ceilSurfaceY(en.x+en.patrolDir*(en.sz+4));
         if(sy>-100){
           en.y=sy+en.sz;en.vy=0;
-          // If the ceiling ahead is a void or much higher, reverse direction
-          if(aheadSy<-100||aheadSy<sy-30) en.patrolDir*=-1;
+          // If the ceiling ahead is a void or even slightly higher, reverse direction
+          if(aheadSy<-100||aheadSy<sy-5) en.patrolDir*=-1;
         }
         else{en.vy=(en.vy||0)-GRAVITY;en.y+=en.vy;}
       }
@@ -1246,15 +1246,22 @@ function update(dt){
       // expired: no ground collision → falls off screen
     } else {
       // Default movement (type 1 cannon and legacy)
-      en.x-=en.walkSpd*esm;
-      // Keep on surface or fall off cliff
+      // Edge detection: stop moving if ground ahead drops
       if(en.gDir===1){
         const sy=floorSurfaceY(en.x);
-        if(sy<H+100){en.y=sy-en.sz;en.vy=0;}
+        const aheadSy=floorSurfaceY(en.x-en.sz-4);
+        if(sy<H+100){
+          en.y=sy-en.sz;en.vy=0;
+          if(aheadSy<=H+100&&aheadSy<=sy+5)en.x-=en.walkSpd*esm;
+        }
         else{en.vy=(en.vy||0)+GRAVITY;en.y+=en.vy;}
       }else{
         const sy=ceilSurfaceY(en.x);
-        if(sy>-100){en.y=sy+en.sz;en.vy=0;}
+        const aheadSy=ceilSurfaceY(en.x-en.sz-4);
+        if(sy>-100){
+          en.y=sy+en.sz;en.vy=0;
+          if(aheadSy>=-100&&aheadSy>=sy-5)en.x-=en.walkSpd*esm;
+        }
         else{en.vy=(en.vy||0)-GRAVITY;en.y+=en.vy;}
       }
     }
