@@ -345,7 +345,7 @@ function update(dt){
       generatePackPlatform(ceilPlats,true,currentPackStage);
     }
     // Pack mode: boss stage trigger at 90% distance
-    if(currentPackStage.boss&&!bossPhase.active&&!bossPhase.reward&&dist>=currentPackStage.dist*0.9&&bossPhase.bossCount===0){
+    if(currentPackStage.boss&&!bossPhase.active&&!bossPhase.reward&&rawDist>=currentPackStage.dist*0.9&&bossPhase.bossCount===0){
       // Trigger boss fight - set HP to 3 for boss fight
       hp=3;
       bossPhase.nextAt=0; // trigger immediately
@@ -379,7 +379,7 @@ function update(dt){
       }
     }
     // Pack mode clear check (non-boss stages)
-    if(!currentPackStage.boss&&dist>=currentPackStage.dist){
+    if(!currentPackStage.boss&&rawDist>=currentPackStage.dist){
       state=ST.STAGE_CLEAR;stageClearT=0;gotNewStars=0;
       sfxFanfare();vibrate([30,20,30,20,60]);shakeI=8;
       const starsThisRun=stageBigCoins.filter(bc=>bc.col).length;
@@ -422,10 +422,10 @@ function update(dt){
     // Checkpoint flag at 500m (midpoint)
     if(!checkpointReached&&!checkpointFlag.collected){
       const cpDist=currentPackStage.dist*0.5; // midpoint
-      const cpScreenX=player.x+(cpDist-dist)/(speed*0.08)*speed;
+      const cpScreenX=player.x+(cpDist-rawDist)/(speed*0.08)*speed;
       checkpointFlag.x=cpScreenX;
       // Collection detection (void stages: flag on ceiling; others: floor)
-      if(dist>=cpDist-5&&dist<=cpDist+30){
+      if(rawDist>=cpDist-5&&rawDist<=cpDist+30){
         const isVoidCP=currentPackStage.stageType==='void';
         const cpSurf=isVoidCP?ceilSurfaceY(cpScreenX)+10:floorSurfaceY(cpScreenX);
         const cpFlagY=isVoidCP?cpSurf+50:cpSurf-50; // flag center
@@ -444,9 +444,9 @@ function update(dt){
     }
     // Enemy spawning in pack mode (much more aggressive than endless)
     const sType=currentPackStage.stageType||'';
-    const pastGoal=dist>=currentPackStage.dist*0.92;
+    const pastGoal=rawDist>=currentPackStage.dist*0.92;
     if(currentPackStage.enemyChance&&!pastGoal){
-      const stageProgress=dist/currentPackStage.dist;
+      const stageProgress=rawDist/currentPackStage.dist;
       const baseRate=currentPackStage.enemyChance;
       const progressBoost=1+stageProgress*1.5;
       // Swarm stages: spawn enemies very frequently
@@ -454,7 +454,7 @@ function update(dt){
       if(packRng()<baseRate*progressBoost*0.5*swarmMul) trySpawnEnemy();
     }
     // Stage mode gimmicks based on stageType
-    const nearGoal=dist>=currentPackStage.dist*0.92;
+    const nearGoal=rawDist>=currentPackStage.dist*0.92;
     if(sType==='gravity'){
       // Gravity stage: moving hills only (only way to traverse abyss)
       if(!nearGoal){

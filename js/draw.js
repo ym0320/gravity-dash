@@ -931,7 +931,7 @@ function draw(){
     const dmarks=stageDeathMarks[currentPackStage.id];
     for(let di=0;di<dmarks.length;di++){
       const dm=dmarks[di];
-      const markScreenX=player.x+(dm.dist-dist)/(speed*0.08)*speed;
+      const markScreenX=player.x+(dm.dist-rawDist)/(speed*0.08)*speed;
       if(markScreenX>-40&&markScreenX<W+40){
         // Use stored player.y for pinpoint placement, fallback to surface
         const markY=dm.py!=null?dm.py:(dm.gDir===1?floorSurfaceY(markScreenX):ceilSurfaceY(markScreenX));
@@ -955,7 +955,7 @@ function draw(){
   // Pack mode: draw checkpoint flag at midpoint (500m)
   if(isPackMode&&currentPackStage&&!checkpointFlag.collected){
     const cpDist=currentPackStage.dist*0.5;
-    const cpScreenX=player.x+(cpDist-dist)/(speed*0.08)*speed;
+    const cpScreenX=player.x+(cpDist-rawDist)/(speed*0.08)*speed;
     if(cpScreenX>-60&&cpScreenX<W+200){
       const isVoid=currentPackStage.stageType==='void';
       // Void stages: place flag on ceiling (upper floor); others: floor
@@ -1008,7 +1008,7 @@ function draw(){
   // Pack mode: draw collected checkpoint flag indicator
   if(isPackMode&&currentPackStage&&checkpointFlag.collected){
     const cpDist=currentPackStage.dist*0.5;
-    const cpScreenX=player.x+(cpDist-dist)/(speed*0.08)*speed;
+    const cpScreenX=player.x+(cpDist-rawDist)/(speed*0.08)*speed;
     if(cpScreenX>-60&&cpScreenX<W+200){
       const isVoid2=currentPackStage.stageType==='void';
       const cpSurf=isVoid2?ceilSurfaceY(cpScreenX)+10:floorSurfaceY(cpScreenX);
@@ -1022,7 +1022,7 @@ function draw(){
   // Pack mode: draw goal flag at target distance
   if(isPackMode&&currentPackStage){
     const goalDist=currentPackStage.dist;
-    const goalScreenX=player.x+(goalDist-dist)/(speed*0.08)*speed;
+    const goalScreenX=player.x+(goalDist-rawDist)/(speed*0.08)*speed;
     if(goalScreenX>-60&&goalScreenX<W+200){
       const gSurf=floorSurfaceY(goalScreenX);
       const flagBase=gSurf;
@@ -2317,7 +2317,7 @@ function drawActionPanel(){
   // Center area: item buttons (endless/challenge) OR progress bar (pack mode)
   if(isPackMode&&currentPackStage){
     // === PACK MODE: Progress bar in center of action panel ===
-    const prog=Math.min(1,dist/currentPackStage.dist);
+    const prog=Math.min(1,rawDist/currentPackStage.dist);
     const barW=W-120,barH=8;
     const barX=(W-barW)/2,barY=py+10;
     // Bar background
@@ -2347,7 +2347,7 @@ function drawActionPanel(){
     ctx.fillStyle='#ffd700';ctx.font='bold 11px monospace';ctx.textAlign='left';
     ctx.fillText(pname,barX,barY+barH+22);
     ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.textAlign='right';
-    ctx.fillText(Math.floor(dist)+'m / '+currentPackStage.dist+'m',barX+barW,barY+barH+22);
+    ctx.fillText(Math.floor(rawDist)+'m / '+currentPackStage.dist+'m',barX+barW,barY+barH+22);
     // Stars collected
     ctx.textAlign='left';
     for(let si2=0;si2<3;si2++){
@@ -4665,9 +4665,14 @@ function drawStageSel(){
   ctx.fillStyle='#ffffff22';rr(10,22+safeTop,50,30,8);ctx.fill();
   ctx.fillStyle='#fff8';ctx.font='bold 14px monospace';ctx.textAlign='center';
   ctx.fillText('← 戻る',35,42+safeTop);
+  // Reset button
+  ctx.fillStyle='#ff386022';rr(W-60,22+safeTop,50,30,8);ctx.fill();
+  ctx.strokeStyle='#ff386066';ctx.lineWidth=1;rr(W-60,22+safeTop,50,30,8);ctx.stroke();
+  ctx.fillStyle='#ff3860';ctx.font='bold 10px monospace';ctx.textAlign='center';
+  ctx.fillText('\u30EA\u30BB\u30C3\u30C8',W-35,42+safeTop);
   // Star total display
   ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='right';
-  ctx.fillText('★'+totalStars,W-12,42+safeTop);
+  ctx.fillText('\u2605'+totalStars,W-68,42+safeTop);
   // Scrollable pack list
   ctx.save();
   ctx.beginPath();ctx.rect(0,60+safeTop,W,H-70-safeTop-safeBot);ctx.clip();
@@ -4807,9 +4812,64 @@ function drawStageSel(){
     ctx.fillStyle='#fff4';ctx.font='10px monospace';
     ctx.fillText('中間地点（50%）から再開',W/2,my+mh-10);
   }
+  // Reset confirmation modal
+  if(stageResetConfirm){
+    ctx.fillStyle='rgba(0,0,0,0.8)';ctx.fillRect(0,0,W,H);
+    const mw=Math.min(280,W-20),mh=160;
+    const mx=W/2-mw/2,my=H/2-mh/2;
+    ctx.fillStyle='#1a1028';rr(mx,my,mw,mh,14);ctx.fill();
+    ctx.strokeStyle='#ff3860';ctx.lineWidth=2;rr(mx,my,mw,mh,14);ctx.stroke();
+    ctx.fillStyle='#ff3860';ctx.font='bold 14px monospace';ctx.textAlign='center';
+    ctx.fillText('\u30B9\u30C6\u30FC\u30B8\u30C7\u30FC\u30BF\u30EA\u30BB\u30C3\u30C8',W/2,my+28);
+    ctx.fillStyle='#fff8';ctx.font='11px monospace';
+    ctx.fillText('\u661F\u30FB\u30AF\u30EA\u30A2\u30C7\u30FC\u30BF\u304C\u5168\u3066',W/2,my+52);
+    ctx.fillText('\u521D\u671F\u5316\u3055\u308C\u307E\u3059\u3002\u3088\u308D\u3057\u3044\u3067\u3059\u304B\uFF1F',W/2,my+68);
+    const btnW=mw-30,btnH=36;
+    const btnX=mx+15;
+    // Confirm button
+    const cfY=my+84;
+    ctx.fillStyle='#ff386022';rr(btnX,cfY,btnW,btnH,10);ctx.fill();
+    ctx.strokeStyle='#ff3860';ctx.lineWidth=1.5;rr(btnX,cfY,btnW,btnH,10);ctx.stroke();
+    ctx.fillStyle='#ff3860';ctx.font='bold 13px monospace';
+    ctx.fillText('\u30EA\u30BB\u30C3\u30C8\u3059\u308B',W/2,cfY+24);
+    // Cancel button
+    const ccY=my+126;
+    ctx.fillStyle='#ffffff11';rr(btnX,ccY,btnW,btnH,10);ctx.fill();
+    ctx.strokeStyle='#fff4';ctx.lineWidth=1;rr(btnX,ccY,btnW,btnH,10);ctx.stroke();
+    ctx.fillStyle='#fff8';ctx.font='bold 13px monospace';
+    ctx.fillText('\u30AD\u30E3\u30F3\u30BB\u30EB',W/2,ccY+24);
+  }
 }
 function handleStageSelTouch(tx,ty){
   if(stageSelGuardT>0)return; // ignore taps right after transitioning to stage select
+  // Reset confirmation modal
+  if(stageResetConfirm){
+    const mw=Math.min(280,W-20),mh=160;
+    const mx=W/2-mw/2,my=H/2-mh/2;
+    const btnW=mw-30,btnH=36,btnX=mx+15;
+    const cfY=my+84,ccY=my+126;
+    // Confirm reset
+    if(tx>=btnX&&tx<=btnX+btnW&&ty>=cfY&&ty<=cfY+btnH){
+      sfx('select');stageResetConfirm=false;
+      packProgress={};localStorage.setItem('gd5pp','{}');
+      stageCheckpoints={};localStorage.setItem('gd5checkpoints','{}');
+      stageDeathMarks={};
+      totalStars=getTotalStars();
+      if(typeof fbSaveUserData==='function')fbSaveUserData();
+      return;
+    }
+    // Cancel
+    if(tx>=btnX&&tx<=btnX+btnW&&ty>=ccY&&ty<=ccY+btnH){
+      sfx('cancel');stageResetConfirm=false;return;
+    }
+    // Tap outside
+    if(tx<mx||tx>mx+mw||ty<my||ty>my+mh){sfx('cancel');stageResetConfirm=false;return;}
+    return;
+  }
+  // Reset button
+  if(tx>=W-60&&tx<=W-10&&ty>=22+safeTop&&ty<=52+safeTop){
+    sfx('select');stageResetConfirm=true;return;
+  }
   // Start choice modal
   if(showStartChoice){
     const mw=Math.min(280,W-20),mh=180;

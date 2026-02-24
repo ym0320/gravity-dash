@@ -1407,6 +1407,7 @@ let gotNewStars=0; // how many new stars obtained this clear
 let stageDeathMarks={};
 // Checkpoint system: {stageId: true} for stages with checkpoint reached
 let stageCheckpoints=JSON.parse(localStorage.getItem('gd5checkpoints')||'{}');
+let stageResetConfirm=false; // true when showing reset confirmation modal
 let checkpointReached=false; // true when player passed the checkpoint flag in current run
 let checkpointFlag={x:0,collected:false}; // checkpoint flag position in current stage
 let useCheckpoint=false; // true when starting from checkpoint

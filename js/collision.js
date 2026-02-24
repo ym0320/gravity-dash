@@ -27,7 +27,7 @@ function die(){
   if(isPackMode&&currentPackStage){
     const sid=currentPackStage.id;
     if(!stageDeathMarks[sid])stageDeathMarks[sid]=[];
-    stageDeathMarks[sid].push({dist:dist,gDir:player.gDir,py:player.y});
+    stageDeathMarks[sid].push({dist:rawDist,gDir:player.gDir,py:player.y});
     if(stageDeathMarks[sid].length>10)stageDeathMarks[sid].shift();
   }
   // Transfer earned chests to inventory storage
