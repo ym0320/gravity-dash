@@ -1154,6 +1154,10 @@ function draw(){
       ctx.fillText('\u26A0 WARNING',W/2,H*0.35);
       ctx.font='bold 18px monospace';ctx.fillStyle='#ff6080';
       ctx.fillText('BOSS \u51FA\u73FE',W/2,H*0.43);
+      // Boss name
+      const bossNameMap={bruiser:'\u30D6\u30EB\u30FC\u30B6\u30FC',dodge:'\u30C9\u30C3\u30B8\u30FC',wizard:'\u30A6\u30A3\u30B6\u30FC\u30C9',guardian:'\u30AC\u30FC\u30C7\u30A3\u30A2\u30F3'};
+      const bname=bossNameMap[bossPhase.bossType]||'';
+      if(bname){ctx.font='bold 24px monospace';ctx.fillStyle='#ffdd57';ctx.fillText(bname,W/2,H*0.52);}
       ctx.shadowBlur=0;ctx.restore();
     }
     // Red scan lines
@@ -1162,10 +1166,8 @@ function draw(){
       for(let y=0;y<H;y+=4)ctx.fillRect(0,y,W,2);
     }
   }
-  // Boss phase UI (enemy count)
+  // Boss phase UI
   if(bossPhase.active&&bossPhase.prepare<=0&&!bossPhase.reward){
-    ctx.fillStyle='#ff3860';ctx.font='bold 13px monospace';ctx.textAlign='center';
-    ctx.fillText('\u6575: '+(bossPhase.total-bossPhase.defeated)+' / '+bossPhase.total,W/2,96);
     // Boss instruction hint
     if(bossPhase.hintT>0){
       const hintAlpha=bossPhase.hintT<60?bossPhase.hintT/60:1;

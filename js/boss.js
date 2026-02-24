@@ -23,6 +23,17 @@ function startBossPhase(){
   bossPhase.lastBossScore=score;
   bossPhase.lastBossRawDist=rawDist;
   bossPhase.nextAt=(Math.floor(rawDist/BOSS_INTERVAL)+1)*BOSS_INTERVAL;
+  // Pre-determine boss type for display during warning screen
+  const _allTypes=['wizard','bruiser','guardian','dodge'];
+  const _pickType=()=>_allTypes[Math.floor(Math.random()*4)];
+  if(isChallengeMode){
+    bossPhase.bossType=_pickType();
+  } else if(isPackMode&&currentPackStage&&currentPackStage.boss){
+    if(currentPackStage.bossVariant==='snowman') bossPhase.bossType='wizard';
+    else bossPhase.bossType=Math.random()<0.5?'bruiser':'guardian';
+  } else {
+    bossPhase.bossType=_pickType();
+  }
   shakeI=18;vibrate([50,30,50,30,80,40,100]);
   if(isChallengeMode){sfxChallengeBossAlert();switchBGM('challenge');}
   else{sfxBossAlert();switchBGM('boss');}
@@ -146,23 +157,8 @@ function spawnBossEnemies(){
       return 1;
     }
   }
-  // Pick boss type(s)
-  const allTypes=['wizard','bruiser','guardian','dodge'];
-  function pickType(){return allTypes[Math.floor(Math.random()*4)];}
-  let bossType;
-  if(isChallengeMode){
-    bossType=pickType();
-  } else if(isPackMode&&currentPackStage&&currentPackStage.boss){
-    // Snowman variant forces wizard boss type
-    if(currentPackStage.bossVariant==='snowman'){
-      bossType='wizard';
-    } else {
-      bossType=Math.random()<0.5?'bruiser':'guardian';
-    }
-  } else {
-    bossType=pickType();
-  }
-  bossPhase.bossType=bossType;
+  // Use pre-determined boss type from startBossPhase
+  const bossType=bossPhase.bossType;
   // Spawn primary boss (floor side)
   bossPhase.total=spawnBoss(bossType,1,0,0);
   bossPhase.dodgeKills=0;

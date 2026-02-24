@@ -1246,22 +1246,15 @@ function update(dt){
       // expired: no ground collision → falls off screen
     } else {
       // Default movement (type 1 cannon and legacy)
-      // Edge detection: stop moving if ground ahead drops
+      // Cannon moves but can't climb steps (falls off edges naturally)
+      en.x-=en.walkSpd*esm;
       if(en.gDir===1){
         const sy=floorSurfaceY(en.x);
-        const aheadSy=floorSurfaceY(en.x-en.sz-4);
-        if(sy<H+100){
-          en.y=sy-en.sz;en.vy=0;
-          if(aheadSy<=H+100&&aheadSy<=sy+5)en.x-=en.walkSpd*esm;
-        }
+        if(sy<H+100){en.y=sy-en.sz;en.vy=0;}
         else{en.vy=(en.vy||0)+GRAVITY;en.y+=en.vy;}
       }else{
         const sy=ceilSurfaceY(en.x);
-        const aheadSy=ceilSurfaceY(en.x-en.sz-4);
-        if(sy>-100){
-          en.y=sy+en.sz;en.vy=0;
-          if(aheadSy>=-100&&aheadSy>=sy-5)en.x-=en.walkSpd*esm;
-        }
+        if(sy>-100){en.y=sy+en.sz;en.vy=0;}
         else{en.vy=(en.vy||0)-GRAVITY;en.y+=en.vy;}
       }
     }
