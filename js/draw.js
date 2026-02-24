@@ -3678,10 +3678,11 @@ function drawChestOpen(){
     ctx.fillText('\u5B9D\u7BB1\u958B\u5C01',cx,mY+30);
     ctx.fillStyle='#fff8';ctx.font='11px monospace';
     ctx.fillText('\u901A\u7B97 '+totalChestsOpened+' \u500B\u958B\u5C01',cx,mY+48);
-    // Remaining chests in inventory
-    if(storedChests>0){
+    // Remaining chests
+    const remainChests=deadChestOpen?Math.max(0,runChests-deadChestsOpened):storedChests;
+    if(remainChests>0){
       ctx.fillStyle='#ffaa00';ctx.font='10px monospace';
-      ctx.fillText('\u6B8B\u308A '+storedChests+' \u500B',cx,mY+62);
+      ctx.fillText('\u6B8B\u308A '+remainChests+' \u500B',cx,mY+62);
     }
   }
 
@@ -4111,7 +4112,8 @@ function drawChestOpen(){
     // "Tap to close" at bottom
     const ta=0.4+Math.sin(t*0.1)*0.3;
     ctx.globalAlpha=ta;ctx.fillStyle='#fff6';ctx.font='13px monospace';ctx.textAlign='center';
-    ctx.fillText(storedChests>0?'タップで次の宝箱':'タップで閉じる',cx,mY+mH-20);
+    const hasNextChest=deadChestOpen?(deadChestsOpened<runChests&&storedChests>0):(storedChests>0);
+    ctx.fillText(hasNextChest?'タップで次の宝箱':'タップで閉じる',cx,mY+mH-20);
     ctx.globalAlpha=1;
   }
   else if(p==='batchDone'){
@@ -4419,7 +4421,7 @@ function drawDead(){
 
   // Main result card
   const cardW=Math.min(270,W-30),cardX=W/2-cardW/2;
-  const cardY=H*0.24,cardH=210+(storedChests>0?56:0);
+  const cardY=H*0.24,cardH=210+(runChests>0?56:0);
   const cardGr=ctx.createLinearGradient(cardX,cardY,cardX,cardY+cardH);
   cardGr.addColorStop(0,'rgba(10,10,30,0.92)');cardGr.addColorStop(1,'rgba(5,5,20,0.92)');
   ctx.fillStyle=cardGr;rr(cardX,cardY,cardW,cardH,14);ctx.fill();
@@ -4463,11 +4465,11 @@ function drawDead(){
   ctx.fillStyle='#fff5';ctx.font='11px monospace';
   ctx.fillText('\u6240\u6301: '+walletCoins,W/2+50,coinY);
 
-  // Chest acquisition display + open button
-  if(storedChests>0){
+  // Chest acquisition display + open button (only chests earned this run)
+  if(runChests>0){
     const chestY=coinY+20;
     ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';ctx.textAlign='center';
-    ctx.fillText('\uD83D\uDCE6 宝箱 \u00D7'+storedChests,W/2,chestY);
+    ctx.fillText('\uD83D\uDCE6 宝箱 \u00D7'+runChests,W/2,chestY);
     // "Open chests" button
     const ocW=140,ocH=28,ocX=W/2-ocW/2,ocY=chestY+6;
     ctx.fillStyle='#ffd70018';rr(ocX,ocY,ocW,ocH,6);ctx.fill();

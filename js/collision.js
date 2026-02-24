@@ -31,6 +31,7 @@ function die(){
     if(stageDeathMarks[sid].length>10)stageDeathMarks[sid].shift();
   }
   // Transfer earned chests to inventory storage
+  runChests=bossChests; // preserve count for dead screen
   if(bossChests>0){
     localStorage.setItem('gd5lastRunChests',bossChests.toString());
     storedChests+=bossChests;localStorage.setItem('gd5storedChests',storedChests.toString());

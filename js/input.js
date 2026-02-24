@@ -39,7 +39,7 @@ function deadBtnLayout(){
     btnTop+=btnH2+8;
     btns.push({id:'title',x:btnX2,y:btnTop,w:btnW2,h:btnH2});
   } else {
-    const cardY=H*0.24,cardH=210+(storedChests>0?56:0);
+    const cardY=H*0.24,cardH=210+(runChests>0?56:0);
     let btnTop=cardY+cardH+12;
     if(!isPackMode){
       btns.push({id:'continue',x:btnX2,y:btnTop,w:btnW2,h:btnH2});
@@ -52,7 +52,7 @@ function deadBtnLayout(){
   return btns;
 }
 function hitDeadChestBtn(px,py){
-  if(storedChests<=0)return false;
+  if(runChests<=0)return false;
   const cardY=H*0.24;
   const scoreY=cardY+(newHi?68:60);
   const divY=scoreY+(maxCombo>1?82:70);
@@ -143,6 +143,7 @@ function handleInventoryChestTap(tapX,tapY){
     chestOpen.phase='wobble';chestOpen.t=0;sfx('select');vibrate(15);
     totalChestsOpened++;localStorage.setItem('gd5chestTotal',totalChestsOpened.toString());
     storedChests--;localStorage.setItem('gd5storedChests',storedChests.toString());
+    if(deadChestOpen)deadChestsOpened++;
     if(typeof fbSaveUserData==='function')fbSaveUserData();
     return true;
   }
@@ -163,7 +164,9 @@ function handleInventoryChestTap(tapX,tapY){
       sfx('click');
       return true;
     }
-    if(storedChests>0){
+    // On dead screen, only open up to runChests; otherwise check storedChests
+    const hasMore=deadChestOpen?(deadChestsOpened<runChests&&storedChests>0):(storedChests>0);
+    if(hasMore){
       startInventoryChestOpen();
     } else {
       chestOpen.phase='none';chestOpen.t=0;chestOpen.parts=[];chestOpen.reward=null;
@@ -719,7 +722,7 @@ canvas.addEventListener('touchstart',e=>{
     handleInventoryChestTap(p.x,p.y);
   }
   else if(state===ST.DEAD&&deadT>45){
-    if(hitDeadChestBtn(p.x,p.y)){deadChestOpen=true;chestBatchMode=false;startInventoryChestOpen();sfx('select');return;}
+    if(hitDeadChestBtn(p.x,p.y)){deadChestOpen=true;deadChestsOpened=0;chestBatchMode=false;startInventoryChestOpen();sfx('select');return;}
     const btnId=hitDeadBtn(p.x,p.y);
     if(btnId){handleDeadBtn(btnId);touchBtnUsed=true;return;}
   }
@@ -973,7 +976,7 @@ canvas.addEventListener('mousedown',e=>{
     handleInventoryChestTap(p.x,p.y);
   }
   else if(state===ST.DEAD&&deadT>45){
-    if(hitDeadChestBtn(p.x,p.y)){deadChestOpen=true;chestBatchMode=false;startInventoryChestOpen();sfx('select');return;}
+    if(hitDeadChestBtn(p.x,p.y)){deadChestOpen=true;deadChestsOpened=0;chestBatchMode=false;startInventoryChestOpen();sfx('select');return;}
     const btnId=hitDeadBtn(p.x,p.y);
     if(btnId)handleDeadBtn(btnId);
   }

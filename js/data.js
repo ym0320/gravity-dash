@@ -1506,13 +1506,15 @@ let bossRetry=null; // {score,bossCount} saved when quitting during boss
 let isRetryGame=false; // true if current game is a boss retry (only 1 retry allowed)
 let usedContinue=false; // true after using coin continue (only 1 allowed per run)
 // Treasure chest system
-let bossChests=0; // number of chests earned this run
+let bossChests=0; // number of chests earned this run (before death transfer)
+let runChests=0; // chests earned this run (preserved for dead screen)
 let chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0}; // falling chest during boss reward
 let chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null}; // chest opening modal
 let totalChestsOpened=parseInt(localStorage.getItem('gd5chestTotal')||'0'); // lifetime chest count
 let storedChests=parseInt(localStorage.getItem('gd5storedChests')||'0'); // inventory chest count
 let inventoryOpen=false; // inventory modal on title screen
 let deadChestOpen=false; // chest opening from game over screen
+let deadChestsOpened=0; // how many chests opened on dead screen so far
 let chestBatchMode=false; // batch opening all chests
 let chestBatchResults=[]; // collected results for batch summary
 const PANEL_H=56; // bottom action panel height
