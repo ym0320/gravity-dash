@@ -1278,7 +1278,7 @@ const STAGE_PACKS=[
       coins:[{pos:0.30,yOff:-50},{pos:0.55,yOff:-50},{pos:0.78,yOff:-50}]},
     {id:'1-5',name:'1-5',dist:1000,spdMul:1.8,seed:1005,hillChance:0.50,gapChance:0.48,enemyChance:0,boss:true,
       stageType:'void',noFloatPlat:true,noMovingHill:true,
-      coins:[{pos:0.25,yOff:-50},{pos:0.50,yOff:-50},{pos:0.75,yOff:-50}]},
+      coins:[{pos:0.25,yOff:-50},{pos:0.58,yOff:-50},{pos:0.78,yOff:-50}]},
   ]},
   {name:'雪山',theme:1,unlock:12,starsPerStage:2,stages:[
     {id:'2-1',name:'2-1',dist:1000,spdMul:1.3,seed:2001,hillChance:0.35,gapChance:0.30,enemyChance:0.26,noFloatPlat:true,
@@ -1716,6 +1716,7 @@ let notifNewHighScore=localStorage.getItem('gd5notifHi')==='1'; // new high scor
 // Shop purchase confirmation & gacha animation
 let shopConfirm=null; // {item, tab} when confirm dialog shown
 let shopPurchaseAnim=null; // {item, tab, t, parts} when purchase animation playing
+let shopEquipPrompt=null; // {item, tab} shown after purchase to ask equip now or not
 // Cosmetic equip confirmation
 let cosmeticConfirm=null; // {item, tab} when equip confirm dialog shown
 // Pending item tap (deferred to touchend to avoid scroll-tap conflict)
