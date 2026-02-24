@@ -1319,6 +1319,7 @@ function update(dt){
         stompCombo++;
         dist+=bon;
         if(gstomp){sfx('gstompHeavy');sfxEnemyDeath(en.type);vibrate([20,10,30]);shakeI=8;}else{sfxEnemyDeath(en.type);vibrate(15);}
+        if(stompCombo>=2)sfxStompCombo(stompCombo);
         addPop(en.x,en.y-en.sz*en.gDir,'+'+bon,gstomp?'#ffd700':'#ff3860');
         if(stompCombo>=2){addPop(en.x,en.y-en.sz*en.gDir-22,stompCombo+'\u30B3\u30F3\u30DC!',gstomp?'#ffd700':'#ff6600');emitParts(en.x,en.y,14+stompCombo*3,gstomp?'#ffd700':'#ff6600',4,3);}
         if(gstomp){addPop(en.x,en.y-en.sz*en.gDir-(stompCombo>=2?40:22),'\u91CD\u529B\u30B9\u30C8\u30F3\u30D7!','#ffd700');emitParts(en.x,en.y,20,'#ffd700',5,4);}

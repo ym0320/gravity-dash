@@ -233,6 +233,7 @@ function _fbDoSave() {
     eqEyes: equippedEyes || '',
     eqFx: equippedEffect || '',
     plays: played || 0,
+    freeRevives: freeRevivesUsed || 0,
     tutorialDone: tutorialDone || false,
     chestTotal: totalChestsOpened || 0,
     storedChests: storedChests || 0,
@@ -317,6 +318,7 @@ function fbMergeCloudData(data) {
   if (data.highScore !== undefined) { highScore = data.highScore; localStorage.setItem('gd5hi', highScore.toString()); }
   if (data.wallet !== undefined) { walletCoins = data.wallet; localStorage.setItem('gd5wallet', walletCoins.toString()); }
   if (data.plays !== undefined) { played = data.plays; localStorage.setItem('gd5plays', played.toString()); }
+  if (data.freeRevives !== undefined) { freeRevivesUsed = data.freeRevives; localStorage.setItem('gd5freeRevives', freeRevivesUsed.toString()); }
   if (data.chestTotal !== undefined) { totalChestsOpened = data.chestTotal; localStorage.setItem('gd5chestTotal', totalChestsOpened.toString()); }
   if (data.storedChests !== undefined) { storedChests = data.storedChests; localStorage.setItem('gd5storedChests', storedChests.toString()); }
   // Merge arrays (union)
