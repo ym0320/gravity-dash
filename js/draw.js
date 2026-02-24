@@ -5160,6 +5160,42 @@ function drawShop(){
       ctx.restore();
     }
   }
+  // Equip-now prompt after purchase
+  if(shopEquipPrompt){
+    ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(0,0,W,H);
+    const dlgW=Math.min(250,W-30),dlgH=150;
+    const dlgX=W/2-dlgW/2,dlgY=H/2-dlgH/2;
+    const dgr=ctx.createLinearGradient(dlgX,dlgY,dlgX,dlgY+dlgH);
+    dgr.addColorStop(0,'#1e1e3a');dgr.addColorStop(1,'#0f0f23');
+    ctx.fillStyle=dgr;rr(dlgX,dlgY,dlgW,dlgH,14);ctx.fill();
+    ctx.strokeStyle='#ffd700';ctx.lineWidth=2;rr(dlgX,dlgY,dlgW,dlgH,14);ctx.stroke();
+    // Title
+    ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='center';
+    ctx.fillText('\u88C5\u5099\u3057\u307E\u3059\u304B\uFF1F',W/2,dlgY+30);
+    // Item preview
+    const prevY3=dlgY+62;
+    ctx.save();
+    const origSkin2=equippedSkin,origEyes2=equippedEyes,origFx2=equippedEffect;
+    if(shopEquipPrompt.tab===0)equippedSkin=shopEquipPrompt.item.id;
+    else if(shopEquipPrompt.tab===1)equippedEyes=shopEquipPrompt.item.id;
+    else equippedEffect=shopEquipPrompt.item.id;
+    drawCharacter(W/2,prevY3,selChar,22,0,1,'normal',0,true);
+    equippedSkin=origSkin2;equippedEyes=origEyes2;equippedEffect=origFx2;
+    ctx.restore();
+    // Item name
+    ctx.fillStyle='#fff';ctx.font='bold 11px monospace';ctx.textAlign='center';
+    ctx.fillText(shopEquipPrompt.item.name,W/2,prevY3+30);
+    // Buttons
+    const btnW2=90,btnH2=34;
+    ctx.fillStyle='#ffd70022';rr(W/2-btnW2-6,dlgY+dlgH-48,btnW2,btnH2,8);ctx.fill();
+    ctx.strokeStyle='#ffd700';ctx.lineWidth=1.5;rr(W/2-btnW2-6,dlgY+dlgH-48,btnW2,btnH2,8);ctx.stroke();
+    ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';ctx.textAlign='center';
+    ctx.fillText('\u88C5\u5099\u3059\u308B',W/2-btnW2/2-6,dlgY+dlgH-26);
+    ctx.fillStyle='#ffffff0a';rr(W/2+6,dlgY+dlgH-48,btnW2,btnH2,8);ctx.fill();
+    ctx.strokeStyle='#fff3';ctx.lineWidth=1;rr(W/2+6,dlgY+dlgH-48,btnW2,btnH2,8);ctx.stroke();
+    ctx.fillStyle='#fff8';ctx.font='bold 12px monospace';
+    ctx.fillText('\u3042\u3068\u3067',W/2+btnW2/2+6,dlgY+dlgH-26);
+  }
   ctx.restore();
 }
 

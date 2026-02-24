@@ -1241,9 +1241,35 @@ canvas.addEventListener('wheel',e=>{
 function handleShopTouch(tx,ty){
   const mW=Math.min(320,W-16),mH=Math.min(500,H-30);
   const mX=(W-mW)/2,mY=(H-mH)/2;
-  // Purchase animation playing - tap to dismiss
+  // Purchase animation playing - tap to dismiss, then show equip prompt
   if(shopPurchaseAnim){
-    if(shopPurchaseAnim.t>30){shopPurchaseAnim=null;sfx('click');}
+    if(shopPurchaseAnim.t>30){
+      const anim=shopPurchaseAnim;
+      shopPurchaseAnim=null;sfx('click');
+      // Show equip-now prompt after animation
+      shopEquipPrompt={item:anim.item,tab:anim.tab};
+    }
+    return;
+  }
+  // Equip-now prompt after purchase
+  if(shopEquipPrompt){
+    const dlgW=Math.min(250,W-30),dlgH=150;
+    const dlgX=W/2-dlgW/2,dlgY=H/2-dlgH/2;
+    const btnW2=90,btnH2=34;
+    // Equip now button
+    if(tx>=W/2-btnW2-6&&tx<=W/2-6&&ty>=dlgY+dlgH-48&&ty<=dlgY+dlgH-48+btnH2){
+      const it=shopEquipPrompt.item,tab=shopEquipPrompt.tab;
+      if(tab===0)equipSkin(it.id);
+      else if(tab===1)equipEyes(it.id);
+      else equipEffect(it.id);
+      sfx('select');vibrate(10);shopEquipPrompt=null;return;
+    }
+    // Later button
+    if(tx>=W/2+6&&tx<=W/2+6+btnW2&&ty>=dlgY+dlgH-48&&ty<=dlgY+dlgH-48+btnH2){
+      shopEquipPrompt=null;sfx('cancel');return;
+    }
+    // Tap outside dialog dismisses (don't equip)
+    if(tx<dlgX||tx>dlgX+dlgW||ty<dlgY||ty>dlgY+dlgH){shopEquipPrompt=null;sfx('cancel');return;}
     return;
   }
   // Confirm dialog active
@@ -1256,11 +1282,7 @@ function handleShopTouch(tx,ty){
       const item=shopConfirm.item,tab=shopConfirm.tab;
       if(walletCoins<item.price){sfx('cancel');return;} // can't afford - ignore tap
       if(buyItem(item.id,item.price)){
-        // Auto-equip
-        if(tab===0)equipSkin(item.id);
-        else if(tab===1)equipEyes(item.id);
-        else equipEffect(item.id);
-        // Start gacha celebration
+        // Start gacha celebration (equip prompt shown after animation)
         const parts=[];
         for(let i=0;i<20;i++){
           parts.push({x:W/2,y:H/2,vx:(Math.random()-0.5)*12,vy:(Math.random()-0.5)*12,
@@ -1374,7 +1396,7 @@ function handleCosmeticTouch(tx,ty){
   cosmeticPendingTap=null;
   const listY=mY+134,listH=mH-184;
   const allItems=cosmeticTab===0?SHOP_ITEMS.skins:cosmeticTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
-  const ownedList=[{id:'',name:'\u306A\u3057',desc:'\u30C7\u30D5\u30A9\u30EB\u30C8'}].concat(allItems.filter(it=>ownsItem(it.id)));
+  const ownedList=[{id:'',name:'\u306A\u3057',desc:'\u30C7\u30D5\u30A9\u30EB\u30C8'}].concat(shopSorted(allItems.filter(it=>ownsItem(it.id))));
   const rowH=48;
   for(let i=0;i<ownedList.length;i++){
     const iy=listY+i*rowH-cosmeticScroll;
@@ -1390,7 +1412,7 @@ function confirmCosmeticTap(){
   const tab=cosmeticPendingTap.tab,idx=cosmeticPendingTap.idx;
   cosmeticPendingTap=null;
   const allItems=tab===0?SHOP_ITEMS.skins:tab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
-  const ownedList=[{id:'',name:'\u306A\u3057',desc:'\u30C7\u30D5\u30A9\u30EB\u30C8'}].concat(allItems.filter(it=>ownsItem(it.id)));
+  const ownedList=[{id:'',name:'\u306A\u3057',desc:'\u30C7\u30D5\u30A9\u30EB\u30C8'}].concat(shopSorted(allItems.filter(it=>ownsItem(it.id))));
   if(idx>=ownedList.length)return;
   const item=ownedList[idx];
   // Show equip confirmation dialog
