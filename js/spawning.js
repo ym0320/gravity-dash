@@ -90,7 +90,7 @@ function trySpawnItem(){
     // Pick random item: 0=invincible, 1=magnet, 2=bomb, 3=heart
     let it;
     if(hp<maxHp()&&packRng()<0.3){it=3;} // higher chance for heart when damaged
-    else{const r=packRng();if(r<0.01){it=0;}else if(r<0.025){it=2;}else if(r<0.045){it=1;}else{itemCD=60+Math.floor(packRng()*30);return;}}
+    else{const r=packRng();if(r<0.01){it=0;}else if(r<0.015){it=2;}else if(r<0.035){it=1;}else{itemCD=60+Math.floor(packRng()*30);return;}}
     items.push({x:ix,y:surfY-55-packRng()*25,t:it,sz:14,p:packRng()*6.28,col:false});
   } else {
     itemCD=20+Math.floor(packRng()*15);
