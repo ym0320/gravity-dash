@@ -821,14 +821,14 @@ function update(dt){
         const surfY2=H-fm.curH;
         if(player.gDir===1&&player.x+pr>fm.x&&player.x-pr<fm.x+fm.w){
           if(player.y+pr>=surfY2&&player.y+pr<surfY2+12&&player.vy>=0){
-            player.y=surfY2-pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;djumpAvailable=true;
+            player.y=surfY2-pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
           }
         }
       } else {
         const surfY2=fm.curH;
         if(player.gDir===-1&&player.x+pr>fm.x&&player.x-pr<fm.x+fm.w){
           if(player.y-pr<=surfY2&&player.y-pr>surfY2-12&&player.vy<=0){
-            player.y=surfY2+pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;djumpAvailable=true;
+            player.y=surfY2+pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
           }
         }
       }
@@ -1309,7 +1309,7 @@ function update(dt){
           player.vy=-JUMP_POWER*0.7*player.gDir;
           player.grounded=false;
         }
-        flipCount=0;player.canFlip=true;djumpUsed=false;djumpAvailable=true;
+        flipCount=0;player.canFlip=true;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
         // Gravity stomp bonus: 3x if flipped recently
         const gstomp=flipTimer<40;
         const gsMul=gstomp?3:1;

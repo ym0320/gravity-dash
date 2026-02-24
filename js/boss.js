@@ -348,7 +348,7 @@ function updateBossPhase(){
             b.hp--;b.hurtFlash=20;
             b.state='invincible';b.invT=60;b.timer=0;
             player.vy=b.gDir===1?-JUMP_POWER*0.8:JUMP_POWER*0.8;player.grounded=false;
-            flipCount=0;player.canFlip=true;djumpUsed=false;djumpAvailable=true;
+            flipCount=0;player.canFlip=true;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
             shakeI=12;sfx('bossHit');sfx('gstompHeavy');vibrate([20,10,30]);
             addPop(b.x,b.y-b.sz*b.gDir-10,'HP '+b.hp+'/'+b.maxHp,'#ff3860');
             emitParts(b.x,b.y-b.sz*b.gDir,12,'#ff3860',5,3);
@@ -618,7 +618,7 @@ function updateBossPhase(){
             g.hp--;g.hurtFlash=20;g.invT=g.stunDuration+60;
             g.state='stunned';g.stunT=g.stunDuration;g.timer=0;g.jumpVy=0;
             player.vy=g.gDir===1?-JUMP_POWER*0.8:JUMP_POWER*0.8;player.grounded=false;
-            flipCount=0;player.canFlip=true;djumpUsed=false;djumpAvailable=true;
+            flipCount=0;player.canFlip=true;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
             // Clear stun on successful stomp
             player._quakeStunned=false;player._quakeStunT=0;
             shakeI=12;sfx('bossHit');sfx('gstompHeavy');vibrate([20,10,30]);
@@ -781,7 +781,7 @@ function updateBossPhase(){
           if(stomped){
             w.hp--;w.hurtFlash=20;
             player.vy=-JUMP_POWER*0.8*player.gDir;player.grounded=false;
-            flipCount=0;player.canFlip=true;djumpUsed=false;djumpAvailable=true;
+            flipCount=0;player.canFlip=true;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
             shakeI=12;sfx('gstomp');vibrate([20,10,30]);
             addPop(w.x,w.y-20,'撃破!','#ffd700');
             emitParts(w.x,w.y,12,'#aa44ff',5,3);
