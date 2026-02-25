@@ -931,7 +931,7 @@ function draw(){
     const dmarks=stageDeathMarks[currentPackStage.id];
     for(let di=0;di<dmarks.length;di++){
       const dm=dmarks[di];
-      const markScreenX=player.x+(dm.dist-dist)/(speed*0.08)*speed;
+      const markScreenX=player.x+(dm.dist-rawDist)/(speed*0.08)*speed;
       if(markScreenX>-40&&markScreenX<W+40){
         // Use stored player.y for pinpoint placement, fallback to surface
         const markY=dm.py!=null?dm.py:(dm.gDir===1?floorSurfaceY(markScreenX):ceilSurfaceY(markScreenX));
@@ -955,7 +955,7 @@ function draw(){
   // Pack mode: draw checkpoint flag at midpoint (500m)
   if(isPackMode&&currentPackStage&&!checkpointFlag.collected){
     const cpDist=currentPackStage.dist*0.5;
-    const cpScreenX=player.x+(cpDist-dist)/(speed*0.08)*speed;
+    const cpScreenX=player.x+(cpDist-rawDist)/(speed*0.08)*speed;
     if(cpScreenX>-60&&cpScreenX<W+200){
       const isVoid=currentPackStage.stageType==='void';
       // Void stages: place flag on ceiling (upper floor); others: floor
@@ -1008,7 +1008,7 @@ function draw(){
   // Pack mode: draw collected checkpoint flag indicator
   if(isPackMode&&currentPackStage&&checkpointFlag.collected){
     const cpDist=currentPackStage.dist*0.5;
-    const cpScreenX=player.x+(cpDist-dist)/(speed*0.08)*speed;
+    const cpScreenX=player.x+(cpDist-rawDist)/(speed*0.08)*speed;
     if(cpScreenX>-60&&cpScreenX<W+200){
       const isVoid2=currentPackStage.stageType==='void';
       const cpSurf=isVoid2?ceilSurfaceY(cpScreenX)+10:floorSurfaceY(cpScreenX);
@@ -1022,7 +1022,7 @@ function draw(){
   // Pack mode: draw goal flag at target distance
   if(isPackMode&&currentPackStage){
     const goalDist=currentPackStage.dist;
-    const goalScreenX=player.x+(goalDist-dist)/(speed*0.08)*speed;
+    const goalScreenX=player.x+(goalDist-rawDist)/(speed*0.08)*speed;
     if(goalScreenX>-60&&goalScreenX<W+200){
       const gSurf=floorSurfaceY(goalScreenX);
       const flagBase=gSurf;
@@ -2038,12 +2038,33 @@ function drawPlayer(){
     ctx.fillStyle='rgba(255,100,0,0.3)';
     ctx.beginPath();ctx.arc(player.x,player.y,pr*1.2,0,6.28);ctx.fill();
   }
+  // Magma damage red flash overlay
+  if(magmaHurtT>0){
+    const mAlpha=magmaHurtT/30*0.6;
+    ctx.save();ctx.globalAlpha=mAlpha;
+    ctx.fillStyle='#ff2200';
+    ctx.beginPath();ctx.arc(player.x,player.y,pr*1.3,0,6.28);ctx.fill();
+    ctx.restore();
+    // Fire particles rising from player
+    if(frame%3===0&&parts.length<MAX_PARTS){
+      parts.push({x:player.x+(Math.random()-0.5)*pr,y:player.y+pr*0.5,vx:(Math.random()-0.5)*1.5,vy:-1.5-Math.random()*2,
+        life:12,ml:12,sz:Math.random()*3+2,col:['#ff4400','#ff6600','#ffaa00'][Math.floor(Math.random()*3)]});
+    }
+  }
   // All characters rotate with gravity; face direction corrected inside drawCharacter
   const charRot=player.rot;
   // Draw equipped effect behind character
   const fxData=getEquippedEffectData();
   if(fxData)drawPlayerEffect(player.x,player.y,pr,fxData.type,ghostA,player.gDir);
   drawCharacter(player.x,player.y,selChar,pr,charRot,ghostA,player.face,dmgLv);
+  // Magma burn overlay on character (red tint over the character)
+  if(magmaHurtT>0){
+    const mAlpha2=magmaHurtT/30*0.45;
+    ctx.save();ctx.globalAlpha=mAlpha2;ctx.globalCompositeOperation='multiply';
+    ctx.fillStyle='#ff3300';
+    ctx.beginPath();ctx.arc(player.x,player.y,pr,0,6.28);ctx.fill();
+    ctx.restore();
+  }
 }
 
 function drawPlayerEffect(px,py,pr,fxType,alpha,gDir){
@@ -2317,7 +2338,7 @@ function drawActionPanel(){
   // Center area: item buttons (endless/challenge) OR progress bar (pack mode)
   if(isPackMode&&currentPackStage){
     // === PACK MODE: Progress bar in center of action panel ===
-    const prog=Math.min(1,dist/currentPackStage.dist);
+    const prog=Math.min(1,rawDist/currentPackStage.dist);
     const barW=W-120,barH=8;
     const barX=(W-barW)/2,barY=py+10;
     // Bar background
@@ -2347,7 +2368,7 @@ function drawActionPanel(){
     ctx.fillStyle='#ffd700';ctx.font='bold 11px monospace';ctx.textAlign='left';
     ctx.fillText(pname,barX,barY+barH+22);
     ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.textAlign='right';
-    ctx.fillText(Math.floor(dist)+'m / '+currentPackStage.dist+'m',barX+barW,barY+barH+22);
+    ctx.fillText(Math.floor(rawDist)+'m / '+currentPackStage.dist+'m',barX+barW,barY+barH+22);
     // Stars collected
     ctx.textAlign='left';
     for(let si2=0;si2<3;si2++){
@@ -3678,10 +3699,11 @@ function drawChestOpen(){
     ctx.fillText('\u5B9D\u7BB1\u958B\u5C01',cx,mY+30);
     ctx.fillStyle='#fff8';ctx.font='11px monospace';
     ctx.fillText('\u901A\u7B97 '+totalChestsOpened+' \u500B\u958B\u5C01',cx,mY+48);
-    // Remaining chests in inventory
-    if(storedChests>0){
+    // Remaining chests
+    const remainChests=deadChestOpen?Math.max(0,runChests-deadChestsOpened):storedChests;
+    if(remainChests>0){
       ctx.fillStyle='#ffaa00';ctx.font='10px monospace';
-      ctx.fillText('\u6B8B\u308A '+storedChests+' \u500B',cx,mY+62);
+      ctx.fillText('\u6B8B\u308A '+remainChests+' \u500B',cx,mY+62);
     }
   }
 
@@ -4111,7 +4133,8 @@ function drawChestOpen(){
     // "Tap to close" at bottom
     const ta=0.4+Math.sin(t*0.1)*0.3;
     ctx.globalAlpha=ta;ctx.fillStyle='#fff6';ctx.font='13px monospace';ctx.textAlign='center';
-    ctx.fillText(storedChests>0?'タップで次の宝箱':'タップで閉じる',cx,mY+mH-20);
+    const hasNextChest=deadChestOpen?(deadChestsOpened<runChests&&storedChests>0):(storedChests>0);
+    ctx.fillText(hasNextChest?'タップで次の宝箱':'タップで閉じる',cx,mY+mH-20);
     ctx.globalAlpha=1;
   }
   else if(p==='batchDone'){
@@ -4419,7 +4442,7 @@ function drawDead(){
 
   // Main result card
   const cardW=Math.min(270,W-30),cardX=W/2-cardW/2;
-  const cardY=H*0.24,cardH=210+(storedChests>0?56:0);
+  const cardY=H*0.24,cardH=210+(runChests>0?56:0);
   const cardGr=ctx.createLinearGradient(cardX,cardY,cardX,cardY+cardH);
   cardGr.addColorStop(0,'rgba(10,10,30,0.92)');cardGr.addColorStop(1,'rgba(5,5,20,0.92)');
   ctx.fillStyle=cardGr;rr(cardX,cardY,cardW,cardH,14);ctx.fill();
@@ -4463,11 +4486,11 @@ function drawDead(){
   ctx.fillStyle='#fff5';ctx.font='11px monospace';
   ctx.fillText('\u6240\u6301: '+walletCoins,W/2+50,coinY);
 
-  // Chest acquisition display + open button
-  if(storedChests>0){
+  // Chest acquisition display + open button (only chests earned this run)
+  if(runChests>0){
     const chestY=coinY+20;
     ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';ctx.textAlign='center';
-    ctx.fillText('\uD83D\uDCE6 宝箱 \u00D7'+storedChests,W/2,chestY);
+    ctx.fillText('\uD83D\uDCE6 宝箱 \u00D7'+runChests,W/2,chestY);
     // "Open chests" button
     const ocW=140,ocH=28,ocX=W/2-ocW/2,ocY=chestY+6;
     ctx.fillStyle='#ffd70018';rr(ocX,ocY,ocW,ocH,6);ctx.fill();
@@ -4663,9 +4686,14 @@ function drawStageSel(){
   ctx.fillStyle='#ffffff22';rr(10,22+safeTop,50,30,8);ctx.fill();
   ctx.fillStyle='#fff8';ctx.font='bold 14px monospace';ctx.textAlign='center';
   ctx.fillText('← 戻る',35,42+safeTop);
+  // Reset button
+  ctx.fillStyle='#ff386022';rr(W-60,22+safeTop,50,30,8);ctx.fill();
+  ctx.strokeStyle='#ff386066';ctx.lineWidth=1;rr(W-60,22+safeTop,50,30,8);ctx.stroke();
+  ctx.fillStyle='#ff3860';ctx.font='bold 10px monospace';ctx.textAlign='center';
+  ctx.fillText('\u30EA\u30BB\u30C3\u30C8',W-35,42+safeTop);
   // Star total display
   ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='right';
-  ctx.fillText('★'+totalStars,W-12,42+safeTop);
+  ctx.fillText('\u2605'+totalStars,W-68,42+safeTop);
   // Scrollable pack list
   ctx.save();
   ctx.beginPath();ctx.rect(0,60+safeTop,W,H-70-safeTop-safeBot);ctx.clip();
@@ -4805,9 +4833,64 @@ function drawStageSel(){
     ctx.fillStyle='#fff4';ctx.font='10px monospace';
     ctx.fillText('中間地点（50%）から再開',W/2,my+mh-10);
   }
+  // Reset confirmation modal
+  if(stageResetConfirm){
+    ctx.fillStyle='rgba(0,0,0,0.8)';ctx.fillRect(0,0,W,H);
+    const mw=Math.min(280,W-20),mh=160;
+    const mx=W/2-mw/2,my=H/2-mh/2;
+    ctx.fillStyle='#1a1028';rr(mx,my,mw,mh,14);ctx.fill();
+    ctx.strokeStyle='#ff3860';ctx.lineWidth=2;rr(mx,my,mw,mh,14);ctx.stroke();
+    ctx.fillStyle='#ff3860';ctx.font='bold 14px monospace';ctx.textAlign='center';
+    ctx.fillText('\u30B9\u30C6\u30FC\u30B8\u30C7\u30FC\u30BF\u30EA\u30BB\u30C3\u30C8',W/2,my+28);
+    ctx.fillStyle='#fff8';ctx.font='11px monospace';
+    ctx.fillText('\u661F\u30FB\u30AF\u30EA\u30A2\u30C7\u30FC\u30BF\u304C\u5168\u3066',W/2,my+52);
+    ctx.fillText('\u521D\u671F\u5316\u3055\u308C\u307E\u3059\u3002\u3088\u308D\u3057\u3044\u3067\u3059\u304B\uFF1F',W/2,my+68);
+    const btnW=mw-30,btnH=36;
+    const btnX=mx+15;
+    // Confirm button
+    const cfY=my+84;
+    ctx.fillStyle='#ff386022';rr(btnX,cfY,btnW,btnH,10);ctx.fill();
+    ctx.strokeStyle='#ff3860';ctx.lineWidth=1.5;rr(btnX,cfY,btnW,btnH,10);ctx.stroke();
+    ctx.fillStyle='#ff3860';ctx.font='bold 13px monospace';
+    ctx.fillText('\u30EA\u30BB\u30C3\u30C8\u3059\u308B',W/2,cfY+24);
+    // Cancel button
+    const ccY=my+126;
+    ctx.fillStyle='#ffffff11';rr(btnX,ccY,btnW,btnH,10);ctx.fill();
+    ctx.strokeStyle='#fff4';ctx.lineWidth=1;rr(btnX,ccY,btnW,btnH,10);ctx.stroke();
+    ctx.fillStyle='#fff8';ctx.font='bold 13px monospace';
+    ctx.fillText('\u30AD\u30E3\u30F3\u30BB\u30EB',W/2,ccY+24);
+  }
 }
 function handleStageSelTouch(tx,ty){
   if(stageSelGuardT>0)return; // ignore taps right after transitioning to stage select
+  // Reset confirmation modal
+  if(stageResetConfirm){
+    const mw=Math.min(280,W-20),mh=160;
+    const mx=W/2-mw/2,my=H/2-mh/2;
+    const btnW=mw-30,btnH=36,btnX=mx+15;
+    const cfY=my+84,ccY=my+126;
+    // Confirm reset
+    if(tx>=btnX&&tx<=btnX+btnW&&ty>=cfY&&ty<=cfY+btnH){
+      sfx('select');stageResetConfirm=false;
+      packProgress={};localStorage.setItem('gd5pp','{}');
+      stageCheckpoints={};localStorage.setItem('gd5checkpoints','{}');
+      stageDeathMarks={};
+      totalStars=getTotalStars();
+      if(typeof fbSaveUserData==='function')fbSaveUserData();
+      return;
+    }
+    // Cancel
+    if(tx>=btnX&&tx<=btnX+btnW&&ty>=ccY&&ty<=ccY+btnH){
+      sfx('cancel');stageResetConfirm=false;return;
+    }
+    // Tap outside
+    if(tx<mx||tx>mx+mw||ty<my||ty>my+mh){sfx('cancel');stageResetConfirm=false;return;}
+    return;
+  }
+  // Reset button
+  if(tx>=W-60&&tx<=W-10&&ty>=22+safeTop&&ty<=52+safeTop){
+    sfx('select');stageResetConfirm=true;return;
+  }
   // Start choice modal
   if(showStartChoice){
     const mw=Math.min(280,W-20),mh=180;

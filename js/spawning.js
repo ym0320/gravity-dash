@@ -548,7 +548,7 @@ function trySpawnMagmaFire(){
         const fy=H+10; // start from below screen (magma)
         const isFloorGap=true;
         // Parabolic arc: jump up then fall back
-        const jumpVy=-(5+packRng()*3); // upward velocity
+        const jumpVy=-(3+packRng()*2); // upward velocity (lowered to avoid reaching platform level)
         const jumpVx=(packRng()-0.5)*1.5; // slight horizontal drift
         magmaFireballs.push({x:fx,y:fy,vx:jumpVx,vy:jumpVy,originX:fx,originY:fy,
           isFloor:isFloorGap,sz:10+packRng()*4,phase:packRng()*6.28,alive:true,
@@ -571,7 +571,7 @@ function trySpawnMagmaFire(){
         magmaFireCD=45+Math.floor(packRng()*35);
         const fx=gapMid;
         const fy=-10; // start from above screen (ceiling magma)
-        const jumpVy=4+packRng()*2.5; // downward
+        const jumpVy=2.5+packRng()*1.5; // downward (lowered)
         const jumpVx=(packRng()-0.5)*1.5;
         magmaFireballs.push({x:fx,y:fy,vx:jumpVx,vy:jumpVy,originX:fx,originY:fy,
           isFloor:false,sz:10+packRng()*4,phase:packRng()*6.28,alive:true,
@@ -588,17 +588,17 @@ function trySpawnBird(){
   if(birdCD>0){birdCD--;return;}
   if(bossPhase.active)return;
   if(!isPackMode&&score<30)return;
+  // Only attack when player is on floor (below) - birds dive downward
+  if(player.gDir===-1){birdCD=60;return;}
   // Rare spawn chance
   const chance=isPackMode?0.015:0.012;
   if(packRng()<chance){
     birdCD=180+Math.floor(packRng()*120); // long cooldown (rare)
-    const onCeil=packRng()<0.5;
-    const gd=onCeil?-1:1;
+    const gd=1; // always oriented toward floor (diving down)
     const sz=11;
-    // Spawn at a y position not too close to edges (15%-85% of screen)
-    const minY=H*0.15,maxY=H*0.85;
-    const fy=minY+packRng()*(maxY-minY);
-    const flySpd=2.5+packRng()*1.5; // constant horizontal speed
+    // Spawn high (upper 25% of screen) - dives down toward player
+    const fy=10+packRng()*(H*0.25);
+    const flySpd=1.2+packRng()*0.8; // slower horizontal speed (was 2.5-4.0)
     enemies.push({x:W+30,y:fy,vy:0,gDir:gd,walkSpd:0,sz:sz,alive:true,fr:packRng()*100,
       type:7,shootT:999,flySpd:flySpd});
   } else {

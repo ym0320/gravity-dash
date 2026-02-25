@@ -279,6 +279,7 @@ function update(dt){
   } else {ghostInvis=false;ghostPhaseT=0;}
   // Hurt invincibility timer
   if(hurtT>0)hurtT--;
+  if(magmaHurtT>0)magmaHurtT--;
   // Item timers
   const wasInvincible=itemEff.invincible>0;
   const prevInvT=itemEff.invincible;
@@ -345,7 +346,7 @@ function update(dt){
       generatePackPlatform(ceilPlats,true,currentPackStage);
     }
     // Pack mode: boss stage trigger at 90% distance
-    if(currentPackStage.boss&&!bossPhase.active&&!bossPhase.reward&&dist>=currentPackStage.dist*0.9&&bossPhase.bossCount===0){
+    if(currentPackStage.boss&&!bossPhase.active&&!bossPhase.reward&&rawDist>=currentPackStage.dist*0.9&&bossPhase.bossCount===0){
       // Trigger boss fight - set HP to 3 for boss fight
       hp=3;
       bossPhase.nextAt=0; // trigger immediately
@@ -379,7 +380,7 @@ function update(dt){
       }
     }
     // Pack mode clear check (non-boss stages)
-    if(!currentPackStage.boss&&dist>=currentPackStage.dist){
+    if(!currentPackStage.boss&&rawDist>=currentPackStage.dist){
       state=ST.STAGE_CLEAR;stageClearT=0;gotNewStars=0;
       sfxFanfare();vibrate([30,20,30,20,60]);shakeI=8;
       const starsThisRun=stageBigCoins.filter(bc=>bc.col).length;
@@ -422,10 +423,10 @@ function update(dt){
     // Checkpoint flag at 500m (midpoint)
     if(!checkpointReached&&!checkpointFlag.collected){
       const cpDist=currentPackStage.dist*0.5; // midpoint
-      const cpScreenX=player.x+(cpDist-dist)/(speed*0.08)*speed;
+      const cpScreenX=player.x+(cpDist-rawDist)/(speed*0.08)*speed;
       checkpointFlag.x=cpScreenX;
       // Collection detection (void stages: flag on ceiling; others: floor)
-      if(dist>=cpDist-5&&dist<=cpDist+30){
+      if(rawDist>=cpDist-5&&rawDist<=cpDist+30){
         const isVoidCP=currentPackStage.stageType==='void';
         const cpSurf=isVoidCP?ceilSurfaceY(cpScreenX)+10:floorSurfaceY(cpScreenX);
         const cpFlagY=isVoidCP?cpSurf+50:cpSurf-50; // flag center
@@ -444,9 +445,9 @@ function update(dt){
     }
     // Enemy spawning in pack mode (much more aggressive than endless)
     const sType=currentPackStage.stageType||'';
-    const pastGoal=dist>=currentPackStage.dist*0.92;
+    const pastGoal=rawDist>=currentPackStage.dist*0.92;
     if(currentPackStage.enemyChance&&!pastGoal){
-      const stageProgress=dist/currentPackStage.dist;
+      const stageProgress=rawDist/currentPackStage.dist;
       const baseRate=currentPackStage.enemyChance;
       const progressBoost=1+stageProgress*1.5;
       // Swarm stages: spawn enemies very frequently
@@ -454,7 +455,7 @@ function update(dt){
       if(packRng()<baseRate*progressBoost*0.5*swarmMul) trySpawnEnemy();
     }
     // Stage mode gimmicks based on stageType
-    const nearGoal=dist>=currentPackStage.dist*0.92;
+    const nearGoal=rawDist>=currentPackStage.dist*0.92;
     if(sType==='gravity'){
       // Gravity stage: moving hills only (only way to traverse abyss)
       if(!nearGoal){
@@ -879,17 +880,22 @@ function update(dt){
   // Icicle update & collision (snow stage gimmick - ceiling only, detach and fall as whole piece)
   icicles.forEach(ic=>{
     if(ic.state==='hang'){
-      // Already hanging from ceiling. Shake when icicle is slightly AHEAD of player.
-      const triggerDist=160; // trigger when player is approaching (icicle ahead)
-      if(ic.x<player.x+triggerDist+ic.w&&ic.x+ic.w>player.x-20){
-        ic.warnT++;
-        if(ic.warnT>=30){
-          ic.state='fall';ic.vy=0;
-          sfx('death');
-          // Dust particles at detach point
-          for(let i=0;i<4;i++){
-            if(parts.length<MAX_PARTS)parts.push({x:ic.x+ic.w*Math.random(),y:ic.baseY,vx:(Math.random()-0.5)*1.5,vy:0.5+Math.random(),
-              life:15,ml:15,sz:Math.random()*2+1,col:'#cceeff'});
+      // When player is on ceiling (gDir===-1), icicles stay hanging as static obstacles (jump over)
+      if(player.gDir===-1){
+        // No shake, no fall - just a static obstacle
+      } else {
+        // Already hanging from ceiling. Shake when icicle is slightly AHEAD of player.
+        const triggerDist=160; // trigger when player is approaching (icicle ahead)
+        if(ic.x<player.x+triggerDist+ic.w&&ic.x+ic.w>player.x-20){
+          ic.warnT++;
+          if(ic.warnT>=30){
+            ic.state='fall';ic.vy=0;
+            sfx('icecrack');
+            // Dust particles at detach point
+            for(let i=0;i<4;i++){
+              if(parts.length<MAX_PARTS)parts.push({x:ic.x+ic.w*Math.random(),y:ic.baseY,vx:(Math.random()-0.5)*1.5,vy:0.5+Math.random(),
+                life:15,ml:15,sz:Math.random()*2+1,col:'#cceeff'});
+            }
           }
         }
       }
@@ -901,10 +907,11 @@ function update(dt){
       // Hit the floor?
       const floorY=floorSurfaceY(ic.x+ic.w/2);
       if(ic.tipY>=floorY){
-        const diff=ic.tipY-floorY;
-        ic.tipY=floorY;ic.baseY-=diff;
-        ic.state='stuck';ic.stuckT=60;
-        shakeI=3;
+        // Embed tip partially into ground (8px)
+        ic.tipY=floorY+8;
+        ic.baseY=ic.tipY-ic.h;
+        ic.state='stuck';ic.stuckT=180; // longer duration for riding
+        shakeI=3;sfx('icecrack');
         // Impact particles
         for(let i=0;i<6;i++){
           if(parts.length<MAX_PARTS)parts.push({x:ic.x+ic.w*Math.random(),y:floorY,vx:(Math.random()-0.5)*3,vy:-1-Math.random()*3,
@@ -913,19 +920,27 @@ function update(dt){
       }
     } else if(ic.state==='stuck'){
       ic.stuckT--;
-      if(ic.stuckT<=0){ic.state='fade';ic.fadeT=25;}
+      if(ic.stuckT<=0){ic.state='fade';ic.fadeT=30;}
     } else if(ic.state==='fade'){
       ic.fadeT--;
-      ic.alpha=Math.max(0,ic.fadeT/25);
+      ic.alpha=Math.max(0,ic.fadeT/30);
       if(ic.fadeT<=0)ic.state='gone';
     }
-    // Collision: while hanging (near bottom), falling, or stuck
-    if((ic.state==='fall'||ic.state==='stuck'||ic.state==='hang')&&itemEff.invincible<=0&&hurtT<=0){
+    // Collision: while hanging or falling (stuck icicles are safe platforms)
+    if((ic.state==='fall'||ic.state==='hang')&&itemEff.invincible<=0&&hurtT<=0){
       const icTop=ic.baseY;
       const icBot=ic.tipY;
       if(player.x+pr>ic.x&&player.x-pr<ic.x+ic.w){
         if(player.y+pr>icTop&&player.y-pr<icBot){
           hurt(true);
+        }
+      }
+    }
+    // Icicle riding: player can stand on stuck icicles (top surface at baseY)
+    if(ic.state==='stuck'&&!player.grounded&&player.gDir===1&&player.vy>=0){
+      if(player.x>=ic.x-pr*0.3&&player.x<=ic.x+ic.w+pr*0.3){
+        if(player.y+pr>=ic.baseY&&player.y+pr<ic.baseY+12){
+          player.y=ic.baseY-pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
         }
       }
     }
@@ -953,6 +968,12 @@ function update(dt){
       const dx=player.x-fb.x,dy=player.y-fb.y;
       if(dx*dx+dy*dy<(pr+fb.sz*0.5)*(pr+fb.sz*0.5)){
         hurt(true);
+        magmaHurtT=30; // red flash for magma damage
+        // Fire particles on player
+        for(let i=0;i<8;i++){
+          if(parts.length<MAX_PARTS)parts.push({x:player.x,y:player.y,vx:(Math.random()-0.5)*3,vy:-1-Math.random()*2,
+            life:20,ml:20,sz:Math.random()*4+2,col:['#ff4400','#ff6600','#ffaa00'][i%3]});
+        }
       }
     }
   });
@@ -1196,8 +1217,13 @@ function update(dt){
         if(en.dashTimer<=0){en.dashState='patrol';en.patrolOriginX=en.x;}
       }
     } else if(en.type===7){
-      // Bird: fly straight from right to left at constant speed
+      // Bird: dive from above toward player
       en.x-=en.flySpd;
+      const birdTargetY=player.gDir===1?player.y:H*0.7;
+      const birdDy=birdTargetY-en.y;
+      en.vy=(en.vy||0)+Math.sign(birdDy)*0.06;
+      en.vy=Math.max(-1.5,Math.min(1.5,en.vy));
+      en.y+=en.vy;
     } else if(en.type===8){
       // Splitter: patrol, detect player, then self-split into 2 small bouncing slimes
       en.x+=en.patrolDir*en.walkSpd*esm;
