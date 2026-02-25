@@ -295,7 +295,8 @@ function startPackStageFromDead(){
   // If checkpoint was reached in this run (or saved), restart from checkpoint
   const sid=currentPackStage?currentPackStage.id:'';
   const hasCp=checkpointReached||stageCheckpoints[sid];
-  state=ST.PLAY;resetPackStage(currentPackIdx,currentPackStageIdx,hasCp);switchBGM('play');
+  resetPackStage(currentPackIdx,currentPackStageIdx,hasCp);
+  state=ST.COUNTDOWN;countdownT=180;sfx('countdown');
 }
 
 // Update info modal touch handler
@@ -593,7 +594,8 @@ function restartFromPause(){
   if(isPackMode){
     const sid2=currentPackStage?currentPackStage.id:'';
     const hasCp2=checkpointReached||stageCheckpoints[sid2];
-    state=ST.PLAY;resetPackStage(currentPackIdx,currentPackStageIdx,hasCp2);switchBGM('play');
+    resetPackStage(currentPackIdx,currentPackStageIdx,hasCp2);
+    state=ST.COUNTDOWN;countdownT=180;sfx('countdown');
   } else {
     bossRetry=null;isRetryGame=false;
     reset();

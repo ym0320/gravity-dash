@@ -1,5 +1,24 @@
 'use strict';
 // ===== DRAW =====
+
+// --- Gradient & measureText cache for performance ---
+let _grC={g1:'',g2:'',fGr:null,cGr:null};
+let _bgC={b1:'',b2:'',gr:null};
+let _fpC={ln:'',gr:null};
+function _getTerrGr(){
+  const g1=tc('gnd'),g2=tc('gnd2');
+  if(g1!==_grC.g1||g2!==_grC.g2){
+    _grC.g1=g1;_grC.g2=g2;
+    const f=ctx.createLinearGradient(0,0,0,H+10);f.addColorStop(0,g1);f.addColorStop(1,g2);_grC.fGr=f;
+    const c=ctx.createLinearGradient(0,-10,0,H);c.addColorStop(0,g2);c.addColorStop(1,g1);_grC.cGr=c;
+  }
+  return _grC;
+}
+let _mtC={};
+function _cMT(txt,font){const k=font+'|'+txt;if(_mtC[k]!==undefined)return _mtC[k];ctx.font=font;_mtC[k]=ctx.measureText(txt).width;return _mtC[k];}
+// Clear measureText cache when score changes (called from update)
+let _lastScoreForMT=-1;
+
 function rr(x,y,w,h,r){
   ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
   ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);
@@ -501,9 +520,8 @@ function drawIconHanger(cx,cy,col){
 }
 
 function drawPlatforms(arr,isFloor){
-  // Cache gradient once for all platforms (covers full height)
-  const gr=ctx.createLinearGradient(0,isFloor?0:H+10,0,isFloor?H+10:0);
-  gr.addColorStop(0,tc('gnd'));gr.addColorStop(1,tc('gnd2'));
+  // Use cached terrain gradients (recreated only on theme change)
+  const gc=_getTerrGr();const gr=isFloor?gc.fGr:gc.cGr;
   arr.forEach(p=>{
     if(p.x+p.w<-10||p.x>W+10)return;
     let surfY,y2;
@@ -526,9 +544,10 @@ function drawPlatforms(arr,isFloor){
 }
 
 function drawFloatPlats(){
-  // Cache gradient once for all float plats (full width)
-  const fpGr=ctx.createLinearGradient(0,0,W,0);
-  fpGr.addColorStop(0,tca('line',0x44));fpGr.addColorStop(0.5,tca('line',0x88));fpGr.addColorStop(1,tca('line',0x44));
+  // Cache float plat gradient (recreated only on theme change)
+  const ln=tc('line');
+  if(ln!==_fpC.ln){_fpC.ln=ln;const g=ctx.createLinearGradient(0,0,W,0);g.addColorStop(0,tca('line',0x44));g.addColorStop(0.5,tca('line',0x88));g.addColorStop(1,tca('line',0x44));_fpC.gr=g;}
+  const fpGr=_fpC.gr;
   floatPlats.forEach(fp=>{
     if(fp.x+fp.w<-10||fp.x>W+10)return;
     // Glowing thin platform
@@ -603,11 +622,8 @@ function drawSpikes(){
 }
 
 function drawMovingHills(){
-  // Cache gradients once for all moving hills
-  const flGr=ctx.createLinearGradient(0,0,0,H+10);
-  flGr.addColorStop(0,tc('gnd'));flGr.addColorStop(1,tc('gnd2'));
-  const clGr=ctx.createLinearGradient(0,-10,0,H);
-  clGr.addColorStop(0,tc('gnd2'));clGr.addColorStop(1,tc('gnd'));
+  // Use cached terrain gradients (recreated only on theme change)
+  const gc=_getTerrGr();const flGr=gc.fGr,clGr=gc.cGr;
   movingHills.forEach(mh=>{
     if(mh.x+mh.w<-10||mh.x>W+10)return;
     const curH=mh.baseH+Math.sin(mh.phase)*mh.ampH;
@@ -639,23 +655,20 @@ function drawGravZones(){
     const r2=isDown?'80,180,255':'255,130,190';
     const r3=isDown?'100,200,255':'255,160,210';
     ctx.save();ctx.globalAlpha=alpha;
-    // Aura gradient
-    const gr=ctx.createLinearGradient(g.x,0,g.x+g.w,0);
-    gr.addColorStop(0,'rgba('+r1+',0)');
-    gr.addColorStop(0.3,'rgba('+r1+',0.12)');
-    gr.addColorStop(0.5,'rgba('+r2+',0.18)');
-    gr.addColorStop(0.7,'rgba('+r1+',0.12)');
-    gr.addColorStop(1,'rgba('+r1+',0)');
-    ctx.fillStyle=gr;
+    // Aura fill (simplified from gradient for perf)
+    ctx.fillStyle='rgba('+r2+',0.13)';
+    const inset=g.w*0.25;
+    ctx.fillRect(g.x+inset,0,g.w-inset*2,H);
+    ctx.fillStyle='rgba('+r1+',0.06)';
     ctx.fillRect(g.x,0,g.w,H);
-    // Flowing stream lines
+    // Flowing stream lines (step 16 for perf)
     const t=frame*0.05;
     ctx.strokeStyle='rgba('+r3+','+0.25*alpha+')';
     ctx.lineWidth=1.5;
-    for(let i=0;i<4;i++){
-      const lx=g.x+g.w*(0.2+i*0.2)+Math.sin(t+i)*3;
+    for(let i=0;i<3;i++){
+      const lx=g.x+g.w*(0.25+i*0.25)+Math.sin(t+i)*3;
       ctx.beginPath();
-      for(let y=0;y<H;y+=8){
+      for(let y=0;y<H;y+=16){
         const ox=Math.sin(y*0.03+t+i*1.5)*4;
         if(y===0)ctx.moveTo(lx+ox,y);
         else ctx.lineTo(lx+ox,y);
@@ -691,11 +704,8 @@ function drawGravZones(){
 }
 
 function drawFallingMtns(){
-  // Cache gradients once for all falling mountains
-  const fmFlGr=ctx.createLinearGradient(0,0,0,H+10);
-  fmFlGr.addColorStop(0,tc('gnd'));fmFlGr.addColorStop(1,tc('gnd2'));
-  const fmClGr=ctx.createLinearGradient(0,-10,0,H);
-  fmClGr.addColorStop(0,tc('gnd2'));fmClGr.addColorStop(1,tc('gnd'));
+  // Use cached terrain gradients (recreated only on theme change)
+  const gc=_getTerrGr();const fmFlGr=gc.fGr,fmClGr=gc.cGr;
   fallingMtns.forEach(fm=>{
     if(fm.x+fm.w<-10||fm.x>W+10||fm.state==='gone')return;
     const isCeil=!fm.isFloor;
@@ -732,11 +742,12 @@ function drawMagmaGaps(){
     if(gEnd-gStart<5)continue;
     if(gStart>W+20||gEnd<-20)continue;
     const surfY=H-p1.h;
-    // Lava fill
-    const lg=ctx.createLinearGradient(0,surfY,0,H+10);
-    lg.addColorStop(0,'#ff4400');lg.addColorStop(0.3,'#ff2200');lg.addColorStop(0.6,'#cc1100');lg.addColorStop(1,'#660800');
-    ctx.fillStyle=lg;
-    ctx.fillRect(gStart,surfY,gEnd-gStart,H-surfY+10);
+    // Lava fill (flat layers instead of gradient for perf)
+    const gW=gEnd-gStart,gH=H-surfY+10;
+    ctx.fillStyle='#660800';ctx.fillRect(gStart,surfY,gW,gH);
+    ctx.fillStyle='#cc1100';ctx.fillRect(gStart,surfY,gW,gH*0.6);
+    ctx.fillStyle='#ff2200';ctx.fillRect(gStart,surfY,gW,gH*0.3);
+    ctx.fillStyle='#ff4400';ctx.fillRect(gStart,surfY,gW,4);
     // Animated bubble/glow on surface
     ctx.fillStyle='#ff880066';
     for(let bx=gStart+5;bx<gEnd-5;bx+=18){
@@ -890,8 +901,9 @@ function draw(){
   const dpr=Math.min(window.devicePixelRatio||1,2);
   ctx.setTransform(dpr,0,0,dpr,0,0);
   // Fill background BEFORE shake translate so canvas is fully cleared
-  const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,tc('bg1'));bg.addColorStop(1,tc('bg2'));
-  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  const b1=tc('bg1'),b2=tc('bg2');
+  if(b1!==_bgC.b1||b2!==_bgC.b2){_bgC.b1=b1;_bgC.b2=b2;const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,b1);g.addColorStop(1,b2);_bgC.gr=g;}
+  ctx.fillStyle=_bgC.gr;ctx.fillRect(0,0,W,H);
   ctx.save();ctx.translate(shakeX,shakeY);
 
   stars.forEach(s=>{ctx.globalAlpha=s.a*(0.6+Math.sin(s.tw)*0.4);ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(s.x,s.y,s.sz,0,6.28);ctx.fill();});
@@ -1525,6 +1537,7 @@ function drawBird(en){
   const s=en.sz;
   ctx.save();ctx.translate(en.x,en.y);
   if(en.gDir===-1)ctx.scale(1,-1);
+  ctx.scale(-1,1); // flip horizontally so bird faces right
   // Wing flap animation
   const wf=Math.sin(en.fr*1.8)*0.6;
   // Body (white/light gray round seagull)
@@ -2426,19 +2439,18 @@ function drawActionPanel(){
   if(itemEff.invincible>0)activeItems.push({n:'\u7121\u6575',c:'#ff00ff',t:itemEff.invincible,m:600});
   if(itemEff.magnet>0)activeItems.push({n:'\u5438\u53CE',c:'#f59e0b',t:itemEff.magnet,m:600});
   if(activeItems.length>0){
-    ctx.font='bold 22px monospace';
-    const scoreW=ctx.measureText(''+score).width;
-    ctx.font='10px monospace';
-    const hiW=ctx.measureText('HI: '+highScore).width;
+    const scoreW=_cMT(''+score,'bold 22px monospace');
+    const hiW=_cMT('HI: '+highScore,'10px monospace');
     const barStartX=12+Math.max(scoreW,hiW)+12;
     const bw=48,bh=8;
+    ctx.font='bold 9px monospace';
     activeItems.forEach((d,i)=>{
       const by=py+16+i*16;
       const r=Math.max(0,Math.min(1,d.t/d.m));
       // Label
-      ctx.textAlign='left';ctx.fillStyle=d.c;ctx.font='bold 9px monospace';
+      ctx.textAlign='left';ctx.fillStyle=d.c;
       ctx.fillText(d.n,barStartX,by+7);
-      const labelW=ctx.measureText(d.n).width;
+      const labelW=_cMT(d.n,'bold 9px monospace');
       const bx=barStartX+labelW+4;
       // Bar background
       ctx.fillStyle='#ffffff18';rr(bx,by,bw,bh,3);ctx.fill();
@@ -4902,14 +4914,16 @@ function handleStageSelTouch(tx,ty){
     if(tx>=btn1X&&tx<=btn1X+btnW&&ty>=btn1Y&&ty<=btn1Y+btnH){
       showStartChoice=false;
       gameMode='pack';isPackMode=true;
-      state=ST.PLAY;resetPackStage(pendingPackPi,pendingPackSi,false);switchBGM('play');
+      resetPackStage(pendingPackPi,pendingPackSi,false);
+      state=ST.COUNTDOWN;countdownT=180;sfx('countdown');
       return;
     }
     // "セーブポイントから" button
     if(tx>=btn1X&&tx<=btn1X+btnW&&ty>=btn2Y&&ty<=btn2Y+btnH){
       showStartChoice=false;
       gameMode='pack';isPackMode=true;
-      state=ST.PLAY;resetPackStage(pendingPackPi,pendingPackSi,true);switchBGM('play');
+      resetPackStage(pendingPackPi,pendingPackSi,true);
+      state=ST.COUNTDOWN;countdownT=180;sfx('countdown');
       return;
     }
     // Tap outside modal = cancel
@@ -4952,7 +4966,8 @@ function handleStageSelTouch(tx,ty){
         }
         // Start this stage!
         gameMode='pack';isPackMode=true;
-        state=ST.PLAY;resetPackStage(pi,si,false);switchBGM('play');
+        resetPackStage(pi,si,false);
+        state=ST.COUNTDOWN;countdownT=180;sfx('countdown');
         return;
       }
     }

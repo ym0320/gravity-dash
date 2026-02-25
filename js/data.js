@@ -1324,9 +1324,11 @@ const STAGE_THEMES=[
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t^=t+Math.imul(t^t>>>7,61|t);return((t^t>>>14)>>>0)/4294967296;};}
 const STAGE_PACKS=[
   {name:'宇宙',theme:0,unlock:0,starsPerStage:2,stages:[
-    {id:'1-1',name:'1-1',dist:1000,spdMul:1.2,seed:1001,hillChance:0.55,gapChance:0.35,enemyChance:0.38,noFloatPlat:true,
+    {id:'1-1',name:'1-1',dist:1000,spdMul:1.2,seed:1001,hillChance:0.55,gapChance:0.35,enemyChance:0.38,
+      stageType:'chasm',noFloatPlat:true,
       coins:[{pos:0.30,yOff:-50},{pos:0.55,yOff:-50},{pos:0.78,yOff:-50}]},
-    {id:'1-2',name:'1-2',dist:1000,spdMul:1.35,seed:1002,hillChance:0.50,gapChance:0.45,enemyChance:0.35,noFloatPlat:true,bombWeight:0.50,
+    {id:'1-2',name:'1-2',dist:1000,spdMul:1.35,seed:1002,hillChance:0.50,gapChance:0.45,enemyChance:0.35,
+      stageType:'chasm',noFloatPlat:true,bombWeight:0.50,
       coins:[{pos:0.28,yOff:-50},{pos:0.52,yOff:-50},{pos:0.76,yOff:-50}]},
     {id:'1-3',name:'1-3',dist:1000,spdMul:1.5,seed:1003,hillChance:0.40,gapChance:0.38,enemyChance:0.34,
       stageType:'chasm',noFloatPlat:true,
@@ -1334,7 +1336,7 @@ const STAGE_PACKS=[
     {id:'1-4',name:'1-4',dist:1000,spdMul:1.65,seed:1004,hillChance:0.45,gapChance:0.42,enemyChance:0,
       stageType:'gravity',noFloatPlat:true,
       coins:[{pos:0.30,yOff:-50},{pos:0.55,yOff:-50},{pos:0.78,yOff:-50}]},
-    {id:'1-5',name:'1-5',dist:1000,spdMul:1.8,seed:1005,hillChance:0.50,gapChance:0.48,enemyChance:0,boss:true,
+    {id:'1-5',name:'1-5',dist:1000,spdMul:1.8,seed:1005,hillChance:0.50,gapChance:0.48,enemyChance:0.30,
       stageType:'void',noFloatPlat:true,noMovingHill:true,
       coins:[{pos:0.25,yOff:-50},{pos:0.58,yOff:-50},{pos:0.78,yOff:-50}]},
   ]},
