@@ -642,13 +642,13 @@ function playFeverBGM(){
   feverTimer=setTimeout(playFeverBGM,80);
 }
 
-// rawDist-based play BGM selection (linked to speed progression)
+// Score-based play BGM selection (10 tiers, every 1000 score)
 function getPlayBGM(){
-  const tier=Math.min(Math.floor(rawDist/1000),9);
+  const tier=Math.min(Math.floor(score/1000),9);
   return[BGM_PLAY1,BGM_PLAY2,BGM_PLAY3,BGM_PLAY4,BGM_PLAY5,BGM_PLAY6,BGM_PLAY7,BGM_PLAY8,BGM_PLAY9,BGM_PLAY10][tier];
 }
 function getPlayBGMType(){
-  const tier=Math.min(Math.floor(rawDist/1000),9);
+  const tier=Math.min(Math.floor(score/1000),9);
   return'play'+(tier+1);
 }
 
