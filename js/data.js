@@ -979,55 +979,90 @@ function sfxStompCombo(count){
 function sfxEnemyDeath(type){
   if(!audioCtx)return;try{
     const t=audioCtx.currentTime;
-    function _v(tp,f1,f2,f3,t1,t2,vol,dur){
+    // Helper: simple oscillator voice
+    function _v(tp,f1,f2,f3,t1,t2,vol,dur,dl){
+      const d0=dl||0;
       const o=audioCtx.createOscillator(),g=audioCtx.createGain();
       o.connect(g);g.connect(sfxGain);o.type=tp;
-      o.frequency.setValueAtTime(f1,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+t1);
-      if(f3)o.frequency.exponentialRampToValueAtTime(f3,t+t2);
-      g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+      o.frequency.setValueAtTime(f1,t+d0);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d0+t1);
+      if(f3)o.frequency.exponentialRampToValueAtTime(f3,t+d0+t2);
+      g.gain.setValueAtTime(vol,t+d0);g.gain.exponentialRampToValueAtTime(0.001,t+d0+dur);
       o.onended=function(){try{g.disconnect();}catch(e){}};
-      o.start(t);o.stop(t+dur+0.02);
+      o.start(t+d0);o.stop(t+d0+dur+0.02);
+    }
+    // Helper: noise burst
+    function _noise(vol,dur,dl){
+      const d0=dl||0;
+      const n=audioCtx.createBufferSource(),buf=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*dur)),audioCtx.sampleRate),d=buf.getChannelData(0);
+      for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);
+      n.buffer=buf;const ng=audioCtx.createGain();n.connect(ng);ng.connect(sfxGain);
+      ng.gain.setValueAtTime(vol,t+d0);ng.gain.exponentialRampToValueAtTime(0.001,t+d0+dur);
+      n.start(t+d0);n.stop(t+d0+dur+0.01);
+    }
+    // Helper: vibrato oscillator
+    function _vib(tp,f1,f2,vol,dur,vibHz,vibAmt,dl){
+      const d0=dl||0;
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      const lfo=audioCtx.createOscillator(),lfoG=audioCtx.createGain();
+      lfo.connect(lfoG);lfoG.connect(o.frequency);
+      o.connect(g);g.connect(sfxGain);o.type=tp;
+      o.frequency.setValueAtTime(f1,t+d0);o.frequency.exponentialRampToValueAtTime(f2,t+d0+dur);
+      lfo.frequency.setValueAtTime(vibHz,t+d0);lfoG.gain.setValueAtTime(vibAmt,t+d0);
+      g.gain.setValueAtTime(vol,t+d0);g.gain.exponentialRampToValueAtTime(0.001,t+d0+dur);
+      lfo.start(t+d0);o.start(t+d0);lfo.stop(t+d0+dur+0.02);o.stop(t+d0+dur+0.02);
     }
     if(type===0){
-      // Walker: 「ぎゃっ」 short squeaky yelp (low pitch, cartoonish)
-      _v('square',320,180,0,0.08,0,0.13,0.12);
-      _v('sine',480,260,0,0.06,0,0.06,0.1);
+      // Walker: 「ぎゃっ」 cartoonish yelp — 2-note drop + body thud
+      _v('square',420,220,0,0.06,0,0.12,0.1);
+      _v('sine',550,280,0,0.05,0,0.06,0.08);
+      _v('triangle',100,50,0,0.08,0,0.08,0.1,0.06); // thud
     } else if(type===1){
-      // Cannon: 「ガキンッ」 metallic scream + clang
-      _v('sawtooth',500,800,200,0.03,0.1,0.1,0.14);
-      _v('square',1000,400,0,0.06,0,0.06,0.1);
+      // Cannon: 「ガキンッ」 metallic clang + ring — resonant metal impact
+      _v('sawtooth',600,1200,300,0.02,0.08,0.1,0.12);
+      _v('square',1500,500,0,0.05,0,0.06,0.08);
+      _vib('sine',1800,900,0.05,0.2,25,120); // metallic ring with fast vibrato
+      _noise(0.06,0.04); // impact noise
     } else if(type===2){
-      // Flyer: 「ピィッ!」 high-pitched squeal (buzzy insect)
-      _v('sine',1400,2200,900,0.04,0.12,0.1,0.15);
-      _v('triangle',2000,2800,1200,0.03,0.1,0.05,0.12);
+      // Flyer: 「ピィッ!」 insect buzz squeal — with flutter
+      _vib('sine',1600,2600,0.09,0.14,30,200); // fluttery buzz
+      _v('triangle',2200,3000,1400,0.03,0.1,0.05,0.12);
+      _v('sine',800,1200,400,0.02,0.06,0.04,0.08,0.02); // wing flutter tail
     } else if(type===3){
-      // Bomber: 「ドゴォン」 deep roar + explosion
-      _v('sawtooth',180,60,0,0.18,0,0.14,0.25);
-      _v('square',120,40,0,0.2,0,0.08,0.22);
-      const n=audioCtx.createBufferSource(),buf=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.15)),audioCtx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*0.35;
-      n.buffer=buf;const ng=audioCtx.createGain();n.connect(ng);ng.connect(sfxGain);ng.gain.setValueAtTime(0.12,t);ng.gain.exponentialRampToValueAtTime(0.001,t+0.15);n.start(t);n.stop(t+0.15);
+      // Bomber: 「ドゴォン」 deep roar + explosion rumble + debris
+      _v('sawtooth',200,80,30,0.12,0.3,0.14,0.35);
+      _v('square',140,50,25,0.15,0.3,0.08,0.3);
+      _noise(0.14,0.2); // explosion noise
+      _noise(0.06,0.12,0.15); // secondary debris
+      _v('sine',60,30,0,0.2,0,0.10,0.25,0.05); // sub rumble
     } else if(type===4){
-      // Vertical mover: 「ビリッ」 electric zap cry
-      _v('sawtooth',600,1800,150,0.04,0.12,0.1,0.16);
-      _v('square',900,1500,200,0.03,0.1,0.05,0.13);
+      // Vertical: 「ビリビリ!」 electric zap — rapid crackle + arc
+      _vib('sawtooth',700,2200,0.10,0.14,45,350); // electric crackle vibrato
+      _v('square',1200,1800,200,0.03,0.1,0.06,0.12);
+      _noise(0.05,0.06,0.02); // spark noise
+      _v('sine',400,150,0,0.08,0,0.05,0.1,0.08); // arc fade
     } else if(type===5){
-      // Phantom: 「ヒュ〜ン...」 ghostly wail fading out
-      _v('sine',1200,600,200,0.12,0.28,0.08,0.32);
-      _v('sine',1800,900,300,0.1,0.25,0.04,0.3);
+      // Phantom: 「ヒュ〜〜ン...」 ghostly wail — slow vibrato fade
+      _vib('sine',1100,400,0.09,0.4,6,80); // slow eerie vibrato wail
+      _vib('sine',1600,600,0.04,0.35,7,100,0.03); // harmonic
+      _v('triangle',800,300,100,0.15,0.35,0.03,0.38,0.05); // breathy undertone
     } else if(type===6){
-      // Dasher: 「ガハッ」 heavy grunt (fast, aggressive)
-      _v('square',250,400,100,0.04,0.12,0.13,0.15);
-      _v('sawtooth',180,280,70,0.03,0.1,0.07,0.13);
+      // Dasher: 「ガハッ!」 heavy impact grunt — short + punchy
+      _v('square',280,450,80,0.03,0.1,0.14,0.12);
+      _v('sawtooth',200,320,60,0.03,0.08,0.08,0.1);
+      _noise(0.08,0.05); // impact
+      _v('sine',120,60,0,0.06,0,0.10,0.08,0.04); // body thud
     } else if(type===7){
-      // Bird: 「ピヨッ!」 cute chirp death cry
-      _v('sine',2000,2800,1400,0.03,0.1,0.09,0.13);
-      _v('sine',3000,3600,2000,0.02,0.08,0.04,0.1);
+      // Bird: 「ピヨピヨ!」 2-note chirp — bouncy + cute
+      _v('sine',2200,2800,0,0.03,0,0.09,0.08);
+      _v('sine',2600,3200,0,0.03,0,0.07,0.07,0.07); // 2nd chirp
+      _v('triangle',1800,2400,0,0.03,0,0.04,0.06,0.04); // undertone
     } else if(type===8){
-      // Splitter: 「プチュッ」 wet squelch pop
-      _v('sine',400,700,120,0.05,0.14,0.11,0.18);
-      _v('triangle',250,500,80,0.04,0.12,0.06,0.15);
+      // Splitter: 「プチュッ!」 wet pop + bubble burst
+      _v('sine',500,900,150,0.04,0.12,0.11,0.16);
+      _v('triangle',300,600,100,0.03,0.1,0.06,0.13);
+      _noise(0.04,0.03,0.02); // pop noise
+      _v('sine',800,400,0,0.05,0,0.04,0.08,0.08); // bubble tail
     } else {
-      // Default: 「ペシッ」 generic squish
       _v('square',280,120,0,0.1,0,0.12,0.13);
     }
   }catch(e){}
