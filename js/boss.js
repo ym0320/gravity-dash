@@ -861,7 +861,7 @@ function bossBruiserDefeat(b){
       sz:Math.random()*4+1,col:'#ffd700'});
   }
   addPop(b.x,b.y-b.sz-20,'\u6483\u7834\uFF01','#ffd700');
-  sfx('death');
+  sfxBossDefeat('bruiser');
 }
 function bossWizardDefeat(w){
   w.alive=false;
@@ -878,7 +878,7 @@ function bossWizardDefeat(w){
       life:35+Math.random()*25,ml:60,sz:Math.random()*5+2,col:'#ffd700'});
   }
   addPop(w.x,w.y-w.sz-20,'\u6483\u7834\uFF01','#ffd700');
-  sfx('death');
+  sfxBossDefeat('wizard');
 }
 function bossGuardianDefeat(g){
   g.alive=false;
@@ -904,7 +904,7 @@ function bossGuardianDefeat(g){
       sz:Math.random()*4+1,col:'#ffd700'});
   }
   addPop(g.x,g.y-g.sz-20,'\u6483\u7834\uFF01','#ffd700');
-  sfx('death');
+  sfxBossDefeat('guardian');
 }
 // === Boss enemy draw: wizard type ===
 function drawBossWizard(en){

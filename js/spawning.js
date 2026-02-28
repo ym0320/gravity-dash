@@ -598,10 +598,10 @@ function trySpawnBird(){
   if(birdCD>0){birdCD--;return;}
   if(bossPhase.active)return;
   if(!isPackMode&&score<30)return;
-  // Rare spawn chance
-  const chance=isPackMode?0.015:0.012;
+  // Spawn chance (slightly common)
+  const chance=isPackMode?0.025:0.02;
   if(packRng()<chance){
-    birdCD=180+Math.floor(packRng()*120); // long cooldown (rare)
+    birdCD=120+Math.floor(packRng()*80); // cooldown after spawn
     const gd=player.gDir;
     const sz=11;
     // Spawn at player's Y level, fly horizontally toward player
@@ -610,6 +610,6 @@ function trySpawnBird(){
     enemies.push({x:W+30,y:fy,vy:0,gDir:gd,walkSpd:0,sz:sz,alive:true,fr:packRng()*100,
       type:7,shootT:999,flySpd:flySpd});
   } else {
-    birdCD=30+Math.floor(packRng()*20);
+    birdCD=20+Math.floor(packRng()*15);
   }
 }

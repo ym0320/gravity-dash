@@ -48,16 +48,26 @@ const GAME_VERSION='2.22.189';
 
 // ===== THEMES =====
 const THEMES=[
-  {bg1:'#0a0a2e',bg2:'#12124a',gnd:'#1e3a5f',gnd2:'#152a45',line:'#2a6aaf',ply:'#00e5ff',obs:'#ff3860',n:'\u30CD\u30AA\u30F3\u30CA\u30A4\u30C8'},
-  {bg1:'#1a0a2e',bg2:'#261248',gnd:'#3e1a5f',gnd2:'#2e1248',line:'#6a2aaf',ply:'#a855f7',obs:'#f97316',n:'\u30B3\u30BA\u30DF\u30C3\u30AF'},
-  {bg1:'#081e12',bg2:'#12382a',gnd:'#1e5f3a',gnd2:'#154528',line:'#2aaf6a',ply:'#34d399',obs:'#f43f5e',n:'\u30DE\u30C8\u30EA\u30C3\u30AF\u30B9'},
-  {bg1:'#2e0a0a',bg2:'#481218',gnd:'#5f1e1e',gnd2:'#451515',line:'#af2a2a',ply:'#fbbf24',obs:'#06b6d4',n:'\u30A4\u30F3\u30D5\u30A7\u30EB\u30CE'},
-  {bg1:'#120a20',bg2:'#1e1838',gnd:'#2e2050',gnd2:'#221840',line:'#5a3aaf',ply:'#f472b6',obs:'#4ade80',n:'\u30B5\u30AF\u30E9'},
-  {bg1:'#0a1e2e',bg2:'#123048',gnd:'#1e4a6f',gnd2:'#153858',line:'#2a8abf',ply:'#38bdf8',obs:'#fb923c',n:'\u30A2\u30A4\u30B9\u30D6\u30EB\u30FC'},
-  {bg1:'#2e1a0a',bg2:'#482812',gnd:'#6f3e1e',gnd2:'#583015',line:'#bf6a2a',ply:'#fbbf24',obs:'#a855f7',n:'\u30B5\u30F3\u30BB\u30C3\u30C8'},
-  {bg1:'#0a2e1a',bg2:'#124828',gnd:'#1e6f3e',gnd2:'#155830',line:'#2abf6a',ply:'#4ade80',obs:'#f43f5e',n:'\u30A8\u30E1\u30E9\u30EB\u30C9'},
-  {bg1:'#1e0a2e',bg2:'#301248',gnd:'#4a1e6f',gnd2:'#381558',line:'#8a2abf',ply:'#c084fc',obs:'#22d3ee',n:'\u30C0\u30FC\u30AF\u30CD\u30D3\u30E5\u30E9'},
-  {bg1:'#2e0a1a',bg2:'#481228',gnd:'#6f1e3e',gnd2:'#581530',line:'#bf2a6a',ply:'#fb7185',obs:'#34d399',n:'\u30D6\u30E9\u30C3\u30C9\u30E0\u30FC\u30F3'},
+  // 0-999: 深い青 — 静かな夜の海
+  {bg1:'#060620',bg2:'#0c0c3a',gnd:'#162850',gnd2:'#101e3a',line:'#2060a8',ply:'#00e5ff',obs:'#ff3860',n:'ディープシー'},
+  // 1000-1999: シアン — 目覚めの光
+  {bg1:'#041820',bg2:'#0a2e3c',gnd:'#124858',gnd2:'#0e3845',line:'#1a90a8',ply:'#22d3ee',obs:'#f97316',n:'アクアドーン'},
+  // 2000-2999: エメラルドグリーン — 生命の森
+  {bg1:'#041a0e',bg2:'#0e3420',gnd:'#1a5430',gnd2:'#124024',line:'#20a858',ply:'#34d399',obs:'#f43f5e',n:'エメラルド'},
+  // 3000-3999: ゴールド/アンバー — 黄昏の砂漠
+  {bg1:'#1e1408',bg2:'#382810',gnd:'#584018',gnd2:'#463212',line:'#b8862a',ply:'#fbbf24',obs:'#8b5cf6',n:'サンセット'},
+  // 4000-4999: オレンジレッド — 灼熱の火山
+  {bg1:'#2a0c04',bg2:'#441808',gnd:'#6a2810',gnd2:'#52200c',line:'#c8501a',ply:'#fb923c',obs:'#06b6d4',n:'ヴォルケーノ'},
+  // 5000-5999: クリムゾン — 深紅の戦場
+  {bg1:'#2a0410',bg2:'#440818',gnd:'#681028',gnd2:'#520c1e',line:'#c8203a',ply:'#fb7185',obs:'#4ade80',n:'クリムゾン'},
+  // 6000-6999: パープル — 妖しい魔界
+  {bg1:'#180828',bg2:'#2a1244',gnd:'#401e68',gnd2:'#341852',line:'#8838c8',ply:'#c084fc',obs:'#fbbf24',n:'アビス'},
+  // 7000-7999: ピンク/マゼンタ — 異界の花園
+  {bg1:'#28041e',bg2:'#440a34',gnd:'#681450',gnd2:'#520e40',line:'#c82888',ply:'#f472b6',obs:'#22d3ee',n:'ネオンブルーム'},
+  // 8000-8999: 白銀/モノクロ — 極限の氷界
+  {bg1:'#141420',bg2:'#202038',gnd:'#3a3a58',gnd2:'#2c2c48',line:'#7878a8',ply:'#e2e8f0',obs:'#f43f5e',n:'フロストヘル'},
+  // 9000+: 金×黒 — 最終ステージ
+  {bg1:'#0e0a02',bg2:'#1c1608',gnd:'#302808',gnd2:'#261e06',line:'#a88020',ply:'#ffd700',obs:'#ff2060',n:'ゴールデンゾーン'},
 ];
 let curTheme=0,prevTheme=0,themeLerp=1;
 function lerpColor(a,b,t){
@@ -969,91 +979,98 @@ function sfxStompCombo(count){
 function sfxEnemyDeath(type){
   if(!audioCtx)return;try{
     const t=audioCtx.currentTime;
+    function _v(tp,f1,f2,f3,t1,t2,vol,dur){
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type=tp;
+      o.frequency.setValueAtTime(f1,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+t1);
+      if(f3)o.frequency.exponentialRampToValueAtTime(f3,t+t2);
+      g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+      o.onended=function(){try{g.disconnect();}catch(e){}};
+      o.start(t);o.stop(t+dur+0.02);
+    }
     if(type===0){
-      // Walker: splat
-      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
-      o.connect(g);g.connect(sfxGain);o.type='square';
-      o.frequency.setValueAtTime(250,t);o.frequency.exponentialRampToValueAtTime(80,t+0.1);
-      g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.13);
-      o.start(t);o.stop(t+0.15);
+      // Walker: 「ぎゃっ」 short squeaky yelp (low pitch, cartoonish)
+      _v('square',320,180,0,0.08,0,0.13,0.12);
+      _v('sine',480,260,0,0.06,0,0.06,0.1);
     } else if(type===1){
-      // Cannon: metallic clang
-      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
-      o.connect(g);g.connect(sfxGain);o.type='square';
-      o.frequency.setValueAtTime(600,t);o.frequency.exponentialRampToValueAtTime(200,t+0.08);
-      g.gain.setValueAtTime(0.1,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.12);
-      o.start(t);o.stop(t+0.14);
-      const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
-      o2.connect(g2);g2.connect(sfxGain);o2.type='sine';
-      o2.frequency.setValueAtTime(1200,t);o2.frequency.exponentialRampToValueAtTime(400,t+0.1);
-      g2.gain.setValueAtTime(0.06,t);g2.gain.exponentialRampToValueAtTime(0.001,t+0.12);
-      o2.start(t);o2.stop(t+0.14);
+      // Cannon: 「ガキンッ」 metallic scream + clang
+      _v('sawtooth',500,800,200,0.03,0.1,0.1,0.14);
+      _v('square',1000,400,0,0.06,0,0.06,0.1);
     } else if(type===2){
-      // Flyer: pop burst
-      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
-      o.connect(g);g.connect(sfxGain);o.type='sine';
-      o.frequency.setValueAtTime(800,t);o.frequency.exponentialRampToValueAtTime(1600,t+0.04);
-      o.frequency.exponentialRampToValueAtTime(200,t+0.1);
-      g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.12);
-      o.start(t);o.stop(t+0.14);
+      // Flyer: 「ピィッ!」 high-pitched squeal (buzzy insect)
+      _v('sine',1400,2200,900,0.04,0.12,0.1,0.15);
+      _v('triangle',2000,2800,1200,0.03,0.1,0.05,0.12);
     } else if(type===3){
-      // Bomber: explosion
-      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
-      o.connect(g);g.connect(sfxGain);o.type='sawtooth';
-      o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(40,t+0.2);
-      g.gain.setValueAtTime(0.15,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);
-      o.start(t);o.stop(t+0.27);
-      const n=audioCtx.createBufferSource(),buf=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.12)),audioCtx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*0.4;
-      n.buffer=buf;const ng=audioCtx.createGain();n.connect(ng);ng.connect(sfxGain);ng.gain.setValueAtTime(0.12,t);ng.gain.exponentialRampToValueAtTime(0.001,t+0.12);n.start(t);n.stop(t+0.12);
+      // Bomber: 「ドゴォン」 deep roar + explosion
+      _v('sawtooth',180,60,0,0.18,0,0.14,0.25);
+      _v('square',120,40,0,0.2,0,0.08,0.22);
+      const n=audioCtx.createBufferSource(),buf=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.15)),audioCtx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*0.35;
+      n.buffer=buf;const ng=audioCtx.createGain();n.connect(ng);ng.connect(sfxGain);ng.gain.setValueAtTime(0.12,t);ng.gain.exponentialRampToValueAtTime(0.001,t+0.15);n.start(t);n.stop(t+0.15);
     } else if(type===4){
-      // Vertical mover: zap
-      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
-      o.connect(g);g.connect(sfxGain);o.type='sawtooth';
-      o.frequency.setValueAtTime(400,t);o.frequency.exponentialRampToValueAtTime(1200,t+0.05);
-      o.frequency.exponentialRampToValueAtTime(100,t+0.12);
-      g.gain.setValueAtTime(0.1,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.15);
-      o.start(t);o.stop(t+0.17);
+      // Vertical mover: 「ビリッ」 electric zap cry
+      _v('sawtooth',600,1800,150,0.04,0.12,0.1,0.16);
+      _v('square',900,1500,200,0.03,0.1,0.05,0.13);
     } else if(type===5){
-      // Phantom: eerie vanish
-      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
-      o.connect(g);g.connect(sfxGain);o.type='sine';
-      o.frequency.setValueAtTime(1000,t);o.frequency.exponentialRampToValueAtTime(300,t+0.2);
-      g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);
-      o.start(t);o.stop(t+0.27);
-      const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
-      o2.connect(g2);g2.connect(sfxGain);o2.type='sine';
-      o2.frequency.setValueAtTime(1500,t);o2.frequency.exponentialRampToValueAtTime(500,t+0.2);
-      g2.gain.setValueAtTime(0.04,t+0.05);g2.gain.exponentialRampToValueAtTime(0.001,t+0.25);
-      o2.start(t+0.05);o2.stop(t+0.27);
+      // Phantom: 「ヒュ〜ン...」 ghostly wail fading out
+      _v('sine',1200,600,200,0.12,0.28,0.08,0.32);
+      _v('sine',1800,900,300,0.1,0.25,0.04,0.3);
+    } else if(type===6){
+      // Dasher: 「ガハッ」 heavy grunt (fast, aggressive)
+      _v('square',250,400,100,0.04,0.12,0.13,0.15);
+      _v('sawtooth',180,280,70,0.03,0.1,0.07,0.13);
     } else if(type===7){
-      // Bird: high-pitched small chirp cry
-      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
-      o.connect(g);g.connect(sfxGain);o.type='sine';
-      o.frequency.setValueAtTime(1800,t);o.frequency.exponentialRampToValueAtTime(2400,t+0.04);
-      o.frequency.exponentialRampToValueAtTime(1600,t+0.1);
-      g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.12);
-      o.start(t);o.stop(t+0.14);
-      // Second harmonic for chirpy quality
-      const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
-      o2.connect(g2);g2.connect(sfxGain);o2.type='sine';
-      o2.frequency.setValueAtTime(2800,t+0.02);o2.frequency.exponentialRampToValueAtTime(2000,t+0.08);
-      g2.gain.setValueAtTime(0.04,t+0.02);g2.gain.exponentialRampToValueAtTime(0.001,t+0.1);
-      o2.start(t+0.02);o2.stop(t+0.12);
+      // Bird: 「ピヨッ!」 cute chirp death cry
+      _v('sine',2000,2800,1400,0.03,0.1,0.09,0.13);
+      _v('sine',3000,3600,2000,0.02,0.08,0.04,0.1);
     } else if(type===8){
-      // Splitter: squelch pop
-      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
-      o.connect(g);g.connect(sfxGain);o.type='sine';
-      o.frequency.setValueAtTime(300,t);o.frequency.exponentialRampToValueAtTime(600,t+0.06);
-      o.frequency.exponentialRampToValueAtTime(100,t+0.15);
-      g.gain.setValueAtTime(0.10,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);
-      o.start(t);o.stop(t+0.2);
+      // Splitter: 「プチュッ」 wet squelch pop
+      _v('sine',400,700,120,0.05,0.14,0.11,0.18);
+      _v('triangle',250,500,80,0.04,0.12,0.06,0.15);
     } else {
-      // Default stomp
+      // Default: 「ペシッ」 generic squish
+      _v('square',280,120,0,0.1,0,0.12,0.13);
+    }
+  }catch(e){}
+}
+// Boss defeat cry SFX - unique per boss type
+function sfxBossDefeat(bossType){
+  if(!audioCtx)return;try{
+    const t=audioCtx.currentTime;
+    function _b(tp,f1,f2,f3,t1,t2,vol,dur,delay){
+      const d0=delay||0;
       const o=audioCtx.createOscillator(),g=audioCtx.createGain();
-      o.connect(g);g.connect(sfxGain);o.type='square';
-      o.frequency.setValueAtTime(200,t);o.frequency.exponentialRampToValueAtTime(80,t+0.12);
-      g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.15);
-      o.start(t);o.stop(t+0.15);
+      o.connect(g);g.connect(sfxGain);o.type=tp;
+      o.frequency.setValueAtTime(f1,t+d0);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d0+t1);
+      if(f3)o.frequency.exponentialRampToValueAtTime(f3,t+d0+t2);
+      g.gain.setValueAtTime(vol,t+d0);g.gain.exponentialRampToValueAtTime(0.001,t+d0+dur);
+      o.onended=function(){try{g.disconnect();}catch(e){}};
+      o.start(t+d0);o.stop(t+d0+dur+0.02);
+    }
+    if(bossType==='bruiser'){
+      // Bruiser: 「グオォォォ!!」 deep roaring scream
+      _b('sawtooth',200,120,50,0.15,0.4,0.18,0.5,0);
+      _b('square',160,90,35,0.15,0.4,0.10,0.45,0.02);
+      _b('sine',300,180,60,0.12,0.35,0.06,0.4,0.05);
+    } else if(bossType==='dodge'){
+      // Dodge: 「キャァァ!」 high-speed shriek
+      _b('sine',800,1400,400,0.08,0.3,0.14,0.35,0);
+      _b('triangle',1200,2000,600,0.06,0.25,0.07,0.3,0.03);
+      _b('sine',600,1000,300,0.1,0.28,0.05,0.32,0.05);
+    } else if(bossType==='wizard'){
+      // Wizard: 「ヒィィ...ガハッ」 eerie wail then crack
+      _b('sine',1000,500,200,0.15,0.35,0.12,0.4,0);
+      _b('sine',1500,700,250,0.12,0.3,0.06,0.35,0.03);
+      _b('sawtooth',300,500,80,0.04,0.12,0.1,0.15,0.3);
+    } else if(bossType==='guardian'){
+      // Guardian: 「ガガガッ...ドォン!」 armored crumble + heavy impact
+      _b('square',400,600,150,0.05,0.2,0.12,0.25,0);
+      _b('sawtooth',350,500,120,0.04,0.18,0.08,0.22,0.05);
+      _b('square',100,50,30,0.1,0.25,0.16,0.3,0.2);
+      _b('sawtooth',80,35,20,0.12,0.28,0.10,0.32,0.22);
+    } else {
+      // Default boss: heavy death
+      _b('sawtooth',250,100,40,0.15,0.35,0.15,0.4,0);
+      _b('square',180,70,30,0.12,0.3,0.08,0.35,0.03);
     }
   }catch(e){}
 }
