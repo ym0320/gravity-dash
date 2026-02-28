@@ -108,7 +108,7 @@ function spawnBossEnemies(){
       castT:0,castType:0,
       teleportT:0,teleportTarget:{x:0,y:0},
       alpha:1,
-      rushDir:1,rushT:0,rushReady:false,rushTargetX:0,rushTargetY:0,
+      rushDir:1,rushT:0,rushReady:false,rushTargetX:0,rushTargetY:0,atkCount:0,
       homeX:W*0.65,homeY:H*0.35+Math.random()*(H*0.3),
       variant:isSnowman?'snowman':''
     };
@@ -653,8 +653,8 @@ function updateBossPhase(){
       w.x+=(w.homeX-w.x)*0.05;
       w.y=w.homeY+Math.sin(w.fr*0.4)*8;
       if(w.timer>=70){
-        // Random 50/50: rush or cast
-        if(Math.random()<0.5){
+        // First attack is always cast, then 50/50
+        if(w.atkCount>0&&Math.random()<0.5){
           w.state='rush';w.timer=0;w.rushT=0;w.rushReady=false;
           w.rushTargetX=player.x;
           w.rushTargetY=player.y;
@@ -662,6 +662,7 @@ function updateBossPhase(){
         } else {
           w.state='cast';w.timer=0;w.castType=Math.floor(Math.random()*2);w.castT=0;
         }
+        w.atkCount++;
       }
     } else if(w.state==='rush'){
       // Dash from home toward player position, then return
