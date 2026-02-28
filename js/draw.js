@@ -1153,6 +1153,52 @@ function draw(){
       const sx=Math.random()*W,sy=Math.random()<0.5?Math.random()*40:H-Math.random()*40;
       parts.push({x:sx,y:sy,vx:(Math.random()-0.5)*1,vy:(Math.random()-0.5)*1,life:12,ml:12,sz:Math.random()*3+1,col:`hsl(${(frame*8+Math.random()*60)%360},100%,70%)`});
     }
+    // === Fever Kuribo parade (decorative bouncing row at top & bottom) ===
+    if(!ending){
+      const ksz=10; // kuribo size
+      const spacing=ksz*3.2;
+      const count=Math.ceil(W/spacing)+1;
+      const scrollX=(frame*1.2)%spacing; // slow march
+      ctx.save();
+      for(let row=0;row<2;row++){
+        const baseY=row===0?18:H-18;
+        const flip=row===0?-1:1;
+        for(let i=-1;i<count;i++){
+          const kx=i*spacing+scrollX;
+          if(kx<-ksz*2||kx>W+ksz*2)continue;
+          const bounce=Math.abs(Math.sin((frame*0.08+i*0.7+row*1.5)))*6;
+          const tilt=Math.sin(frame*0.06+i*0.9)*0.15;
+          const ky=baseY-bounce*flip;
+          ctx.save();ctx.translate(kx,ky);ctx.rotate(tilt);
+          if(flip===-1)ctx.scale(1,-1);
+          // Body
+          const gr=ctx.createRadialGradient(0,0,0,0,0,ksz);
+          gr.addColorStop(0,'#c87040');gr.addColorStop(1,'#8b4513');
+          ctx.fillStyle=gr;
+          ctx.beginPath();ctx.arc(0,-ksz*0.15,ksz*0.85,0,6.28);ctx.fill();
+          // Feet (bouncing animation)
+          const step=Math.sin(frame*0.12+i)*ksz*0.18;
+          ctx.fillStyle='#5a2d0c';
+          ctx.fillRect(-ksz*0.5+step,ksz*0.4,ksz*0.3,ksz*0.2);
+          ctx.fillRect(ksz*0.2-step,ksz*0.4,ksz*0.3,ksz*0.2);
+          // Happy eyes (^_^)
+          ctx.strokeStyle='#1a0a00';ctx.lineWidth=1.5;ctx.lineCap='round';
+          // Left eye - happy arc
+          ctx.beginPath();ctx.arc(-ksz*0.22,-ksz*0.3,ksz*0.15,Math.PI*0.15,Math.PI*0.85);ctx.stroke();
+          // Right eye - happy arc
+          ctx.beginPath();ctx.arc(ksz*0.22,-ksz*0.3,ksz*0.15,Math.PI*0.15,Math.PI*0.85);ctx.stroke();
+          // Smile
+          ctx.beginPath();ctx.arc(0,ksz*0.05,ksz*0.25,0.2,Math.PI-0.2);ctx.stroke();
+          // Blush cheeks
+          ctx.fillStyle='rgba(255,120,120,0.4)';
+          ctx.beginPath();ctx.arc(-ksz*0.45,-ksz*0.05,ksz*0.15,0,6.28);ctx.fill();
+          ctx.beginPath();ctx.arc(ksz*0.45,-ksz*0.05,ksz*0.15,0,6.28);ctx.fill();
+          ctx.lineCap='butt';
+          ctx.restore();
+        }
+      }
+      ctx.restore();
+    }
   }
   // Boss alert overlay
   if(bossPhase.active&&bossPhase.prepare>0){
