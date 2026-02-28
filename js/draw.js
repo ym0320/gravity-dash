@@ -1253,11 +1253,10 @@ function draw(){
 
 function drawCoin(c){
   const p=Math.sin(c.p)*0.2+1,sz=c.sz*p;
-  const isPink=score>=PINK_COIN_SCORE;
-  const coinCol=isPink?PINK_COIN_COLOR:'#ffd700';
-  ctx.shadowColor=isPink?'#ff69b455':'#ffd70055';ctx.shadowBlur=10;ctx.fillStyle=coinCol;ctx.beginPath();ctx.arc(c.x,c.y,sz,0,6.28);ctx.fill();ctx.shadowBlur=0;
+  const cTier=getCoinTier();
+  ctx.shadowColor=cTier.glow;ctx.shadowBlur=10;ctx.fillStyle=cTier.col;ctx.beginPath();ctx.arc(c.x,c.y,sz,0,6.28);ctx.fill();ctx.shadowBlur=0;
   ctx.fillStyle='rgba(255,255,255,0.4)';ctx.beginPath();ctx.arc(c.x-sz*0.2,c.y-sz*0.2,sz*0.3,0,6.28);ctx.fill();
-  if(isPink&&frame%4===0){ctx.fillStyle='#ff69b466';ctx.beginPath();ctx.arc(c.x+(Math.random()-0.5)*sz*2,c.y+(Math.random()-0.5)*sz*2,1+Math.random(),0,6.28);ctx.fill();}
+  if(cTier.mul>1&&frame%4===0){ctx.fillStyle=cTier.col+'66';ctx.beginPath();ctx.arc(c.x+(Math.random()-0.5)*sz*2,c.y+(Math.random()-0.5)*sz*2,1+Math.random(),0,6.28);ctx.fill();}
 }
 function drawItem(it){
   const pl=Math.sin(it.p)*0.15+1,sz=it.sz*pl,col=ITEMS[it.t].col;

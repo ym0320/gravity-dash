@@ -1781,7 +1781,14 @@ let player={x:0,y:0,vy:0,gDir:1,rot:0,rotTarget:0,trail:[],alive:true,grounded:f
 function enemySpeedMul(){return Math.min(2,1+score/10000);}
 const BOSS_HITBOX_SCALE=0.65;
 let fallingMtns=[],fallingMtnCD=0;
-const PINK_COIN_SCORE=5000,PINK_COIN_COLOR='#ff69b4',PINK_COIN_MUL=2;
+// Coin tiers: color and multiplier change based on score
+const COIN_TIERS=[
+  {min:0,    col:'#ffd700',glow:'#ffd70055',sparkCol:'#ffd700',mul:1,   name:'gold'},
+  {min:5000, col:'#ff8c00',glow:'#ff8c0055',sparkCol:'#ff8c00',mul:1.5, name:'orange'},
+  {min:10000,col:'#ff69b4',glow:'#ff69b455',sparkCol:'#ff69b4',mul:2,   name:'pink'},
+  {min:15000,col:'#ff2020',glow:'#ff202055',sparkCol:'#ff2020',mul:2.5, name:'red'}
+];
+function getCoinTier(){for(let i=COIN_TIERS.length-1;i>=0;i--)if(score>=COIN_TIERS[i].min)return COIN_TIERS[i];return COIN_TIERS[0];}
 let coinSwitches=[],coinSwitchCD=0;
 const COIN_SW_R=12,COIN_SW_COL='#4488ff';
 

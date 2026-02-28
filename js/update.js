@@ -1051,13 +1051,12 @@ function update(dt){
       if(dx*dx+dy*dy<cd*cd){
         c.col=true;totalCoins++;combo++;comboDsp=combo;comboDspT=55;
         if(combo>maxCombo)maxCombo=combo;
-        const pinkMul=score>=PINK_COIN_SCORE?PINK_COIN_MUL:1;
-        const bon=Math.ceil((3+Math.min(combo-1,8))*ct().coinMul*pinkMul);
+        const cTier=getCoinTier();
+        const bon=Math.ceil((3+Math.min(combo-1,8))*ct().coinMul*cTier.mul);
         dist+=bon;sfx(combo>1?'combo':'coin');
-        const popCol=score>=PINK_COIN_SCORE?PINK_COIN_COLOR:'#ffd700';
-        addPop(c.x,c.y-14,'+'+bon,popCol);vibrate(10);
+        addPop(c.x,c.y-14,'+'+bon,cTier.col);vibrate(10);
         if(combo>1)addPop(c.x,c.y-34,combo+'x','#ff6b35');
-        emitParts(c.x,c.y,6,'#ffd700',3,2);
+        emitParts(c.x,c.y,6,cTier.sparkCol,3,2);
         player.face='happy';setTimeout(()=>{if(player.alive)player.face='normal';},250);
       }
     }
