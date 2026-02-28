@@ -159,7 +159,7 @@ if(!isCharUnlocked(selChar)){selChar=0;localStorage.setItem('gd5char','0');}
 
 // ===== AUDIO =====
 let audioCtx=null,bgmGain=null,sfxGain=null,bgmCurrent='',bgmTimer=null;
-function stopBGM(){bgmCurrent='';if(bgmTimer){clearTimeout(bgmTimer);bgmTimer=null;}if(feverTimer){clearTimeout(feverTimer);feverTimer=null;}}
+function stopBGM(){bgmCurrent='';if(bgmTimer){clearTimeout(bgmTimer);bgmTimer=null;}if(feverTimer){clearTimeout(feverTimer);feverTimer=null;}if(bgmGain&&audioCtx&&audioCtx.state==='running'){bgmGain.gain.cancelScheduledValues(audioCtx.currentTime);bgmGain.gain.setValueAtTime(bgmGain.gain.value,audioCtx.currentTime);bgmGain.gain.linearRampToValueAtTime(0,audioCtx.currentTime+0.08);}}
 let bgmVol=parseFloat(localStorage.getItem('gd5bgmVol')||'0.7');
 let sfxVol=parseFloat(localStorage.getItem('gd5sfxVol')||'0.7');
 let settingsOpen=false;
