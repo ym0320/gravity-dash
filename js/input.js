@@ -268,7 +268,7 @@ function continueFromDeath(){
   player.gDir=1;player.vy=0;player.canFlip=true;
   player.rot=0;player.rotTarget=0;player.trail=[];
   hp=HP_MAX+(ct().hpBonus||0);hurtT=0;
-  // speed is rawDist-based now, no reset on continue (like boss progression)
+  rawDist=0; // reset rawDist so speed returns to SPEED_INIT
   // Rebuild safe platforms around player
   platforms=[];ceilPlats=[];
   platforms.push({x:player.x-W*0.3,w:W*0.9,h:GROUND_H});
