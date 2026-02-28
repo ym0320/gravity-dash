@@ -540,14 +540,21 @@ function updateSliderDrag(tx){
   else if(draggingSlider==='sfx')setSfxVol(v);
 }
 
+// Pause BGM management: save pre-pause BGM, switch to quiet pause BGM
+let _pauseSavedBGM='';
+function enterPause(){state=ST.PAUSE;_pauseSavedBGM=bgmCurrent;switchBGM('pause');}
+function resumeFromPauseMenu(){state=ST.PLAY;if(_pauseSavedBGM){switchBGM(_pauseSavedBGM);_pauseSavedBGM='';}else{switchBGM('play');}}
 // Auto-pause when page loses visibility or focus
 // Stop BGM timers when hidden to prevent audio burst on return
 let bgmBeforePause='';
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden){
-    if(state===ST.PLAY||state===ST.COUNTDOWN){state=ST.PAUSE;}
+    if(state===ST.PLAY||state===ST.COUNTDOWN){
+      if(!_pauseSavedBGM)_pauseSavedBGM=bgmCurrent; // save original BGM (not 'pause')
+      state=ST.PAUSE;
+    }
     // Stop BGM to prevent sound pile-up
-    bgmBeforePause=bgmCurrent;
+    bgmBeforePause=_pauseSavedBGM||bgmCurrent;
     if(bgmTimer){clearTimeout(bgmTimer);bgmTimer=null;}
     if(typeof feverTimer!=='undefined'&&feverTimer){clearTimeout(feverTimer);feverTimer=null;}
     bgmCurrent=''; // allow restart
@@ -589,7 +596,7 @@ document.addEventListener('visibilitychange',()=>{
   }catch(e){}
 })();
 window.addEventListener('blur',()=>{
-  if(state===ST.PLAY){state=ST.PAUSE;}
+  if(state===ST.PLAY){enterPause();}
 });
 
 // Restart from pause menu (works for both endless and stage mode)
@@ -687,15 +694,15 @@ canvas.addEventListener('touchstart',e=>{
     sfx('click');state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;
   }
   if(state===ST.PAUSE){
-    if(hitResumeBtn(p.x,p.y)){sfx('select');state=ST.PLAY;switchBGM('play');return;}
-    if(hitRestartBtn(p.x,p.y)){restartFromPause();return;}
-    if(hitPauseStageSelBtn(p.x,p.y)){sfx('cancel');state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;stageSelGuardT=30;switchBGM('title');return;}
-    if(hitQuitBtn(p.x,p.y)){if(isChallengeMode){challengeRetired=true;sfx('cancel');player.alive=false;state=ST.DEAD;deadT=0;switchBGM('dead');return;}sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
+    if(hitResumeBtn(p.x,p.y)){sfx('select');resumeFromPauseMenu();return;}
+    if(hitRestartBtn(p.x,p.y)){_pauseSavedBGM='';restartFromPause();return;}
+    if(hitPauseStageSelBtn(p.x,p.y)){sfx('cancel');_pauseSavedBGM='';state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;stageSelGuardT=30;switchBGM('title');return;}
+    if(hitQuitBtn(p.x,p.y)){_pauseSavedBGM='';if(isChallengeMode){challengeRetired=true;sfx('cancel');player.alive=false;state=ST.DEAD;deadT=0;switchBGM('dead');return;}sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     return;
   }
   if(state===ST.PLAY&&!isPackMode&&hitInvBtn(p.x,p.y)){useInvincible();touchBtnUsed=true;return;}
   if(state===ST.PLAY&&!isPackMode&&hitBombBtn(p.x,p.y)){useBomb();touchBtnUsed=true;return;}
-  if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');state=ST.PAUSE;touchBtnUsed=true;return;}
+  if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');enterPause();touchBtnUsed=true;return;}
   if(state===ST.TITLE){
     // Shop modal intercepts all input when open
     if(shopOpen){handleShopTouch(p.x,p.y);titleTouchPos=null;return;}
@@ -947,15 +954,15 @@ canvas.addEventListener('mousedown',e=>{
     sfx('click');state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;
   }
   if(state===ST.PAUSE){
-    if(hitResumeBtn(p.x,p.y)){sfx('select');state=ST.PLAY;switchBGM('play');return;}
-    if(hitRestartBtn(p.x,p.y)){restartFromPause();return;}
-    if(hitPauseStageSelBtn(p.x,p.y)){sfx('cancel');state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;stageSelGuardT=30;switchBGM('title');return;}
-    if(hitQuitBtn(p.x,p.y)){if(isChallengeMode){challengeRetired=true;sfx('cancel');player.alive=false;state=ST.DEAD;deadT=0;switchBGM('dead');return;}sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
+    if(hitResumeBtn(p.x,p.y)){sfx('select');resumeFromPauseMenu();return;}
+    if(hitRestartBtn(p.x,p.y)){_pauseSavedBGM='';restartFromPause();return;}
+    if(hitPauseStageSelBtn(p.x,p.y)){sfx('cancel');_pauseSavedBGM='';state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;stageSelGuardT=30;switchBGM('title');return;}
+    if(hitQuitBtn(p.x,p.y)){_pauseSavedBGM='';if(isChallengeMode){challengeRetired=true;sfx('cancel');player.alive=false;state=ST.DEAD;deadT=0;switchBGM('dead');return;}sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     return;
   }
   if(state===ST.PLAY&&!isPackMode&&hitInvBtn(p.x,p.y)){useInvincible();return;}
   if(state===ST.PLAY&&!isPackMode&&hitBombBtn(p.x,p.y)){useBomb();return;}
-  if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');state=ST.PAUSE;return;}
+  if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');enterPause();return;}
   if(state===ST.TITLE){
     if(shopOpen){handleShopTouch(p.x,p.y);return;}
     if(cosmeticMenuOpen){handleCosmeticTouch(p.x,p.y);return;}
@@ -1018,10 +1025,10 @@ document.addEventListener('keydown',e=>{
   if(e.code==='Escape'){
     e.preventDefault();
     if(state===ST.STAGE_SEL){sfx('cancel');titleTouchPos=null;state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
-    if(state===ST.PLAY){sfx('pause');state=ST.PAUSE;return;}
-    if(state===ST.PAUSE){sfx('select');state=ST.PLAY;return;}
+    if(state===ST.PLAY){sfx('pause');enterPause();return;}
+    if(state===ST.PAUSE){sfx('select');resumeFromPauseMenu();return;}
   }
-  if(e.code==='KeyR'&&state===ST.PAUSE){e.preventDefault();restartFromPause();return;}
+  if(e.code==='KeyR'&&state===ST.PAUSE){e.preventDefault();_pauseSavedBGM='';restartFromPause();return;}
   if(state===ST.LOGIN)return; // login handled by HTML overlay
   // Tutorial keyboard
   if(state===ST.TUTORIAL){
@@ -1078,7 +1085,7 @@ document.addEventListener('keydown',e=>{
     if(state===ST.STAGE_CLEAR&&stageClearT>60){
       sfx('click');state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;
     }
-    if(state===ST.PAUSE){sfx('select');state=ST.PLAY;switchBGM('play');return;}
+    if(state===ST.PAUSE){sfx('select');resumeFromPauseMenu();return;}
     if(state===ST.TITLE){startCountdown('endless');}
     else if(state===ST.DEAD&&deadT>45){handleDeadBtn('restart');}
     else if(state===ST.PLAY&&player.grounded&&!player._quakeStunned){

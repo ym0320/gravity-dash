@@ -565,6 +565,20 @@ const BGM_DEAD={tempo:60,
   melWave:'sine',harmWave:'sine',bassWave:'sine',
   drums:'none'};
 
+// Pause: Quiet Drift - C major, soft ambient pads, very slow and sparse
+const BGM_PAUSE={tempo:50,
+  melody:[262,0,0,0, 0,0,0,0, 330,0,0,0, 0,0,0,0,
+          294,0,0,0, 0,0,0,0, 262,0,0,0, 0,0,0,0],
+  harmony:[0,0,0,196, 0,0,0,0, 0,0,0,220, 0,0,0,0,
+           0,0,0,175, 0,0,0,0, 0,0,0,196, 0,0,0,0],
+  bass:[131,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
+        110,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
+  chords:[[131,196,262],[131,196,262],[165,220,330],[165,220,330],
+          [110,165,220],[110,165,220],[131,196,262],[131,196,262]],
+  melVol:0.06,harmVol:0.04,bassVol:0.05,chordVol:0.03,
+  melWave:'sine',harmWave:'sine',bassWave:'sine',
+  drums:'none'};
+
 // Stage1 - Cosmic Playground: C Lydian, wide-leap melody with F# for spacey wonder
 const BGM_STAGE1={tempo:118,
   melody:[523,0,0,880, 740,0,784,0, 659,0,0,1047, 988,0,784,0,
@@ -660,7 +674,7 @@ function switchBGM(type){
   const BGM_MAP={title0:BGM_TITLES[0],title1:BGM_TITLES[1],title2:BGM_TITLES[2],title3:BGM_TITLES[3],title4:BGM_TITLES[4],title5:BGM_TITLES[5],
     play1:BGM_PLAY1,play2:BGM_PLAY2,play3:BGM_PLAY3,play4:BGM_PLAY4,play5:BGM_PLAY5,play6:BGM_PLAY6,play7:BGM_PLAY7,play8:BGM_PLAY8,play9:BGM_PLAY9,play10:BGM_PLAY10,
     stage1:BGM_STAGE1,stage2:BGM_STAGE2,stage3:BGM_STAGE3,
-    boss:BGM_BOSS,dead:BGM_DEAD,challenge:BGM_CHALLENGE,collapse:BGM_COLLAPSE};
+    boss:BGM_BOSS,dead:BGM_DEAD,challenge:BGM_CHALLENGE,collapse:BGM_COLLAPSE,pause:BGM_PAUSE};
   const def=BGM_MAP[type]||BGM_PLAY1;
   const stepS=60/(def.tempo*4); // seconds per 16th note step
   const totalSteps=def.melody.length;
