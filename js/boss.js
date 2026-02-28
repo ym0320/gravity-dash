@@ -813,7 +813,7 @@ function updateBossPhase(){
   if(allDone&&bossPhase.enemies.length>0&&!bossPhase.reward){
     bossPhase.reward=true;bossPhase.rewardT=0;
     // Catch up score that accumulated during boss
-    score=Math.floor(dist);lastMile=Math.floor(score/1000)*1000;
+    score=Math.floor(dist);
     if(isChallengeMode){sfxChallengeDefeat();} else {sfxFanfare();}
     shakeI=10;vibrate([30,20,30,20,60]);
     if(isChallengeMode){
