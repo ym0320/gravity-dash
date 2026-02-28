@@ -291,7 +291,7 @@ function update(dt){
   if(isPackMode&&currentPackStage){
     speed=SPEED_INIT*currentPackStage.spdMul*ct().speedMul;
   } else {
-    speed=Math.min(SPEED_MAX,(SPEED_INIT+(dist-speedOffset)*SPEED_INC))*ct().speedMul;
+    speed=Math.min(SPEED_MAX,(SPEED_INIT+rawDist*SPEED_INC))*ct().speedMul;
   }
 
   // Distance scoring (score freezes during boss, catches up on victory)
