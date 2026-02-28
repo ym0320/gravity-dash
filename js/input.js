@@ -645,8 +645,8 @@ function startCountdown(mode){
     bossPhase.nextAt=rawDist; // will trigger boss on first play frame
     bossPhase.lastBossScore=score;
     lastMile=Math.floor(score/1000)*1000;
-    // Set correct theme for this score
-    const ti=Math.min(Math.floor(score/1000),THEMES.length-1);
+    // Set correct theme for this rawDist
+    const ti=Math.min(Math.floor(rawDist/1000),THEMES.length-1);
     if(ti!==curTheme){prevTheme=curTheme;curTheme=ti;themeLerp=1;}
   } else {
     isRetryGame=false;

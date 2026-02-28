@@ -1199,7 +1199,7 @@ function draw(){
         ctx.font='bold 15px monospace';ctx.textAlign='center';
         // Background pill
         const tw=ctx.measureText(hintMsg).width+24;
-        const hx=W/2-tw/2,hy=108;
+        const hx=W/2-tw/2,hy=Math.floor(H*0.38);
         ctx.fillStyle='rgba(0,0,0,0.7)';
         ctx.beginPath();ctx.moveTo(hx+8,hy);ctx.lineTo(hx+tw-8,hy);ctx.quadraticCurveTo(hx+tw,hy,hx+tw,hy+8);
         ctx.lineTo(hx+tw,hy+22);ctx.quadraticCurveTo(hx+tw,hy+30,hx+tw-8,hy+30);
