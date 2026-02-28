@@ -159,6 +159,7 @@ if(!isCharUnlocked(selChar)){selChar=0;localStorage.setItem('gd5char','0');}
 
 // ===== AUDIO =====
 let audioCtx=null,bgmGain=null,sfxGain=null,bgmCurrent='',bgmTimer=null;
+function stopBGM(){bgmCurrent='';if(bgmTimer){clearTimeout(bgmTimer);bgmTimer=null;}if(feverTimer){clearTimeout(feverTimer);feverTimer=null;}}
 let bgmVol=parseFloat(localStorage.getItem('gd5bgmVol')||'0.7');
 let sfxVol=parseFloat(localStorage.getItem('gd5sfxVol')||'0.7');
 let settingsOpen=false;
@@ -245,12 +246,13 @@ function initAudio(){
 function setBgmVol(v){bgmVol=v;localStorage.setItem('gd5bgmVol',v.toString());if(bgmGain){bgmGain.gain.cancelScheduledValues(audioCtx.currentTime);bgmGain.gain.value=0.15*v;}}
 function setSfxVol(v){sfxVol=v;localStorage.setItem('gd5sfxVol',v.toString());if(sfxGain)sfxGain.gain.value=v;}
 
-// Helper: create oscillator routed through bgmGain
+// Helper: create oscillator routed through bgmGain (auto-disconnect on end to prevent leak)
 function bgmOsc(type,freq,t,dur,vol){
   const o=audioCtx.createOscillator(),g=audioCtx.createGain();
   o.connect(g);g.connect(bgmGain);o.type=type;
   o.frequency.setValueAtTime(freq,t);
   g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur*0.92);
+  o.onended=function(){try{g.disconnect();}catch(e){}};
   o.start(t);o.stop(t+dur);return o;
 }
 function bgmNoise(t,dur,vol){
@@ -259,6 +261,7 @@ function bgmNoise(t,dur,vol){
   const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);
   n.buffer=buf;const g=audioCtx.createGain();n.connect(g);g.connect(bgmGain);
   g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur*0.9);
+  n.onended=function(){try{g.disconnect();}catch(e){}};
   n.start(t);n.stop(t+dur);
 }
 function bgmKick(t){
@@ -266,6 +269,7 @@ function bgmKick(t){
   o.connect(g);g.connect(bgmGain);o.type='sine';
   o.frequency.setValueAtTime(160,t);o.frequency.exponentialRampToValueAtTime(35,t+0.1);
   g.gain.setValueAtTime(0.4,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.12);
+  o.onended=function(){try{g.disconnect();}catch(e){}};
   o.start(t);o.stop(t+0.14);
 }
 function bgmSnare(t){
@@ -274,6 +278,7 @@ function bgmSnare(t){
   o.connect(g);g.connect(bgmGain);o.type='triangle';
   o.frequency.setValueAtTime(180,t);o.frequency.exponentialRampToValueAtTime(100,t+0.04);
   g.gain.setValueAtTime(0.2,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.06);
+  o.onended=function(){try{g.disconnect();}catch(e){}};
   o.start(t);o.stop(t+0.07);
 }
 

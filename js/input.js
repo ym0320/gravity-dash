@@ -288,7 +288,7 @@ function continueFromDeath(){
   flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
   bossChests=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null};
   state=ST.COUNTDOWN;countdownT=180;
-  bgmCurrent='';switchBGM('play'); // reset BGM from beginning
+  stopBGM(); // stop dead BGM, force restart when countdown ends
   sfx('countdown');
 }
 function startPackStageFromDead(){
@@ -296,7 +296,9 @@ function startPackStageFromDead(){
   const sid=currentPackStage?currentPackStage.id:'';
   const hasCp=checkpointReached||stageCheckpoints[sid];
   resetPackStage(currentPackIdx,currentPackStageIdx,hasCp);
-  state=ST.COUNTDOWN;countdownT=180;sfx('countdown');
+  state=ST.COUNTDOWN;countdownT=180;
+  stopBGM(); // stop dead BGM, force restart when countdown ends
+  sfx('countdown');
 }
 
 // Update info modal touch handler
@@ -595,12 +597,14 @@ function restartFromPause(){
     const sid2=currentPackStage?currentPackStage.id:'';
     const hasCp2=checkpointReached||stageCheckpoints[sid2];
     resetPackStage(currentPackIdx,currentPackStageIdx,hasCp2);
-    state=ST.COUNTDOWN;countdownT=180;sfx('countdown');
+    state=ST.COUNTDOWN;countdownT=180;
+    stopBGM(); // stop current BGM, force restart when countdown ends
+    sfx('countdown');
   } else {
     bossRetry=null;isRetryGame=false;
     reset();
     state=ST.COUNTDOWN;countdownT=180;
-    bgmCurrent='';switchBGM('play');
+    stopBGM(); // force restart when countdown ends
     sfx('countdown');
   }
 }
