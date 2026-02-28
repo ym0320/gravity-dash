@@ -598,17 +598,15 @@ function trySpawnBird(){
   if(birdCD>0){birdCD--;return;}
   if(bossPhase.active)return;
   if(!isPackMode&&score<30)return;
-  // Only attack when player is on floor (below) - birds dive downward
-  if(player.gDir===-1){birdCD=60;return;}
   // Rare spawn chance
   const chance=isPackMode?0.015:0.012;
   if(packRng()<chance){
     birdCD=180+Math.floor(packRng()*120); // long cooldown (rare)
-    const gd=1; // always oriented toward floor (diving down)
+    const gd=player.gDir;
     const sz=11;
-    // Spawn high (upper 25% of screen) - dives down toward player
-    const fy=10+packRng()*(H*0.25);
-    const flySpd=1.2+packRng()*0.8; // slower horizontal speed (was 2.5-4.0)
+    // Spawn at player's Y level, fly horizontally toward player
+    const fy=player.y;
+    const flySpd=1.0+packRng()*0.5; // slow horizontal speed
     enemies.push({x:W+30,y:fy,vy:0,gDir:gd,walkSpd:0,sz:sz,alive:true,fr:packRng()*100,
       type:7,shootT:999,flySpd:flySpd});
   } else {

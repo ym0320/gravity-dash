@@ -1215,13 +1215,8 @@ function update(dt){
         if(en.dashTimer<=0){en.dashState='patrol';en.patrolOriginX=en.x;}
       }
     } else if(en.type===7){
-      // Bird: dive from above toward player
+      // Bird: fly horizontally at spawn height (no vertical tracking)
       en.x-=en.flySpd;
-      const birdTargetY=player.gDir===1?player.y:H*0.7;
-      const birdDy=birdTargetY-en.y;
-      en.vy=(en.vy||0)+Math.sign(birdDy)*0.06;
-      en.vy=Math.max(-1.5,Math.min(1.5,en.vy));
-      en.y+=en.vy;
     } else if(en.type===8){
       // Splitter: patrol, detect player, then self-split into 2 small bouncing slimes
       en.x+=en.patrolDir*en.walkSpd*esm;
