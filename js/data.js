@@ -363,7 +363,8 @@ const BGM_TITLE6={tempo:100,
   drums:'soft'};
 const BGM_TITLES=[BGM_TITLE,BGM_TITLE2,BGM_TITLE3,BGM_TITLE4,BGM_TITLE5,BGM_TITLE6];
 // Play1 (0-999): Starlight Stroll - dreamy, calm, C pentatonic, slow waltz feel
-const BGM_PLAY1={tempo:100,
+// Play BGMs: 10 unique tracks, tempo gradually increases 100→134 over score 0→9000+
+const BGM_PLAY1={tempo:100, // score 0-999: Dawn Patrol - C major, gentle intro
   melody:[523,0,0,659, 0,0,784,0, 0,880,0,784, 0,659,0,0,
           440,0,0,523, 0,659,0,0, 587,0,523,0, 0,0,0,0],
   harmony:[392,0,0,0, 440,0,0,0, 330,0,0,0, 349,0,0,0,
@@ -375,8 +376,7 @@ const BGM_PLAY1={tempo:100,
   melVol:0.16,harmVol:0.08,bassVol:0.12,chordVol:0.05,
   melWave:'sine',harmWave:'sine',bassWave:'sine',
   drums:'soft'};
-// Play2 (1000-1999): Neon Streets - bouncy pop, G major, catchy hook
-const BGM_PLAY2={tempo:108,
+const BGM_PLAY2={tempo:104, // score 1000-1999: Neon Streets - G major, bouncy pop
   melody:[784,0,880,784, 659,784,0,659, 523,587,659,0, 587,523,494,523,
           784,880,988,0, 880,784,659,784, 880,0,784,659, 587,0,523,0],
   harmony:[494,494,587,587, 440,440,494,494, 392,392,440,440, 370,370,392,392,
@@ -388,8 +388,7 @@ const BGM_PLAY2={tempo:108,
   melVol:0.20,harmVol:0.09,bassVol:0.18,chordVol:0.06,
   melWave:'triangle',harmWave:'sine',bassWave:'sine',
   drums:'pop'};
-// Play3 (2000-2999): Cyberpunk Funk - Dm syncopated arpeggios, synth-funk
-const BGM_PLAY3={tempo:116,
+const BGM_PLAY3={tempo:108, // score 2000-2999: Cyberpunk Funk - Dm synth-funk
   melody:[587,0,698,784, 0,880,0,784, 698,0,587,698, 880,0,1047,0,
           880,784,0,698, 587,0,698,0, 523,587,659,0, 587,0,523,440],
   harmony:[440,0,440,523, 0,523,0,440, 392,0,392,440, 0,440,0,392,
@@ -401,8 +400,7 @@ const BGM_PLAY3={tempo:116,
   melVol:0.20,harmVol:0.10,bassVol:0.22,chordVol:0.06,
   melWave:'triangle',harmWave:'triangle',bassWave:'sawtooth',
   drums:'drive'};
-// Play4 (3000-3999): Danger Zone - Em aggressive rock, heavy riffs
-const BGM_PLAY4={tempo:125,
+const BGM_PLAY4={tempo:112, // score 3000-3999: Danger Zone - Em aggressive rock
   melody:[659,0,784,880, 988,880,784,0, 659,784,880,1047, 988,0,880,784,
           523,587,659,784, 0,880,988,0, 1047,988,880,784, 659,0,784,0],
   harmony:[494,494,0,587, 523,0,494,494, 440,440,0,523, 494,0,440,440,
@@ -414,8 +412,55 @@ const BGM_PLAY4={tempo:125,
   melVol:0.22,harmVol:0.10,bassVol:0.24,chordVol:0.07,
   melWave:'sawtooth',harmWave:'triangle',bassWave:'triangle',
   drums:'heavy'};
-// Play5 (4000+): Maximum Overdrive - Am frantic arpeggios, breakneck EDM
-const BGM_PLAY5={tempo:134,
+const BGM_PLAY5={tempo:116, // score 4000-4999: Neon Horizon - Bb major, uplifting EDM
+  melody:[466,0,587,698, 932,0,698,587, 466,587,698,0, 880,0,784,698,
+          523,0,622,698, 784,0,698,622, 587,698,784,0, 932,0,880,0],
+  harmony:[349,0,349,466, 0,466,0,349, 330,0,330,440, 0,440,0,330,
+           311,0,311,392, 0,392,0,311, 349,0,349,466, 0,466,0,349],
+  bass:[233,0,466,233, 175,0,349,175, 311,0,622,311, 349,0,698,349,
+        233,466,0,233, 175,349,0,175, 311,622,0,311, 349,698,0,349],
+  chords:[[466,587,698],[349,440,523],[311,392,466],[349,440,523],
+          [466,587,698],[349,440,523],[311,392,466],[349,440,523]],
+  melVol:0.22,harmVol:0.10,bassVol:0.22,chordVol:0.06,
+  melWave:'triangle',harmWave:'sine',bassWave:'sine',
+  drums:'edm'};
+const BGM_PLAY6={tempo:120, // score 5000-5999: Dark Pulse - F#m, dark synth wave
+  melody:[370,0,440,554, 0,659,0,554, 440,0,370,330, 440,0,554,0,
+          494,0,587,659, 0,740,0,659, 587,0,494,440, 370,0,330,0],
+  harmony:[277,0,277,330, 0,330,0,277, 294,0,294,370, 0,370,0,294,
+           220,0,220,277, 0,277,0,220, 247,0,247,294, 0,294,0,247],
+  bass:[185,0,370,185, 147,0,294,147, 220,0,440,220, 165,0,330,165,
+        185,370,0,185, 147,294,0,147, 220,440,0,220, 165,330,0,165],
+  chords:[[370,440,554],[294,370,440],[220,277,330],[330,392,494],
+          [370,440,554],[294,370,440],[220,277,330],[330,392,494]],
+  melVol:0.22,harmVol:0.10,bassVol:0.24,chordVol:0.06,
+  melWave:'sawtooth',harmWave:'triangle',bassWave:'triangle',
+  drums:'drive'};
+const BGM_PLAY7={tempo:123, // score 6000-6999: Thunder March - D major, epic march
+  melody:[587,0,740,880, 0,740,587,0, 494,587,659,740, 880,0,740,587,
+          880,0,988,1047, 880,0,740,0, 587,659,740,880, 740,587,494,0],
+  harmony:[440,0,440,587, 0,587,0,440, 370,0,370,494, 0,494,0,370,
+           330,0,330,440, 0,440,0,330, 370,0,370,494, 0,494,0,370],
+  bass:[294,0,587,294, 247,0,494,247, 196,0,392,196, 220,0,440,220,
+        294,587,0,294, 247,494,0,247, 196,392,0,196, 220,440,0,220],
+  chords:[[294,370,440],[247,294,370],[196,247,294],[220,277,330],
+          [294,370,440],[247,294,370],[196,247,294],[220,277,330]],
+  melVol:0.22,harmVol:0.10,bassVol:0.24,chordVol:0.07,
+  melWave:'triangle',harmWave:'sine',bassWave:'sawtooth',
+  drums:'heavy'};
+const BGM_PLAY8={tempo:127, // score 7000-7999: Chaos Engine - Cm, intense industrial
+  melody:[523,0,622,659, 784,0,932,784, 622,523,0,466, 523,622,784,0,
+          880,0,784,622, 523,0,466,415, 523,0,622,784, 932,0,1047,0],
+  harmony:[415,0,415,466, 0,523,0,415, 349,0,349,415, 0,466,0,349,
+           466,0,466,523, 0,622,0,466, 392,0,392,466, 0,523,0,392],
+  bass:[262,0,523,262, 208,0,415,208, 233,0,466,233, 196,0,392,196,
+        262,523,0,262, 208,415,0,208, 233,466,0,233, 196,392,0,196],
+  chords:[[262,311,392],[208,262,311],[233,294,349],[196,247,294],
+          [262,311,392],[208,262,311],[233,294,349],[196,247,294]],
+  melVol:0.24,harmVol:0.10,bassVol:0.26,chordVol:0.07,
+  melWave:'sawtooth',harmWave:'triangle',bassWave:'sawtooth',
+  drums:'nightmare'};
+const BGM_PLAY9={tempo:130, // score 8000-8999: Inferno Rush - Am, frantic arpeggios
   melody:[880,1047,1319,1568, 1760,1568,1319,1047, 698,880,1047,1319, 1047,880,698,587,
           1175,1319,1568,1760, 1568,1319,1175,1047, 880,1047,1175,1319, 1175,1047,880,1047],
   harmony:[659,0,659,784, 0,784,0,659, 523,0,523,659, 0,659,0,523,
@@ -427,6 +472,18 @@ const BGM_PLAY5={tempo:134,
   melVol:0.24,harmVol:0.10,bassVol:0.26,chordVol:0.07,
   melWave:'sawtooth',harmWave:'triangle',bassWave:'sawtooth',
   drums:'turbo'};
+const BGM_PLAY10={tempo:134, // score 9000+: Final Overdrive - Em, maximum intensity
+  melody:[659,784,988,1175, 1319,1175,988,784, 659,0,784,988, 1175,1319,1568,0,
+          1319,1175,988,784, 659,784,988,1175, 1568,0,1319,1175, 988,784,659,0],
+  harmony:[494,0,494,659, 0,659,0,494, 523,0,523,659, 0,784,0,523,
+           440,0,440,587, 0,587,0,440, 494,0,494,659, 0,659,0,494],
+  bass:[165,0,330,165, 262,0,523,262, 220,0,440,220, 247,0,494,247,
+        165,330,165,0, 262,523,262,0, 220,440,220,0, 247,494,247,0],
+  chords:[[330,392,494],[262,330,392],[220,262,330],[247,294,392],
+          [330,392,494],[262,330,392],[220,262,330],[247,294,392]],
+  melVol:0.26,harmVol:0.10,bassVol:0.28,chordVol:0.07,
+  melWave:'sawtooth',harmWave:'triangle',bassWave:'sawtooth',
+  drums:'rumble'};
 // Boss: Nightmare Awakens - Cm with tritones, ominous chromatic horror
 const BGM_BOSS={tempo:105,
   melody:[131,0,0,156, 0,175,0,0, 131,0,156,0, 185,0,0,0,
@@ -571,22 +628,14 @@ function playFeverBGM(){
   feverTimer=setTimeout(playFeverBGM,80);
 }
 
-// Speed-linked play BGM selection (uses effective distance from speed reset point)
+// Score-based play BGM selection (10 tiers, every 1000 score)
 function getPlayBGM(){
-  const eDist=dist-speedOffset;
-  if(eDist>=4000)return BGM_PLAY5;
-  if(eDist>=3000)return BGM_PLAY4;
-  if(eDist>=2000)return BGM_PLAY3;
-  if(eDist>=1000)return BGM_PLAY2;
-  return BGM_PLAY1;
+  const tier=Math.min(Math.floor(score/1000),9);
+  return[BGM_PLAY1,BGM_PLAY2,BGM_PLAY3,BGM_PLAY4,BGM_PLAY5,BGM_PLAY6,BGM_PLAY7,BGM_PLAY8,BGM_PLAY9,BGM_PLAY10][tier];
 }
 function getPlayBGMType(){
-  const eDist=dist-speedOffset;
-  if(eDist>=4000)return'play5';
-  if(eDist>=3000)return'play4';
-  if(eDist>=2000)return'play3';
-  if(eDist>=1000)return'play2';
-  return'play1';
+  const tier=Math.min(Math.floor(score/1000),9);
+  return'play'+(tier+1);
 }
 
 function switchBGM(type){
@@ -609,7 +658,7 @@ function switchBGM(type){
   // Fever uses old-style simple oscillator
   if(type==='fever'){feverBI=0;feverStarted=false;playFeverBGM();return;}
   const BGM_MAP={title0:BGM_TITLES[0],title1:BGM_TITLES[1],title2:BGM_TITLES[2],title3:BGM_TITLES[3],title4:BGM_TITLES[4],title5:BGM_TITLES[5],
-    play1:BGM_PLAY1,play2:BGM_PLAY2,play3:BGM_PLAY3,play4:BGM_PLAY4,play5:BGM_PLAY5,
+    play1:BGM_PLAY1,play2:BGM_PLAY2,play3:BGM_PLAY3,play4:BGM_PLAY4,play5:BGM_PLAY5,play6:BGM_PLAY6,play7:BGM_PLAY7,play8:BGM_PLAY8,play9:BGM_PLAY9,play10:BGM_PLAY10,
     stage1:BGM_STAGE1,stage2:BGM_STAGE2,stage3:BGM_STAGE3,
     boss:BGM_BOSS,dead:BGM_DEAD,challenge:BGM_CHALLENGE,collapse:BGM_COLLAPSE};
   const def=BGM_MAP[type]||BGM_PLAY1;

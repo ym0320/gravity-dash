@@ -303,9 +303,9 @@ function update(dt){
       score=ns;checkMile();
     }
   }
-  // Theme change every 1000 dist (fixed interval, independent of score/coins)
+  // Theme change every 1000 score (linked to BGM progression)
   if(!isPackMode){
-    const newThemeIdx=Math.min(Math.floor(dist/1000),THEMES.length-1);
+    const newThemeIdx=Math.min(Math.floor(score/1000),THEMES.length-1);
     if(newThemeIdx!==curTheme){
       prevTheme=curTheme;curTheme=newThemeIdx;themeLerp=0;
       addPop(W/2,H*0.55,THEMES[curTheme].n+'!','#00e5ff');
