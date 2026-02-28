@@ -1331,10 +1331,9 @@ function update(dt){
         flipCount=0;player.canFlip=true;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
         // Gravity stomp bonus
         const gstomp=flipTimer<40;
-        // Stomp combo: normal 30×3^combo, gravity 90×2^combo
+        // Stomp combo: base + combo bonus (additive)
         const baseBon=gstomp?90:30;
-        const comboMul=gstomp?Math.pow(2,stompCombo):Math.pow(3,stompCombo);
-        const bon=Math.floor(baseBon*comboMul);
+        const bon=baseBon+stompCombo*(gstomp?60:30);
         stompCombo++;
         dist+=bon;
         if(gstomp){sfx('gstompHeavy');sfxEnemyDeath(en.type);vibrate([20,10,30]);shakeI=8;}else{sfxEnemyDeath(en.type);vibrate(15);}
