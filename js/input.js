@@ -551,7 +551,9 @@ document.addEventListener('visibilitychange',()=>{
     if(typeof feverTimer!=='undefined'&&feverTimer){clearTimeout(feverTimer);feverTimer=null;}
     bgmCurrent=''; // allow restart
   } else {
-    // Page visible again: resume AudioContext then restart BGM
+    // Page visible again: reset game loop timing to prevent stutter
+    lastTime=0;_tickAcc=0;
+    // Resume AudioContext then restart BGM
     const _restoreBGM=()=>{
       if(bgmBeforePause){switchBGM(bgmBeforePause);bgmBeforePause='';}
       else if(audioCtx&&!bgmCurrent){

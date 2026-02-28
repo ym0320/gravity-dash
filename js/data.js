@@ -715,7 +715,9 @@ function switchBGM(type){
 function sfx(type){
   if(!audioCtx)return;try{
     const o=audioCtx.createOscillator(),g=audioCtx.createGain();
-    o.connect(g);g.connect(sfxGain);const t=audioCtx.currentTime;
+    o.connect(g);g.connect(sfxGain);
+    o.onended=function(){try{g.disconnect();}catch(e){}};
+    const t=audioCtx.currentTime;
     switch(type){
       case'jump':o.type='sine';o.frequency.setValueAtTime(380,t);o.frequency.exponentialRampToValueAtTime(580,t+0.08);g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.1);o.start(t);o.stop(t+0.1);break;
       case'flip':o.type='sine';o.frequency.setValueAtTime(250,t);o.frequency.exponentialRampToValueAtTime(600,t+0.15);g.gain.setValueAtTime(0.1,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);o.start(t);o.stop(t+0.18);break;

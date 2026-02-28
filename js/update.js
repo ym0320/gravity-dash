@@ -1114,14 +1114,14 @@ function update(dt){
       if(!en.boss) en.patrolOriginX-=speed; // keep origin scrolling with terrain (not for boss)
       if(en.x>en.patrolOriginX+en.patrolRange) en.patrolDir=-1;
       if(en.x<en.patrolOriginX-en.patrolRange) en.patrolDir=1;
-      // Edge detection: reverse direction if about to walk off platform
+      // Edge detection with cooldown to prevent jitter on narrow platforms
+      if(en._edgeCD>0){en._edgeCD--;}
       if(en.gDir===1){
         const sy=floorSurfaceY(en.x);
         const aheadSy=floorSurfaceY(en.x+en.patrolDir*(en.sz+4));
         if(sy<H+100){
           en.y=sy-en.sz;en.vy=0;
-          // If the ground ahead is a void or even slightly lower, reverse direction
-          if(aheadSy>H+100||aheadSy>sy+5) en.patrolDir*=-1;
+          if(!en._edgeCD&&(aheadSy>H+100||aheadSy>sy+5)){en.patrolDir*=-1;en._edgeCD=15;en.patrolOriginX=en.x;}
         }
         else{en.vy=(en.vy||0)+GRAVITY;en.y+=en.vy;}
       }else{
@@ -1129,8 +1129,7 @@ function update(dt){
         const aheadSy=ceilSurfaceY(en.x+en.patrolDir*(en.sz+4));
         if(sy>-100){
           en.y=sy+en.sz;en.vy=0;
-          // If the ceiling ahead is a void or even slightly higher, reverse direction
-          if(aheadSy<-100||aheadSy<sy-5) en.patrolDir*=-1;
+          if(!en._edgeCD&&(aheadSy<-100||aheadSy<sy-5)){en.patrolDir*=-1;en._edgeCD=15;en.patrolOriginX=en.x;}
         }
         else{en.vy=(en.vy||0)-GRAVITY;en.y+=en.vy;}
       }

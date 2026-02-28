@@ -3,10 +3,13 @@
 // even when actual frame rate drops (power saving mode, throttling, etc.)
 // Max 4 catch-up ticks per frame to avoid overloading slow devices.
 // If still behind after 4 ticks, discard leftover time to prevent death spiral.
-let _tickAcc=0;
+let _tickAcc=0,_skipDraw=0;
 function loop(ts){
-  if(!lastTime)lastTime=ts;
-  _tickAcc+=Math.min(ts-lastTime,200);
+  if(!lastTime){lastTime=ts;_tickAcc=0;}
+  const dt=ts-lastTime;
+  // After background return (>500ms gap), reset timing to prevent burst
+  if(dt>500){lastTime=ts;_tickAcc=0;_skipDraw=2;requestAnimationFrame(loop);return;}
+  _tickAcc+=Math.min(dt,200);
   lastTime=ts;
   let ticks=0;
   while(_tickAcc>=16.67&&ticks<4){
@@ -16,7 +19,8 @@ function loop(ts){
   }
   // Discard leftover time to prevent accumulation death spiral on slow devices
   if(_tickAcc>16.67)_tickAcc=0;
-  try{draw();}catch(e){console.error('draw error:',e);}
+  // Skip first 2 draws after background return (GPU context warmup)
+  if(_skipDraw>0){_skipDraw--;} else {try{draw();}catch(e){console.error('draw error:',e);}}
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);

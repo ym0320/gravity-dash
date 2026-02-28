@@ -86,12 +86,22 @@ function trySpawnItem(){
   if(packRng()<0.12){
     itemCD=140+Math.floor(packRng()*80);
     const ix=Math.max(W+14,plat.x); // spawn at right screen edge
-    const surfY=H-plat.h;
+    // 50% chance floor, 50% ceiling
+    const onFloor=packRng()<0.5;
+    let iy;
+    if(onFloor){
+      const surfY=H-plat.h;
+      iy=surfY-55-packRng()*25;
+    } else {
+      const cp=ceilPlats.find(p=>ix>=p.x&&ix<=p.x+p.w);
+      const ceilH=cp?cp.h:GROUND_H;
+      iy=ceilH+55+packRng()*25;
+    }
     // Pick random item: 0=invincible, 1=magnet, 2=bomb, 3=heart
     let it;
     if(hp<maxHp()&&packRng()<0.3){it=3;} // higher chance for heart when damaged
     else{const r=packRng();if(r<0.01){it=0;}else if(r<0.02){it=2;}else if(r<0.03){it=1;}else{itemCD=60+Math.floor(packRng()*30);return;}}
-    items.push({x:ix,y:surfY-55-packRng()*25,t:it,sz:14,p:packRng()*6.28,col:false});
+    items.push({x:ix,y:iy,t:it,sz:14,p:packRng()*6.28,col:false});
   } else {
     itemCD=20+Math.floor(packRng()*15);
   }
