@@ -1512,6 +1512,7 @@ function drawPhantom(en){
     alpha=0.03+(1-en.fadeT/20)*0.97; // fade in from nearly invisible
   }
   ctx.save();ctx.translate(en.x,en.y);
+  if(en.gDir===-1)ctx.scale(1,-1);
   ctx.globalAlpha=alpha;
   // Ghost-like wispy body
   const wobble=Math.sin(en.fr*0.1)*s*0.1;
