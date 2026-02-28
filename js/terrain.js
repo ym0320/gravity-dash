@@ -155,7 +155,7 @@ function reset(){
   spikes=[];spikeCD=0;movingHills=[];hillCD=0;gravZones=[];gravZoneCD=0;gravZoneChain=0;
   fallingMtns=[];fallingMtnCD=0;coinSwitches=[];coinSwitchCD=0;
   icicles=[];icicleCD=0;magmaFireballs=[];magmaFireCD=0;magmaHurtT=0;
-  score=0;dist=0;rawDist=0;speedOffset=0;speed=SPEED_INIT;frame=0;deadT=0;newHi=false;
+  score=0;dist=0;rawDist=0;speedOffset=0;speed=SPEED_INIT;frame=0;deadT=0;newHi=false;bgmTierOffset=0;
   combo=0;comboT=0;comboDsp=0;comboDspT=0;airCombo=0;stompCombo=0;
   shakeX=0;shakeY=0;shakeI=0;
   mileT=0;mileTxt='';lastMile=0;

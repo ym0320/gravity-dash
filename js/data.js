@@ -643,12 +643,14 @@ function playFeverBGM(){
 }
 
 // Score-based play BGM selection (10 tiers, every 1000 score)
+// bgmTierOffset: on coin continue, set to current tier so BGM restarts from play1
+let bgmTierOffset=0;
 function getPlayBGM(){
-  const tier=Math.min(Math.floor(score/1000),9);
+  const tier=Math.min(Math.max(Math.floor(score/1000)-bgmTierOffset,0),9);
   return[BGM_PLAY1,BGM_PLAY2,BGM_PLAY3,BGM_PLAY4,BGM_PLAY5,BGM_PLAY6,BGM_PLAY7,BGM_PLAY8,BGM_PLAY9,BGM_PLAY10][tier];
 }
 function getPlayBGMType(){
-  const tier=Math.min(Math.floor(score/1000),9);
+  const tier=Math.min(Math.max(Math.floor(score/1000)-bgmTierOffset,0),9);
   return'play'+(tier+1);
 }
 

@@ -289,6 +289,7 @@ function continueFromDeath(){
   bossChests=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null};
   state=ST.COUNTDOWN;countdownT=180;
   curTheme=0;prevTheme=0;themeLerp=1; // reset theme to initial color
+  bgmTierOffset=Math.floor(score/1000); // BGM restarts from play1, progresses every 1000 score
   _pauseSavedBGM=''; // clear any stale pause state
   stopBGM(); // stop dead BGM with quick fade-out, force restart when countdown ends
   sfx('countdown');
