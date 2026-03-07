@@ -266,7 +266,7 @@ function continueFromDeath(){
   // Keep score, reset speed, revive player, start with countdown
   player.alive=true;player.face='normal';
   player.gDir=1;player.vy=0;player.canFlip=true;
-  player.rot=0;player.rotTarget=0;player.trail=[];
+  player.rot=0;player.rotTarget=0;_trailHead=0;_trailLen=0;player.faceTimer=0;
   hp=HP_MAX+(ct().hpBonus||0);hurtT=0;
   rawDist=0; // reset rawDist so speed returns to SPEED_INIT
   // Rebuild safe platforms around player
@@ -625,6 +625,8 @@ function restartFromPause(){
 function startChallenge(){
   gameMode='challenge';isChallengeMode=true;isPackMode=false;
   challengeKills=0;challengePhase=0;challengeRetired=false;challengeNextBossT=0;
+  challBossQueue=generateChallBossQueue();challQueueIdx=0;
+  challTransition={active:false,timer:0,waveNum:0};
   bossRetry=null;isRetryGame=false;
   reset();
   hp=maxHp(); // full HP
@@ -1191,22 +1193,22 @@ function handleTitleTouch(tx,ty){
   const btnW=W*0.35,btnH=38,btnGap=12;
   const totalBtnW=btnW*2+btnGap;
   const btnStartX=W/2-totalBtnW/2;
-  const btnY=H*0.77;
+  const btnY=H*0.80;
   const ebx=btnStartX;
   const sbx=btnStartX+btnW+btnGap;
   // Endless mode button -> start countdown
   if(tx>=ebx&&tx<=ebx+btnW&&ty>=btnY&&ty<=btnY+btnH){
     startCountdown('endless');return;
   }
-  // Stage mode button (disabled - coming soon)
-  if(tx>=sbx&&tx<=sbx+btnW&&ty>=btnY&&ty<=btnY+btnH){
-    sfx('cancel');vibrate(10);return;
-  }
-  // Challenge mode button (disabled - coming soon)
+  // Stage mode button (disabled)
+  // if(tx>=sbx&&tx<=sbx+btnW&&ty>=btnY&&ty<=btnY+btnH){
+  //   sfx('select');vibrate(30);state=ST.STAGE_SEL;stageSelScroll=0;stageSelTarget=0;return;
+  // }
+  // Challenge mode button
   const cbtnW=W*0.45,cbtnH=34;
   const cbx2=W/2-cbtnW/2,cbtnY2=btnY+btnH+6;
   if(tx>=cbx2&&tx<=cbx2+cbtnW&&ty>=cbtnY2&&ty<=cbtnY2+cbtnH){
-    sfx('cancel');vibrate(10);return;
+    sfx('select');vibrate(30);startChallenge();return;
   }
 }
 function handleRankingTouch(tx,ty){
@@ -1683,6 +1685,7 @@ if(twitterBtn){
 // Auto-login for returning Firebase users (check on page load)
 fbOnReady(user=>{
   if(user&&!playerName){
+    if(_fbRedirectPending)return;
     // Returning user on new device – try to restore data
     fbLoadUserData().then(data=>{
       if(data&&data.name){

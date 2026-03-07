@@ -4,17 +4,27 @@ let coinCD=0,itemCD=0,enemyCD=0,birdCD=0;
 
 function findSpawnPlat(){
   // Find a platform that is ahead of screen (right side)
-  return platforms.find(p=>p.x>W*0.55&&p.x+p.w<W+250)||platforms.find(p=>p.x+p.w>W*0.6&&p.x<W+200);
+  let _fsp=null;
+  for(let _i=0;_i<platforms.length;_i++){const p=platforms[_i];if(p.x>W*0.55&&p.x+p.w<W+250){_fsp=p;break;}}
+  if(_fsp)return _fsp;
+  for(let _i=0;_i<platforms.length;_i++){const p=platforms[_i];if(p.x+p.w>W*0.6&&p.x<W+200){_fsp=p;break;}}
+  return _fsp;
 }
 function findEdgeSpawnPlat(){
   // Find a platform that extends past or starts at the right screen edge
-  return platforms.find(p=>p.x<W+40&&p.x+p.w>W)||platforms.find(p=>p.x>=W&&p.x<W+100);
+  let _fesp=null;
+  for(let _i=0;_i<platforms.length;_i++){const p=platforms[_i];if(p.x<W+40&&p.x+p.w>W){_fesp=p;break;}}
+  if(_fesp)return _fesp;
+  for(let _i=0;_i<platforms.length;_i++){const p=platforms[_i];if(p.x>=W&&p.x<W+100){_fesp=p;break;}}
+  return _fesp;
 }
 function findEdgeMovingHill(){
   // Find a moving hill or falling floor near the right screen edge for enemy spawning
-  const mh=movingHills.find(m=>m.isFloor&&m.x<W+40&&m.x+m.w>W-30);
+  let mh=null;
+  for(let _i=0;_i<movingHills.length;_i++){const m=movingHills[_i];if(m.isFloor&&m.x<W+40&&m.x+m.w>W-30){mh=m;break;}}
   if(mh){const curH=mh.baseH+Math.sin(mh.phase)*mh.ampH;return{x:mh.x,w:mh.w,h:curH,isMH:true};}
-  const fm=fallingMtns.find(f=>f.isFloor&&f.state==='idle'&&f.x<W+40&&f.x+f.w>W-30);
+  let fm=null;
+  for(let _i=0;_i<fallingMtns.length;_i++){const f=fallingMtns[_i];if(f.isFloor&&f.state==='idle'&&f.x<W+40&&f.x+f.w>W-30){fm=f;break;}}
   if(fm)return{x:fm.x,w:fm.w,h:fm.curH,isFM:true};
   return null;
 }
@@ -33,6 +43,7 @@ function coinOverlaps(cx,cy){
 function trySpawnCoins(){
   if(coinCD>0){coinCD--;return;}
   if(isPackMode)return; // no coins in stage mode
+  if(isChallengeMode)return; // no coins in challenge mode
   if(bossPhase.active)return;
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
@@ -43,7 +54,8 @@ function trySpawnCoins(){
     if(lastCoinCourse==='floor') {onFloor=false;lastCoinCourse='ceil';}
     else if(lastCoinCourse==='ceil') {onFloor=true;lastCoinCourse='floor';}
     else {onFloor=player.gDir===1||packRng()<0.5;lastCoinCourse=onFloor?'floor':'ceil';}
-    const surfY=onFloor?H-plat.h:(()=>{const cp=ceilPlats.find(p=>plat.x+plat.w*0.3>=p.x&&plat.x+plat.w*0.3<=p.x+p.w);return cp?cp.h:GROUND_H;})();
+    let surfY;
+    if(onFloor){surfY=H-plat.h;}else{let _cp=null;for(let _i=0;_i<ceilPlats.length;_i++){const p=ceilPlats[_i];if(plat.x+plat.w*0.3>=p.x&&plat.x+plat.w*0.3<=p.x+p.w){_cp=p;break;}}surfY=_cp?_cp.h:GROUND_H;}
     const pattern=packRng();
     const n=3+Math.floor(packRng()*2); // 3-4 coins per group (was 3-5)
     const startX=Math.max(W+9,plat.x); // spawn at right screen edge
@@ -93,7 +105,7 @@ function trySpawnItem(){
       const surfY=H-plat.h;
       iy=surfY-55-packRng()*25;
     } else {
-      const cp=ceilPlats.find(p=>ix>=p.x&&ix<=p.x+p.w);
+      let cp=null;for(let _i=0;_i<ceilPlats.length;_i++){const p=ceilPlats[_i];if(ix>=p.x&&ix<=p.x+p.w){cp=p;break;}}
       const ceilH=cp?cp.h:GROUND_H;
       iy=ceilH+55+packRng()*25;
     }
@@ -134,6 +146,8 @@ function trySpawnEnemy(){
     let eType=0;
     const tr=packRng();
     if(isPackMode&&currentPackStage){
+      if(currentPackStage.walkerOnly){eType=0;}
+      else {
       const stageIdx=currentPackStageIdx; // 0-4
       const progress=dist/currentPackStage.dist;
       const sType2=currentPackStage.stageType||'';
@@ -166,10 +180,11 @@ function trySpawnEnemy(){
         else if(stageIdx>=0&&tr<0.40) eType=1;
         else eType=0;
       }
+      } // end walkerOnly else
     } else {
       // Endless mode: score-based enemy types
-      if(score>=600&&bossPhase.bossCount>=3&&tr<0.10) eType=8;
-      else if(score>=400&&bossPhase.bossCount>=2&&tr<0.15) eType=3;
+      if(score>=600&&bossPhase.bossCount>=3&&tr<0.10) eType=3;
+      else if(score>=400&&bossPhase.bossCount>=2&&tr<0.15) eType=8;
       else if(score>=250&&bossPhase.bossCount>=1&&tr<0.18) eType=6;
       else if(score>=160&&tr<0.12) eType=5;
       else if(score>=140&&tr<0.15) eType=4;
@@ -294,6 +309,7 @@ function trySpawnFloatPlat(){
 // ===== STAGE GIMMICKS =====
 function trySpawnSpike(){
   if(spikeCD>0){spikeCD--;return;}
+  if(isPackMode&&currentPackStage&&currentPackStage.noHazards)return;
   if(!isPackMode&&(bossPhase.bossCount<3||bossPhase.active))return; // endless: only after 3rd boss
   if(isPackMode&&bossPhase.active)return;
   const plat=findEdgeSpawnPlat();
@@ -303,7 +319,7 @@ function trySpawnSpike(){
   if(packRng()<chance){
     const sx=Math.max(W+10,plat.x+packRng()*plat.w*0.5);
     // Only place spikes where both floor AND ceiling terrain exist
-    const ceilHere=ceilPlats.find(p=>sx>=p.x&&sx<=p.x+p.w);
+    let ceilHere=null;for(let _i=0;_i<ceilPlats.length;_i++){const p=ceilPlats[_i];if(sx>=p.x&&sx<=p.x+p.w){ceilHere=p;break;}}
     if(!ceilHere){spikeCD=25+Math.floor(packRng()*15);return;}
     spikeCD=isDense?(20+Math.floor(packRng()*20)):(80+Math.floor(packRng()*60));
     // Randomly choose floor or ceiling spike
@@ -313,7 +329,7 @@ function trySpawnSpike(){
     const sw=Math.min(30+packRng()*30,Math.max(10,maxW));
     if(sw<10){spikeCD=25;return;} // platform too narrow
     // Overlap check: skip if this spike would overlap any existing spike on the same surface
-    const spikeOverlap=spikes.some(s=>s.isFloor===isFloor&&sx<s.x+s.w+10&&sx+sw>s.x-10);
+    let spikeOverlap=false;for(let _i=0;_i<spikes.length;_i++){const s=spikes[_i];if(s.isFloor===isFloor&&sx<s.x+s.w+10&&sx+sw>s.x-10){spikeOverlap=true;break;}}
     if(spikeOverlap){spikeCD=15+Math.floor(packRng()*10);return;}
     if(isFloor){
       spikes.push({x:sx,w:sw,h:H-plat.h,spikeH:22,phase:0,timer:0,state:'hidden',
@@ -333,11 +349,12 @@ function trySpawnSpike(){
 function trySpawnFallingMtn(){
   if(fallingMtnCD>0){fallingMtnCD--;return;}
   if(bossPhase.active)return;
-  if(!isPackMode&&score<4000)return; // endless only threshold
+  if(isPackMode&&currentPackStage&&currentPackStage.noHazards)return;
+  if(isPackMode&&currentPackStage&&currentPackStage.stageType==='altChasm')return;
+  if(!isPackMode&&bossPhase.bossCount<2)return; // endless: only after 2nd boss
   // During terrain gimmick phase (moving type), skip falling spawns
   if(terrainGimmickPhase.active&&terrainGimmickPhase.type==='moving')return;
   // Find a gap (abyss) in floor or ceiling platforms to place the falling floor over
-  // Starts at 4000, increases significantly from 4000-6000+
   const isGimmickFalling=terrainGimmickPhase.active&&terrainGimmickPhase.type==='falling';
   let chance=isPackMode?0.15:(score>=6000?Math.min(0.12,0.04+(score-6000)*0.0002):Math.min(0.06,0.01+(score-4000)*0.0003));
   if(isGimmickFalling)chance=0.35; // high spawn rate during gimmick phase
@@ -351,15 +368,15 @@ function trySpawnFallingMtn(){
       const gStart=p1.x+p1.w;
       const gEnd=p2.x;
       const gap=gEnd-gStart;
-      if(gap>=50&&gStart>W-200&&gStart<W+200){
+      if(gap>=50&&gStart>W&&gStart<W+300){
         gapX=gStart;gapW=gap;break;
       }
     }
     if(gapX<0){fallingMtnCD=30+Math.floor(packRng()*20);return;}
     // Check overlap: don't spawn where a movingHill or another fallingMtn already exists
-    const hasHill=movingHills.some(mh=>Math.abs(mh.x-gapX)<gapW);
+    let hasHill=false;for(let _i=0;_i<movingHills.length;_i++){if(Math.abs(movingHills[_i].x-gapX)<gapW){hasHill=true;break;}}
     if(hasHill){fallingMtnCD=30+Math.floor(packRng()*15);return;}
-    const hasFM=fallingMtns.some(fm=>Math.abs(fm.x-gapX)<gapW);
+    let hasFM=false;for(let _i=0;_i<fallingMtns.length;_i++){if(Math.abs(fallingMtns[_i].x-gapX)<gapW){hasFM=true;break;}}
     if(hasFM){fallingMtnCD=30+Math.floor(packRng()*15);return;}
     const isGimmickFalling2=terrainGimmickPhase.active&&terrainGimmickPhase.type==='falling';
     fallingMtnCD=isGimmickFalling2?(40+Math.floor(packRng()*30)):(180+Math.floor(packRng()*120));
@@ -376,6 +393,7 @@ function trySpawnFallingMtn(){
 // ===== COIN SWITCH =====
 function trySpawnCoinSwitch(){
   if(coinSwitchCD>0){coinSwitchCD--;return;}
+  if(isChallengeMode)return;
   if(bossPhase.active)return;
   if(score<60)return;
   const plat=findEdgeSpawnPlat();
@@ -388,7 +406,7 @@ function trySpawnCoinSwitch(){
     if(isFloor){
       sy=H-plat.h-COIN_SW_R;
     } else {
-      const cp=ceilPlats.find(p=>sx>=p.x&&sx<=p.x+p.w);
+      let cp=null;for(let _i=0;_i<ceilPlats.length;_i++){const p=ceilPlats[_i];if(sx>=p.x&&sx<=p.x+p.w){cp=p;break;}}
       const ch=cp?cp.h:GROUND_H;
       sy=ch+COIN_SW_R;
     }
@@ -432,16 +450,16 @@ function trySpawnMovingHill(){
     // Check overlap: don't spawn where new hill overlaps existing movingHill or fallingMtn
     // Gravity stage uses larger buffer (80px) to ensure clear visual separation
     const buf=isGravityStage?200:20;
-    const hasFalling=fallingMtns.some(fm=>hx<fm.x+fm.w+buf&&hx+hw>fm.x-buf);
+    let hasFalling=false;for(let _i=0;_i<fallingMtns.length;_i++){const fm=fallingMtns[_i];if(hx<fm.x+fm.w+buf&&hx+hw>fm.x-buf){hasFalling=true;break;}}
     if(hasFalling){hillCD=30+Math.floor(packRng()*15);return;}
-    const hasMH=movingHills.some(mh=>hx<mh.x+mh.w+buf&&hx+hw>mh.x-buf);
+    let hasMH=false;for(let _i=0;_i<movingHills.length;_i++){const mh=movingHills[_i];if(hx<mh.x+mh.w+buf&&hx+hw>mh.x-buf){hasMH=true;break;}}
     if(hasMH){hillCD=30+Math.floor(packRng()*15);return;}
     const isGimmickMoving2=terrainGimmickPhase.active&&terrainGimmickPhase.type==='moving';
     hillCD=isGimmickMoving2?(40+Math.floor(packRng()*30)):(120+Math.floor(packRng()*80));
     if(isGimmickMoving2){terrainGimmickPhase.len--;if(terrainGimmickPhase.len<=0){terrainGimmickPhase.active=false;terrainGimmickPhase.cd=800+Math.floor(packRng()*400);}}
     const baseH=GROUND_H;
     const ampH=40+packRng()*50;
-    movingHills.push({x:hx,w:hw,baseH:baseH,ampH:ampH,phase:packRng()*6.28,spd:0.03+packRng()*0.02,isFloor:isFloor});
+    movingHills.push({x:hx,w:hw,baseH:baseH,ampH:ampH,phase:packRng()*6.28,spd:0.02+packRng()*0.015,isFloor:isFloor});
   } else {
     hillCD=30+Math.floor(packRng()*15);
   }
@@ -452,6 +470,8 @@ let gravZoneChain=0; // tracks how many zones spawned in current chain
 let gravZoneChainTarget=0; // how many to spawn in this chain
 function trySpawnGravZone(){
   if(gravZoneCD>0){gravZoneCD--;return;}
+  if(isPackMode&&currentPackStage&&currentPackStage.noHazards)return;
+  if(isPackMode&&currentPackStage&&currentPackStage.stageType==='altChasm')return;
   if(!isPackMode&&(bossPhase.bossCount<1||bossPhase.active))return;
   if(isPackMode&&bossPhase.active)return;
   if(!isPackMode&&score<150)return;
@@ -483,8 +503,8 @@ function trySpawnGravZone(){
     } else if(gravZoneChain===0){
       // Start new chain: determine count based on score
       let maxCount=1;
-      if(score>=5000)maxCount=3;
-      else if(score>=4000)maxCount=2;
+      if(bossPhase.bossCount>=5)maxCount=3;
+      else if(bossPhase.bossCount>=4)maxCount=2;
       gravZoneChainTarget=1+Math.floor(packRng()*maxCount);
       gravZoneChain=1;
       if(gravZoneChainTarget>1){
@@ -523,7 +543,7 @@ function trySpawnIcicle(){
     const iw=16+packRng()*20; // width 16-36
     const ih=50+packRng()*70; // height 50-120 (big obstacle)
     // Ceiling only: find ceiling platform at spawn position
-    const cp=ceilPlats.find(p=>ix>=p.x&&ix<=p.x+p.w);
+    let cp=null;for(let _i=0;_i<ceilPlats.length;_i++){const p=ceilPlats[_i];if(ix>=p.x&&ix<=p.x+p.w){cp=p;break;}}
     if(!cp){icicleCD=10;return;}
     const baseY=cp.h; // ceiling surface Y
     // Spawn already hanging (tip = baseY + ih)
@@ -551,7 +571,8 @@ function trySpawnMagmaFire(){
     // Trigger when gap is ahead of player and within range
     if(gapMid>player.x+30&&gapMid<player.x+250){
       // Don't spawn if there's already a fireball near this gap
-      if(magmaFireballs.some(fb=>Math.abs(fb.originX-gapMid)<gapW))continue;
+      let _hasFB1=false;for(let _j=0;_j<magmaFireballs.length;_j++){if(Math.abs(magmaFireballs[_j].originX-gapMid)<gapW){_hasFB1=true;break;}}
+      if(_hasFB1)continue;
       if(packRng()<0.35){
         magmaFireCD=40+Math.floor(packRng()*30);
         const fx=gapMid;
@@ -576,7 +597,8 @@ function trySpawnMagmaFire(){
     if(gapW<40)continue;
     const gapMid=gStart+gapW/2;
     if(gapMid>player.x+30&&gapMid<player.x+250){
-      if(magmaFireballs.some(fb=>Math.abs(fb.originX-gapMid)<gapW))continue;
+      let _hasFB2=false;for(let _j=0;_j<magmaFireballs.length;_j++){if(Math.abs(magmaFireballs[_j].originX-gapMid)<gapW){_hasFB2=true;break;}}
+      if(_hasFB2)continue;
       if(packRng()<0.25){
         magmaFireCD=45+Math.floor(packRng()*35);
         const fx=gapMid;
@@ -597,6 +619,7 @@ function trySpawnMagmaFire(){
 function trySpawnBird(){
   if(birdCD>0){birdCD--;return;}
   if(bossPhase.active)return;
+  if(isPackMode&&currentPackStage&&currentPackStage.noHazards)return;
   if(!isPackMode&&score<30)return;
   // Spawn chance
   const chance=isPackMode?0.018:0.014;

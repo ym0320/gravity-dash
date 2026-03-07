@@ -27,7 +27,14 @@ function startBossPhase(){
   const _allTypes=['wizard','bruiser','guardian','dodge'];
   const _pickType=()=>_allTypes[Math.floor(Math.random()*4)];
   if(isChallengeMode){
-    bossPhase.bossType=_pickType();
+    // Queue-based boss selection
+    if(challQueueIdx>=challBossQueue.length) extendChallBossQueue();
+    const wave=challBossQueue[challQueueIdx];
+    bossPhase.bossType=wave.type;
+    bossPhase.bossType2=wave.type2;
+    bossPhase.challStrength=wave.strength;
+    bossPhase.challIsDual=wave.isDual;
+    challQueueIdx++;
   } else if(isPackMode&&currentPackStage&&currentPackStage.boss){
     if(currentPackStage.bossVariant==='snowman') bossPhase.bossType='wizard';
     else bossPhase.bossType=Math.random()<0.5?'bruiser':'guardian';
@@ -48,12 +55,15 @@ function spawnBossEnemies(){
   bossPhase.dodgeQueue=[];
   bossPhase.dodgeIdx=0;
   bossPhase.dodgeKills=0;
-  // Phase system: every 5 fights, phase escalates
-  const cyclePos=(bc-1)%15;
-  const bigCycle=Math.floor((bc-1)/15);
-  const phaseLevel=Math.floor(cyclePos/5)+1;
-  const isDual=bigCycle>=1;
-  const effectiveBc=phaseLevel===1?1:phaseLevel===2?6:11;
+  // Scaling: each boss fight gets progressively stronger
+  let effectiveBc=bc;
+  let isDual=bc>=16; // dual bosses after 15 fights
+  // Challenge mode: override from queue
+  if(isChallengeMode){
+    const str=bossPhase.challStrength||1;
+    effectiveBc=str===1?1:str===2?6:11;
+    isDual=!!bossPhase.challIsDual;
+  }
   // Pre-calculate sizes for all boss types (needed for mixed dual)
   const bsz=(30+Math.min(effectiveBc-1,6)*2)*2;
   const gsz=(28+Math.min(effectiveBc-1,6)*2)*2;
@@ -114,23 +124,22 @@ function spawnBossEnemies(){
     };
   }
   function addDodgeQueue(delayOffset){
-    const dodgeCount=10+Math.min(Math.floor((effectiveBc-1)/3),4);
-    const baseSpd=2.2+Math.min(phaseLevel-1,10)*0.25; // gradual speed increase with phase
-    const baseInterval=Math.max(3,12-Math.min(effectiveBc-1,8));
+    const dodgeCount=10; // fixed at 10 for all levels
+    const baseSpd=1.5+Math.min(bc-1,12)*0.3; // lv1=1.5, lv2=1.8, lv3=2.1...
+    const baseInterval=Math.max(35,80-Math.min(bc-1,11)*5); // lv1=80, lv2=75, lv3=70...
     let lastFloor=Math.random()<0.5; // first one random, then strictly alternate
     for(let i=0;i<dodgeCount;i++){
-      // Speed gradually increases per dodge in the wave
-      const spd=baseSpd+i*0.12+Math.random()*0.5;
-      // Strictly alternate floor/ceiling (after first random pick)
-      const onFloor=i===0?lastFloor:!lastFloor;
-      lastFloor=onFloor;
+      // All dodges in the same wave have identical speed
+      const spd=baseSpd;
+      // Strictly alternate floor/ceiling
+      const onFloor=(i%2===0)?lastFloor:!lastFloor;
       const gDir=onFloor?1:-1;
       const sz=PLAYER_R*5;
       bossPhase.dodgeQueue.push({
-        x:W+80+i*10,y:onFloor?floorY-sz:ceilY+sz,vy:0,gDir:gDir,sz:sz,alive:true,fr:Math.random()*100,
+        x:W+80,y:onFloor?floorY-sz:ceilY+sz,vy:0,gDir:gDir,sz:sz,alive:true,fr:Math.random()*100,
         type:10,shootT:999,boss:true,bossType:'dodge',
         chargeVx:-spd,diagStrength:0,chargeState:'wait',
-        rushDelay:(delayOffset||0)+10+i*baseInterval+Math.floor(Math.random()*6),
+        rushDelay:i===0?(delayOffset||0)+10:Math.round(baseInterval*(0.7+Math.random()*0.6)),
         timer:0,missCount:0
       });
     }
@@ -165,8 +174,8 @@ function spawnBossEnemies(){
   // Dual boss spawning
   const packBoss=isPackMode&&currentPackStage&&currentPackStage.boss;
   if(isChallengeMode&&isDual){
-    // Challenge mode: mixed dual - pick second type independently (all combos)
-    const type2=pickType();
+    // Challenge mode: second boss from queue
+    const type2=bossPhase.bossType2||bossType;
     bossPhase.total+=spawnBoss(type2,-1,40,50);
   } else if(isDual||packBoss){
     // Endless/Stage mode: second boss same type on ceiling
@@ -269,7 +278,7 @@ function updateBossPhase(){
       // Use minimum hitbox radius of PLAYER_R so small characters still get hit
       const dodgePr=Math.max(pr,PLAYER_R);
       const dx=player.x-en.x,dy=player.y-en.y;
-      if(Math.sqrt(dx*dx+dy*dy)<dodgePr+en.sz*BOSS_HITBOX_SCALE){
+      if(dx*dx+dy*dy<(dodgePr+en.sz*BOSS_HITBOX_SCALE)*(dodgePr+en.sz*BOSS_HITBOX_SCALE)){
         if(itemEff.invincible>0){
           en.alive=false;bossPhase.dodgeKills++;
           emitParts(en.x,en.y,15,'#ff00ff',4,3);sfx('stomp');shakeI=4;
@@ -710,7 +719,10 @@ function updateBossPhase(){
       w.y+=Math.sin(w.fr)*0.3;
       if(w.castT===30){
         // Phase scaling: slightly more bullets as phases progress
-        const extra=Math.floor((bc-1)/2);
+        const _cStr=isChallengeMode?(bossPhase.challStrength||1):0;
+        const spreadExtra=isChallengeMode?_cStr:Math.floor((bc-1)/2);
+        const radialExtra=isChallengeMode?(_cStr-1):Math.floor((bc-1)/2);
+        const extra=isChallengeMode?_cStr:Math.floor((bc-1)/2);
         if(w.variant==='snowman'){
           // Snowman: parallel icicle barrage from right to left
           const icicleCount=5+extra;
@@ -722,7 +734,7 @@ function updateBossPhase(){
           }
         } else if(w.castType===0){
           // Spread shot: 3 + phase bonus, fan out from wizard toward player vicinity
-          const shotCount=3+extra;
+          const shotCount=3+spreadExtra;
           const dx=player.x-w.x,dy=player.y-w.y;
           const baseAngle=Math.atan2(dy,dx);
           const baseSpd=3;
@@ -735,7 +747,7 @@ function updateBossPhase(){
           }
         } else {
           // 360-degree radial burst: 8 + phase bonus
-          const ringCount=8+extra;
+          const ringCount=8+radialExtra;
           for(let i=0;i<ringCount;i++){
             const a=i*Math.PI*2/ringCount;
             bullets.push({x:w.x,y:w.y,vx:Math.cos(a)*2.5,vy:Math.sin(a)*2.5,sz:7,life:999,wizBullet:true});
@@ -803,12 +815,22 @@ function updateBossPhase(){
   for(let i=0;i<bossPhase.enemies.length;i++){
     if(!bossPhase.enemies[i].alive)bossPhase.defeated++;
   }
-  const bruiserDone=bossPhase.enemies.filter(e=>e.bossType==='bruiser'&&e.alive).length===0;
-  const wizardDone=bossPhase.enemies.filter(e=>e.bossType==='wizard'&&e.alive).length===0;
-  const guardianDone=bossPhase.enemies.filter(e=>e.bossType==='guardian'&&e.alive).length===0;
+  let aliveBruiser=0,aliveWizard=0,aliveGuardian=0;
+  for(let i=0;i<bossPhase.enemies.length;i++){
+    const e=bossPhase.enemies[i];
+    if(!e.alive)continue;
+    if(e.bossType==='bruiser')aliveBruiser++;
+    else if(e.bossType==='wizard')aliveWizard++;
+    else if(e.bossType==='guardian')aliveGuardian++;
+  }
+  const bruiserDone=aliveBruiser===0;
+  const wizardDone=aliveWizard===0;
+  const guardianDone=aliveGuardian===0;
   const hasDodge=bossPhase.dodgeQueue.length>0;
+  let aliveDodge=0;
+  for(let i=0;i<enemies.length;i++){if(enemies[i].bossType==='dodge'&&enemies[i].alive)aliveDodge++;}
   const dodgeDone=!hasDodge||(bossPhase.dodgeIdx>=bossPhase.dodgeQueue.length&&
-    enemies.filter(e=>e.bossType==='dodge'&&e.alive).length===0);
+    aliveDodge===0);
   const allDone=dodgeDone&&bruiserDone&&wizardDone&&guardianDone;
   if(allDone&&bossPhase.enemies.length>0&&!bossPhase.reward){
     bossPhase.reward=true;bossPhase.rewardT=0;
@@ -829,7 +851,7 @@ function updateBossPhase(){
     walletCoins+=bonus;localStorage.setItem('gd5wallet',walletCoins.toString());
     totalCoins+=bonus;fbSaveUserData();
     addPop(W/2,H*0.45,'+'+bonus+' COINS!','#ffd700');
-    for(let i=0;i<40;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*4,vy:1+Math.random()*4,life:80+Math.random()*40,ml:120,sz:Math.random()*5+3,col:['#ffd700','#ffaa00','#fff4b0'][i%3]});
+    for(let i=0;i<40&&parts.length<MAX_PARTS;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*4,vy:1+Math.random()*4,life:80+Math.random()*40,ml:120,sz:Math.random()*5+3,col:['#ffd700','#ffaa00','#fff4b0'][i%3]});
     // Spawn treasure chest falling from above (50%, not in challenge mode)
     if(!isChallengeMode&&Math.random()<0.5){
       bossChests++;

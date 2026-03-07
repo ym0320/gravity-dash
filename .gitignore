@@ -1,3 +1,9 @@
 firebase-debug.log
 node_modules
 .firebase
+.claude/
+nul
+OAuth 2.0 *.txt
+NGワード一覧.txt
+_server.js
+*.backup

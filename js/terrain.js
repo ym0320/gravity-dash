@@ -15,8 +15,8 @@ function generatePlatform(arr,isCeil,forceGap){
   const last=arr.length>0?arr[arr.length-1]:null;
   const lastH=last?last.h:GROUND_H;
   const lastRight=last?last.x+last.w:0;
-  // Boss phase: flat terrain
-  if(bossPhase.active||bossPhase.prepare>0){
+  // Boss phase or challenge mode: flat terrain (no gaps)
+  if(bossPhase.active||bossPhase.prepare>0||isChallengeMode){
     arr.push({x:lastRight,w:150+Math.random()*100,h:GROUND_H});
     return;
   }
@@ -107,7 +107,7 @@ let packFloorGenX=0,packCeilGenX=0;
 
 // ===== BOSS PHASE =====
 // Boss appears periodically in endless mode
-let bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:BOSS_INTERVAL,lastBossScore:0,lastBossRawDist:0,bossCount:0,bossType:'',noDamage:true};
+let bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:BOSS_INTERVAL,lastBossScore:0,lastBossRawDist:0,bossCount:0,bossType:'',bossType2:null,challStrength:1,challIsDual:false,noDamage:true};
 
 function initBG(){
   stars=[];
@@ -127,21 +127,23 @@ ceilPlats=[{x:-20,w:W+40,h:GROUND_H}];
 function floorSurfaceY(px){
   for(let i=0;i<platforms.length;i++){
     const p=platforms[i];
-    if(px>=p.x&&px<=p.x+p.w) return H-p.h;
+    if(p.x>px)break; // platforms sorted by x: no point checking further
+    if(px<=p.x+p.w) return H-p.h;
   }
   return H+200; // void (gap)
 }
 function ceilSurfaceY(px){
   for(let i=0;i<ceilPlats.length;i++){
     const p=ceilPlats[i];
-    if(px>=p.x&&px<=p.x+p.w) return p.h;
+    if(p.x>px)break;
+    if(px<=p.x+p.w) return p.h;
   }
   return -200; // void
 }
 
 function reset(){
   player.x=W*0.2;player.gDir=1;player.vy=0;
-  player.rot=0;player.rotTarget=0;player.trail=[];player.alive=true;
+  player.rot=0;player.rotTarget=0;_trailHead=0;_trailLen=0;player.faceTimer=0;player.alive=true;
   player.grounded=false;player.face='normal';player.canFlip=true;
   player._quakeStunned=false;player._quakeStunT=0;player._swordHitThisSwing=false;
   platforms=[];ceilPlats=[];
@@ -167,7 +169,7 @@ function reset(){
   abyssPhase={active:false,len:0,cd:0};
   gravRushPhase={active:false,len:0,cd:0};
   terrainGimmickPhase={active:false,type:'',len:0,cd:0};
-  bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:BOSS_INTERVAL,lastBossScore:0,lastBossRawDist:0,bossCount:0,bossType:'',noDamage:true};
+  bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:BOSS_INTERVAL,lastBossScore:0,lastBossRawDist:0,bossCount:0,bossType:'',bossType2:null,challStrength:1,challIsDual:false,noDamage:true};
   hp=HP_MAX+(ct().hpBonus||0);hurtT=0;
   curTheme=0;prevTheme=0;themeLerp=1;
   bossChests=0;runChests=0;deadChestsOpened=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null};
@@ -183,17 +185,17 @@ function resetPackStage(pi,si,fromCheckpoint){
   const seedOff=cpStart?5000:0;
   stageRng=mulberry32(stage.seed+seedOff);stageCeilRng=mulberry32(stage.seed+111+seedOff);stageSpawnRng=mulberry32(stage.seed+555+seedOff);gotNewStars=0;
   player.x=W*0.2;player.gDir=1;player.vy=0;
-  player.rot=0;player.rotTarget=0;player.trail=[];player.alive=true;
+  player.rot=0;player.rotTarget=0;_trailHead=0;_trailLen=0;player.faceTimer=0;player.alive=true;
   player.grounded=false;player.face='normal';player.canFlip=true;
   player._quakeStunned=false;player._quakeStunT=0;player._swordHitThisSwing=false;
   // Generate deterministic terrain from seed (separate RNGs for floor/ceiling)
   platforms=[];ceilPlats=[];
   platforms.push({x:-20,w:W*0.9,h:GROUND_H});
-  ceilPlats.push({x:-20,w:W*0.9,h:GROUND_H});
+  if(!stage.noCeiling) ceilPlats.push({x:-20,w:W*0.9,h:GROUND_H});
   // Initialize deterministic generation distance trackers
   packFloorGenX=W*0.9-20; // initial platform right edge
   packCeilGenX=W*0.9-20;
-  for(let i=0;i<5;i++){generatePackPlatform(platforms,false,stage);generatePackPlatform(ceilPlats,true,stage);}
+  for(let i=0;i<5;i++){generatePackPlatform(platforms,false,stage);if(!stage.noCeiling)generatePackPlatform(ceilPlats,true,stage);}
   player.y=floorSurfaceY(player.x)-PLAYER_R;
   coins=[];items=[];parts=[];pops=[];enemies=[];bullets=[];floatPlats=[];floatCD=0;
   spikes=[];spikeCD=0;movingHills=[];hillCD=0;gravZones=[];gravZoneCD=0;gravZoneChain=0;
@@ -241,7 +243,7 @@ function resetPackStage(pi,si,fromCheckpoint){
   abyssPhase={active:false,len:0,cd:0};
   gravRushPhase={active:false,len:0,cd:0};
   terrainGimmickPhase={active:false,type:'',len:0,cd:0};
-  bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:99999,lastBossScore:0,lastBossRawDist:0,bossCount:0};
+  bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:99999,lastBossScore:0,lastBossRawDist:0,bossCount:0,bossType:'',bossType2:null,challStrength:1,challIsDual:false};
   hp=1;hurtT=0; // Stage mode: always 1 HP (one-hit death)
   curTheme=0;prevTheme=0;themeLerp=1;
   bossChests=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null};
@@ -264,12 +266,17 @@ function generatePackPlatform(arr,isCeil,stage){
   // Post-goal area: flat runway → solid wall (dead end)
   else if(approxDist>=stage.dist){
     const pastGoalDist=approxDist-stage.dist;
-    if(pastGoalDist<80){
+    if(stage.flatGoal){
+      // flatGoal: normal floor all the way (no protruding wall)
+      addedW=100+rng()*60;
+      arr.push({x:lastRight,w:addedW,h:GROUND_H});
+    } else if(pastGoalDist<80){
       addedW=60+rng()*40;
       arr.push({x:lastRight,w:addedW,h:GROUND_H});
     } else {
       addedW=300;
-      arr.push({x:lastRight,w:addedW,h:H*0.48});
+      const wallH=(stage.noCeiling&&!isCeil)?H*0.80:H*0.48;
+      arr.push({x:lastRight,w:addedW,h:wallH});
     }
   }
   // --- VOID stage: walls protrude, floor-level only ---
@@ -310,6 +317,53 @@ function generatePackPlatform(arr,isCeil,stage){
     } else {
       addedGap=400+rng()*600;addedW=1;
       arr.push({x:lastRight+addedGap,w:1,h:0});
+    }
+  }
+  // --- ALTERNATING CHASM stage: floor/ceiling alternate having platforms ---
+  else if(sType==='altChasm'){
+    const zoneLen=150;
+    const buffer=30; // both sides solid within buffer of zone boundary
+    // Use floor generation position as shared reference so both sides stay in sync
+    const refDist=Math.max(0,(packFloorGenX-W*0.5)*0.08);
+    const zone=Math.floor(refDist/zoneLen);
+    const posInZone=refDist-zone*zoneLen;
+    // Near zone boundary: force both sides solid to prevent simultaneous chasms
+    const inBuffer=posInZone<buffer||(zoneLen-posInZone)<buffer;
+    // Even zones: floor solid + ceiling gap. Odd zones: floor gap + ceiling solid.
+    const floorSolid=zone%2===0;
+    const mySolid=inBuffer?true:(isCeil?!floorSolid:floorSolid);
+    if(approxDist<20){
+      // Safe start: both sides solid
+      addedW=120+rng()*60;
+      arr.push({x:lastRight,w:addedW,h:GROUND_H});
+    } else if(mySolid){
+      // Solid zone: big hills + occasional small gaps + enemies
+      let h=lastH;
+      if(rng()<0.65){
+        const dh=(rng()<0.5?1:-1)*(20+rng()*50);
+        h=Math.max(65+safeBot,Math.min(H*0.38,h+dh));
+      }
+      if(rng()<0.12){addedGap=20+rng()*40;} // small gap
+      addedW=50+rng()*50;
+      arr.push({x:lastRight+addedGap,w:addedW,h:h});
+    } else {
+      // Long gap (complete chasm — no moving hills)
+      addedGap=200+rng()*120;
+      addedW=1;
+      arr.push({x:lastRight+addedGap,w:1,h:0});
+    }
+    // Place gravity zone at zone transitions (floor side only to avoid duplicates)
+    if(!isCeil&&zone>0){
+      const prevRefDist=Math.max(0,((packFloorGenX-addedGap-addedW)-W*0.5)*0.08);
+      const prevZone=Math.floor(prevRefDist/zoneLen);
+      if(zone!==prevZone){
+        // Transition: place gravity zone just before the gap starts
+        // Odd zone = player on floor needs to go UP (dir:-1)
+        // Even zone = player on ceiling needs to go DOWN (dir:1)
+        const gdir=(zone%2===1)?-1:1;
+        const gx=lastRight-30;
+        gravZones.push({x:gx,w:60,triggered:false,fadeT:0,dir:gdir});
+      }
     }
   }
   // --- CHASM stage: deep gaps, floor-level only ---

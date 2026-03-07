@@ -8,7 +8,7 @@ function loop(ts){
   if(!lastTime){lastTime=ts;_tickAcc=0;}
   const dt=ts-lastTime;
   // After background return (>500ms gap), reset timing to prevent burst
-  if(dt>500){lastTime=ts;_tickAcc=0;_skipDraw=2;requestAnimationFrame(loop);return;}
+  if(dt>500){lastTime=ts;_tickAcc=0;_skipDraw=4;requestAnimationFrame(loop);return;}
   _tickAcc+=Math.min(dt,200);
   lastTime=ts;
   let ticks=0;
@@ -17,8 +17,8 @@ function loop(ts){
     _tickAcc-=16.67;
     ticks++;
   }
-  // Discard leftover time to prevent accumulation death spiral on slow devices
-  if(_tickAcc>16.67)_tickAcc=0;
+  // Cap leftover time to 1 frame instead of discarding — prevents stutter from lost time
+  if(_tickAcc>16.67)_tickAcc=16.67;
   // Skip first 2 draws after background return (GPU context warmup)
   if(_skipDraw>0){_skipDraw--;} else {try{draw();}catch(e){console.error('draw error:',e);}}
   requestAnimationFrame(loop);

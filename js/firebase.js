@@ -152,15 +152,13 @@ if (fbAuth) {
               eqSkin: rankSkin || '', eqEyes: rankEyes || '', eqFx: rankFx || '',
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true }).catch(e => console.error('[Firebase] ranking update error:', e));
-            // Challenge ranking
-            if (challengeBestKills > 0) {
-              const crc = challRankChar >= 0 ? challRankChar : selChar || 0;
-              fbDb.collection('challengeRankings').doc(user.uid).set({
-                name: playerName, charIdx: crc, kills: challengeBestKills,
-                eqSkin: challRankSkin || '', eqEyes: challRankEyes || '', eqFx: challRankFx || '',
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-              }, { merge: true }).catch(e => console.error('[Firebase] chall ranking update error:', e));
-            }
+            // Challenge ranking (always register, even with 0 kills)
+            const crc = challRankChar >= 0 ? challRankChar : selChar || 0;
+            fbDb.collection('challengeRankings').doc(user.uid).set({
+              name: playerName, charIdx: crc, kills: challengeBestKills || 0,
+              eqSkin: challRankSkin || '', eqEyes: challRankEyes || '', eqFx: challRankFx || '',
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true }).catch(e => console.error('[Firebase] chall ranking update error:', e));
           }
           const pn = playerName || localStorage.getItem('gd5username');
           if (pn) {
@@ -266,21 +264,19 @@ function _fbDoSave() {
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true })
       .catch(e => console.error('[Firebase] rankings/ SAVE FAILED:', e));
-    // Challenge ranking
+    // Challenge ranking (always save, even with 0 kills – same as endless)
     const ck = challengeBestKills || 0;
-    if (ck > 0) {
-      const crc = challRankChar >= 0 ? challRankChar : selChar || 0;
-      fbDb.collection('challengeRankings').doc(uid).set({
-        name: playerName,
-        charIdx: crc,
-        kills: ck,
-        eqSkin: challRankSkin || '',
-        eqEyes: challRankEyes || '',
-        eqFx: challRankFx || '',
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true })
-        .catch(e => console.error('[Firebase] challengeRankings/ SAVE FAILED:', e));
-    }
+    const crc = challRankChar >= 0 ? challRankChar : selChar || 0;
+    fbDb.collection('challengeRankings').doc(uid).set({
+      name: playerName,
+      charIdx: crc,
+      kills: ck,
+      eqSkin: challRankSkin || '',
+      eqEyes: challRankEyes || '',
+      eqFx: challRankFx || '',
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true })
+      .catch(e => console.error('[Firebase] challengeRankings/ SAVE FAILED:', e));
   }
 }
 // Force-flush on page hide / unload; re-sync on page visible (title only)
@@ -358,6 +354,8 @@ function fbMergeCloudData(data) {
         packProgress[k] = data.packProgress[k];
       }
     }
+    // Force all stages unlocked with 0 stars (big coin reset)
+    if(typeof STAGE_PACKS!=='undefined')STAGE_PACKS.forEach(p=>p.stages.forEach(s=>{packProgress[s.id]={cleared:true,stars:0};}));
     localStorage.setItem('gd5pp', JSON.stringify(packProgress));
     totalStars = getTotalStars();
   }

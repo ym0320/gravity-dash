@@ -1,6 +1,9 @@
 'use strict';
 // ===== UPDATE =====
 let lastTime=0;
+// Circular trail buffer (avoids push/shift GC pressure)
+let _trailBuf=new Array(20),_trailHead=0,_trailLen=0;
+for(let _ti=0;_ti<20;_ti++)_trailBuf[_ti]={x:0,y:0,a:0};
 function update(dt){
   frame++;
   if(themeLerp<1)themeLerp=Math.min(1,themeLerp+0.015);
@@ -29,14 +32,14 @@ function update(dt){
       }
     }
     // Animate background during countdown
-    stars.forEach(s=>{s.x-=s.sp*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
-    mtns.forEach(m=>{m.off-=m.sp*0.2;if(m.off<-500)m.off+=500;});
+    for(let i=0;i<stars.length;i++){const s=stars[i];s.x-=s.sp*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;}
+    for(let i=0;i<mtns.length;i++){const m=mtns[i];m.off-=m.sp*0.2;if(m.off<-500)m.off+=500;}
     return;
   }
 
   if(state===ST.LOGIN){
     loginT+=0.03;
-    stars.forEach(s=>{s.x-=s.sp*0.2;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
+    for(let i=0;i<stars.length;i++){const s=stars[i];s.x-=s.sp*0.2;s.tw+=s.ts;if(s.x<-5)s.x=W+5;}
     return;
   }
   if(state===ST.TUTORIAL){
@@ -53,8 +56,8 @@ function update(dt){
     }
     // Background scroll (also scroll during 'action' phase)
     const scrollSpd=(tutPhase==='scroll'||tutPhase==='action'||tutPhase==='success')?tutSpeed:0;
-    stars.forEach(s=>{s.x-=s.sp*scrollSpd*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
-    mtns.forEach(m=>{m.off-=m.sp*scrollSpd*0.15;if(m.off<-500)m.off+=500;});
+    for(let i=0;i<stars.length;i++){const s=stars[i];s.x-=s.sp*scrollSpd*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;}
+    for(let i=0;i<mtns.length;i++){const m=mtns[i];m.off-=m.sp*scrollSpd*0.15;if(m.off<-500)m.off+=500;}
     // Scroll camera (also during success so player clears obstacles)
     if(tutPhase==='scroll'||tutPhase==='action'||tutPhase==='success'){
       tutScrollX+=scrollSpd;
@@ -78,22 +81,22 @@ function update(dt){
     // Platform collision (world-space)
     const wpx=player.x+tutScrollX,tpr=PLAYER_R;
     let onFloor2=false,onCeil2=false;
-    tutCoursePlats.forEach(p=>{
+    for(let i=0;i<tutCoursePlats.length;i++){const p=tutCoursePlats[i];
       if(wpx>=p.x&&wpx<=p.x+p.w){
         const surfY=H-p.h;
         if(player.gDir===1&&player.y+tpr>=surfY&&player.vy>=0){
           player.y=surfY-tpr;player.vy=0;player.grounded=true;onFloor2=true;
         }
       }
-    });
-    tutCourseCeil.forEach(p=>{
+    }
+    for(let i=0;i<tutCourseCeil.length;i++){const p=tutCourseCeil[i];
       if(wpx>=p.x&&wpx<=p.x+p.w){
         const surfY=p.h;
         if(player.gDir===-1&&player.y-tpr<=surfY&&player.vy<=0){
           player.y=surfY+tpr;player.vy=0;player.grounded=true;onCeil2=true;
         }
       }
-    });
+    }
     if(player.gDir===1&&!onFloor2&&player.grounded)player.grounded=false;
     if(player.gDir===-1&&!onCeil2&&player.grounded)player.grounded=false;
     if(player.y>H+50){player.y=H-GROUND_H-tpr;player.vy=0;player.gDir=1;player.grounded=true;}
@@ -110,8 +113,8 @@ function update(dt){
           patrolDir:Math.random()<0.5?1:-1,walkSpd:0.3,patrolOriginX:ex,patrolRange:18});
       }
     }
-    enemies.forEach(en=>{
-      if(!en.alive)return;
+    for(let i=0;i<enemies.length;i++){const en=enemies[i];
+      if(!en.alive)continue;
       en.fr+=0.12;
       if(en._worldX!==undefined){
         // Patrol walk in world-space
@@ -123,7 +126,7 @@ function update(dt){
         en.x=en._worldX-tutScrollX;
         en.y=H-GROUND_H-en.sz; // keep on floor
       }
-    });
+    }
     fip(parts,p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.07;p.vx*=0.99;p.life--;return p.life>0;});
     fip(pops,p=>{p.y-=1.2;p.life--;return p.life>0;});
     if(bombFlashT>0)bombFlashT--;
@@ -140,8 +143,8 @@ function update(dt){
     if(screenFadeIn>0)screenFadeIn--;
     if(unlockCelebT>0)unlockCelebT--;
     if(charModal.show)charModal.animT++;
-    stars.forEach(s=>{s.x-=s.sp*SPEED_INIT*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
-    mtns.forEach(m=>{m.off-=m.sp*SPEED_INIT*0.15;if(m.off<-500)m.off+=500;});
+    for(let i=0;i<stars.length;i++){const s=stars[i];s.x-=s.sp*SPEED_INIT*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;}
+    for(let i=0;i<mtns.length;i++){const m=mtns[i];m.off-=m.sp*SPEED_INIT*0.15;if(m.off<-500)m.off+=500;}
     updateDemo();
     // Inventory/dead chest opening state machine
     if((inventoryOpen||deadChestOpen)&&chestOpen.phase!=='none'){
@@ -201,7 +204,7 @@ function update(dt){
   if(state===ST.DEAD){
     deadT++;
     fip(parts,p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.07;p.vx*=0.99;p.life--;return p.life>0;});
-    stars.forEach(s=>{s.x-=s.sp*0.15;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
+    for(let i=0;i<stars.length;i++){const s=stars[i];s.x-=s.sp*0.15;s.tw+=s.ts;if(s.x<-5)s.x=W+5;}
     // Chest opening on death screen
     if(deadChestOpen&&chestOpen.phase!=='none'){
       chestOpen.t++;
@@ -280,6 +283,8 @@ function update(dt){
   // Hurt invincibility timer
   if(hurtT>0)hurtT--;
   if(magmaHurtT>0)magmaHurtT--;
+  // Face timer (replaces setTimeout for face reset)
+  if(player.faceTimer>0){player.faceTimer--;if(player.faceTimer<=0&&player.alive)player.face='normal';}
   // Item timers
   const wasInvincible=itemEff.invincible>0;
   const prevInvT=itemEff.invincible;
@@ -290,6 +295,8 @@ function update(dt){
 
   if(isPackMode&&currentPackStage){
     speed=SPEED_INIT*currentPackStage.spdMul*ct().speedMul;
+  } else if(isChallengeMode){
+    speed=SPEED_INIT*ct().speedMul; // fixed speed in challenge
   } else {
     speed=Math.min(SPEED_MAX,(SPEED_INIT+rawDist*SPEED_INC))*ct().speedMul;
   }
@@ -320,13 +327,13 @@ function update(dt){
   }
 
   // Platform scrolling
-  platforms.forEach(p=>p.x-=speed);
-  ceilPlats.forEach(p=>p.x-=speed);
-  floatPlats.forEach(p=>p.x-=speed);
-  spikes.forEach(s=>s.x-=speed);
-  movingHills.forEach(h=>{h.x-=speed;h.phase+=h.spd;});
-  gravZones.forEach(g=>g.x-=speed);
-  icicles.forEach(ic=>ic.x-=speed);
+  for(let i=0;i<platforms.length;i++)platforms[i].x-=speed;
+  for(let i=0;i<ceilPlats.length;i++)ceilPlats[i].x-=speed;
+  for(let i=0;i<floatPlats.length;i++)floatPlats[i].x-=speed;
+  for(let i=0;i<spikes.length;i++)spikes[i].x-=speed;
+  for(let i=0;i<movingHills.length;i++){const h=movingHills[i];h.x-=speed;h.phase+=h.spd;}
+  for(let i=0;i<gravZones.length;i++)gravZones[i].x-=speed;
+  for(let i=0;i<icicles.length;i++)icicles[i].x-=speed;
   // Remove off-screen platforms
   fip(platforms,p=>p.x+p.w>-50);
   fip(ceilPlats,p=>p.x+p.w>-50);
@@ -338,12 +345,14 @@ function update(dt){
   // Generate new platforms ahead (pack mode: seeded terrain)
   if(isPackMode&&currentPackStage){
     if(platforms.length===0)platforms.push({x:player.x-30,w:200,h:GROUND_H});
-    if(ceilPlats.length===0)ceilPlats.push({x:player.x-30,w:200,h:GROUND_H});
+    if(!currentPackStage.noCeiling&&ceilPlats.length===0)ceilPlats.push({x:player.x-30,w:200,h:GROUND_H});
     while(platforms.length>0&&platforms[platforms.length-1].x+platforms[platforms.length-1].w<W+300){
       generatePackPlatform(platforms,false,currentPackStage);
     }
-    while(ceilPlats.length>0&&ceilPlats[ceilPlats.length-1].x+ceilPlats[ceilPlats.length-1].w<W+300){
-      generatePackPlatform(ceilPlats,true,currentPackStage);
+    if(!currentPackStage.noCeiling){
+      while(ceilPlats.length>0&&ceilPlats[ceilPlats.length-1].x+ceilPlats[ceilPlats.length-1].w<W+300){
+        generatePackPlatform(ceilPlats,true,currentPackStage);
+      }
     }
     // Pack mode: boss stage trigger at 90% distance
     if(currentPackStage.boss&&!bossPhase.active&&!bossPhase.reward&&rawDist>=currentPackStage.dist*0.9&&bossPhase.bossCount===0){
@@ -360,7 +369,7 @@ function update(dt){
         // Boss defeated → stage clear
         state=ST.STAGE_CLEAR;stageClearT=0;gotNewStars=0;
         sfxFanfare();vibrate([30,20,30,20,60]);shakeI=8;
-        const starsThisRun=stageBigCoins.filter(bc=>bc.col).length;
+        let starsThisRun=0;for(let _si=0;_si<stageBigCoins.length;_si++)if(stageBigCoins[_si].col)starsThisRun++;
         const sid=currentPackStage.id;
         const prev=packProgress[sid];
         const prevStars=prev?prev.stars:0;
@@ -376,14 +385,14 @@ function update(dt){
         walletCoins+=reward;localStorage.setItem('gd5wallet',walletCoins.toString());
         fbSaveUserData();
         switchBGM('title');
-        for(let i=0;i<50;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*4,vy:1+Math.random()*4,life:80+Math.random()*40,ml:120,sz:Math.random()*6+2,col:['#ffd700','#00e5ff','#ff3860','#34d399','#a855f7'][i%5]});
+        for(let i=0;i<50&&parts.length<MAX_PARTS;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*4,vy:1+Math.random()*4,life:80+Math.random()*40,ml:120,sz:Math.random()*6+2,col:['#ffd700','#00e5ff','#ff3860','#34d399','#a855f7'][i%5]});
       }
     }
     // Pack mode clear check (non-boss stages)
     if(!currentPackStage.boss&&rawDist>=currentPackStage.dist){
       state=ST.STAGE_CLEAR;stageClearT=0;gotNewStars=0;
       sfxFanfare();vibrate([30,20,30,20,60]);shakeI=8;
-      const starsThisRun=stageBigCoins.filter(bc=>bc.col).length;
+      let starsThisRun=0;for(let _si=0;_si<stageBigCoins.length;_si++)if(stageBigCoins[_si].col)starsThisRun++;
       const sid=currentPackStage.id;
       const prev=packProgress[sid];
       const prevStars=prev?prev.stars:0;
@@ -399,27 +408,27 @@ function update(dt){
       walletCoins+=reward;localStorage.setItem('gd5wallet',walletCoins.toString());
       fbSaveUserData();
       switchBGM('title');
-      for(let i=0;i<30;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*3,vy:1+Math.random()*3,life:60+Math.random()*40,ml:100,sz:Math.random()*5+2,col:['#ffd700','#00e5ff','#ff3860','#34d399','#a855f7'][i%5]});
+      for(let i=0;i<30&&parts.length<MAX_PARTS;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*3,vy:1+Math.random()*3,life:60+Math.random()*40,ml:100,sz:Math.random()*5+2,col:['#ffd700','#00e5ff','#ff3860','#34d399','#a855f7'][i%5]});
     }
     // Star scrolling and collection
     const pr2=PLAYER_R*ct().sizeMul;
-    stageBigCoins.forEach(bc=>{
+    for(let i=0;i<stageBigCoins.length;i++){const bc=stageBigCoins[i];
       bc.x-=speed;bc.p+=0.06;
       // Compute Y from floor surface + offset
       const fsy=floorSurfaceY(bc.x);
       if(fsy<H+100) bc.y=fsy+bc.yOff;
       else bc.y=H*0.4; // fallback if in gap
-    });
-    stageBigCoins.forEach(bc=>{
-      if(bc.col)return;
+    }
+    for(let i=0;i<stageBigCoins.length;i++){const bc=stageBigCoins[i];
+      if(bc.col)continue;
       const dx=player.x-bc.x,dy=player.y-bc.y;
-      if(Math.sqrt(dx*dx+dy*dy)<pr2+bc.sz){
+      const thr=pr2+bc.sz;if(dx*dx+dy*dy<thr*thr){
         bc.col=true;stageBigCollected++;
         sfx('bigcoin');vibrate([20,10,20,10,40]);shakeI=8;
         addPop(bc.x,bc.y-20,'\u2605 STAR!','#ffd700');
         emitParts(bc.x,bc.y,25,'#ffd700',6,4);
       }
-    });
+    }
     // Checkpoint flag at 500m (midpoint)
     if(!checkpointReached&&!checkpointFlag.collected){
       const cpDist=currentPackStage.dist*0.5; // midpoint
@@ -546,12 +555,12 @@ function update(dt){
       const last=ceilPlats[ceilPlats.length-1];
       ceilPlats.push({x:last.x+last.w,w:150+Math.random()*100,h:GROUND_H});
     }
-    // Floor collapse animation update
-    if(challCollapse.active){
-      updateChallCollapse();
+    // Blackout transition update
+    if(challTransition.active){
+      updateChallTransition();
     }
-    // Boss chaining: spawn next boss after collapse ends
-    if(challengeNextBossT>0&&!challCollapse.active){
+    // Boss chaining: spawn next boss after transition ends
+    if(challengeNextBossT>0&&!challTransition.active){
       challengeNextBossT--;
       if(challengeNextBossT<=0){
         // Challenge: no HP recovery here (HP +1 already given at boss defeat)
@@ -560,13 +569,12 @@ function update(dt){
         startBossPhase();
       }
     }
-    // After boss reward ends, trigger floor collapse
-    if(!bossPhase.active&&!bossPhase.reward&&bossPhase.bossCount>0&&challengeNextBossT<=0&&!challCollapse.active){
+    // After boss reward ends, trigger blackout transition
+    if(!bossPhase.active&&!bossPhase.reward&&bossPhase.bossCount>0&&challengeNextBossT<=0&&!challTransition.active){
       challengeKills++;
       challengePhase=Math.floor(challengeKills/3);
-      challCollapse.waveNum=challengeKills+1;
-      // Start floor collapse sequence
-      startChallCollapse();
+      challTransition.waveNum=challengeKills+1;
+      startChallTransition();
     }
     // Update boss phase during challenge
     if(bossPhase.active||bossPhase.reward){
@@ -582,7 +590,7 @@ function update(dt){
     // Creates long stretches where one side disappears, forcing gravity switching
     if(flipZone.cd>0)flipZone.cd--;
     if(!flipZone.active&&flipZone.cd<=0&&score>100&&bossPhase.bossCount>=1&&!bossPhase.active){
-      const flipChance=Math.min(0.08,0.02+(score-100)*0.001);
+      const flipChance=Math.min(0.04,0.008+(score-100)*0.0004);
       if(Math.random()<flipChance){
         flipZone.active=true;
         // Alternate: if last was floor gap, do ceiling gap (and vice versa)
@@ -736,7 +744,7 @@ function update(dt){
   if(player.grounded){airCombo=0;stompCombo=0;}
 
   // Spike gimmick update & collision (proximity-triggered: activates when player approaches)
-  spikes.forEach(sp=>{
+  for(let i=0;i<spikes.length;i++){const sp=spikes[i];
     sp.timer++;
     const playerNear=player.x+pr>sp.x-100&&player.x-pr<sp.x+sp.w+30;
     if(sp.state==='hidden'){
@@ -763,10 +771,10 @@ function update(dt){
         }
       }
     }
-  });
+  }
 
   // Moving hill collision (acts as temporary elevated terrain, both floor and ceiling)
-  movingHills.forEach(mh=>{
+  for(let i=0;i<movingHills.length;i++){const mh=movingHills[i];
     const curH=mh.baseH+Math.sin(mh.phase)*mh.ampH;
     if(player.x+pr>mh.x&&player.x-pr<mh.x+mh.w){
       const surfY=mh.isFloor?H-curH:curH;
@@ -791,12 +799,12 @@ function update(dt){
         }
       }
     }
-  });
+  }
 
   // Gravity zones: blue=force down (dir=1), pink=force up (dir=-1)
-  gravZones.forEach(g=>{
-    if(g.fadeT>0){g.fadeT++;return;}
-    if(g.triggered)return;
+  for(let i=0;i<gravZones.length;i++){const g=gravZones[i];
+    if(g.fadeT>0){g.fadeT++;continue;}
+    if(g.triggered)continue;
     if(player.x>=g.x&&player.x<=g.x+g.w){
       g.triggered=true;g.fadeT=1;
       const forceDir=g.dir||1;
@@ -809,10 +817,10 @@ function update(dt){
       emitParts(player.x,player.y,15,col,4,3);
       addPop(player.x,player.y-20*player.gDir,forceDir===1?'DOWN!':'UP!',col);
     }
-  });
+  }
 
   // Falling mountain update (supports both floor and ceiling)
-  fallingMtns.forEach(fm=>{
+  for(let i=0;i<fallingMtns.length;i++){const fm=fallingMtns[i];
     fm.x-=speed;
     const isCeil=!fm.isFloor;
     if(fm.state==='idle'){
@@ -874,11 +882,11 @@ function update(dt){
         if(frame%3===0)emitParts(fm.x+Math.random()*fm.w,Math.max(0,fm.curH),2,tc('gnd'),2,1);
       }
     }
-  });
+  }
   fip(fallingMtns,fm=>fm.state!=='gone'&&fm.x+fm.w>-50);
 
   // Icicle update & collision (snow stage gimmick - ceiling only, detach and fall as whole piece)
-  icicles.forEach(ic=>{
+  for(let i=0;i<icicles.length;i++){const ic=icicles[i];
     if(ic.state==='hang'){
       // When player is on ceiling (gDir===-1), icicles stay hanging as static obstacles (jump over)
       if(player.gDir===-1){
@@ -944,11 +952,11 @@ function update(dt){
         }
       }
     }
-  });
+  }
 
   // Magma fireball update & collision
-  magmaFireballs.forEach(fb=>{
-    if(!fb.alive)return;
+  for(let i=0;i<magmaFireballs.length;i++){const fb=magmaFireballs[i];
+    if(!fb.alive)continue;
     fb.x-=speed; // scroll with world
     fb.originX-=speed;
     // Gravity: floor fireballs go up then fall back, ceiling fireballs go down then come back
@@ -976,14 +984,14 @@ function update(dt){
         }
       }
     }
-  });
+  }
   fip(magmaFireballs,fb=>fb.alive&&fb.x>-50);
 
   // Coin switch update (round button)
-  coinSwitches.forEach(cs=>{cs.x-=speed;if(cs.flashT>0)cs.flashT--;});
+  for(let i=0;i<coinSwitches.length;i++){const cs=coinSwitches[i];cs.x-=speed;if(cs.flashT>0)cs.flashT--;}
   fip(coinSwitches,cs=>cs.x+cs.r>-50);
-  coinSwitches.forEach(cs=>{
-    if(cs.activated)return;
+  for(let i=0;i<coinSwitches.length;i++){const cs=coinSwitches[i];
+    if(cs.activated)continue;
     const dx3=player.x-cs.x,dy3=player.y-cs.y;
     const csR=pr+cs.r+4;
     if(dx3*dx3+dy3*dy3<csR*csR){
@@ -1007,7 +1015,7 @@ function update(dt){
         }
       }
     }
-  });
+  }
 
   // Crush detection (terrain pinch)
   const fSurf=floorSurfaceY(player.x);
@@ -1030,13 +1038,14 @@ function update(dt){
   }
   player.rot+=(player.rotTarget-player.rot)*0.12;
 
-  // Trail
-  player.trail.push({x:player.x,y:player.y,a:1});
-  if(player.trail.length>14)player.trail.shift();
-  player.trail.forEach(t=>t.a-=0.075);
+  // Trail (circular buffer)
+  {const slot=(_trailHead+_trailLen)%20;
+  _trailBuf[slot].x=player.x;_trailBuf[slot].y=player.y;_trailBuf[slot].a=1;
+  if(_trailLen<14)_trailLen++;else _trailHead=(_trailHead+1)%20;
+  for(let i=0;i<_trailLen;i++)_trailBuf[(_trailHead+i)%20].a-=0.075;}
 
   // Coins
-  coins.forEach(c=>{
+  for(let i=0;i<coins.length;i++){const c=coins[i];
     c.x-=speed;c.p+=0.08;
     if(!c.col){
       let cd=pr+c.sz;
@@ -1057,10 +1066,10 @@ function update(dt){
         addPop(c.x,c.y-14,'+'+bon,cTier.col);vibrate(10);
         if(combo>1)addPop(c.x,c.y-34,combo+'x','#ff6b35');
         emitParts(c.x,c.y,6,cTier.sparkCol,3,2);
-        player.face='happy';setTimeout(()=>{if(player.alive)player.face='normal';},250);
+        player.face='happy';player.faceTimer=15;
       }
     }
-  });
+  }
   // Reset combo if any uncollected coin goes off-screen
   const prevCoinCount=coins.length;
   fip(coins,c=>{
@@ -1072,7 +1081,7 @@ function update(dt){
   });
 
   // Items
-  items.forEach(it=>{
+  for(let i=0;i<items.length;i++){const it=items[i];
     it.x-=speed;it.p+=0.06;
     if(!it.col){
       const dx=player.x-it.x,dy=player.y-it.y;
@@ -1081,18 +1090,18 @@ function update(dt){
         applyItem(it.t);
         addPop(it.x,it.y-18,ITEMS[it.t].name+'!',ITEMS[it.t].col);
         emitParts(it.x,it.y,12,ITEMS[it.t].col,4,3);
-        player.face='happy';setTimeout(()=>{if(player.alive)player.face='normal';},300);
+        player.face='happy';player.faceTimer=18;
       }
     }
-  });
+  }
   fip(items,it=>it.x>-50&&!it.col);
 
   // Enemies
   const esm=enemySpeedMul(); // enemy speed multiplier (1.0 to 2.0)
-  enemies.forEach(en=>{
-    if(!en.alive)return;
+  for(let i=0;i<enemies.length;i++){const en=enemies[i];
+    if(!en.alive)continue;
     // Boss enemies with custom movement: handled by updateBossPhase
-    if(en.bossType)return;
+    if(en.bossType)continue;
     en.fr+=0.12;
     // Boss enemies stay on screen (don't scroll off)
     if(en.boss){
@@ -1284,7 +1293,7 @@ function update(dt){
       }
     }
     // Collision with player (boss enemies handle their own collision)
-    if(en.bossType)return;
+    if(en.bossType)continue;
     // Phantom: when invisible, can still damage player but cannot be stomped
     if(en.type===5&&!en.visible){
       const dx2=player.x-en.x,dy2=player.y-en.y;
@@ -1297,7 +1306,7 @@ function update(dt){
           emitParts(en.x,en.y,15,'#ff00ff',4,3);
         } else { hurt(); }
       }
-      return;
+      continue;
     }
     const dx=player.x-en.x,dy=player.y-en.y;
     const enR=pr+en.sz;
@@ -1310,8 +1319,8 @@ function update(dt){
         dist+=bon;
         addPop(en.x,en.y-en.sz*en.gDir,'+'+bon,'#ff00ff');
         emitParts(en.x,en.y,15,'#ff00ff',4,3);
-        player.face='happy';setTimeout(()=>{if(player.alive)player.face='normal';},300);
-        return;
+        player.face='happy';player.faceTimer=18;
+        continue;
       }
       // Fast kill trait (Flame): destroy on contact at high speed
       const fkill=ct().fastKill&&speed>4;
@@ -1344,18 +1353,20 @@ function update(dt){
         else{emitParts(en.x,en.y,12,'#ff3860',4,3);}
         // Aerial combo: consecutive kills without touching ground
         if(!player.grounded){airCombo++;sfxAirCombo(airCombo);const acb=airCombo*5;dist+=acb;addPop(en.x,en.y-en.sz*en.gDir-36,airCombo+' AIR COMBO!','#00e5ff');emitParts(en.x,en.y,8,'#00e5ff',3,2);}
-        player.face='happy';setTimeout(()=>{if(player.alive)player.face='normal';},300);
+        player.face='happy';player.faceTimer=18;
       }else{
-        hurt();return;
+        hurt();continue;
       }
     }
-  });
+  }
   fip(enemies,en=>(en.boss||en.x>-50)&&en.alive&&en.y>-200&&en.y<H+200);
 
+  // Attack speed multiplier based on score
+  const atkMul=score>=10000?1.5:(score>=5000?1.2:1);
   // Shooter enemies fire horizontal bullets at player's Y position
-  enemies.forEach(en=>{
-    if(!en.alive||en.type!==1)return;
-    en.shootT-=esm;
+  for(let i=0;i<enemies.length;i++){const en=enemies[i];
+    if(!en.alive||en.type!==1)continue;
+    en.shootT-=esm*atkMul;
     if(en.shootT<=0&&en.x>0&&en.x<W+50){
       en.shootT=90+Math.floor(Math.random()*50);
       const bspd=(4+speed*0.3)*esm;
@@ -1363,11 +1374,11 @@ function update(dt){
       bullets.push({x:en.x-en.sz,y:en.y,vx:-bspd,vy:0,sz:5,life:180});
       sfx('shoot');
     }
-  });
+  }
   // Bomber enemies throw bombs in a parabolic arc toward player
-  enemies.forEach(en=>{
-    if(!en.alive||en.type!==3)return;
-    en.bombCD-=esm;
+  for(let i=0;i<enemies.length;i++){const en=enemies[i];
+    if(!en.alive||en.type!==3)continue;
+    en.bombCD-=esm*atkMul;
     if(en.bombCD<=0&&en.x>0&&en.x<W+50){
       en.bombCD=120+Math.floor(Math.random()*50);
       // Lob bomb toward player's approximate X position with arc
@@ -1379,11 +1390,11 @@ function update(dt){
       sfx('shoot');
       en.fr=0; // reset frame for throw animation
     }
-  });
+  }
 
   // Update bullets
   const bpr=PLAYER_R*ct().sizeMul;
-  bullets.forEach(b=>{
+  for(let i=0;i<bullets.length;i++){const b=bullets[i];
     b.x+=b.vx;b.y+=b.vy;b.life--;
     // Shockwave: stays on floor, tall hitbox
     if(b.shockwave){
@@ -1396,7 +1407,7 @@ function update(dt){
       }
       // Particles trail
       if(b.life%3===0&&parts.length<MAX_PARTS)parts.push({x:b.x,y:b.y,vx:(Math.random()-0.5)*0.5,vy:-1-Math.random()*2,life:12,ml:12,sz:Math.random()*4+2,col:'#ffaa00'});
-      return;
+      continue;
     }
     // Bomb gravity (parabolic arc)
     if(b.grav)b.vy+=b.grav;
@@ -1408,25 +1419,24 @@ function update(dt){
         emitParts(b.x,gy-5,10,'#ff6600',5,3);
         // Explosion damage check
         const edx=player.x-b.x,edy=player.y-gy;
-        if(Math.sqrt(edx*edx+edy*edy)<50){hurt();}
-        return;
+        if(edx*edx+edy*edy<2500){hurt();}
+        continue;
       }
     }
     const dx=player.x-b.x,dy=player.y-b.y;
-    if(Math.sqrt(dx*dx+dy*dy)<bpr+b.sz){
+    const bthr=bpr+b.sz;if(dx*dx+dy*dy<bthr*bthr){
       b.life=0;
       if(b.bomb)emitParts(b.x,b.y,8,'#ff6600',4,2);
       hurt();
     }
-  });
+  }
   fip(bullets,b=>b.life>0&&(b.wizBullet||(b.x>-50&&b.x<W+100&&b.y>-50&&b.y<H+50)));
 
   // Wall collision: hitting the side of a higher platform step
-  // All characters: climb steps up to half their height (pr = radius = half diameter)
-  // Tire character: climbs steps up to 0.75x its height (pr*1.5)
+  // Grounded players auto-step any terrain height change (smooth terrain following)
+  // Airborne players: small steps auto-step, large steps cause damage (wall hit)
   {
-    const tireStepTol=isTire?pr*1.5:0; // tire: 0.75x character height
-    const STEP_TOLERANCE=pr; // all characters: half character height
+    const STEP_TOLERANCE=pr; // airborne: half character height
     if(player.gDir===1){
       for(let i=0;i<platforms.length;i++){
         const p=platforms[i];
@@ -1434,11 +1444,8 @@ function update(dt){
           const surfY=H-p.h;
           if(player.y+pr>surfY+4){
             const stepH=player.y+pr-surfY;
-            if(isTire&&stepH<=tireStepTol){
-              // Tire: snap directly onto the step
-              player.y=surfY-pr;player.vy=0;player.grounded=true;
-            } else if(stepH<=STEP_TOLERANCE){
-              // All characters: auto step up (half height or less)
+            if(player.grounded||isTire||stepH<=STEP_TOLERANCE){
+              // Grounded / tire / small step: auto step up
               player.y=surfY-pr;player.vy=0;player.grounded=true;
             } else {
               hurt(true);return;
@@ -1453,11 +1460,8 @@ function update(dt){
           const surfY=p.h;
           if(player.y-pr<surfY-4){
             const stepH=surfY-(player.y-pr);
-            if(isTire&&stepH<=tireStepTol){
-              // Tire: snap directly onto the step
-              player.y=surfY+pr;player.vy=0;player.grounded=true;
-            } else if(stepH<=STEP_TOLERANCE){
-              // All characters: auto step up (half height or less)
+            if(player.grounded||isTire||stepH<=STEP_TOLERANCE){
+              // Grounded / tire / small step: auto step up
               player.y=surfY+pr;player.vy=0;player.grounded=true;
             } else {
               hurt(true);return;
@@ -1474,8 +1478,8 @@ function update(dt){
   if(djumpAvailable&&!djumpUsed&&frame%6===0&&parts.length<MAX_PARTS){parts.push({x:player.x,y:player.y+pr*player.gDir+4*player.gDir,vx:(Math.random()-0.5)*0.5,vy:0.3*player.gDir,life:10,ml:10,sz:2,col:'#ffaa00'});}
 
   fip(parts,p=>{p.x+=p.vx;p.y+=p.vy;p.life--;return p.life>0;});
-  stars.forEach(s=>{s.x-=s.sp*speed*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;});
-  mtns.forEach(m=>{m.off-=m.sp*speed*0.15;if(m.off<-500)m.off+=500;});
+  for(let i=0;i<stars.length;i++){const s=stars[i];s.x-=s.sp*speed*0.3;s.tw+=s.ts;if(s.x<-5)s.x=W+5;}
+  for(let i=0;i<mtns.length;i++){const m=mtns[i];m.off-=m.sp*speed*0.15;if(m.off<-500)m.off+=500;}
 }
 
 // ===== AMBIENT PARTICLES (stage pack themes) =====
@@ -1493,7 +1497,7 @@ function updateAmbient(){
   fip(ambientParts,p=>{p.x+=p.vx;p.y+=p.vy;if(p.tw!==undefined)p.tw+=0.05;p.life--;return p.life>0;});
 }
 function drawAmbient(){
-  ambientParts.forEach(p=>{
+  for(let i=0;i<ambientParts.length;i++){const p=ambientParts[i];
     const a=(p.life/p.ml)*0.6;ctx.globalAlpha=a;
     const st=STAGE_THEMES[currentPackIdx];
     if(st&&st.partType==='bubble'){
@@ -1507,104 +1511,33 @@ function drawAmbient(){
     } else {
       ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.sz,0,6.28);ctx.fill();
     }
-  });
+  }
   ctx.globalAlpha=1;
 }
 
-// ===== CHALLENGE MODE: FLOOR COLLAPSE SYSTEM =====
-function startChallCollapse(){
-  const cc=challCollapse;
-  cc.active=true;
-  cc.timer=0;
-  cc.debris=[];
-  cc.shakeAmt=0;
-  cc.fallY=0;
-  // If player is on ceiling, force them down first
-  if(player.gDir===-1){
-    cc.phase='forceDown';
-  } else {
-    cc.phase='rumble';
-    sfxFloorCrumble();switchBGM('collapse');
-  }
+// ===== CHALLENGE MODE: BLACKOUT TRANSITION =====
+function startChallTransition(){
+  challTransition.active=true;
+  challTransition.timer=0;
 }
-function updateChallCollapse(){
-  const cc=challCollapse;
-  cc.timer++;
-  const floorY=H-GROUND_H;
-  const ceilY=GROUND_H;
-
-  if(cc.phase==='forceDown'){
-    // Force player off ceiling to floor
-    player.gDir=1;player.grounded=false;
-    player.vy=2; // gentle push down
-    // Check if player landed on floor
-    const sy=floorSurfaceY(player.x);
-    if(player.y+PLAYER_R*ct().sizeMul>=sy-5){
-      player.y=sy-PLAYER_R*ct().sizeMul;
-      player.vy=0;player.grounded=true;
-      cc.phase='rumble';cc.timer=0;
-      sfxFloorCrumble();switchBGM('collapse');
-    }
-    // Timeout safety
-    if(cc.timer>120){
-      player.y=floorY-PLAYER_R*ct().sizeMul;
-      player.vy=0;player.grounded=true;player.gDir=1;
-      cc.phase='rumble';cc.timer=0;
-      sfxFloorCrumble();switchBGM('collapse');
-    }
-    return;
+function updateChallTransition(){
+  const ct_=challTransition;
+  ct_.timer++;
+  // 0-25: fade to black
+  // 25: rebuild terrain & reposition player
+  if(ct_.timer===25){
+    platforms.length=0;ceilPlats.length=0;
+    platforms.push({x:player.x-100,w:300,h:GROUND_H});
+    ceilPlats.push({x:player.x-100,w:300,h:GROUND_H});
+    player.y=H-GROUND_H-PLAYER_R*ct().sizeMul;
+    player.vy=0;player.grounded=true;player.gDir=1;
+    enemies=[];bullets=[];
   }
-
-  if(cc.phase==='rumble'){
-    // Short rumble with moderate shake (40 frames)
-    cc.shakeAmt=Math.min(12,cc.timer*0.3);
-    shakeI=Math.max(shakeI,cc.shakeAmt);
-    // Floor/ceiling dust
-    if(cc.timer%4===0){
-      const cx=Math.random()*W;
-      parts.push({x:cx,y:floorY,vx:(Math.random()-0.5)*2,vy:-1.5-Math.random()*3,
-        life:20+Math.random()*10,ml:30,sz:Math.random()*3+2,col:['#8a7060','#a09070','#665544'][Math.floor(Math.random()*3)]});
-    }
-    // After 40 frames, skip debris and go straight to fall
-    if(cc.timer>=40){
-      cc.phase='fall';cc.timer=0;
-      // Remove platforms quickly
-      platforms.forEach(p=>{p.h=0;});
-      ceilPlats.forEach(p=>{p.h=0;});
-      player.grounded=false;player.vy=0;
-      sfx('earthquake');shakeI=10;vibrate([40,20,60]);
-    }
-    return;
-  }
-
-  if(cc.phase==='fall'){
-    // Character falls down, then blackout
-    if(cc.timer<8){
-      player.vy+=3;player.grounded=false;
-    }
-    // At frame 15: fully black – rebuild level
-    if(cc.timer===15){
-      platforms.length=0;ceilPlats.length=0;
-      platforms.push({x:player.x-100,w:300,h:GROUND_H});
-      ceilPlats.push({x:player.x-100,w:300,h:GROUND_H});
-      player.y=H-GROUND_H-PLAYER_R*ct().sizeMul;
-      player.vy=0;player.grounded=true;player.gDir=1;
-    }
-    // Blackout duration then transition to land
-    if(cc.timer>=90){
-      cc.phase='land';cc.timer=0;
-      sfx('gstompHeavy');shakeI=6;vibrate([20,10,30]);
-    }
-    return;
-  }
-
-  if(cc.phase==='land'){
-    // Show wave number overlay then transition
-    if(cc.timer>=70){
-      cc.active=false;cc.phase='none';cc.timer=0;cc.debris=[];cc.fallY=0;
-      challengeNextBossT=60;
-      switchBGM('challenge');
-    }
-    return;
+  // 85-120: fade out
+  // 120: done
+  if(ct_.timer>=120){
+    ct_.active=false;ct_.timer=0;
+    challengeNextBossT=60;
+    switchBGM('challenge');
   }
 }
