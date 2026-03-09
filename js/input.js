@@ -562,7 +562,7 @@ document.addEventListener('visibilitychange',()=>{
     bgmCurrent=''; // allow restart
   } else {
     // Page visible again: reset game loop timing to prevent stutter
-    lastTime=0;_tickAcc=0;
+    lastTime=0;_tickAcc=0;_skipDraw=2;_recoveryFrames=5;
     // Resume AudioContext then restart BGM
     const _restoreBGM=()=>{
       if(bgmBeforePause){switchBGM(bgmBeforePause);bgmBeforePause='';}
