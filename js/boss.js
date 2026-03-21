@@ -1,4 +1,6 @@
 'use strict';
+// Reusable array to avoid GC pressure from filter() in boss update loop
+const _tmpBoss=[];
 // ===== BOSS PHASE =====
 function startBossPhase(){
   bossPhase.active=true;
@@ -294,14 +296,16 @@ function updateBossPhase(){
   // Decrement boss hint timer
   if(bossPhase.hintT>0)bossPhase.hintT--;
   // Phase B: bruiser logic (supports multiple bruisers)
-  const allBruisers=bossPhase.enemies.filter(e=>e.bossType==='bruiser'&&e.alive);
-  if(bossPhase.bruiser&&bossPhase.bruiser.alive&&!allBruisers.includes(bossPhase.bruiser)){
-    allBruisers.unshift(bossPhase.bruiser);
+  // Reuse static array to avoid GC pressure from filter() every frame
+  _tmpBoss.length=0;
+  for(let i=0;i<bossPhase.enemies.length;i++){const e=bossPhase.enemies[i];if(e.bossType==='bruiser'&&e.alive)_tmpBoss.push(e);}
+  if(bossPhase.bruiser&&bossPhase.bruiser.alive&&_tmpBoss.indexOf(bossPhase.bruiser)<0){
+    _tmpBoss.unshift(bossPhase.bruiser);
   }
-  allBruisers.forEach(b=>{
+  for(let bi=0;bi<_tmpBoss.length;bi++){const b=_tmpBoss[bi];
     const bc=bossPhase.bossCount;
-    if(!enemies.includes(b)){
-      enemies.push(b);if(!bossPhase.enemies.includes(b))bossPhase.enemies.push(b);
+    if(enemies.indexOf(b)<0){
+      enemies.push(b);if(bossPhase.enemies.indexOf(b)<0)bossPhase.enemies.push(b);
     }
     b.timer++;b.fr+=0.1;
     if(b.hurtFlash>0)b.hurtFlash--;
@@ -376,17 +380,18 @@ function updateBossPhase(){
       const sy=ceilSurfaceY(b.x);
       if(sy>-100)b.y=sy+b.sz;
     }
-  });
+  }
   // Phase C: guardian boss logic (jump → earthquake → charge → sword → retreat)
   // Supports multiple guardians
-  const allGuardians=bossPhase.enemies.filter(e=>e.bossType==='guardian'&&e.alive);
-  if(bossPhase.guardian&&bossPhase.guardian.alive&&!allGuardians.includes(bossPhase.guardian)){
-    allGuardians.unshift(bossPhase.guardian);
+  _tmpBoss.length=0;
+  for(let i=0;i<bossPhase.enemies.length;i++){const e=bossPhase.enemies[i];if(e.bossType==='guardian'&&e.alive)_tmpBoss.push(e);}
+  if(bossPhase.guardian&&bossPhase.guardian.alive&&_tmpBoss.indexOf(bossPhase.guardian)<0){
+    _tmpBoss.unshift(bossPhase.guardian);
   }
-  allGuardians.forEach(g=>{
+  for(let gi=0;gi<_tmpBoss.length;gi++){const g=_tmpBoss[gi];
     const bc=bossPhase.bossCount;
-    if(!enemies.includes(g)){
-      enemies.push(g);if(!bossPhase.enemies.includes(g))bossPhase.enemies.push(g);
+    if(enemies.indexOf(g)<0){
+      enemies.push(g);if(bossPhase.enemies.indexOf(g)<0)bossPhase.enemies.push(g);
     }
     g.timer++;g.fr+=0.1;
     if(g.hurtFlash>0)g.hurtFlash--;
@@ -640,16 +645,17 @@ function updateBossPhase(){
         }
       }
     }
-  });
-  // Phase D: wizard boss logic (supports multiple wizards)
-  const allWizards=bossPhase.enemies.filter(e=>e.bossType==='wizard'&&e.alive);
-  if(bossPhase.wizard&&bossPhase.wizard.alive&&!allWizards.includes(bossPhase.wizard)){
-    allWizards.unshift(bossPhase.wizard);
   }
-  allWizards.forEach(w=>{
+  // Phase D: wizard boss logic (supports multiple wizards)
+  _tmpBoss.length=0;
+  for(let i=0;i<bossPhase.enemies.length;i++){const e=bossPhase.enemies[i];if(e.bossType==='wizard'&&e.alive)_tmpBoss.push(e);}
+  if(bossPhase.wizard&&bossPhase.wizard.alive&&_tmpBoss.indexOf(bossPhase.wizard)<0){
+    _tmpBoss.unshift(bossPhase.wizard);
+  }
+  for(let wi=0;wi<_tmpBoss.length;wi++){const w=_tmpBoss[wi];
     const bc=bossPhase.bossCount;
-    if(!enemies.includes(w)){
-      enemies.push(w);if(!bossPhase.enemies.includes(w))bossPhase.enemies.push(w);
+    if(enemies.indexOf(w)<0){
+      enemies.push(w);if(bossPhase.enemies.indexOf(w)<0)bossPhase.enemies.push(w);
     }
     w.timer++;w.fr+=0.1;
     if(w.hurtFlash>0)w.hurtFlash--;
@@ -808,7 +814,7 @@ function updateBossPhase(){
         }
       }
     }
-  });
+  }
 
   // Check victory
   bossPhase.defeated=0;

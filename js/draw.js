@@ -15,7 +15,8 @@ function _getTerrGr(){
   return _grC;
 }
 let _mtC={};
-function _cMT(txt,font){const k=font+'|'+txt;if(_mtC[k]!==undefined)return _mtC[k];ctx.font=font;_mtC[k]=ctx.measureText(txt).width;return _mtC[k];}
+let _mtCCount=0;
+function _cMT(txt,font){const k=font+'|'+txt;if(_mtC[k]!==undefined)return _mtC[k];ctx.font=font;_mtC[k]=ctx.measureText(txt).width;_mtCCount++;if(_mtCCount>500){_mtC={};_mtCCount=0;}return _mtC[k];}
 // Clear measureText cache when score changes (called from update)
 let _lastScoreForMT=-1;
 

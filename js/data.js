@@ -1,10 +1,10 @@
 'use strict';
 const canvas=document.getElementById('game');
 const ctx=canvas.getContext('2d');
-// Performance: disable shadowBlur (extremely expensive on Canvas)
-// Only enable for high-end iOS devices; disable on Android and PC
+// Performance: shadowBlur is extremely expensive on Canvas 2D.
+// Disable it on ALL platforms. Use glow-simulation techniques instead.
+Object.defineProperty(ctx,'shadowBlur',{set(){},get(){return 0;},configurable:true});
 const _isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent||'');
-if(!_isIOS){Object.defineProperty(ctx,'shadowBlur',{set(){},get(){return 0;},configurable:true});}
 const gameWrap=document.getElementById('gameWrap');
 const MAX_W=430;
 const MAX_H=844;
