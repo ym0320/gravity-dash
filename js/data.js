@@ -1,10 +1,10 @@
 'use strict';
 const canvas=document.getElementById('game');
 const ctx=canvas.getContext('2d');
-// Performance: disable shadowBlur (extremely expensive on Canvas)
-// Only enable for high-end iOS devices; disable on Android and PC
+// Performance: shadowBlur is extremely expensive on Canvas 2D.
+// Disable it on ALL platforms. Use glow-simulation techniques instead.
+Object.defineProperty(ctx,'shadowBlur',{set(){},get(){return 0;},configurable:true});
 const _isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent||'');
-if(!_isIOS){Object.defineProperty(ctx,'shadowBlur',{set(){},get(){return 0;},configurable:true});}
 const gameWrap=document.getElementById('gameWrap');
 const MAX_W=430;
 const MAX_H=844;
@@ -106,9 +106,10 @@ const CHARS=[
 ];
 function ct(){return CHARS[selChar];}
 function maxHp(){return HP_MAX+(ct().hpBonus||0);}
-let selChar=parseInt(localStorage.getItem('gd5char')||'0');
-let walletCoins=parseInt(localStorage.getItem('gd5wallet')||'0');
-let unlockedChars=JSON.parse(localStorage.getItem('gd5unlocked')||'[0]');
+let selChar=Math.max(0,Math.min(5,parseInt(localStorage.getItem('gd5char')||'0')||0));
+let walletCoins=Math.max(0,Math.min(9999999,parseInt(localStorage.getItem('gd5wallet')||'0')||0));
+let unlockedChars=(function(){try{const a=JSON.parse(localStorage.getItem('gd5unlocked')||'[0]');if(!Array.isArray(a))return[0];return a.filter(v=>typeof v==='number'&&v>=0&&v<=5);}catch(e){return[0];}})();
+if(!unlockedChars.includes(0))unlockedChars.unshift(0);
 function isCharUnlocked(idx){return unlockedChars.includes(idx);}
 // Character unlock celebration state
 let unlockCelebT=0,unlockCelebChar=-1;
@@ -178,8 +179,8 @@ if(!isCharUnlocked(selChar)){selChar=0;localStorage.setItem('gd5char','0');}
 // ===== AUDIO =====
 let audioCtx=null,bgmGain=null,sfxGain=null,bgmCurrent='',bgmTimer=null;
 function stopBGM(){bgmCurrent='';if(bgmTimer){clearTimeout(bgmTimer);bgmTimer=null;}if(feverTimer){clearTimeout(feverTimer);feverTimer=null;}if(bgmGain&&audioCtx&&audioCtx.state==='running'){bgmGain.gain.cancelScheduledValues(audioCtx.currentTime);bgmGain.gain.setValueAtTime(bgmGain.gain.value,audioCtx.currentTime);bgmGain.gain.linearRampToValueAtTime(0,audioCtx.currentTime+0.08);}}
-let bgmVol=parseFloat(localStorage.getItem('gd5bgmVol')||'0.7');
-let sfxVol=parseFloat(localStorage.getItem('gd5sfxVol')||'0.7');
+let bgmVol=Math.max(0,Math.min(1,parseFloat(localStorage.getItem('gd5bgmVol')||'0.7')||0.7));
+let sfxVol=Math.max(0,Math.min(1,parseFloat(localStorage.getItem('gd5sfxVol')||'0.7')||0.7));
 let settingsOpen=false;
 let resetConfirmStep=0; // 0=none, 1=first confirm, 2=second confirm
 let nameEditMode=false; // true when editing username in settings
@@ -1538,7 +1539,7 @@ const STAGE_PACKS=[
   ]},
 ];
 // Stage pack progress: {stageId: {cleared:true, stars:N}} for cleared stages
-let packProgress=JSON.parse(localStorage.getItem('gd5pp')||'{}');
+let packProgress=(function(){try{const o=JSON.parse(localStorage.getItem('gd5pp')||'{}');if(typeof o!=='object'||o===null||Array.isArray(o))return{};return o;}catch(e){return{};}})();
 // Migrate old format: {stageId: true} -> {stageId: {cleared:true, stars:0}}
 (function(){for(const k in packProgress){if(packProgress[k]===true)packProgress[k]={cleared:true,stars:0};}})();
 // Auto-unlock all stages with 0 stars (big coins reset)
@@ -1571,7 +1572,7 @@ let challengeKills=0; // total bosses defeated
 let challengePhase=0; // difficulty phase (increases every 3 kills)
 let challengeRetired=false; // true if player retired (vs died)
 let challengeNextBossT=0; // countdown timer between bosses
-let challengeBestKills=parseInt(localStorage.getItem('gd5challBest')||'0');
+let challengeBestKills=Math.max(0,Math.min(9999,parseInt(localStorage.getItem('gd5challBest')||'0')||0));
 // Challenge ranking cosmetics (captured at time of best kills)
 let challRankChar=parseInt(localStorage.getItem('gd5challRankChar')||'-1');
 let challRankSkin=localStorage.getItem('gd5challRankSkin')||'';
@@ -1652,7 +1653,7 @@ let tutIsIntro=false; // true when showing intro before tutorial gameplay
 let tutFreezePlayer=false; // freeze player mid-air during double-flip
 let screenFadeIn=0; // white overlay fade-in timer for screen transitions
 let countdownT=0; // countdown timer (frames, counts down from 180 = 3 seconds)
-let score=0,highScore=parseInt(localStorage.getItem('gd5hi')||'0');
+let score=0,highScore=Math.max(0,Math.min(99999,parseInt(localStorage.getItem('gd5hi')||'0')||0));
 // Ranking cosmetics: captured at time of high score
 let rankChar=parseInt(localStorage.getItem('gd5rankChar')||'-1');
 let rankSkin=localStorage.getItem('gd5rankSkin')||'';
@@ -1665,8 +1666,8 @@ let stompCombo=0; // consecutive stomp combo (resets on grounded)
 let shakeX=0,shakeY=0,shakeI=0;
 let mileT=0,mileTxt='',lastMile=0;
 let pops=[],totalCoins=0,totalFlips=0,maxCombo=0,flipCount=0,flipTimer=999;
-let played=parseInt(localStorage.getItem('gd5plays')||'0');
-let freeRevivesUsed=parseInt(localStorage.getItem('gd5freeRevives')||'0'); // new users get 5 free revives
+let played=Math.max(0,parseInt(localStorage.getItem('gd5plays')||'0')||0);
+let freeRevivesUsed=Math.max(0,Math.min(5,parseInt(localStorage.getItem('gd5freeRevives')||'0')||0));
 let dist=0;
 let rawDist=0; // pure traversal distance (no bonuses) - used for boss timing
 let speedOffset=0; // distance offset for speed calculation (reset on continue)
@@ -1688,8 +1689,8 @@ let bossChests=0; // number of chests earned this run (before death transfer)
 let runChests=0; // chests earned this run (preserved for dead screen)
 let chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0}; // falling chest during boss reward
 let chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null}; // chest opening modal
-let totalChestsOpened=parseInt(localStorage.getItem('gd5chestTotal')||'0'); // lifetime chest count
-let storedChests=parseInt(localStorage.getItem('gd5storedChests')||'0'); // inventory chest count
+let totalChestsOpened=Math.max(0,parseInt(localStorage.getItem('gd5chestTotal')||'0')||0);
+let storedChests=Math.max(0,Math.min(999,parseInt(localStorage.getItem('gd5storedChests')||'0')||0));
 let inventoryOpen=false; // inventory modal on title screen
 let deadChestOpen=false; // chest opening from game over screen
 let deadChestsOpened=0; // how many chests opened on dead screen so far
@@ -1945,7 +1946,7 @@ let shopOpen=false;
 let shopTab=0; // 0=skins, 1=eyes, 2=effects
 let shopScroll=0;
 // Owned items & equipped cosmetics (saved to localStorage)
-let ownedItems=JSON.parse(localStorage.getItem('gd5owned')||'[]');
+let ownedItems=(function(){try{const a=JSON.parse(localStorage.getItem('gd5owned')||'[]');if(!Array.isArray(a))return[];return a.filter(v=>typeof v==='string');}catch(e){return[];}})();
 let equippedSkin=localStorage.getItem('gd5eqSkin')||'';
 let equippedEyes=localStorage.getItem('gd5eqEyes')||'';
 let equippedEffect=localStorage.getItem('gd5eqFx')||'';

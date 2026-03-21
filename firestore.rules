@@ -3,15 +3,43 @@ service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{userId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 12
+        && request.resource.data.highScore is int
+        && request.resource.data.highScore >= 0
+        && request.resource.data.highScore <= 99999
+        && request.resource.data.wallet is int
+        && request.resource.data.wallet >= 0
+        && request.resource.data.wallet <= 9999999
+        && request.resource.data.character is int
+        && request.resource.data.character >= 0
+        && request.resource.data.character <= 5
+        && request.resource.data.unlocked is list
+        && request.resource.data.unlocked.size() <= 6
+        && request.resource.data.plays is int
+        && request.resource.data.plays >= 0
+        && request.resource.data.challBestKills is int
+        && request.resource.data.challBestKills >= 0
+        && request.resource.data.challBestKills <= 9999;
     }
     match /rankings/{userId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 12
+        && request.resource.data.score is int
+        && request.resource.data.score >= 0
+        && request.resource.data.score <= 99999;
     }
     match /challengeRankings/{userId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 12
+        && request.resource.data.kills is int
+        && request.resource.data.kills >= 0
+        && request.resource.data.kills <= 9999;
     }
   }
 }
