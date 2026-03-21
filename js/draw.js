@@ -2980,12 +2980,6 @@ function drawTitle(){
   ctx.strokeStyle='#4488ff44';ctx.lineWidth=1;rr(W-44,safeTop+44,36,36,8);ctx.stroke();
   ctx.fillStyle='#4488ff';ctx.font='16px monospace';ctx.textAlign='center';
   ctx.fillText('\u2753',W-26,safeTop+67);
-  // Update info button (disabled for now)
-  // ctx.fillStyle='#ffffff14';rr(W-44,safeTop+82,36,36,8);ctx.fill();
-  // ctx.strokeStyle='#ffd70044';ctx.lineWidth=1;rr(W-44,safeTop+82,36,36,8);ctx.stroke();
-  // ctx.fillStyle='#ffd700';ctx.font='14px monospace';ctx.textAlign='center';
-  // ctx.fillText('\uD83D\uDCE2',W-26,safeTop+105);
-
   // Settings panel overlay
   if(settingsOpen){
     ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,W,H);
@@ -3752,8 +3746,6 @@ function drawPause(){
   ctx.fillStyle='#ff3860';ctx.font='bold 18px monospace';
   ctx.fillText(isChallengeMode?t('retire'):t('toTitle'),W/2,quitY+28);
   // PC keyboard hint (disabled for now – mobile only)
-  // ctx.fillStyle='#fff3';ctx.font='11px monospace';
-  // ctx.fillText('ESC:\u518D\u958B / R:\u3084\u308A\u76F4\u3059',W/2,H*0.78);
 }
 
 // ===== INVENTORY MODAL (title screen) =====

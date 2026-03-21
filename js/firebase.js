@@ -305,25 +305,28 @@ function fbLoadUserData(uid) {
 
 // --- Merge cloud data into local state ---
 // Cloud is authoritative – always overwrite local with cloud values
+function _clampInt(v,min,max){const n=parseInt(v);if(isNaN(n))return min;return Math.max(min,Math.min(max,n));}
 function fbMergeCloudData(data) {
   if (!data) return;
   _fbDirty = false; // cloud data merged – no local changes to save
-  // Name
-  if (data.name) { playerName = data.name; localStorage.setItem('gd5username', playerName); }
-  // Cloud wins for all numeric values
-  if (data.highScore !== undefined) { highScore = data.highScore; localStorage.setItem('gd5hi', highScore.toString()); }
-  if (data.wallet !== undefined) { walletCoins = data.wallet; localStorage.setItem('gd5wallet', walletCoins.toString()); }
-  if (data.plays !== undefined) { played = data.plays; localStorage.setItem('gd5plays', played.toString()); }
-  if (data.freeRevives !== undefined) { freeRevivesUsed = data.freeRevives; localStorage.setItem('gd5freeRevives', freeRevivesUsed.toString()); }
-  if (data.chestTotal !== undefined) { totalChestsOpened = data.chestTotal; localStorage.setItem('gd5chestTotal', totalChestsOpened.toString()); }
-  if (data.storedChests !== undefined) { storedChests = data.storedChests; localStorage.setItem('gd5storedChests', storedChests.toString()); }
-  // Merge arrays (union)
-  if (data.unlocked && data.unlocked.length) {
-    unlockedChars = [...new Set([...unlockedChars, ...data.unlocked])];
+  // Name (sanitize)
+  if (data.name && typeof data.name === 'string') { playerName = data.name.replace(/[<>&"']/g,'').substring(0,12); localStorage.setItem('gd5username', playerName); }
+  // Cloud wins for all numeric values (with validation)
+  if (data.highScore !== undefined) { highScore = _clampInt(data.highScore,0,99999); localStorage.setItem('gd5hi', highScore.toString()); }
+  if (data.wallet !== undefined) { walletCoins = _clampInt(data.wallet,0,9999999); localStorage.setItem('gd5wallet', walletCoins.toString()); }
+  if (data.plays !== undefined) { played = _clampInt(data.plays,0,999999); localStorage.setItem('gd5plays', played.toString()); }
+  if (data.freeRevives !== undefined) { freeRevivesUsed = _clampInt(data.freeRevives,0,5); localStorage.setItem('gd5freeRevives', freeRevivesUsed.toString()); }
+  if (data.chestTotal !== undefined) { totalChestsOpened = _clampInt(data.chestTotal,0,999999); localStorage.setItem('gd5chestTotal', totalChestsOpened.toString()); }
+  if (data.storedChests !== undefined) { storedChests = _clampInt(data.storedChests,0,999); localStorage.setItem('gd5storedChests', storedChests.toString()); }
+  // Merge arrays (union, with type validation)
+  if (data.unlocked && Array.isArray(data.unlocked)) {
+    const valid = data.unlocked.filter(v => typeof v === 'number' && v >= 0 && v <= 5);
+    unlockedChars = [...new Set([...unlockedChars, ...valid])];
     localStorage.setItem('gd5unlocked', JSON.stringify(unlockedChars));
   }
-  if (data.owned && data.owned.length) {
-    ownedItems = [...new Set([...ownedItems, ...data.owned])];
+  if (data.owned && Array.isArray(data.owned)) {
+    const valid = data.owned.filter(v => typeof v === 'string');
+    ownedItems = [...new Set([...ownedItems, ...valid])];
     localStorage.setItem('gd5owned', JSON.stringify(ownedItems));
   }
   // Cosmetics
