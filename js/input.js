@@ -333,11 +333,15 @@ function handleHelpTouch(tx,ty){
 
 // Settings panel input helpers (must match drawTitle layout)
 function settingsLayout(){
-  const pw=Math.min(280,W-30),ph=500,px=W/2-pw/2,py=H/2-ph/2;
+  const pw=Math.min(280,W-30),ph=524,px=W/2-pw/2,py=H/2-ph/2;
   const slW=pw-50,slX=px+25,barX=slX+42,barW=slW-42;
   const slY1=py+52,slY2=slY1+44;
   const barH=10;
-  const nameY=slY2+28;
+  const langY=slY2+30;
+  const langBtnW=48,langBtnH=22,langBtnGap=6;
+  const langBtnX=slX+54;
+  const engBtnX=langBtnX+langBtnW+langBtnGap;
+  const nameY=langY+24;
   const tutBtnY=nameY+22;
   const resetBtnY=tutBtnY+38;
   const methodY=resetBtnY+42;
@@ -345,7 +349,7 @@ function settingsLayout(){
   const linkY=methodY+10;
   const linkBW=(pw-48)/2;
   const logoutBtnY=methodY+8+linkBtnOffset;
-  return{px,py,pw,ph,slX,barX,barW,barY1:slY1-8,barY2:slY2-8,barH,nameY,tutBtnY,resetBtnY,linkY,linkBW,logoutBtnY,closeY:py+ph-42};
+  return{px,py,pw,ph,slX,barX,barW,barY1:slY1-8,barY2:slY2-8,barH,langY,langBtnX,langBtnW,langBtnH,engBtnX,nameY,tutBtnY,resetBtnY,linkY,linkBW,logoutBtnY,closeY:py+ph-42};
 }
 function hitSettingsGear(tx,ty){return tx>=W-44&&tx<=W-8&&ty>=safeTop+6&&ty<=safeTop+42;}
 function hitHelpBtn(tx,ty){return tx>=W-44&&tx<=W-8&&ty>=safeTop+44&&ty<=safeTop+80;}
@@ -397,6 +401,11 @@ function handleSettingsTouch(tx,ty){
   const s=settingsLayout();
   // Close button
   if(tx>=W/2-60&&tx<=W/2+60&&ty>=s.closeY&&ty<=s.closeY+32){sfx('click');settingsOpen=false;resetConfirmStep=0;nameEditMode=false;logoutConfirm=false;confirmModal=null;return true;}
+  // Language buttons
+  if(ty>=s.langY-14&&ty<=s.langY-14+s.langBtnH){
+    if(tx>=s.langBtnX&&tx<=s.langBtnX+s.langBtnW){setLang('ja');sfx('click');return true;}
+    if(tx>=s.engBtnX&&tx<=s.engBtnX+s.langBtnW){setLang('en');sfx('click');return true;}
+  }
   // Name change button / OK button
   if(nameEditMode){
     // OK button (right side of input)
@@ -1702,11 +1711,11 @@ fbOnReady(user=>{
 // ===== TUTORIAL (course-based) =====
 // Checkpoint distances calculated for player at W*0.25
 const TUT_CHECKPOINTS=[
-  {dist:160,type:'jump',msg:'障害物をジャンプで\n飛び越えよう！',sub:'画面をタップ！',pcSub:'Spaceキー！',icon:'tap'},
-  {dist:430,type:'flip_up',msg:'奈落だ！重力反転で\n天井へ避難！',sub:'上にスワイプ！',pcSub:'↑ 矢印キー！',icon:'swipe_up'},
-  {dist:700,type:'flip_down',msg:'天井が途切れる！\n地面に戻ろう！',sub:'下にスワイプ！',pcSub:'↓ 矢印キー！',icon:'swipe_down'},
-  {dist:980,type:'double_flip',msg:'空中で重力を\n切り替えよう！',sub:'↑ 上にスワイプ！',pcSub:'↑ 矢印キー！',icon:'double'},
-  {dist:1300,type:'bomb',msg:'ボムで敵を\n一掃しよう！',sub:'ボムボタンをタップ！',pcSub:'Bキー！',icon:'bomb'},
+  {dist:160,type:'jump',msgKey:'tutJumpMsg',subKey:'tutJumpSub',pcSubKey:'tutJumpPcSub',icon:'tap'},
+  {dist:430,type:'flip_up',msgKey:'tutFlipUpMsg',subKey:'tutFlipUpSub',pcSubKey:'tutFlipUpPcSub',icon:'swipe_up'},
+  {dist:700,type:'flip_down',msgKey:'tutFlipDownMsg',subKey:'tutFlipDownSub',pcSubKey:'tutFlipDownPcSub',icon:'swipe_down'},
+  {dist:980,type:'double_flip',msgKey:'tutDoubleFlipMsg',subKey:'tutDoubleFlipSub',pcSubKey:'tutDoubleFlipPcSub',icon:'double'},
+  {dist:1300,type:'bomb',msgKey:'tutBombMsg',subKey:'tutBombSub',pcSubKey:'tutBombPcSub',icon:'bomb'},
 ];
 function buildTutorialCourse(){
   tutCoursePlats=[];tutCourseCeil=[];tutCourseSpikes=[];
