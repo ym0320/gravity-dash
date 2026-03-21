@@ -2905,15 +2905,6 @@ function drawTitle(){
   ctx.strokeStyle='#ff3860';ctx.lineWidth=1.5;rr(cbx,cbtnY,cbtnW,cbtnH,8);ctx.stroke();
   ctx.fillStyle='#ff6080';ctx.font='bold 13px monospace';
   ctx.fillText(t('challenge'),W/2,cbtnY+22);
-  // NEW badge
-  const newP=Math.sin(titleT*2)*0.12+0.88;
-  ctx.save();ctx.globalAlpha=newP;
-  ctx.fillStyle='#ff3860';
-  const nbx=cbx+cbtnW-28,nby=cbtnY-6;
-  rr(nbx,nby,32,16,4);ctx.fill();
-  ctx.fillStyle='#fff';ctx.font='bold 9px monospace';
-  ctx.fillText('NEW',nbx+16,nby+12);
-  ctx.restore();
 
   // Copyright (bottom center)
   ctx.fillStyle='#fff2';ctx.font='8px monospace';ctx.textAlign='center';
