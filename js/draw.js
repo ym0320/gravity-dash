@@ -1328,7 +1328,9 @@ function drawItem(it){
   const pl=Math.sin(it.p)*0.15+1,sz=it.sz*pl,col=ITEMS[it.t].col;
   const isHeart=it.t===3;
   ctx.fillStyle=isHeart?'#fff':col;
-  ctx.save();ctx.translate(it.x,it.y);ctx.rotate(Math.PI/4+it.p*0.3);
+  ctx.save();ctx.translate(it.x,it.y);
+  if(it.onCeil)ctx.scale(1,-1);
+  ctx.rotate(Math.PI/4+it.p*0.3);
   rr(-sz/2,-sz/2,sz,sz,3);ctx.fill();
   ctx.rotate(-(Math.PI/4+it.p*0.3));
   ctx.fillStyle=isHeart?col:'#fff';ctx.font='bold 10px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
@@ -2905,15 +2907,6 @@ function drawTitle(){
   ctx.strokeStyle='#ff3860';ctx.lineWidth=1.5;rr(cbx,cbtnY,cbtnW,cbtnH,8);ctx.stroke();
   ctx.fillStyle='#ff6080';ctx.font='bold 13px monospace';
   ctx.fillText(t('challenge'),W/2,cbtnY+22);
-  // NEW badge
-  const newP=Math.sin(titleT*2)*0.12+0.88;
-  ctx.save();ctx.globalAlpha=newP;
-  ctx.fillStyle='#ff3860';
-  const nbx=cbx+cbtnW-28,nby=cbtnY-6;
-  rr(nbx,nby,32,16,4);ctx.fill();
-  ctx.fillStyle='#fff';ctx.font='bold 9px monospace';
-  ctx.fillText('NEW',nbx+16,nby+12);
-  ctx.restore();
 
   // Copyright (bottom center)
   ctx.fillStyle='#fff2';ctx.font='8px monospace';ctx.textAlign='center';
@@ -4157,7 +4150,7 @@ function drawChestOpen(){
         if(ri.col!=='skeleton'&&ri.col!=='hologram'){ctx.beginPath();ctx.arc(0,0,24,0,6.28);ctx.fill();}
       } else {
         ctx.fillStyle='#fff';ctx.font='40px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
-        const allIcons={smile:'\u263A',angry:'\uD83D\uDE20',star:'\u2605',heart:'\u2665',fire:'\uD83D\uDD25',cat:'\uD83D\uDC31',spiral:'\uD83C\uDF00',cyber:'\u26A1',diamond:'\uD83D\uDC8E',void:'\uD83D\uDD73',galaxy:'\uD83C\uDF0C',glitch:'\u26A0',pulse:'\uD83D\uDCAB',cross:'\u271A',hypno:'\uD83C\uDF00',sparkle:'\u2728',fire_aura:'\uD83D\uDD25',ice_aura:'\u2744',electric:'\u26A1',hearts:'\u2665',shadow:'\uD83C\uDF11',rainbow:'\uD83C\uDF08',sakura:'\uD83C\uDF38',star_trail:'\u2B50',plasma_trail:'\uD83D\uDD2E',void_aura:'\u26AB',celestial:'\u2726',phoenix:'\uD83D\uDD25',glitch_trail:'\u26A1',supernova:'\uD83D\uDCA5'};
+        const allIcons={smile:'\u263A',angry:'\uD83D\uDE20',star:'\u2605',heart:'\u2665',fire:'\uD83D\uDD25',cat:'\uD83D\uDC31',spiral:'\uD83C\uDF00',cyber:'\u26A1',diamond:'\uD83D\uDC8E',void:'\uD83D\uDD73',galaxy:'\uD83C\uDF0C',glitch:'\u26A0',blink:'\uD83D\uDC41',pulse:'\uD83D\uDCAB',cross:'\u271A',hypno:'\uD83C\uDF00',sparkle:'\u2728',fire_aura:'\uD83D\uDD25',ice_aura:'\u2744',electric:'\u26A1',hearts:'\u2665',shadow:'\uD83C\uDF11',rainbow:'\uD83C\uDF08',sakura:'\uD83C\uDF38',star_trail:'\u2B50',plasma_trail:'\uD83D\uDD2E',void_aura:'\u26AB',celestial:'\u2726',phoenix:'\uD83D\uDD25',glitch_trail:'\u26A1',supernova:'\uD83D\uDCA5'};
         ctx.fillText(allIcons[ri.type]||'?',0,4);ctx.textBaseline='alphabetic';
       }
       if(ri.col!=='skeleton')ctx.shadowBlur=0;
@@ -4190,10 +4183,13 @@ function drawChestOpen(){
           ctx.fillText(t('alreadyOwned300'),cx,itemY-36);
         }
         ctx.shadowBlur=0;
+        const catLabel=ri.tab===0?t('categorySkin'):ri.tab===1?t('categoryEyes'):t('categoryEffect');
+        ctx.fillStyle=ri.tab===0?'#88ccff':ri.tab===1?'#ffcc44':'#44ffaa';ctx.font='bold 11px monospace';
+        ctx.fillText(catLabel,cx,itemY+32);
         ctx.fillStyle=isSuperRareItem?'#ffd700':'#fff';ctx.font='bold 16px monospace';
-        ctx.fillText(ri.name,cx,itemY+36);
+        ctx.fillText(ri.name,cx,itemY+50);
         ctx.fillStyle='#fff8';ctx.font='11px monospace';
-        ctx.fillText(ri.desc,cx,itemY+54);
+        ctx.fillText(ri.desc,cx,itemY+66);
         ctx.globalAlpha=1;
       }
       // Sparkle particles
@@ -4309,7 +4305,7 @@ function drawChestOpen(){
         if(ri.col!=='skeleton'&&ri.col!=='hologram'){ctx.beginPath();ctx.arc(0,0,22,0,6.28);ctx.fill();}
       } else {
         ctx.fillStyle='#fff';ctx.font='36px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
-        const allIcons={smile:'\u263A',angry:'\uD83D\uDE20',star:'\u2605',heart:'\u2665',fire:'\uD83D\uDD25',cat:'\uD83D\uDC31',spiral:'\uD83C\uDF00',cyber:'\u26A1',diamond:'\uD83D\uDC8E',void:'\uD83D\uDD73',galaxy:'\uD83C\uDF0C',glitch:'\u26A0',pulse:'\uD83D\uDCAB',cross:'\u271A',hypno:'\uD83C\uDF00',sparkle:'\u2728',fire_aura:'\uD83D\uDD25',ice_aura:'\u2744',electric:'\u26A1',hearts:'\u2665',shadow:'\uD83C\uDF11',rainbow:'\uD83C\uDF08',sakura:'\uD83C\uDF38',star_trail:'\u2B50',plasma_trail:'\uD83D\uDD2E',void_aura:'\u26AB',celestial:'\u2726',phoenix:'\uD83D\uDD25',glitch_trail:'\u26A1',supernova:'\uD83D\uDCA5'};
+        const allIcons={smile:'\u263A',angry:'\uD83D\uDE20',star:'\u2605',heart:'\u2665',fire:'\uD83D\uDD25',cat:'\uD83D\uDC31',spiral:'\uD83C\uDF00',cyber:'\u26A1',diamond:'\uD83D\uDC8E',void:'\uD83D\uDD73',galaxy:'\uD83C\uDF0C',glitch:'\u26A0',blink:'\uD83D\uDC41',pulse:'\uD83D\uDCAB',cross:'\u271A',hypno:'\uD83C\uDF00',sparkle:'\u2728',fire_aura:'\uD83D\uDD25',ice_aura:'\u2744',electric:'\u26A1',hearts:'\u2665',shadow:'\uD83C\uDF11',rainbow:'\uD83C\uDF08',sakura:'\uD83C\uDF38',star_trail:'\u2B50',plasma_trail:'\uD83D\uDD2E',void_aura:'\u26AB',celestial:'\u2726',phoenix:'\uD83D\uDD25',glitch_trail:'\u26A1',supernova:'\uD83D\uDCA5'};
         ctx.fillText(allIcons[ri.type]||'?',0,4);ctx.textBaseline='alphabetic';
       }
       ctx.shadowBlur=0;ctx.restore();
@@ -4328,16 +4324,19 @@ function drawChestOpen(){
         ctx.fillStyle='#00e5ff';ctx.font='bold 14px monospace';ctx.textAlign='center';
         ctx.fillText('\u2606 NEW ITEM! \u2606',cx,cy-70);
       }
+      const catLabel2=ri.tab===0?t('categorySkin'):ri.tab===1?t('categoryEyes'):t('categoryEffect');
+      ctx.fillStyle=ri.tab===0?'#88ccff':ri.tab===1?'#ffcc44':'#44ffaa';ctx.font='bold 11px monospace';ctx.textAlign='center';
+      ctx.fillText(catLabel2,cx,cy-4);
       ctx.fillStyle=isSR?'#ffd700':'#fff';ctx.font='bold 16px monospace';ctx.textAlign='center';
-      ctx.fillText(ri.name,cx,cy+10);
+      ctx.fillText(ri.name,cx,cy+14);
       ctx.fillStyle='#fff8';ctx.font='11px monospace';
-      ctx.fillText(ri.desc,cx,cy+28);
+      ctx.fillText(ri.desc,cx,cy+32);
       if(rw.isNew){
         ctx.fillStyle='#34d399';ctx.font='bold 13px monospace';
-        ctx.fillText(t('newGet'),cx,cy+48);
+        ctx.fillText(t('newGet'),cx,cy+52);
       } else {
         ctx.fillStyle='#ffaa00';ctx.font='12px monospace';
-        ctx.fillText(t('alreadyOwned300'),cx,cy+48);
+        ctx.fillText(t('alreadyOwned300'),cx,cy+52);
       }
       const sparkRate=isSR?3:5;
       if(t%sparkRate===0){const a=Math.random()*6.28,r=30+Math.random()*40;const sHue=Math.floor(Math.random()*360);
@@ -4603,13 +4602,18 @@ function drawChestOpen(){
             drawCharacter(ccx2,pvY,selChar,8,0,1,'normal',0,true);
             drawPlayerEffect(ccx2,pvY,8,rw2.item.type,0.8);
           }
+          // Category label
+          const catL=tab2===0?'SKIN':tab2===1?'EYE':'FX';
+          const catC=tab2===0?'#88ccff':tab2===1?'#ffcc44':'#44ffaa';
+          ctx.fillStyle=catC;ctx.font='bold 7px monospace';ctx.textAlign='center';
+          ctx.fillText(catL,ccx2,cardY2+(rar?44:38));
           // Item name
           const iname=rw2.item.name||'???';
           const siname=iname.length>5?iname.substring(0,5)+'..':iname;
           ctx.fillStyle='#fff';ctx.font='8px monospace';ctx.textAlign='center';
-          ctx.fillText(siname,ccx2,cardY2+(rar?48:42));
+          ctx.fillText(siname,ccx2,cardY2+(rar?54:48));
           ctx.fillStyle=rw2.isNew?'#34d399':'#ffaa00';ctx.font='bold 9px monospace';
-          ctx.fillText(rw2.isNew?(rar==='super_rare'?'S.RARE!':'NEW!'):'+300',ccx2,cardY2+(rar?62:56));
+          ctx.fillText(rw2.isNew?(rar==='super_rare'?'S.RARE!':'NEW!'):'+300',ccx2,cardY2+(rar?66:60));
         }
         ctx.globalAlpha=1;
       }

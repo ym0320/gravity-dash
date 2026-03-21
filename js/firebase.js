@@ -144,15 +144,15 @@ if (fbAuth) {
           if (data && data.name) fbMergeCloudData(data);
           fbSynced = true;
           _fbLastSyncedUid = user.uid;
-          // Update ranking entries with current cosmetics
-          if (playerName) {
+          // Update ranking entries with current cosmetics (only if played at least once)
+          if (playerName && played > 0) {
             const rc = rankChar >= 0 ? rankChar : selChar || 0;
             fbDb.collection('rankings').doc(user.uid).set({
               name: playerName, charIdx: rc, score: highScore || 0,
               eqSkin: rankSkin || '', eqEyes: rankEyes || '', eqFx: rankFx || '',
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true }).catch(e => console.error('[Firebase] ranking update error:', e));
-            // Challenge ranking (always register, even with 0 kills)
+            // Challenge ranking (only if played)
             const crc = challRankChar >= 0 ? challRankChar : selChar || 0;
             fbDb.collection('challengeRankings').doc(user.uid).set({
               name: playerName, charIdx: crc, kills: challengeBestKills || 0,
@@ -250,8 +250,8 @@ function _fbDoSave() {
   _fbDirty = false;
   fbDb.collection('users').doc(uid).set(data, { merge: true })
     .catch(e => console.error('[Firebase] users/ SAVE FAILED:', e));
-  // Update ranking entry – always save if name exists (even score 0 for visibility)
-  if (playerName) {
+  // Update ranking entry – only save if player has name AND has played at least once
+  if (playerName && played > 0) {
     const sc = highScore || 0;
     const rc = rankChar >= 0 ? rankChar : selChar || 0;
     fbDb.collection('rankings').doc(uid).set({

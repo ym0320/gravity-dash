@@ -137,6 +137,9 @@ ja:{
   alreadyOwned500:'所持済み +500コイン',
   alreadyOwned300:'所持済み +300コイン',
   newGet:'NEW! ゲット!',
+  categorySkin:'【スキン】',
+  categoryEyes:'【アイ】',
+  categoryEffect:'【エフェクト】',
   // === Ranking ===
   ranking:'🏆 ランキング',
   // === Shop ===
@@ -433,6 +436,9 @@ en:{
   alreadyOwned500:'Owned +500 Coins',
   alreadyOwned300:'Owned +300 Coins',
   newGet:'NEW! Get!',
+  categorySkin:'[Skin]',
+  categoryEyes:'[Eyes]',
+  categoryEffect:'[Effect]',
   // === Ranking ===
   ranking:'🏆 Ranking',
   // === Shop ===
