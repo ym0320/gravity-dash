@@ -1328,7 +1328,9 @@ function drawItem(it){
   const pl=Math.sin(it.p)*0.15+1,sz=it.sz*pl,col=ITEMS[it.t].col;
   const isHeart=it.t===3;
   ctx.fillStyle=isHeart?'#fff':col;
-  ctx.save();ctx.translate(it.x,it.y);ctx.rotate(Math.PI/4+it.p*0.3);
+  ctx.save();ctx.translate(it.x,it.y);
+  if(it.onCeil)ctx.scale(1,-1);
+  ctx.rotate(Math.PI/4+it.p*0.3);
   rr(-sz/2,-sz/2,sz,sz,3);ctx.fill();
   ctx.rotate(-(Math.PI/4+it.p*0.3));
   ctx.fillStyle=isHeart?col:'#fff';ctx.font='bold 10px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
