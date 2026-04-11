@@ -96,7 +96,7 @@ export default function GameScreen({ onReady }) {
       ref={webViewRef}
       source={{ uri: GAME_URL }}
       style={{ flex: 1, backgroundColor: '#0a0a2e' }}
-      originWhitelist={['https://gravity-dash-cdce1.web.app', 'https://*.firebaseapp.com', 'https://*.googleapis.com']}
+      originWhitelist={['https://*', 'http://*']}
       javaScriptEnabled={true}
       domStorageEnabled={true}
       mediaPlaybackRequiresUserAction={false}

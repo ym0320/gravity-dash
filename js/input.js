@@ -1493,168 +1493,107 @@ loginBtn.addEventListener('click',()=>{
     _finishLogin(name);
   }).finally(()=>{loginBtn.disabled=false;});
 });
-// Google Sign-In
+// Google Sign-In (signInWithRedirect – result handled by fbRedirectResult event)
 const googleBtn=document.getElementById('googleBtn');
 if(googleBtn){
   googleBtn.addEventListener('click',()=>{
     initAudio();
     googleBtn.disabled=true;
-    const prevMethod=fbLoginMethod; // capture before auth changes it
-    const prevAnonUid=(fbUser&&fbUser.isAnonymous)?fbUser.uid:null;
-    _fbGoogleLoginInProgress=true;
-    fbSignInGoogle().then(cred=>{
-      const user=cred.user;
-      fbUser=user;
-      // Step 1: Check if this Google UID already has data
-      return fbLoadUserData(user.uid).then(data=>{
-        if(data&&data.name){
-          // Returning Google user – restore
-          fbMergeCloudData(data);
-          fbSynced=true;
-          _fbGoogleLoginInProgress=false;
-          fbSaveUserData(); // update ranking with current cosmetics
-          loginOverlay.classList.remove('active');
-          sfx('select');vibrate(15);
-          if(!tutorialDone){startTutorial();}
-          else{state=ST.TITLE;switchBGM('title');}
-          return;
-        }
-        // Step 2: No data under Google UID – try local name (only migrate from anonymous)
-        const localName=playerName||localStorage.getItem('gd5username')||'';
-        const canMigrate=prevMethod===''||prevMethod==='anonymous';
-        if(localName&&canMigrate){
-          return fbFindAndMigrateByName(localName, prevAnonUid).then(migrated=>{
-            if(migrated&&migrated.name){
-              fbMergeCloudData(migrated);
-              fbSynced=true;
-              _fbGoogleLoginInProgress=false;
-              fbSaveUserData(); // update ranking with current cosmetics
-              loginOverlay.classList.remove('active');
-              sfx('select');vibrate(15);
-              if(!tutorialDone){startTutorial();}
-              else{state=ST.TITLE;switchBGM('title');}
-            } else {
-              // Local name exists but no cloud data – keep name, save to Google UID
-              fbSynced=true;
-              _fbGoogleLoginInProgress=false;
-              _finishLogin(localName);
-            }
-          });
-        }
-        // Step 3: New account (or switching from different social provider) – show name input
-        // Clear lingering local data from previous provider to prevent bleed-through
-        if(prevMethod==='google'||prevMethod==='apple'||prevMethod==='twitter'){
-          playerName='';highScore=0;walletCoins=0;played=0;
-          totalChestsOpened=0;storedChests=0;tutorialDone=false;
-          unlockedChars=[0];ownedItems=[];packProgress={};totalStars=0;
-          equippedSkin='';equippedEyes='';equippedEffect='';
-          selChar=0;rankChar=-1;rankSkin='';rankEyes='';rankFx='';
-          const ks=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gd5'))ks.push(k);}
-          ks.forEach(k=>localStorage.removeItem(k));
-        }
-        _fbGoogleLoginInProgress=false;
-        fbSynced=true;
-        googleBtn.style.display='none';
-        if(appleBtn)appleBtn.style.display='none';
-        document.getElementById('loginDivider').style.display='none';
-        document.getElementById('loginLabel').textContent=t('registerName');
-        const ln=document.getElementById('loginNote');
-        ln.textContent=t('nameNote');
-        ln.style.color='#fff4';
-        if(user.displayName){
-          const gName=user.displayName.replace(/[<>&"']/g,'').substring(0,12);
-          nameInput.value=gName;
-          loginBtn.classList.toggle('ready',gName.trim().length>=1);
-        }
-        nameInput.placeholder=t('namePlaceholderAlt');
-        nameInput.focus();
-      });
-    }).catch(e=>{
-      console.warn('[Firebase] Google sign-in error:',e);
-      _fbGoogleLoginInProgress=false;
+    if(fbUser&&fbUser.isAnonymous)localStorage.setItem('gd5anonUid',fbUser.uid);
+    localStorage.setItem('gd5pendingProvider','google');
+    localStorage.setItem('gd5prevMethod',fbLoginMethod||'');
+    fbSignInGoogle().catch(e=>{
+      console.warn('[Firebase] Google redirect error:',e);
+      localStorage.removeItem('gd5pendingProvider');
       sfx('hurt');vibrate(10);
-    }).finally(()=>{googleBtn.disabled=false;});
+      googleBtn.disabled=false;
+    });
   });
 }
-// Apple Sign-In
+// Apple Sign-In (signInWithRedirect – result handled by fbRedirectResult event)
 const appleBtn=document.getElementById('appleBtn');
 if(appleBtn){
   appleBtn.addEventListener('click',()=>{
     initAudio();
     appleBtn.disabled=true;
-    const prevMethod=fbLoginMethod; // capture before auth changes it
-    const prevAnonUid=(fbUser&&fbUser.isAnonymous)?fbUser.uid:null;
-    _fbGoogleLoginInProgress=true;
-    fbSignInApple().then(cred=>{
-      const user=cred.user;
-      fbUser=user;
-      return fbLoadUserData(user.uid).then(data=>{
-        if(data&&data.name){
-          fbMergeCloudData(data);
-          fbSynced=true;
-          _fbGoogleLoginInProgress=false;
-          fbSaveUserData();
-          loginOverlay.classList.remove('active');
-          sfx('select');vibrate(15);
-          if(!tutorialDone){startTutorial();}
-          else{state=ST.TITLE;switchBGM('title');}
-          return;
-        }
-        // Only migrate from anonymous accounts, not from other social providers
-        const localName=playerName||localStorage.getItem('gd5username')||'';
-        const canMigrate=prevMethod===''||prevMethod==='anonymous';
-        if(localName&&canMigrate){
-          return fbFindAndMigrateByName(localName, prevAnonUid).then(migrated=>{
-            if(migrated&&migrated.name){
-              fbMergeCloudData(migrated);
-              fbSynced=true;
-              _fbGoogleLoginInProgress=false;
-              fbSaveUserData();
-              loginOverlay.classList.remove('active');
-              sfx('select');vibrate(15);
-              if(!tutorialDone){startTutorial();}
-              else{state=ST.TITLE;switchBGM('title');}
-            } else {
-              fbSynced=true;
-              _fbGoogleLoginInProgress=false;
-              _finishLogin(localName);
-            }
-          });
-        }
-        // New account (or switching from different social provider) – show name input
-        if(prevMethod==='google'||prevMethod==='apple'||prevMethod==='twitter'){
-          playerName='';highScore=0;walletCoins=0;played=0;
-          totalChestsOpened=0;storedChests=0;tutorialDone=false;
-          unlockedChars=[0];ownedItems=[];packProgress={};totalStars=0;
-          equippedSkin='';equippedEyes='';equippedEffect='';
-          selChar=0;rankChar=-1;rankSkin='';rankEyes='';rankFx='';
-          const ks=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gd5'))ks.push(k);}
-          ks.forEach(k=>localStorage.removeItem(k));
-        }
-        _fbGoogleLoginInProgress=false;
-        fbSynced=true;
-        appleBtn.style.display='none';
-        googleBtn.style.display='none';
-        document.getElementById('loginDivider').style.display='none';
-        document.getElementById('loginLabel').textContent=t('registerName');
-        const ln2=document.getElementById('loginNote');
-        ln2.textContent=t('nameNote');
-        ln2.style.color='#fff4';
-        if(user.displayName){
-          const aName=user.displayName.replace(/[<>&"']/g,'').substring(0,12);
-          nameInput.value=aName;
-          loginBtn.classList.toggle('ready',aName.trim().length>=1);
-        }
-        nameInput.placeholder=t('namePlaceholderAlt');
-        nameInput.focus();
-      });
-    }).catch(e=>{
-      console.warn('[Firebase] Apple sign-in error:',e);
-      _fbGoogleLoginInProgress=false;
+    if(fbUser&&fbUser.isAnonymous)localStorage.setItem('gd5anonUid',fbUser.uid);
+    localStorage.setItem('gd5pendingProvider','apple');
+    localStorage.setItem('gd5prevMethod',fbLoginMethod||'');
+    fbSignInApple().catch(e=>{
+      console.warn('[Firebase] Apple redirect error:',e);
+      localStorage.removeItem('gd5pendingProvider');
       sfx('hurt');vibrate(10);
-    }).finally(()=>{appleBtn.disabled=false;});
+      appleBtn.disabled=false;
+    });
   });
 }
+// Handle redirect result after page reload (Google/Apple sign-in)
+function _handleSocialLogin(user,providerName){
+  const prevMethod=localStorage.getItem('gd5prevMethod')||'';
+  const prevAnonUid=localStorage.getItem('gd5anonUid')||null;
+  localStorage.removeItem('gd5pendingProvider');
+  localStorage.removeItem('gd5prevMethod');
+  localStorage.removeItem('gd5anonUid');
+  fbUser=user;
+  _fbGoogleLoginInProgress=true;
+  fbLoadUserData(user.uid).then(data=>{
+    if(data&&data.name){
+      fbMergeCloudData(data);fbSynced=true;_fbGoogleLoginInProgress=false;
+      fbSaveUserData();loginOverlay.classList.remove('active');
+      sfx('select');vibrate(15);
+      if(!tutorialDone){startTutorial();}else{state=ST.TITLE;switchBGM('title');}
+      return;
+    }
+    const localName=playerName||localStorage.getItem('gd5username')||'';
+    const canMigrate=prevMethod===''||prevMethod==='anonymous';
+    if(localName&&canMigrate&&prevAnonUid){
+      return fbFindAndMigrateByName(localName,prevAnonUid).then(migrated=>{
+        if(migrated&&migrated.name){
+          fbMergeCloudData(migrated);fbSynced=true;_fbGoogleLoginInProgress=false;
+          fbSaveUserData();loginOverlay.classList.remove('active');
+          sfx('select');vibrate(15);
+          if(!tutorialDone){startTutorial();}else{state=ST.TITLE;switchBGM('title');}
+        } else {
+          fbSynced=true;_fbGoogleLoginInProgress=false;
+          if(localName){_finishLogin(localName);}else{_showSocialNameInput(user,prevMethod);}
+        }
+      });
+    }
+    _fbGoogleLoginInProgress=false;fbSynced=true;
+    _showSocialNameInput(user,prevMethod);
+  }).catch(()=>{_fbGoogleLoginInProgress=false;fbSynced=true;});
+}
+function _showSocialNameInput(user,prevMethod){
+  if(prevMethod==='google'||prevMethod==='apple'||prevMethod==='twitter'){
+    playerName='';highScore=0;walletCoins=0;played=0;
+    totalChestsOpened=0;storedChests=0;tutorialDone=false;
+    unlockedChars=[0];ownedItems=[];packProgress={};totalStars=0;
+    equippedSkin='';equippedEyes='';equippedEffect='';
+    selChar=0;rankChar=-1;rankSkin='';rankEyes='';rankFx='';
+    const ks=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gd5'))ks.push(k);}
+    ks.forEach(k=>localStorage.removeItem(k));
+  }
+  if(googleBtn)googleBtn.style.display='none';
+  if(appleBtn)appleBtn.style.display='none';
+  document.getElementById('loginDivider').style.display='none';
+  document.getElementById('loginLabel').textContent=t('registerName');
+  const ln=document.getElementById('loginNote');ln.textContent=t('nameNote');ln.style.color='#fff4';
+  if(user&&user.displayName){
+    const dn=user.displayName.replace(/[<>&"']/g,'').substring(0,12);
+    nameInput.value=dn;loginBtn.classList.toggle('ready',dn.trim().length>=1);
+  }
+  nameInput.placeholder=t('namePlaceholderAlt');nameInput.focus();
+}
+window.addEventListener('fbRedirectResult',(e)=>{
+  const result=e.detail;
+  const providerName=(result.additionalUserInfo&&result.additionalUserInfo.providerId==='apple.com')?'apple':'google';
+  _handleSocialLogin(result.user,providerName);
+});
+window.addEventListener('fbLinkResult',(e)=>{
+  const method=e.detail.method;
+  addPop(W/2,H/2,method==='apple'?t('appleLinkDone'):t('googleLinkDone'),method==='apple'?'#aaa':'#4285f4');
+  sfx('item');vibrate(15);
+});
 // Auto-login for returning Firebase users (check on page load)
 fbOnReady(user=>{
   if(user&&!playerName){

@@ -27,9 +27,10 @@ var fbReady = false; // auth state resolved at least once
 var fbCloudData = null;
 var fbSynced = false; // true after cloud merge completes (blocks saves until ready)
 var _fbLastSyncedUid = ''; // uid of last successfully synced user (prevent duplicate syncs)
-var fbLoginMethod = localStorage.getItem('gd5loginMethod') || ''; // 'google' | 'anonymous' | ''
-var _fbGoogleLoginInProgress = false; // true while Google login handler is running
+var fbLoginMethod = localStorage.getItem('gd5loginMethod') || ''; // 'google' | 'apple' | 'anonymous' | ''
+var _fbGoogleLoginInProgress = false; // true while social login handler is running
 var _fbDirty = false; // true when local state has changed and needs saving
+var _fbRedirectPending = false; // true while getRedirectResult() is resolving
 
 // --- Auth helpers ---
 function fbSignInAnonymous() {
@@ -39,29 +40,28 @@ function fbSignInAnonymous() {
 function fbSignInGoogle() {
   if (!fbAuth) return Promise.reject('no-firebase');
   const provider = new firebase.auth.GoogleAuthProvider();
-  return fbAuth.signInWithPopup(provider);
+  return fbAuth.signInWithRedirect(provider);
 }
 function fbSignInApple() {
   if (!fbAuth) return Promise.reject('no-firebase');
   const provider = new firebase.auth.OAuthProvider('apple.com');
   provider.addScope('email');
   provider.addScope('name');
-  return fbAuth.signInWithPopup(provider);
+  return fbAuth.signInWithRedirect(provider);
 }
-// Link anonymous account to a provider (keeps same UID & data)
-function _fbLinkWithProvider(provider, methodName) {
+// Link anonymous account to a provider via redirect (keeps same UID & data)
+function fbLinkGoogle() {
   if (!fbAuth || !fbUser) return Promise.reject('no-user');
-  return fbUser.linkWithPopup(provider).then(cred => {
-    fbLoginMethod = methodName;
-    localStorage.setItem('gd5loginMethod', methodName);
-    return cred;
-  });
+  localStorage.setItem('gd5pendingLink', 'google');
+  const p = new firebase.auth.GoogleAuthProvider();
+  return fbUser.linkWithRedirect(p);
 }
-function fbLinkGoogle() { return _fbLinkWithProvider(new firebase.auth.GoogleAuthProvider(), 'google'); }
 function fbLinkApple() {
+  if (!fbAuth || !fbUser) return Promise.reject('no-user');
+  localStorage.setItem('gd5pendingLink', 'apple');
   const p = new firebase.auth.OAuthProvider('apple.com');
   p.addScope('email'); p.addScope('name');
-  return _fbLinkWithProvider(p, 'apple');
+  return fbUser.linkWithRedirect(p);
 }
 function fbSignOut() {
   if (!fbAuth) return Promise.resolve();
@@ -188,6 +188,32 @@ if (fbAuth) {
   });
 } else {
   fbReady = true;
+}
+
+// --- Redirect result handler (Google/Apple sign-in via signInWithRedirect) ---
+if (fbAuth) {
+  _fbRedirectPending = true;
+  fbAuth.getRedirectResult().then(result => {
+    _fbRedirectPending = false;
+    if (result && result.user) {
+      const providerName = (result.additionalUserInfo && result.additionalUserInfo.providerId === 'apple.com') ? 'apple' : 'google';
+      fbLoginMethod = providerName;
+      localStorage.setItem('gd5loginMethod', providerName);
+      window.dispatchEvent(new CustomEvent('fbRedirectResult', { detail: result }));
+    } else {
+      // No redirect result – check for pending link
+      const pendingLink = localStorage.getItem('gd5pendingLink');
+      if (pendingLink) {
+        localStorage.removeItem('gd5pendingLink');
+        window.dispatchEvent(new CustomEvent('fbLinkResult', { detail: { method: pendingLink } }));
+      }
+    }
+  }).catch(e => {
+    _fbRedirectPending = false;
+    if (e.code && e.code !== 'auth/no-auth-event') {
+      console.warn('[Firebase] getRedirectResult error:', e);
+    }
+  });
 }
 
 // --- Firestore: save user data (debounced) ---
