@@ -982,10 +982,10 @@ function drawBossWizard(en){
   ctx.beginPath();
   ctx.moveTo(-s*0.3,-s*0.85);ctx.lineTo(0,-s*1.5-Math.sin(t*0.4)*s*0.1);ctx.lineTo(s*0.3,-s*0.85);
   ctx.closePath();ctx.fill();
-  // Star on hat
-  ctx.fillStyle='#ffd700';ctx.shadowColor='#ffd700';ctx.shadowBlur=6;
+  // Star on hat (no shadowBlur — text blur is very expensive on WebView)
+  ctx.fillStyle='#ffd700';
   ctx.font=(s*0.3)+'px monospace';ctx.textAlign='center';
-  ctx.fillText('\u2605',0,-s*1.1);ctx.shadowBlur=0;
+  ctx.fillText('\u2605',0,-s*1.1);
   // Glowing eyes
   ctx.fillStyle='#ff44ff';ctx.shadowColor='#ff44ff';ctx.shadowBlur=8;
   ctx.beginPath();ctx.arc(-s*0.2,-s*0.45,s*0.12,0,6.28);ctx.fill();
@@ -997,18 +997,19 @@ function drawBossWizard(en){
   ctx.beginPath();ctx.moveTo(s*0.5,-s*0.2);ctx.lineTo(s*0.8,s*0.7);ctx.stroke();
   // Staff orb
   const orbGlow=en.state==='cast'?0.8+Math.sin(t*2)*0.2:0.3;
-  ctx.fillStyle=`rgba(170,68,255,${orbGlow})`;ctx.shadowColor='#aa44ff';ctx.shadowBlur=en.state==='cast'?15:5;
-  ctx.beginPath();ctx.arc(s*0.5,-s*0.25,s*0.12,0,6.28);ctx.fill();ctx.shadowBlur=0;
+  // Fake glow for orb (no shadowBlur)
+  if(en.state==='cast'){ctx.fillStyle='rgba(170,68,255,0.18)';ctx.beginPath();ctx.arc(s*0.5,-s*0.25,s*0.36,0,6.28);ctx.fill();}
+  ctx.fillStyle=`rgba(170,68,255,${orbGlow})`;
+  ctx.beginPath();ctx.arc(s*0.5,-s*0.25,s*0.12,0,6.28);ctx.fill();
   // Rush indicator: "!" mark and orange glow ring when vulnerable
   if(en.state==='rush'){
     const pulse=0.6+Math.sin(t*4)*0.4;
     ctx.strokeStyle='rgba(255,180,60,'+pulse*0.6+')';ctx.lineWidth=2;
     ctx.beginPath();ctx.arc(0,0,s*1.3+Math.sin(t*3)*s*0.15,0,6.28);ctx.stroke();
     if(en.rushReady){
-      ctx.fillStyle='#ffd700';ctx.shadowColor='#ffd700';ctx.shadowBlur=12;
+      ctx.fillStyle='#ffd700';
       ctx.font='bold '+(s*0.8)+'px monospace';ctx.textAlign='center';
       ctx.fillText('!',0,-s*1.6-Math.sin(t*4)*3);
-      ctx.shadowBlur=0;
     }
     // Arrow pointing toward dash target
     const adx=en.rushTargetX-en.homeX,ady=en.rushTargetY-en.homeY;
@@ -1085,8 +1086,8 @@ function drawBossSnowman(en){
   ctx.fillRect(-s*0.3,-s*1.15,s*0.6,s*0.35);
   ctx.fillRect(-s*0.4,-s*0.82,s*0.8,s*0.08);
   // Hat band
-  ctx.fillStyle='#88ccff';ctx.shadowColor='#88ccff';ctx.shadowBlur=4;
-  ctx.fillRect(-s*0.3,-s*0.82,s*0.6,s*0.06);ctx.shadowBlur=0;
+  ctx.fillStyle='#88ccff';
+  ctx.fillRect(-s*0.3,-s*0.82,s*0.6,s*0.06);
   // Eyes (glowing ice blue)
   ctx.fillStyle='#44aaff';ctx.shadowColor='#44aaff';ctx.shadowBlur=8;
   ctx.beginPath();ctx.arc(-s*0.18,-s*0.6,s*0.09,0,6.28);ctx.fill();
@@ -1117,19 +1118,21 @@ function drawBossSnowman(en){
   const staffGlow=en.state==='cast'?0.9:0.4;
   ctx.strokeStyle='rgba(140,200,255,'+staffGlow+')';ctx.lineWidth=s*0.05;
   ctx.beginPath();ctx.moveTo(s*0.85,-s*0.3);ctx.lineTo(s*1.0,-s*0.8);ctx.stroke();
-  ctx.fillStyle='rgba(180,230,255,'+staffGlow+')';ctx.shadowColor='#88ccff';ctx.shadowBlur=en.state==='cast'?12:4;
+  // Fake glow for icicle tip during cast (no shadowBlur)
+  if(en.state==='cast'){ctx.fillStyle='rgba(180,230,255,0.18)';ctx.beginPath();ctx.moveTo(s*0.82,-s*0.76);ctx.lineTo(s*1.0,-s*1.17);ctx.lineTo(s*1.18,-s*0.76);ctx.closePath();ctx.fill();}
+  ctx.fillStyle='rgba(180,230,255,'+staffGlow+')';
   ctx.beginPath();
   ctx.moveTo(s*0.92,-s*0.8);ctx.lineTo(s*1.0,-s*1.1);ctx.lineTo(s*1.08,-s*0.8);
-  ctx.closePath();ctx.fill();ctx.shadowBlur=0;
+  ctx.closePath();ctx.fill();
   // Rush indicator
   if(en.state==='rush'){
     const pulse=0.6+Math.sin(t*4)*0.4;
     ctx.strokeStyle='rgba(100,200,255,'+pulse*0.6+')';ctx.lineWidth=2;
     ctx.beginPath();ctx.arc(0,0,s*1.3+Math.sin(t*3)*s*0.15,0,6.28);ctx.stroke();
     if(en.rushReady){
-      ctx.fillStyle='#88ccff';ctx.shadowColor='#88ccff';ctx.shadowBlur=12;
+      ctx.fillStyle='#88ccff';
       ctx.font='bold '+(s*0.8)+'px monospace';ctx.textAlign='center';
-      ctx.fillText('!',0,-s*1.6-Math.sin(t*4)*3);ctx.shadowBlur=0;
+      ctx.fillText('!',0,-s*1.6-Math.sin(t*4)*3);
     }
   }
   // Casting: snowflake circle
@@ -1307,9 +1310,8 @@ function drawBossDodge(en){
   const pulse=0.7+Math.sin(t*3)*0.3;
   const breathe=1+Math.sin(t*2)*0.05; // subtle body pulsation
   ctx.save();ctx.translate(en.x,en.y);
-  // Danger aura glow
-  ctx.shadowColor='#ff0000';ctx.shadowBlur=15*pulse;
   // Spikes radiating in ALL directions (urchin style)
+  // Optimized: removed per-spike createLinearGradient (14/frame→0) and shadowBlur before spike draws
   const spikeCount=14;
   const spikeLen=s*0.7;
   const spikeBase=s*0.12;
@@ -1317,22 +1319,15 @@ function drawBossDodge(en){
     const ang=(6.28/spikeCount)*i+Math.sin(t*1.5+i)*0.1; // slight wobble
     const len=spikeLen*(0.85+Math.sin(t*2.5+i*1.7)*0.15);
     const cx2=Math.cos(ang),sy2=Math.sin(ang);
-    // Spike gradient: dark base → red tip
     const tipX=cx2*(s*0.55*breathe+len),tipY=sy2*(s*0.55*breathe+len);
     const baseX=cx2*s*0.45*breathe,baseY=sy2*s*0.45*breathe;
-    const sgr=ctx.createLinearGradient(baseX,baseY,tipX,tipY);
-    sgr.addColorStop(0,'#444');sgr.addColorStop(0.3,'#666');sgr.addColorStop(0.7,'#cc2222');sgr.addColorStop(1,'#ff0000');
-    ctx.fillStyle=sgr;
-    // Triangular spike
     const perpX=-sy2*spikeBase*0.5,perpY=cx2*spikeBase*0.5;
+    ctx.fillStyle=i%3===0?'#aa3333':i%3===1?'#883333':'#993344';
     ctx.beginPath();
     ctx.moveTo(baseX+perpX,baseY+perpY);
     ctx.lineTo(tipX,tipY);
     ctx.lineTo(baseX-perpX,baseY-perpY);
     ctx.closePath();ctx.fill();
-    // White glint on tip
-    ctx.fillStyle='rgba(255,255,255,'+pulse*0.7+')';
-    ctx.beginPath();ctx.arc(tipX,tipY,1.5,0,6.28);ctx.fill();
   }
   // Secondary shorter spikes (between main ones)
   for(let i=0;i<spikeCount;i++){
@@ -1349,7 +1344,6 @@ function drawBossDodge(en){
     ctx.lineTo(baseX-perpX,baseY-perpY);
     ctx.closePath();ctx.fill();
   }
-  ctx.shadowBlur=0;
   // Main body: dark spherical core
   const bgr=ctx.createRadialGradient(-s*0.1,-s*0.1,s*0.05,0,0,s*0.55*breathe);
   bgr.addColorStop(0,'#3a2020');bgr.addColorStop(0.4,'#2a1515');bgr.addColorStop(0.8,'#1a0a0a');bgr.addColorStop(1,'#100505');
@@ -1460,10 +1454,15 @@ function drawBossBruiser(en){
   const coreFlicker=dmg>=2?0.5+Math.sin(t*3)*0.5:1;
   const baseAlpha=en.invT>0&&en.invT%6<3?0.25:en.hurtFlash>0&&en.hurtFlash%4<2?0.5:1;
   ctx.globalAlpha=coreFlicker*baseAlpha;
-  ctx.fillStyle=coreCol;ctx.shadowColor=coreCol;ctx.shadowBlur=dmg>=2?25:15;
-  ctx.beginPath();ctx.arc(0,-s*0.15,s*(dmg>=2?0.22:0.18),0,6.28);ctx.fill();
+  // Fake glow: layered semi-transparent circles (replaces expensive shadowBlur=15/25)
+  const coreR=s*(dmg>=2?0.22:0.18);
+  ctx.globalAlpha=coreFlicker*baseAlpha*0.14;
+  ctx.fillStyle=coreCol;ctx.beginPath();ctx.arc(0,-s*0.15,coreR*3.5,0,6.28);ctx.fill();
+  ctx.globalAlpha=coreFlicker*baseAlpha*0.24;
+  ctx.beginPath();ctx.arc(0,-s*0.15,coreR*2.0,0,6.28);ctx.fill();
+  ctx.globalAlpha=coreFlicker*baseAlpha;
+  ctx.beginPath();ctx.arc(0,-s*0.15,coreR,0,6.28);ctx.fill();
   ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(-s*0.05,-s*0.18,s*0.06,0,6.28);ctx.fill();
-  ctx.shadowBlur=0;
   ctx.globalAlpha=baseAlpha;
   // Shoulder pauldrons (one breaks off at dmg>=2)
   ctx.fillStyle=dmg>=1?'#5a2a5a':'#8a4a9a';
