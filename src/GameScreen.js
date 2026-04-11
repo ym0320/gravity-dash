@@ -10,7 +10,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 // ★ Firebase Console → Authentication → Sign-in method → Google →
 //   「ウェブクライアントID」をここに貼り付けてください
-const GOOGLE_WEB_CLIENT_ID = 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com';
+const GOOGLE_WEB_CLIENT_ID = '4638520393-1bt3sfjolepmga5ema4o3g9nh8lbp54d.apps.googleusercontent.com';
 
 const GAME_URL = 'https://gravity-dash-cdce1.web.app/';
 
