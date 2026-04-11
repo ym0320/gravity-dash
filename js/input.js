@@ -871,7 +871,7 @@ canvas.addEventListener('touchend',e=>{
   const t=e.changedTouches[0];
   const dy=t.clientY-touchStartY;
 
-  if(touchMoved&&Math.abs(dy)>30&&!player._quakeStunned){
+  if(touchMoved&&Math.abs(dy)>20&&!player._quakeStunned){
     // Swipe: flip gravity to the swiped direction (only if canFlip)
     if(player.canFlip&&dy>0&&player.gDir===-1){
       player.gDir=1;player.vy=2;totalFlips++;flipCount++;flipTimer=0;

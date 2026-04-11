@@ -828,8 +828,8 @@ function drawCoinSwitches(){
 
 function draw(){
   // Reset transform every frame to DPR base (prevent accumulated shift from unbalanced save/restore)
-  const dpr=Math.min(window.devicePixelRatio||1,2);
-  ctx.setTransform(dpr,0,0,dpr,0,0);
+  // Use _appDpr (set in data.js resize) — must match canvas sizing to avoid zoom bug
+  ctx.setTransform(_appDpr,0,0,_appDpr,0,0);
   // Fill background BEFORE shake translate so canvas is fully cleared
   const b1=tc('bg1'),b2=tc('bg2');
   if(b1!==_bgC.b1||b2!==_bgC.b2){_bgC.b1=b1;_bgC.b2=b2;const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,b1);g.addColorStop(1,b2);_bgC.gr=g;}
