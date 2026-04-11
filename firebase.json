@@ -6,9 +6,21 @@
       "firestore.rules",
       ".firebaserc",
       ".git",
+      "**/node_modules/**",
       "node_modules",
       "README.md",
-      ".gitignore"
+      ".gitignore",
+      "src",
+      "scripts",
+      "assets",
+      ".github",
+      "package.json",
+      "package-lock.json",
+      "app.json",
+      "eas.json",
+      "babel.config.js",
+      "App.js",
+      "App.js.bak"
     ],
     "headers": [
       {

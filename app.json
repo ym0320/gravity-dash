@@ -17,6 +17,7 @@
       "bundleIdentifier": "com.gravitydash.app",
       "requireFullScreen": true,
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "このアプリはカメラを使用しません",
         "NSMicrophoneUsageDescription": "このアプリはマイクを使用しません",
         "NSAppTransportSecurity": {
@@ -61,8 +62,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "gravity-dash"
+        "projectId": "01c135c9-512a-43fa-8e22-ba821d4e027d"
       }
-    }
+    },
+    "owner": "ym3020"
   }
 }
