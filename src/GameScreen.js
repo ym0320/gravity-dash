@@ -15,7 +15,7 @@ const GOOGLE_WEB_CLIENT_ID = '4638520393-1bt3sfjolepmga5ema4o3g9nh8lbp54d.apps.g
 // ★ Google Cloud Console → 認証情報 → OAuth 2.0 クライアントID → iOS →
 //   バンドルID「com.ym0320.gGravHopper」でiOS用クライアントIDを作成して貼り付ける
 //   App Store公開前に必須。未設定の場合はGoogleログインがエラーになる（クラッシュはしない）
-const GOOGLE_IOS_CLIENT_ID = null;
+const GOOGLE_IOS_CLIENT_ID = '4638520393-45de0k2fq3r90aj3l9mjdoab03iratmb.apps.googleusercontent.com';
 
 const GAME_URL = 'https://gravity-dash-cdce1.web.app/';
 
