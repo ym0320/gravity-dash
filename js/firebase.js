@@ -47,24 +47,17 @@ function fbSignInTwitter() {
   return fbAuth.signInWithPopup(provider);
 }
 // Link anonymous account to a provider (keeps same UID & data)
-function fbLinkGoogle() {
+function _fbLinkWithProvider(ProviderClass, methodName) {
   if (!fbAuth || !fbUser) return Promise.reject('no-user');
-  const provider = new firebase.auth.GoogleAuthProvider();
+  const provider = new ProviderClass();
   return fbUser.linkWithPopup(provider).then(cred => {
-    fbLoginMethod = 'google';
-    localStorage.setItem('gd5loginMethod', 'google');
+    fbLoginMethod = methodName;
+    localStorage.setItem('gd5loginMethod', methodName);
     return cred;
   });
 }
-function fbLinkTwitter() {
-  if (!fbAuth || !fbUser) return Promise.reject('no-user');
-  const provider = new firebase.auth.TwitterAuthProvider();
-  return fbUser.linkWithPopup(provider).then(cred => {
-    fbLoginMethod = 'twitter';
-    localStorage.setItem('gd5loginMethod', 'twitter');
-    return cred;
-  });
-}
+function fbLinkGoogle() { return _fbLinkWithProvider(firebase.auth.GoogleAuthProvider, 'google'); }
+function fbLinkTwitter() { return _fbLinkWithProvider(firebase.auth.TwitterAuthProvider, 'twitter'); }
 function fbSignOut() {
   if (!fbAuth) return Promise.resolve();
   return fbAuth.signOut();
@@ -373,28 +366,33 @@ function fbMergeCloudData(data) {
   rebuildRankingData();
 }
 
-// --- Firestore: load rankings ---
-var _fbRankCache = null;
-var _fbRankCacheT = 0;
-function fbLoadRankings() {
+// --- Firestore: load rankings (shared cache loader) ---
+// _fbLoadRankCollection: generic ranked-collection loader with 30s cache
+function _fbLoadRankCollection(collection, scoreField, cacheRef) {
   if (!fbDb || !fbUser) return Promise.resolve(null);
   const now = Date.now();
-  if (_fbRankCache && now - _fbRankCacheT < 30000) return Promise.resolve(_fbRankCache);
-  return fbDb.collection('rankings').orderBy('score', 'desc').limit(100).get()
+  if (cacheRef.data && now - cacheRef.t < 30000) return Promise.resolve(cacheRef.data);
+  return fbDb.collection(collection).orderBy(scoreField, 'desc').limit(100).get()
     .then(snap => {
       const arr = [];
       snap.forEach(doc => {
         const d = doc.data();
-        arr.push({ name: d.name || '???', charIdx: d.charIdx || 0, score: d.score || 0,
+        const entry = { name: d.name || '???', charIdx: d.charIdx || 0,
           eqSkin: d.eqSkin || '', eqEyes: d.eqEyes || '', eqFx: d.eqFx || '',
-          isPlayer: doc.id === fbUser.uid });
+          isPlayer: doc.id === fbUser.uid };
+        entry[scoreField] = d[scoreField] || 0;
+        arr.push(entry);
       });
-      _fbRankCache = arr;
-      _fbRankCacheT = now;
+      cacheRef.data = arr;
+      cacheRef.t = now;
       return arr;
     })
-    .catch(e => { console.warn('[Firebase] Rankings load error:', e); return null; });
+    .catch(e => { console.warn('[Firebase] Rankings load error (' + collection + '):', e); return null; });
 }
+var _fbRankCache = { data: null, t: 0 };
+var _fbChallRankCache = { data: null, t: 0 };
+function fbLoadRankings() { return _fbLoadRankCollection('rankings', 'score', _fbRankCache); }
+function fbLoadChallengeRankings() { return _fbLoadRankCollection('challengeRankings', 'kills', _fbChallRankCache); }
 
 // Build RANKING_DATA from cloud data (called when ranking overlay opens)
 function fbRefreshRankings() {
@@ -411,29 +409,6 @@ function fbRefreshRankings() {
     RANKING_DATA.forEach((d, i) => d.rank = i + 1);
   });
   fbRefreshChallengeRankings();
-}
-
-// --- Firestore: load challenge rankings ---
-var _fbChallRankCache = null;
-var _fbChallRankCacheT = 0;
-function fbLoadChallengeRankings() {
-  if (!fbDb || !fbUser) return Promise.resolve(null);
-  const now = Date.now();
-  if (_fbChallRankCache && now - _fbChallRankCacheT < 30000) return Promise.resolve(_fbChallRankCache);
-  return fbDb.collection('challengeRankings').orderBy('kills', 'desc').limit(100).get()
-    .then(snap => {
-      const arr = [];
-      snap.forEach(doc => {
-        const d = doc.data();
-        arr.push({ name: d.name || '???', charIdx: d.charIdx || 0, kills: d.kills || 0,
-          eqSkin: d.eqSkin || '', eqEyes: d.eqEyes || '', eqFx: d.eqFx || '',
-          isPlayer: doc.id === fbUser.uid });
-      });
-      _fbChallRankCache = arr;
-      _fbChallRankCacheT = now;
-      return arr;
-    })
-    .catch(e => { console.warn('[Firebase] Challenge rankings load error:', e); return null; });
 }
 
 function fbRefreshChallengeRankings() {
