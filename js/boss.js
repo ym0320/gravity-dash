@@ -201,8 +201,6 @@ function updateBossPhase(){
       // Boss roar after spawning
       const bt=bossPhase.guardian?'guardian':bossPhase.bruiser?'bruiser':bossPhase.wizard?'wizard':'dodge';
       sfxBossRoar(bt);
-      // Special vibration: boss appears — strong rumble pattern
-      vibrate([100,40,80,40,120,40,200]);
       // Show boss instruction hint
       bossPhase.hintT=300; // display for ~5 seconds
     }
