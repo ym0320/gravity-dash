@@ -8,9 +8,7 @@ const MAX_W=430;
 const MAX_H=844;
 let W,H,safeTop=0,safeBot=0;
 function resize(){
-  // In React Native WebView, use DPR=1 to reduce canvas pixel count and improve performance
-  const isRNWebView=!!(window.ReactNativeWebView);
-  const dpr=isRNWebView?1:Math.min(window.devicePixelRatio||1,2);
+  const dpr=Math.min(window.devicePixelRatio||1,2);
   // Use visualViewport if available and valid, else fallback to innerWidth/Height
   let vw=window.innerWidth,vh=window.innerHeight;
   if(window.visualViewport&&window.visualViewport.width>0&&window.visualViewport.height>0){
