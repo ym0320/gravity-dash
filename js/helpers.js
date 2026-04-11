@@ -5,7 +5,8 @@ const MAX_PARTS=150;
 const MAX_AMBIENT=50;
 
 // === Adaptive quality: auto-detect low FPS and reduce rendering cost ===
-let _lowQ=false; // true = low quality mode (shadows off, fewer particles)
+// In React Native WebView, start in low quality mode immediately
+let _lowQ=!!(window.ReactNativeWebView); // true = low quality mode (shadows off, fewer particles)
 let _fpsHistory=[];
 let _fpsCheckInterval=0;
 function _updateQuality(dt){

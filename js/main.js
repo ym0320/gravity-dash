@@ -12,7 +12,9 @@ function loop(ts){
   if(dt>500){lastTime=ts;_tickAcc=0;_skipDraw=2;_recoveryFrames=5;requestAnimationFrame(loop);return;}
   // Spike recovery: after a large gap, limit catch-up for a few frames to ease back in
   if(dt>50&&!_recoveryFrames)_recoveryFrames=3;
-  const maxTicks=_recoveryFrames>0?2:4;
+  // In WebView, cap to 2 ticks max to prevent CPU overload on slower devices
+  const isRNWebView=!!(window.ReactNativeWebView);
+  const maxTicks=isRNWebView?2:(_recoveryFrames>0?2:4);
   _tickAcc+=Math.min(dt,100);
   lastTime=ts;
   let ticks=0;
