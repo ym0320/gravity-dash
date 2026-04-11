@@ -190,7 +190,7 @@ export default function GameScreen({ onReady }) {
       scrollEnabled={false}
       bounces={false}
       overScrollMode="never"
-      textInteractionEnabled={false}
+      textInteractionEnabled={true}
       allowsBackForwardNavigationGestures={false}
       setSupportMultipleWindows={false}
     />
