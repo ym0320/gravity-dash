@@ -9,7 +9,6 @@ let touchOriginY=0; // original Y at touchstart (not modified by scroll handlers
 let charModal={show:false,idx:0,animT:0};
 let longPressTimer=null,longPressFired=false,titleTouchPos=null;
 let draggingSlider=null; // 'bgm' or 'sfx' when dragging a settings slider
-let devModeGearHeld=false,devModeGearTimer=null;
 
 function canvasXY(cx,cy){
   const r=canvas.getBoundingClientRect();
@@ -694,19 +693,6 @@ canvas.addEventListener('touchstart',e=>{
   const t=e.touches[0];
   const p=canvasXY(t.clientX,t.clientY);
   touchStartY=t.clientY;touchStartX=t.clientX;touchOriginY=t.clientY;touchStartT=Date.now();touchMoved=false;touchBtnUsed=false;
-  // Developer mode: ranking tap while settings gear is held → stage select
-  // Developer mode: inventory tap while settings gear is held → challenge mode
-  if(devModeGearHeld&&state===ST.TITLE&&!charModal.show){
-    const nt=e.changedTouches[0];const np=canvasXY(nt.clientX,nt.clientY);
-    if(np.x>=8&&np.x<=44&&np.y>=safeTop+6&&np.y<=safeTop+42){
-      devModeGearHeld=false;sfx('select');vibrate(30);
-      state=ST.STAGE_SEL;stageSelScroll=0;return;
-    }
-    if(np.x>=8&&np.x<=44&&np.y>=safeTop+44&&np.y<=safeTop+80){
-      devModeGearHeld=false;sfx('select');vibrate(30);
-      startChallenge();return;
-    }
-  }
   // Update info modal intercepts all input when open
   if(updateInfoOpen){handleUpdateInfoTouch(p.x,p.y);return;}
   // Help overlay intercepts all input when open
@@ -721,7 +707,7 @@ canvas.addEventListener('touchstart',e=>{
   // Tutorial
   if(state===ST.TUTORIAL){handleTutorialTouch(p.x,p.y);return;}
   // Settings gear button on title screen (delay for dev mode combo)
-  if(state===ST.TITLE&&!charModal.show&&hitSettingsGear(p.x,p.y)){devModeGearHeld=true;return;}
+  if(state===ST.TITLE&&!charModal.show&&hitSettingsGear(p.x,p.y)){sfx('click');settingsOpen=true;return;}
   if(state===ST.TITLE&&!charModal.show&&hitHelpBtn(p.x,p.y)){sfx('select');helpOpen=true;return;}
   if(state===ST.STAGE_SEL){stageSelTouchY=t.clientY;stageSelDragging=false;return;}
   if(state===ST.STAGE_CLEAR&&stageClearT>60){
@@ -821,12 +807,6 @@ canvas.addEventListener('touchend',e=>{
   if(draggingSlider){
     if(draggingSlider==='sfx')sfx('coin'); // preview SE at new volume
     draggingSlider=null;return;
-  }
-  // Developer mode: if settings gear was held and released, open settings normally
-  if(devModeGearHeld){
-    const ct2=e.changedTouches[0];const cp=canvasXY(ct2.clientX,ct2.clientY);
-    if(hitSettingsGear(cp.x,cp.y)){devModeGearHeld=false;sfx('click');settingsOpen=true;}
-    return;
   }
   if(updateInfoOpen||helpOpen||settingsOpen||rankingOpen||inventoryOpen)return;
   // Stage selection: handle tap only if user didn't drag
@@ -949,17 +929,6 @@ canvas.addEventListener('mousedown',e=>{
     return;
   }
   const p=canvasXY(e.clientX,e.clientY);
-  // Developer mode: ranking/inventory click while settings gear was recently clicked
-  if(devModeGearHeld&&state===ST.TITLE&&!charModal.show){
-    clearTimeout(devModeGearTimer);devModeGearTimer=null;
-    if(p.x>=8&&p.x<=44&&p.y>=safeTop+6&&p.y<=safeTop+42){
-      devModeGearHeld=false;sfx('select');state=ST.STAGE_SEL;stageSelScroll=0;return;
-    }
-    if(p.x>=8&&p.x<=44&&p.y>=safeTop+44&&p.y<=safeTop+80){
-      devModeGearHeld=false;sfx('select');vibrate(30);startChallenge();return;
-    }
-    devModeGearHeld=false;sfx('click');settingsOpen=true;return;
-  }
   if(updateInfoOpen){handleUpdateInfoTouch(p.x,p.y);return;}
   if(helpOpen){handleHelpTouch(p.x,p.y);return;}
   if(rankingOpen){handleRankingTouch(p.x,p.y);return;}
@@ -967,7 +936,7 @@ canvas.addEventListener('mousedown',e=>{
   if(state===ST.COUNTDOWN)return;
   if(state===ST.LOGIN){handleLoginTouch(p.x,p.y);return;}
   if(state===ST.TUTORIAL){handleTutorialTouch(p.x,p.y);return;}
-  if(state===ST.TITLE&&!charModal.show&&hitSettingsGear(p.x,p.y)){devModeGearHeld=true;devModeGearTimer=setTimeout(()=>{if(devModeGearHeld){devModeGearHeld=false;sfx('click');settingsOpen=true;}},500);return;}
+  if(state===ST.TITLE&&!charModal.show&&hitSettingsGear(p.x,p.y)){sfx('click');settingsOpen=true;return;}
   if(state===ST.TITLE&&!charModal.show&&hitHelpBtn(p.x,p.y)){sfx('select');helpOpen=true;return;}
   if(state===ST.STAGE_SEL){handleStageSelTouch(p.x,p.y);return;}
   if(state===ST.STAGE_CLEAR&&stageClearT>60){

@@ -20,6 +20,7 @@ const BRIDGE_JS = `
   // React Native → WebView メッセージ受信
   window.addEventListener('message', function(e) {
     try {
+      if (e.origin && e.origin !== 'https://gravity-dash-cdce1.web.app' && e.origin !== 'null') return;
       var msg = JSON.parse(e.data);
       if (msg.type === 'appState') {
         Object.defineProperty(document, 'hidden', {
@@ -95,7 +96,7 @@ export default function GameScreen({ onReady }) {
       ref={webViewRef}
       source={{ uri: GAME_URL }}
       style={{ flex: 1, backgroundColor: '#0a0a2e' }}
-      originWhitelist={['*']}
+      originWhitelist={['https://gravity-dash-cdce1.web.app', 'https://*.firebaseapp.com', 'https://*.googleapis.com']}
       javaScriptEnabled={true}
       domStorageEnabled={true}
       mediaPlaybackRequiresUserAction={false}
