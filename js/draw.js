@@ -5581,7 +5581,7 @@ function drawCosmeticMenu(){
   // Item list (only owned items + "none" option)
   const listY=mY+134,listH=mH-184;
   const allItems=cosmeticTab===0?SHOP_ITEMS.skins:cosmeticTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
-  const ownedList=[{id:'',name:t('none'),desc:t('default')}].concat(shopSorted(allItems.filter(it=>ownsItem(it.id))));
+  const ownedList=[{id:'',name:t('none'),desc:t('default')}].concat(shopSorted(allItems.filter(it=>ownsItem(it.id)),true));
   const rowH=48;
   ctx.save();ctx.beginPath();ctx.rect(mX,listY,mW,listH);ctx.clip();
   for(let i=0;i<ownedList.length;i++){
