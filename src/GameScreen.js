@@ -161,9 +161,63 @@ export default function GameScreen({ onReady }) {
   const onMessage = useCallback((event) => {
     try {
       const msg = JSON.parse(event.nativeEvent.data);
-      if (msg.type === 'vibrate') {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      // Rich typed haptics (sent directly from vibrate() with a style string)
+      if (msg.type === 'haptic') {
+        const { style } = msg;
+        switch (style) {
+          // Gameplay actions
+          case 'flip':        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid); break;
+          case 'jump':        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); break;
+          case 'coin':        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); break;
+          case 'bigcoin':     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); break;
+          case 'stomp':       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); break;
+          case 'stomp_heavy':
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy), 80);
+            break;
+          // Damage & death
+          case 'hurt':        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning); break;
+          case 'death':
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy), 120);
+            break;
+          // Items & pickups
+          case 'item':        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); break;
+          case 'bomb':
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium), 80);
+            setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light), 180);
+            break;
+          // Achievements
+          case 'milestone':   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); break;
+          case 'newhi':
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success), 200);
+            break;
+          // Chest events
+          case 'chest':
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium), 150);
+            break;
+          case 'chest_super':
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy), 100);
+            setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success), 280);
+            break;
+          default:            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); break;
+        }
       }
+
+      // Legacy vibrate (numeric ms from BRIDGE_JS navigator.vibrate fallback)
+      if (msg.type === 'vibrate') {
+        const ms = msg.ms || 20;
+        const style = ms >= 50 ? Haptics.ImpactFeedbackStyle.Heavy
+                    : ms >= 25 ? Haptics.ImpactFeedbackStyle.Medium
+                    : Haptics.ImpactFeedbackStyle.Light;
+        Haptics.impactAsync(style);
+      }
+
       if (msg.type === 'googleSignIn') {
         googlePromptAsync();
       }

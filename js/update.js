@@ -16,7 +16,7 @@ function resetFlipState(){
 function updateChestOpenStateMachine(){
   chestOpen.t++;
   if(chestOpen.phase==='wobble'&&chestOpen.t>=50){
-    chestOpen.phase='burst';chestOpen.t=0;sfxChestOpen();shakeI=15;vibrate([30,20,40,20,80]);
+    chestOpen.phase='burst';chestOpen.t=0;sfxChestOpen();shakeI=15;vibrate('chest');
   }
   else if(chestOpen.phase==='burst'&&chestOpen.t>=40){
     chestOpen.phase='reveal';chestOpen.t=0;
@@ -24,7 +24,7 @@ function updateChestOpenStateMachine(){
       walletCoins+=chestOpen.reward.amount;localStorage.setItem('gd5wallet',walletCoins.toString());
     }
     if(chestOpen.reward&&chestOpen.reward.type==='char'){
-      sfxSuperRare();shakeI=25;vibrate([40,20,60,30,80,40,100]);
+      sfxSuperRare();shakeI=25;vibrate('chest_super');
       if(chestOpen.reward.isNew){
         unlockCharFromChest(chestOpen.reward.charIdx);
       } else {
@@ -34,7 +34,7 @@ function updateChestOpenStateMachine(){
     }
     if(chestOpen.reward&&chestOpen.reward.type==='cosmetic'){
       if(chestOpen.reward.item.rarity==='super_rare'){
-        sfxSuperRare();shakeI=30;vibrate([50,20,70,30,90,40,120]);
+        sfxSuperRare();shakeI=30;vibrate('chest_super');
       }
       if(!chestOpen.reward.isNew){
         walletCoins+=300;localStorage.setItem('gd5wallet',walletCoins.toString());
@@ -350,7 +350,7 @@ function update(dt){
       if(!bossPhase.active&&!bossPhase.reward&&bossPhase.bossCount>0){
         // Boss defeated → stage clear
         state=ST.STAGE_CLEAR;stageClearT=0;gotNewStars=0;
-        sfxFanfare();vibrate([30,20,30,20,60]);shakeI=8;
+        sfxFanfare();vibrate('milestone');shakeI=8;
         let starsThisRun=0;for(let _si=0;_si<stageBigCoins.length;_si++)if(stageBigCoins[_si].col)starsThisRun++;
         const sid=currentPackStage.id;
         const prev=packProgress[sid];
@@ -406,7 +406,7 @@ function update(dt){
       const dx=player.x-bc.x,dy=player.y-bc.y;
       const thr=pr2+bc.sz;if(dx*dx+dy*dy<thr*thr){
         bc.col=true;stageBigCollected++;
-        sfx('bigcoin');vibrate([20,10,20,10,40]);shakeI=8;
+        sfx('bigcoin');vibrate('bigcoin');shakeI=8;
         addPop(bc.x,bc.y-20,'\u2605 STAR!','#ffd700');
         emitParts(bc.x,bc.y,25,'#ffd700',6,4);
       }
@@ -428,7 +428,7 @@ function update(dt){
           const sid=currentPackStage.id;
           stageCheckpoints[sid]=true;
           localStorage.setItem('gd5checkpoints',JSON.stringify(stageCheckpoints));
-          sfx('bigcoin');vibrate([15,10,25]);shakeI=5;
+          sfx('bigcoin');vibrate('bigcoin');shakeI=5;
           addPop(cpScreenX,cpFlagY-20,t('popCheckpoint'),'#34d399');
           emitParts(cpScreenX,cpFlagY,20,'#34d399',4,3);
         }
@@ -795,7 +795,7 @@ function update(dt){
       resetFlipState();
       const col=forceDir===1?'#4488ff':'#ff66aa';
       if(forceDir===1)sfxGravDown();else sfxGravUp();
-      vibrate([20,10,30]);shakeI=8;
+      vibrate('flip');shakeI=8;
       emitParts(player.x,player.y,15,col,4,3);
       addPop(player.x,player.y-20*player.gDir,forceDir===1?'DOWN!':'UP!',col);
     }
@@ -978,7 +978,7 @@ function update(dt){
     const csR=pr+cs.r+4;
     if(dx3*dx3+dy3*dy3<csR*csR){
       cs.activated=true;cs.flashT=40;
-      sfx('item');vibrate([15,10,15]);shakeI=4;
+      sfx('item');vibrate('item');shakeI=4;
       addPop(cs.x,cs.y-20,t('popCoinSwitch'),COIN_SW_COL);
       emitParts(cs.x,cs.y,10,COIN_SW_COL,3,2);
       // Spawn 30-100 coins in organized grid ahead
@@ -1045,7 +1045,7 @@ function update(dt){
         const cTier=getCoinTier();
         const bon=Math.ceil((3+Math.min(combo-1,8))*ct().coinMul*cTier.mul);
         dist+=bon;sfx(combo>1?'combo':'coin');
-        addPop(c.x,c.y-14,'+'+bon,cTier.col);vibrate(10);
+        addPop(c.x,c.y-14,'+'+bon,cTier.col);vibrate('coin');
         if(combo>1)addPop(c.x,c.y-34,combo+'x','#ff6b35');
         emitParts(c.x,c.y,6,cTier.sparkCol,3,2);
         player.face='happy';player.faceTimer=15;
@@ -1282,7 +1282,7 @@ function update(dt){
       const d2=Math.sqrt(dx2*dx2+dy2*dy2);
       if(d2<pr+en.sz){
         if(itemEff.invincible>0){
-          en.alive=false;sfx('stomp');vibrate(15);shakeI=4;
+          en.alive=false;sfx('stomp');vibrate('stomp');shakeI=4;
           const bon2=Math.floor(10+Math.min(score*0.1,20));dist+=bon2;
           addPop(en.x,en.y-en.sz*en.gDir,'+'+bon2,'#ff00ff');
           emitParts(en.x,en.y,15,'#ff00ff',4,3);
@@ -1296,7 +1296,7 @@ function update(dt){
       // Invincible: destroy enemy on contact
       if(itemEff.invincible>0){
         en.alive=false;
-        sfxEnemyDeath(en.type);vibrate(15);shakeI=4;
+        sfxEnemyDeath(en.type);vibrate('stomp');shakeI=4;
         const bon=Math.floor(10+Math.min(score*0.1,20));
         dist+=bon;
         addPop(en.x,en.y-en.sz*en.gDir,'+'+bon,'#ff00ff');
@@ -1327,7 +1327,7 @@ function update(dt){
         const bon=baseBon+stompCombo*(gstomp?60:30);
         stompCombo++;
         dist+=bon;
-        if(gstomp){sfx('gstompHeavy');sfxEnemyDeath(en.type);vibrate([20,10,30]);shakeI=8;}else{sfxEnemyDeath(en.type);vibrate(15);}
+        if(gstomp){sfx('gstompHeavy');sfxEnemyDeath(en.type);vibrate('stomp_heavy');shakeI=8;}else{sfxEnemyDeath(en.type);vibrate('stomp');}
         if(stompCombo>=2)sfxStompCombo(stompCombo);
         addPop(en.x,en.y-en.sz*en.gDir,'+'+bon,gstomp?'#ffd700':'#ff3860');
         if(stompCombo>=2){addPop(en.x,en.y-en.sz*en.gDir-22,t('popCombo').replace('{0}',stompCombo),gstomp?'#ffd700':'#ff6600');emitParts(en.x,en.y,14+stompCombo*3,gstomp?'#ffd700':'#ff6600',4,3);}

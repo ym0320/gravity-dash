@@ -1158,7 +1158,21 @@ function sfxBossRoar(bossType){
     }
   }catch(e){}
 }
-function vibrate(ms){try{if(navigator.vibrate)navigator.vibrate(ms);}catch(e){}}
+function vibrate(ms){
+  try{
+    if(window.ReactNativeWebView){
+      // String = named haptic style sent directly to native for rich feedback
+      if(typeof ms==='string'){
+        window.ReactNativeWebView.postMessage(JSON.stringify({type:'haptic',style:ms}));
+      } else {
+        // Legacy numeric/array: keep sending via navigator for backward compat
+        if(navigator.vibrate)navigator.vibrate(ms);
+      }
+    } else if(navigator.vibrate){
+      navigator.vibrate(ms);
+    }
+  }catch(e){}
+}
 function sfxCharVoice(idx){
   if(!audioCtx)return;try{
     const t=audioCtx.currentTime;

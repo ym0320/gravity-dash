@@ -836,13 +836,13 @@ canvas.addEventListener('touchend',e=>{
     if(touchMoved&&Math.abs(tdy)>30){
       // Swipe in tutorial
       if(cp.type==='flip_up'&&tdy<0&&player.gDir===1){
-        player.gDir=-1;player.vy=-8;sfx('flip');vibrate(20);
+        player.gDir=-1;player.vy=-8;sfx('flip');vibrate('flip');
         player.face='flip';setTimeout(()=>{if(player.alive)player.face='normal';},250);
         emitParts(player.x,player.y,10,tc('ply'),3,2.5);player.rotTarget-=Math.PI;
         tutDone=true;tutPhase='action';
         setTimeout(()=>{tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,600);},700);
       } else if(cp.type==='flip_down'&&tdy>0&&player.gDir===-1){
-        player.gDir=1;player.vy=8;sfx('flip');vibrate(20);
+        player.gDir=1;player.vy=8;sfx('flip');vibrate('flip');
         player.face='flip';setTimeout(()=>{if(player.alive)player.face='normal';},250);
         emitParts(player.x,player.y,10,tc('ply'),3,2.5);player.rotTarget+=Math.PI;
         tutDone=true;tutPhase='action';
@@ -850,13 +850,13 @@ canvas.addEventListener('touchend',e=>{
       } else if(cp.type==='double_flip'){
         if(tdy<0&&player.gDir===1&&tutFlipCount===0){
           // First flip: up → freeze mid-air after 280ms (higher on screen)
-          player.gDir=-1;player.vy=-7;sfx('flip');vibrate(20);player.grounded=false;
+          player.gDir=-1;player.vy=-7;sfx('flip');vibrate('flip');player.grounded=false;
           emitParts(player.x,player.y,10,tc('ply'),3,2.5);player.rotTarget-=Math.PI;
           tutFlipCount=1;tutPhase='action';
           setTimeout(()=>{if(tutFlipCount===1){player.vy=0;tutFreezePlayer=true;tutPhase='wait';tutStepT=0;}},280);
         } else if(tdy>0&&player.gDir===-1&&tutFlipCount>=1){
           // Second flip: down → success
-          player.gDir=1;player.vy=5;sfx('flip');vibrate(20);player.grounded=false;
+          player.gDir=1;player.vy=5;sfx('flip');vibrate('flip');player.grounded=false;
           emitParts(player.x,player.y,10,tc('ply'),3,2.5);player.rotTarget+=Math.PI;
           tutFreezePlayer=false;tutFlipCount=2;
           tutDone=true;tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,800);
@@ -876,14 +876,14 @@ canvas.addEventListener('touchend',e=>{
     if(player.canFlip&&dy>0&&player.gDir===-1){
       player.gDir=1;player.vy=2;totalFlips++;flipCount++;flipTimer=0;
       player.canFlip=flipCount<ct().maxFlip;
-      sfx('flip');vibrate(20);
+      sfx('flip');vibrate('flip');
       player.face='flip';setTimeout(()=>{if(player.alive)player.face='normal';},250);
       emitParts(player.x,player.y,10,tc('ply'),3,2.5);
       player.rotTarget+=Math.PI;
     } else if(player.canFlip&&dy<0&&player.gDir===1){
       player.gDir=-1;player.vy=-2;totalFlips++;flipCount++;flipTimer=0;
       player.canFlip=flipCount<ct().maxFlip;
-      sfx('flip');vibrate(20);
+      sfx('flip');vibrate('flip');
       player.face='flip';setTimeout(()=>{if(player.alive)player.face='normal';},250);
       emitParts(player.x,player.y,10,tc('ply'),3,2.5);
       player.rotTarget-=Math.PI;
@@ -893,7 +893,7 @@ canvas.addEventListener('touchend',e=>{
         player.grounded=false;
         player.vy=player.gDir*3;
         player._dropThrough=15; // ignore float plat landing+wall while passing through
-        sfx('jump');vibrate(10);
+        sfx('jump');vibrate('jump');
       }
     }
   } else if(!touchMoved||dt<200){
@@ -903,14 +903,14 @@ canvas.addEventListener('touchend',e=>{
       player.vy=-jp*player.gDir;
       player.grounded=false;
       djumpUsed=false;
-      sfx('jump');vibrate(10);
+      sfx('jump');vibrate('jump');
       player.face='flip';setTimeout(()=>{if(player.alive)player.face='normal';},180);
       emitParts(player.x,player.y+PLAYER_R*player.gDir,6,tc('ply'),2.5,2);
     } else if(djumpAvailable&&!djumpUsed){
       djumpUsed=true;djumpAvailable=false;
       const jp=JUMP_POWER*ct().jumpMul*0.85;
       player.vy=-jp*player.gDir;
-      sfx('jump');vibrate(10);
+      sfx('jump');vibrate('jump');
       player.face='flip';setTimeout(()=>{if(player.alive)player.face='normal';},180);
       emitParts(player.x,player.y,8,'#ffaa00',3,2.5);
     }
@@ -977,8 +977,8 @@ canvas.addEventListener('mousedown',e=>{
   // Left click during gameplay: gravity flip (toggle)
   else if(state===ST.PLAY&&player.canFlip&&!player._quakeStunned){
     flipCount++;flipTimer=0;
-    if(player.gDir===1){player.gDir=-1;player.vy=-2;totalFlips++;player.canFlip=flipCount<ct().maxFlip;sfx('flip');vibrate(20);player.rotTarget-=Math.PI;emitParts(player.x,player.y,10,tc('ply'),3,2.5);}
-    else{player.gDir=1;player.vy=2;totalFlips++;player.canFlip=flipCount<ct().maxFlip;sfx('flip');vibrate(20);player.rotTarget+=Math.PI;emitParts(player.x,player.y,10,tc('ply'),3,2.5);}
+    if(player.gDir===1){player.gDir=-1;player.vy=-2;totalFlips++;player.canFlip=flipCount<ct().maxFlip;sfx('flip');vibrate('flip');player.rotTarget-=Math.PI;emitParts(player.x,player.y,10,tc('ply'),3,2.5);}
+    else{player.gDir=1;player.vy=2;totalFlips++;player.canFlip=flipCount<ct().maxFlip;sfx('flip');vibrate('flip');player.rotTarget+=Math.PI;emitParts(player.x,player.y,10,tc('ply'),3,2.5);}
   }
 });
 canvas.addEventListener('mousemove',e=>{
@@ -1026,13 +1026,13 @@ document.addEventListener('keydown',e=>{
       setTimeout(()=>{tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,600);},500);return;
     }
     if(cp.type==='flip_up'&&e.code==='ArrowUp'&&player.gDir===1){
-      player.gDir=-1;player.vy=-8;sfx('flip');vibrate(20);player.rotTarget-=Math.PI;
+      player.gDir=-1;player.vy=-8;sfx('flip');vibrate('flip');player.rotTarget-=Math.PI;
       emitParts(player.x,player.y,10,tc('ply'),3,2.5);
       tutDone=true;tutPhase='action';
       setTimeout(()=>{tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,600);},700);return;
     }
     if(cp.type==='flip_down'&&e.code==='ArrowDown'&&player.gDir===-1){
-      player.gDir=1;player.vy=8;sfx('flip');vibrate(20);player.rotTarget+=Math.PI;
+      player.gDir=1;player.vy=8;sfx('flip');vibrate('flip');player.rotTarget+=Math.PI;
       emitParts(player.x,player.y,10,tc('ply'),3,2.5);
       tutDone=true;tutPhase='action';
       setTimeout(()=>{tutPhase='success';tutSuccessT=0;setTimeout(tutAdvance,600);},700);return;
@@ -1069,14 +1069,14 @@ document.addEventListener('keydown',e=>{
     else if(state===ST.PLAY&&player.grounded&&!player._quakeStunned){
       const jp=JUMP_POWER*ct().jumpMul;
       player.vy=-jp*player.gDir;player.grounded=false;djumpUsed=false;
-      sfx('jump');vibrate(10);
+      sfx('jump');vibrate('jump');
       emitParts(player.x,player.y+PLAYER_R*player.gDir,6,tc('ply'),2.5,2);
     }
     else if(state===ST.PLAY&&djumpAvailable&&!djumpUsed&&!player._quakeStunned){
       djumpUsed=true;djumpAvailable=false;
       const jp=JUMP_POWER*ct().jumpMul*0.85;
       player.vy=-jp*player.gDir;
-      sfx('jump');vibrate(10);
+      sfx('jump');vibrate('jump');
       emitParts(player.x,player.y,8,'#ffaa00',3,2.5);
     }
   }
@@ -1085,9 +1085,9 @@ document.addEventListener('keydown',e=>{
     e.preventDefault();
     if(state===ST.PLAY&&player.canFlip&&!player._quakeStunned&&player.gDir===1){
       flipCount++;flipTimer=0;
-      player.gDir=-1;player.vy=-2;totalFlips++;player.canFlip=flipCount<ct().maxFlip;sfx('flip');vibrate(20);player.rotTarget-=Math.PI;emitParts(player.x,player.y,10,tc('ply'),3,2.5);
+      player.gDir=-1;player.vy=-2;totalFlips++;player.canFlip=flipCount<ct().maxFlip;sfx('flip');vibrate('flip');player.rotTarget-=Math.PI;emitParts(player.x,player.y,10,tc('ply'),3,2.5);
     } else if(state===ST.PLAY&&player.grounded&&player._onFloatPlat&&player.gDir===-1){
-      player.grounded=false;player.vy=player.gDir*3;player._dropThrough=15;sfx('jump');vibrate(10);
+      player.grounded=false;player.vy=player.gDir*3;player._dropThrough=15;sfx('jump');vibrate('jump');
     }
   }
   // ArrowDown: gravity flip to floor (gDir -1→1) OR drop through floatPlat (gDir 1)
@@ -1095,9 +1095,9 @@ document.addEventListener('keydown',e=>{
     e.preventDefault();
     if(state===ST.PLAY&&player.canFlip&&!player._quakeStunned&&player.gDir===-1){
       flipCount++;flipTimer=0;
-      player.gDir=1;player.vy=2;totalFlips++;player.canFlip=flipCount<ct().maxFlip;sfx('flip');vibrate(20);player.rotTarget+=Math.PI;emitParts(player.x,player.y,10,tc('ply'),3,2.5);
+      player.gDir=1;player.vy=2;totalFlips++;player.canFlip=flipCount<ct().maxFlip;sfx('flip');vibrate('flip');player.rotTarget+=Math.PI;emitParts(player.x,player.y,10,tc('ply'),3,2.5);
     } else if(state===ST.PLAY&&player.grounded&&player._onFloatPlat&&player.gDir===1){
-      player.grounded=false;player.vy=player.gDir*3;player._dropThrough=15;sfx('jump');vibrate(10);
+      player.grounded=false;player.vy=player.gDir*3;player._dropThrough=15;sfx('jump');vibrate('jump');
     }
   }
   if((e.code==='KeyB'||e.code==='KeyX')&&state===ST.PLAY){e.preventDefault();useBomb();}

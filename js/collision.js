@@ -12,7 +12,7 @@ function hurt(isWall){
   if(hp<=0){die();return;}
   // Survive with damage
   hurtT=HURT_INVINCIBLE;
-  shakeI=10;sfx('hurt');vibrate([20,10,30]);
+  shakeI=10;sfx('hurt');vibrate('hurt');
   player.face='hurt';setTimeout(()=>{if(player.alive)player.face='normal';},400);
   emitParts(player.x,player.y,12,tc('obs'),4,3);
   addPop(player.x,player.y-25,'HP -1','#ff3860');
@@ -21,7 +21,7 @@ function hurt(isWall){
 function die(){
   hp=0;
   player.alive=false;state=ST.DEAD;deadT=0;shakeI=14;switchBGM('dead');
-  player.face='dead';sfx('death');vibrate([30,20,50]);
+  player.face='dead';sfx('death');vibrate('death');
   bossRetry=null; // clear boss retry on death
   bossPhase.active=false;bossPhase.prepare=0; // stop boss alert overlay on death screen
   // Record death position for stage mode marker (up to 10 per stage)
@@ -75,13 +75,13 @@ function checkMile(){
     const idx=Math.min(Math.floor(nextMile/1000)-1,MILE_MSGS.length-1);
     mileTxt=nextMile+' - '+MILE_MSGS[idx];
     mileT=120;
-    sfx('milestone');shakeI=6;vibrate(40);
+    sfx('milestone');shakeI=6;vibrate('milestone');
     for(let i=0;i<30&&parts.length<MAX_PARTS;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*3,vy:Math.random()*3+1,life:60+Math.random()*30,ml:90,sz:Math.random()*5+2,col:['#ff3860','#00e5ff','#ffd700','#a855f7','#34d399'][i%5]});
   }
   // Live highscore check
   if(gameMode==='endless'&&!newHi&&score>highScore&&highScore>0){
     newHi=true;highScore=score;localStorage.setItem('gd5hi',highScore.toString());captureRankCosmetics();notifNewHighScore=true;localStorage.setItem('gd5notifHi','1');
-    sfx('newhi');shakeI=8;vibrate([20,10,30,10,50]);
+    sfx('newhi');shakeI=8;vibrate('newhi');
     newHiEffT=120;
     addPop(W/2,H*0.35,'NEW RECORD!','#ffd700');
     for(let i=0;i<20&&parts.length<MAX_PARTS;i++)parts.push({x:W*Math.random(),y:H*0.3+Math.random()*40,vx:(Math.random()-0.5)*4,vy:-1-Math.random()*3,life:50+Math.random()*30,ml:80,sz:Math.random()*4+2,col:['#ffd700','#ffaa00','#fff'][i%3]});
@@ -92,7 +92,7 @@ let newHiEffT=0; // new highscore effect timer
 function useBomb(){
   if(bombCount<=0||(state!==ST.PLAY&&state!==ST.TUTORIAL))return;
   if(bossPhase.active){sfx('hurt');vibrate(10);addPop(player.x,player.y-30,t('popBossNoItem'),'#ff4444');return;}
-  bombCount--;sfx('bomb');vibrate([30,20,50]);shakeI=15;bombFlashT=20;
+  bombCount--;sfx('bomb');vibrate('bomb');shakeI=15;bombFlashT=20;
   // Kill all on-screen enemies
   let kills=0;
   enemies.forEach(en=>{
@@ -115,14 +115,14 @@ function useBomb(){
 function useInvincible(){
   if(invCount<=0||(state!==ST.PLAY&&state!==ST.TUTORIAL))return;
   if(bossPhase.active){sfx('hurt');vibrate(10);addPop(player.x,player.y-30,t('popBossNoItem'),'#ff4444');return;}
-  invCount--;sfx('item');vibrate([20,10,30]);
+  invCount--;sfx('item');vibrate('item');
   itemEff.invincible=state===ST.TUTORIAL?180:600;
   if(state===ST.PLAY)switchBGM('fever');
   emitParts(player.x,player.y,15,'#ff00ff',4,3);
   addPop(player.x,player.y-30,t('popInvActivate'),'#ff00ff');
 }
 function applyItem(type){
-  vibrate(25);
+  vibrate('item');
   switch(type){
     case 0:sfx('item');invCount++;emitParts(player.x,player.y,8,'#ff00ff',3,2);break; // stockable invincible
     case 1:sfx('item');itemEff.magnet=600;break; // 10 seconds coin magnet
