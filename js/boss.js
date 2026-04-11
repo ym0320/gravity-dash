@@ -43,7 +43,7 @@ function startBossPhase(){
   } else {
     bossPhase.bossType=_pickType();
   }
-  shakeI=18;vibrate([50,30,50,30,80,40,100]);
+  shakeI=18;vibrate('boss_warn');
   if(isChallengeMode){sfxChallengeBossAlert();switchBGM('challenge');}
   else{sfxBossAlert();switchBGM('boss');}
 }
@@ -362,7 +362,7 @@ function updateBossPhase(){
             b.state='invincible';b.invT=60;b.timer=0;
             player.vy=b.gDir===1?-JUMP_POWER*0.8:JUMP_POWER*0.8;player.grounded=false;
             flipCount=0;player.canFlip=true;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
-            shakeI=12;sfx('bossHit');sfx('gstompHeavy');vibrate([20,10,30]);
+            shakeI=12;sfx('bossHit');sfx('gstompHeavy');vibrate('stomp_heavy');
             addPop(b.x,b.y-b.sz*b.gDir-10,'HP '+b.hp+'/'+b.maxHp,'#ff3860');
             emitParts(b.x,b.y-b.sz*b.gDir,12,'#ff3860',5,3);
             if(b.hp<=0){bossBruiserDefeat(b);}
@@ -525,7 +525,7 @@ function updateBossPhase(){
           player._quakeStunned=true;
           player._quakeStunT=g.quakeStunDuration;
           player.vy=0; // freeze in place
-          sfx('hurt');vibrate([20,10,30]);shakeI=8;
+          sfx('hurt');vibrate('stomp_heavy');shakeI=8;
           addPop(player.x,player.y-30,t('popStun'),'#ff6600');
           emitParts(player.x,player.y,8,'#ff6600',3,2);
         }
@@ -635,7 +635,7 @@ function updateBossPhase(){
             flipCount=0;player.canFlip=true;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
             // Clear stun on successful stomp
             player._quakeStunned=false;player._quakeStunT=0;
-            shakeI=12;sfx('bossHit');sfx('gstompHeavy');vibrate([20,10,30]);
+            shakeI=12;sfx('bossHit');sfx('gstompHeavy');vibrate('stomp_heavy');
             addPop(g.x,g.y-g.sz*g.gDir-10,'HP '+g.hp+'/'+g.maxHp,'#ffaa00');
             emitParts(g.x,g.y-g.sz*g.gDir,12,'#ffaa00',5,3);
             if(g.hp<=0){bossGuardianDefeat(g);}
@@ -801,7 +801,7 @@ function updateBossPhase(){
             w.hp--;w.hurtFlash=20;
             player.vy=-JUMP_POWER*0.8*player.gDir;player.grounded=false;
             flipCount=0;player.canFlip=true;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
-            shakeI=12;sfx('gstomp');vibrate([20,10,30]);
+            shakeI=12;sfx('gstomp');vibrate('stomp_heavy');
             addPop(w.x,w.y-20,t('popDefeat'),'#ffd700');
             emitParts(w.x,w.y,12,'#aa44ff',5,3);
             if(w.hp<=0){bossWizardDefeat(w);}

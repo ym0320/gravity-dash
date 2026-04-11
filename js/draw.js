@@ -4361,7 +4361,7 @@ function drawChestOpen(){
         const rw2=sorted[i];
         const rar=rw2&&rw2.type==='cosmetic'&&rw2.item?rw2.item.rarity:null;
         if(rar==='super_rare'){
-          shakeI=20;vibrate([30,20,50,20,70]);
+          shakeI=20;vibrate('chest_super');
           if(typeof sfxSuperRare==='function')sfxSuperRare();
           for(let pp=0;pp<16;pp++){
             const a2=Math.random()*TAU;
@@ -4370,7 +4370,7 @@ function drawChestOpen(){
               sz:Math.random()*5+2,col:['#ffd700','#fff','#ffaa00'][pp%3],g:0.06});
           }
         } else if(rar==='rare'){
-          shakeI=10;vibrate([15,10,20]);sfx('bossHit');
+          shakeI=10;vibrate('stomp');sfx('bossHit');
           for(let pp=0;pp<10;pp++){
             const a2=Math.random()*TAU;
             chestOpen.parts.push({x:cx+Math.cos(a2)*25,y:mY+mH*0.4+Math.sin(a2)*25,
@@ -4378,7 +4378,7 @@ function drawChestOpen(){
               sz:Math.random()*4+1.5,col:['#a855f7','#d4a8ff','#fff'][pp%3],g:0.05});
           }
         } else if(rw2&&rw2.type==='char'&&rw2.isNew){
-          shakeI=6;vibrate(15);sfx('gstompHeavy');
+          shakeI=6;vibrate('stomp_heavy');sfx('gstompHeavy');
           for(let pp=0;pp<6;pp++){
             const a2=Math.random()*TAU;
             chestOpen.parts.push({x:cx+Math.cos(a2)*20,y:mY+mH*0.4+Math.sin(a2)*20,
