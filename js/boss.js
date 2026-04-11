@@ -230,7 +230,7 @@ function updateBossPhase(){
             life:40+Math.random()*30,ml:70,sz:Math.random()*6+2,
             col:['#ffd700','#ffaa00','#ff88cc','#88ffff','#ffffff'][i%5]});
         }
-        addPop(chestFall.x,chestFall.y-30,'宝箱 GET!','#ffd700');
+        addPop(chestFall.x,chestFall.y-30,t('popChestGet'),'#ffd700');
       }
     } else if(chestFall.gotT>0){
       chestFall.gotT++;
@@ -272,7 +272,7 @@ function updateBossPhase(){
       // Off-screen left: rush complete (dodged)
       if(en.x<-en.sz*2){
         en.alive=false;
-        addPop(40,en.y,'回避!','#34d399');
+        addPop(40,en.y,t('popEvade'),'#34d399');
         emitParts(10,en.y,6,'#34d399',3,2);
       }
       // Collision with player - ALL contact = damage (both sides have spikes)
@@ -526,7 +526,7 @@ function updateBossPhase(){
           player._quakeStunT=g.quakeStunDuration;
           player.vy=0; // freeze in place
           sfx('hurt');vibrate([20,10,30]);shakeI=8;
-          addPop(player.x,player.y-30,'スタン!','#ff6600');
+          addPop(player.x,player.y-30,t('popStun'),'#ff6600');
           emitParts(player.x,player.y,8,'#ff6600',3,2);
         }
       }
@@ -802,7 +802,7 @@ function updateBossPhase(){
             player.vy=-JUMP_POWER*0.8*player.gDir;player.grounded=false;
             flipCount=0;player.canFlip=true;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
             shakeI=12;sfx('gstomp');vibrate([20,10,30]);
-            addPop(w.x,w.y-20,'撃破!','#ffd700');
+            addPop(w.x,w.y-20,t('popDefeat'),'#ffd700');
             emitParts(w.x,w.y,12,'#aa44ff',5,3);
             if(w.hp<=0){bossWizardDefeat(w);}
             else{w.invT=60;w.state='teleport';w.timer=0;w.teleportT=0;
@@ -846,12 +846,12 @@ function updateBossPhase(){
     shakeI=10;vibrate([30,20,30,20,60]);
     if(isChallengeMode){
       addPop(W/2,H*0.25,'BOSS DEFEATED!','#ffd700');
-      addPop(W/2,H*0.35,'撃破 '+(challengeKills+1)+'体目','#00e5ff');
+      addPop(W/2,H*0.35,t('popDefeatCount').replace('{0}',challengeKills+1),'#00e5ff');
     } else {
       addPop(W/2,H*0.3,'BOSS DEFEATED!','#ffd700');
     }
     // No-damage bonus: earn stockable invincibility (not in challenge mode)
-    if(bossPhase.noDamage&&!isChallengeMode){invCount++;addPop(W/2,H*0.55,'\u7121\u6575+1! (No Damage!)','#ff00ff');}
+    if(bossPhase.noDamage&&!isChallengeMode){invCount++;addPop(W/2,H*0.55,t('popInvPlus1'),'#ff00ff');}
     if(hp<maxHp()){hp++;addPop(player.x,player.y-40,'HP +1','#ff3860');}
     const bonus=30+bossPhase.total*5;
     walletCoins+=bonus;localStorage.setItem('gd5wallet',walletCoins.toString());
@@ -889,7 +889,7 @@ function bossBruiserDefeat(b){
       vx:(Math.random()-0.5)*2,vy:-3-Math.random()*5,life:40+Math.random()*30,ml:70,
       sz:Math.random()*4+1,col:'#ffd700'});
   }
-  addPop(b.x,b.y-b.sz-20,'\u6483\u7834\uFF01','#ffd700');
+  addPop(b.x,b.y-b.sz-20,t('popDestroyed'),'#ffd700');
   sfxBossDefeat('bruiser');
 }
 function bossWizardDefeat(w){
@@ -906,7 +906,7 @@ function bossWizardDefeat(w){
     parts.push({x:w.x,y:w.y,vx:(Math.random()-0.5)*3,vy:-2-Math.random()*4,
       life:35+Math.random()*25,ml:60,sz:Math.random()*5+2,col:'#ffd700'});
   }
-  addPop(w.x,w.y-w.sz-20,'\u6483\u7834\uFF01','#ffd700');
+  addPop(w.x,w.y-w.sz-20,t('popDestroyed'),'#ffd700');
   sfxBossDefeat('wizard');
 }
 function bossGuardianDefeat(g){
@@ -932,7 +932,7 @@ function bossGuardianDefeat(g){
       vx:(Math.random()-0.5)*2,vy:-3-Math.random()*5,life:40+Math.random()*30,ml:70,
       sz:Math.random()*4+1,col:'#ffd700'});
   }
-  addPop(g.x,g.y-g.sz-20,'\u6483\u7834\uFF01','#ffd700');
+  addPop(g.x,g.y-g.sz-20,t('popDestroyed'),'#ffd700');
   sfxBossDefeat('guardian');
 }
 // === Boss enemy draw: wizard type ===

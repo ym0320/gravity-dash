@@ -7,6 +7,7 @@ let _tickAcc=0,_skipDraw=0,_recoveryFrames=0;
 function loop(ts){
   if(!lastTime){lastTime=ts;_tickAcc=0;_skipDraw=2;}
   const dt=ts-lastTime;
+  _updateQuality(dt); // adaptive quality monitoring
   // After background return (>500ms gap), reset timing to prevent burst
   if(dt>500){lastTime=ts;_tickAcc=0;_skipDraw=2;_recoveryFrames=5;requestAnimationFrame(loop);return;}
   // Spike recovery: after a large gap, limit catch-up for a few frames to ease back in

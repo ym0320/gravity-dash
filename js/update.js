@@ -447,7 +447,7 @@ function update(dt){
           stageCheckpoints[sid]=true;
           localStorage.setItem('gd5checkpoints',JSON.stringify(stageCheckpoints));
           sfx('bigcoin');vibrate([15,10,25]);shakeI=5;
-          addPop(cpScreenX,cpFlagY-20,'チェックポイント!','#34d399');
+          addPop(cpScreenX,cpFlagY-20,t('popCheckpoint'),'#34d399');
           emitParts(cpScreenX,cpFlagY,20,'#34d399',4,3);
         }
       }
@@ -997,7 +997,7 @@ function update(dt){
     if(dx3*dx3+dy3*dy3<csR*csR){
       cs.activated=true;cs.flashT=40;
       sfx('item');vibrate([15,10,15]);shakeI=4;
-      addPop(cs.x,cs.y-20,'\u30B3\u30A4\u30F3\u30B9\u30A4\u30C3\u30C1!',COIN_SW_COL);
+      addPop(cs.x,cs.y-20,t('popCoinSwitch'),COIN_SW_COL);
       emitParts(cs.x,cs.y,10,COIN_SW_COL,3,2);
       // Spawn 30-100 coins in organized grid ahead
       const totalCoins2=30+Math.floor(Math.random()*71);
@@ -1256,7 +1256,7 @@ function update(dt){
               bounceVy:en.gDir===1?-3.5:3.5,patrolOriginX:en.x+sdir*10,lifeT:180+Math.floor(Math.random()*60)});
           }
           sfx('shoot');emitParts(en.x,en.y,10,'#88cc44',4,3);
-          addPop(en.x,en.y-en.sz*en.gDir-10,'\u5206\u88C2!','#88cc44');
+          addPop(en.x,en.y-en.sz*en.gDir-10,t('popSplit'),'#88cc44');
         }
       }
     } else if(en.type===9){
@@ -1348,8 +1348,8 @@ function update(dt){
         if(gstomp){sfx('gstompHeavy');sfxEnemyDeath(en.type);vibrate([20,10,30]);shakeI=8;}else{sfxEnemyDeath(en.type);vibrate(15);}
         if(stompCombo>=2)sfxStompCombo(stompCombo);
         addPop(en.x,en.y-en.sz*en.gDir,'+'+bon,gstomp?'#ffd700':'#ff3860');
-        if(stompCombo>=2){addPop(en.x,en.y-en.sz*en.gDir-22,stompCombo+'\u30B3\u30F3\u30DC!',gstomp?'#ffd700':'#ff6600');emitParts(en.x,en.y,14+stompCombo*3,gstomp?'#ffd700':'#ff6600',4,3);}
-        if(gstomp){addPop(en.x,en.y-en.sz*en.gDir-(stompCombo>=2?40:22),'\u91CD\u529B\u30B9\u30C8\u30F3\u30D7!','#ffd700');emitParts(en.x,en.y,20,'#ffd700',5,4);}
+        if(stompCombo>=2){addPop(en.x,en.y-en.sz*en.gDir-22,t('popCombo').replace('{0}',stompCombo),gstomp?'#ffd700':'#ff6600');emitParts(en.x,en.y,14+stompCombo*3,gstomp?'#ffd700':'#ff6600',4,3);}
+        if(gstomp){addPop(en.x,en.y-en.sz*en.gDir-(stompCombo>=2?40:22),t('popGStomp'),'#ffd700');emitParts(en.x,en.y,20,'#ffd700',5,4);}
         else{emitParts(en.x,en.y,12,'#ff3860',4,3);}
         // Aerial combo: consecutive kills without touching ground
         if(!player.grounded){airCombo++;sfxAirCombo(airCombo);const acb=airCombo*5;dist+=acb;addPop(en.x,en.y-en.sz*en.gDir-36,airCombo+' AIR COMBO!','#00e5ff');emitParts(en.x,en.y,8,'#00e5ff',3,2);}

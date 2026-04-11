@@ -287,6 +287,71 @@ ja:{
   invincibleEnding:'無敵終了間近!',
   bossAppear:'BOSS 出現',
   combo:'コンボ',
+  // === In-game popups ===
+  popChestGet:'宝箱 GET!',
+  popEvade:'回避!',
+  popStun:'スタン!',
+  popDefeat:'撃破!',
+  popDefeatCount:'撃破 {0}体目',
+  popCheckpoint:'チェックポイント!',
+  popFromChest:'宝箱で入手!',
+  killCountDisplay:'撃破数',
+  youDefault:'あなた',
+  // === Boss Names ===
+  bossBruiser:'ブルーザー',
+  bossDodge:'ドッジー',
+  bossWizard:'ウィザード',
+  bossGuardian:'ガーディアン',
+  langJa:'日本語',
+  nameUnavailable:'この名前は使用できません',
+  nameTaken:'この名前は使われています',
+  registerName:'名前を登録',
+  nameNote:'※ランキングに表示されます。適切な名前を設定してください',
+  namePlaceholderAlt:'お好きな名前',
+  // === Settings Popups ===
+  nameChanged:'名前を変更しました',
+  nameInUse:'この名前は使われています',
+  googleLinkDone:'Google連携完了!',
+  xLinkDone:'X連携完了!',
+  linkFailed:'連携に失敗しました',
+  linkFailedLogout:'連携に失敗しました\nログアウト後Googleでログインしてください',
+  linkFailedLogoutX:'連携に失敗しました\nログアウト後Xでログインしてください',
+  // === Stage Pack Names ===
+  packSpace:'宇宙',
+  packSnow:'雪山',
+  packMagma:'マグマ',
+  packOcean:'海',
+  packSakura:'桜幻',
+  magnetItem:'吸収',
+  hintBruiser:'タイミングを合わせて踏め！',
+  hintDodge:'当たらないように避けろ！',
+  hintWizard:'攻撃を避けてアタックせよ！',
+  hintGuardian:'着地を見極めて頭を踏め！',
+  challengeLabel:'チャレンジ',
+  speedLabel:'速度',
+  openAllChests:'全て開封',
+  // === Items ===
+  itemInvincible:'無敵',
+  itemMagnet:'コイン吸収',
+  itemBomb:'ボム',
+  itemHeart:'ハート',
+  itemSlow:'スロー',
+  itemDescInvincible:'10秒間無敵',
+  itemDescMagnet:'自動収集',
+  itemDescBomb:'画面上の敵を一掃',
+  itemDescHeart:'HP回復',
+  itemDescSlow:'スローモーション',
+  // === More In-game Popups ===
+  popInvPlus1:'無敵+1! (No Damage!)',
+  popDestroyed:'撃破！',
+  popBossNoItem:'ボス戦中は使えない!',
+  popInvActivate:'無敵発動!',
+  popNameBanned:'この名前は使用できません',
+  popGachaOnly:'ガチャ限定!',
+  popCoinSwitch:'コインスイッチ!',
+  popSplit:'分裂!',
+  popCombo:'{0}コンボ!',
+  popGStomp:'重力ストンプ!',
   invincibleItem:'無敵',
   abilityDjump:'常時2段ジャンプ',
   abilityStep:'段差乗越＋小溝通過',
@@ -586,6 +651,71 @@ en:{
   invincibleEnding:'Invincibility ending!',
   bossAppear:'BOSS INCOMING',
   combo:'Combo',
+  // === In-game popups ===
+  popChestGet:'Chest GET!',
+  popEvade:'Dodge!',
+  popStun:'Stun!',
+  popDefeat:'Defeated!',
+  popDefeatCount:'Kill #{0}',
+  popCheckpoint:'Checkpoint!',
+  popFromChest:'Get from chests!',
+  killCountDisplay:'Kills',
+  youDefault:'You',
+  // === Boss Names ===
+  bossBruiser:'Bruiser',
+  bossDodge:'Dodger',
+  bossWizard:'Wizard',
+  bossGuardian:'Guardian',
+  langJa:'JA',
+  nameUnavailable:'This name is not available',
+  nameTaken:'This name is already taken',
+  registerName:'Register Name',
+  nameNote:'* Shown on rankings. Please choose an appropriate name',
+  namePlaceholderAlt:'Your name',
+  // === Settings Popups ===
+  nameChanged:'Name changed',
+  nameInUse:'This name is already taken',
+  googleLinkDone:'Google linked!',
+  xLinkDone:'X linked!',
+  linkFailed:'Linking failed',
+  linkFailedLogout:'Linking failed\nPlease log out and sign in with Google',
+  linkFailedLogoutX:'Linking failed\nPlease log out and sign in with X',
+  // === Stage Pack Names ===
+  packSpace:'Space',
+  packSnow:'Snow Mt.',
+  packMagma:'Magma',
+  packOcean:'Ocean',
+  packSakura:'Sakura',
+  magnetItem:'Magnet',
+  hintBruiser:'Time your stomp!',
+  hintDodge:'Dodge the rush!',
+  hintWizard:'Dodge and attack!',
+  hintGuardian:'Watch the landing, stomp the head!',
+  challengeLabel:'Challenge',
+  speedLabel:'Speed',
+  openAllChests:'Open All',
+  // === Items ===
+  itemInvincible:'Invincible',
+  itemMagnet:'Coin Magnet',
+  itemBomb:'Bomb',
+  itemHeart:'Heart',
+  itemSlow:'Slow',
+  itemDescInvincible:'10s invincibility',
+  itemDescMagnet:'Auto collect',
+  itemDescBomb:'Wipe all enemies',
+  itemDescHeart:'HP recovery',
+  itemDescSlow:'Slow motion',
+  // === More In-game Popups ===
+  popInvPlus1:'Invincible+1! (No Damage!)',
+  popDestroyed:'Destroyed!',
+  popBossNoItem:'Can\'t use during boss!',
+  popInvActivate:'Invincible!',
+  popNameBanned:'This name is not available',
+  popGachaOnly:'Gacha only!',
+  popCoinSwitch:'Coin Switch!',
+  popSplit:'Split!',
+  popCombo:'{0} Combo!',
+  popGStomp:'Gravity Stomp!',
   invincibleItem:'Shield',
   abilityDjump:'Always double jump',
   abilityStep:'Step climb + gap cross',
@@ -605,11 +735,71 @@ en:{
 
 function t(key){return(I18N[gameLang]&&I18N[gameLang][key])||I18N.ja[key]||key;}
 
+// Cosmetic item translations (by ID)
+const _cosmeticNames={ja:{
+  skin_red:'レッド',skin_gold:'ゴールド',skin_pink:'ピンク',skin_emerald:'エメラルド',skin_ice:'アイス',
+  skin_shadow:'シャドウ',skin_sunset:'サンセット',skin_galaxy:'ギャラクシー',skin_chrome:'クローム',
+  skin_rainbow:'レインボー',skin_plasma:'プラズマ',skin_void:'ヴォイド',skin_skeleton:'スケルトン',
+  skin_aurora:'オーロラ',skin_inferno:'インフェルノ',skin_hologram:'ホログラム',
+  eye_smile:'スマイルアイ',eye_angry:'アングリーアイ',eye_star:'スターアイ',eye_heart:'ハートアイ',
+  eye_fire:'ファイアアイ',eye_cat:'キャットアイ',eye_spiral:'グルグルアイ',eye_cyber:'サイバーアイ',
+  eye_diamond:'ダイアアイ',eye_void:'ヴォイドアイ',eye_galaxy:'ギャラクシーアイ',eye_glitch:'グリッチアイ',
+  eye_blink:'ブリンクアイ',eye_pulse:'パルスアイ',eye_cross:'クロスアイ',eye_hypno:'ヒプノアイ',
+  fx_sparkle:'キラキラ',fx_fire_aura:'炎オーラ',fx_ice_aura:'氷オーラ',fx_electric:'電撃',
+  fx_hearts:'ハート',fx_shadow:'ダークオーラ',fx_rainbow:'レインボーオーラ',fx_sakura:'桜吹雪',
+  fx_star_trail:'星の軌跡',fx_plasma_trail:'プラズマトレイル',fx_void_aura:'ヴォイドオーラ',
+  fx_celestial:'セレスティアル',fx_phoenix:'フェニックス',fx_glitch_trail:'グリッチトレイル',fx_supernova:'スーパーノヴァ',
+},en:{
+  skin_red:'Red',skin_gold:'Gold',skin_pink:'Pink',skin_emerald:'Emerald',skin_ice:'Ice',
+  skin_shadow:'Shadow',skin_sunset:'Sunset',skin_galaxy:'Galaxy',skin_chrome:'Chrome',
+  skin_rainbow:'Rainbow',skin_plasma:'Plasma',skin_void:'Void',skin_skeleton:'Skeleton',
+  skin_aurora:'Aurora',skin_inferno:'Inferno',skin_hologram:'Hologram',
+  eye_smile:'Smile Eye',eye_angry:'Angry Eye',eye_star:'Star Eye',eye_heart:'Heart Eye',
+  eye_fire:'Fire Eye',eye_cat:'Cat Eye',eye_spiral:'Spiral Eye',eye_cyber:'Cyber Eye',
+  eye_diamond:'Diamond Eye',eye_void:'Void Eye',eye_galaxy:'Galaxy Eye',eye_glitch:'Glitch Eye',
+  eye_blink:'Blink Eye',eye_pulse:'Pulse Eye',eye_cross:'Cross Eye',eye_hypno:'Hypno Eye',
+  fx_sparkle:'Sparkle',fx_fire_aura:'Fire Aura',fx_ice_aura:'Ice Aura',fx_electric:'Electric',
+  fx_hearts:'Hearts',fx_shadow:'Dark Aura',fx_rainbow:'Rainbow Aura',fx_sakura:'Cherry Blossom',
+  fx_star_trail:'Star Trail',fx_plasma_trail:'Plasma Trail',fx_void_aura:'Void Aura',
+  fx_celestial:'Celestial',fx_phoenix:'Phoenix',fx_glitch_trail:'Glitch Trail',fx_supernova:'Supernova',
+}};
+const _cosmeticDescs={ja:{
+  skin_red:'情熱の赤',skin_gold:'輝く黄金',skin_pink:'かわいいピンク',skin_emerald:'宝石の緑',skin_ice:'氷のブルー',
+  skin_shadow:'漆黒の闇',skin_sunset:'夕焼けのオレンジ',skin_galaxy:'宇宙の紫',skin_chrome:'メタリックシルバー',
+  skin_rainbow:'虹色に光る！',skin_plasma:'プラズマエネルギー',skin_void:'虚無の漆黒',skin_skeleton:'透き通る幻影',
+  skin_aurora:'極光が揺らめく',skin_inferno:'灼熱の業火',skin_hologram:'次元を超える光体',
+  eye_smile:'にっこり笑顔',eye_angry:'\uD83D\uDCA2 かわいい怒り顔',eye_star:'星形の瞳',eye_heart:'ハート型の瞳',
+  eye_fire:'燃える赤い目',eye_cat:'縦長の猫目',eye_spiral:'渦巻きの目',eye_cyber:'電子の瞳',
+  eye_diamond:'ダイヤの輝き',eye_void:'虚無の漆黒',eye_galaxy:'星雲の瞳',eye_glitch:'バグった瞳',
+  eye_blink:'瞬きする生きた瞳',eye_pulse:'脈打つように光る瞳',eye_cross:'十字に光る神秘の瞳',eye_hypno:'幻惑の渦巻きアニメ瞳',
+  fx_sparkle:'光の粒子が舞う',fx_fire_aura:'赤い炎のオーラ',fx_ice_aura:'青い氷のオーラ',fx_electric:'電気が走る',
+  fx_hearts:'ハートが浮かぶ',fx_shadow:'闇のオーラ',fx_rainbow:'虹色に光るオーラ',fx_sakura:'桜の花びらが舞う',
+  fx_star_trail:'星が流れる軌跡',fx_plasma_trail:'プラズマの軌跡',fx_void_aura:'虚無のオーラ',
+  fx_celestial:'天界の神聖なオーラ',fx_phoenix:'不死鳥の羽が舞う',fx_glitch_trail:'ノイズが走る軌跡',fx_supernova:'超新星爆発のオーラ',
+},en:{
+  skin_red:'Passionate red',skin_gold:'Shining gold',skin_pink:'Cute pink',skin_emerald:'Jewel green',skin_ice:'Icy blue',
+  skin_shadow:'Pitch black',skin_sunset:'Sunset orange',skin_galaxy:'Cosmic purple',skin_chrome:'Metallic silver',
+  skin_rainbow:'Rainbow glow!',skin_plasma:'Plasma energy',skin_void:'Void darkness',skin_skeleton:'Transparent phantom',
+  skin_aurora:'Shimmering aurora',skin_inferno:'Blazing inferno',skin_hologram:'Holographic light',
+  eye_smile:'Happy smile',eye_angry:'\uD83D\uDCA2 Cute angry face',eye_star:'Star pupils',eye_heart:'Heart pupils',
+  eye_fire:'Burning red eyes',eye_cat:'Cat slit eyes',eye_spiral:'Spiral eyes',eye_cyber:'Cyber pupils',
+  eye_diamond:'Diamond sparkle',eye_void:'Void darkness',eye_galaxy:'Nebula pupils',eye_glitch:'Glitched pupils',
+  eye_blink:'Living blinking eyes',eye_pulse:'Pulsing glow pupils',eye_cross:'Cross-shaped glow',eye_hypno:'Hypnotic spiral',
+  fx_sparkle:'Dancing particles',fx_fire_aura:'Red flame aura',fx_ice_aura:'Blue ice aura',fx_electric:'Electric sparks',
+  fx_hearts:'Floating hearts',fx_shadow:'Dark aura',fx_rainbow:'Rainbow glow aura',fx_sakura:'Cherry blossom petals',
+  fx_star_trail:'Starry trail',fx_plasma_trail:'Plasma trail',fx_void_aura:'Void aura',
+  fx_celestial:'Celestial holy aura',fx_phoenix:'Phoenix feathers',fx_glitch_trail:'Glitch noise trail',fx_supernova:'Supernova aura',
+}};
+function tCosName(id){return(_cosmeticNames[gameLang]&&_cosmeticNames[gameLang][id])||_cosmeticNames.ja[id]||id;}
+function tCosDesc(id){return(_cosmeticDescs[gameLang]&&_cosmeticDescs[gameLang][id])||_cosmeticDescs.ja[id]||id;}
+
 // Character i18n helpers (idx-based lookup)
 const _charNameKeys=['charCube','charBounce','charTire','charGhost','charNinja','charStone'];
 const _charTraitKeys=['traitBalanced','traitDoubleJump','traitRunner','traitEvasion','traitAgile','traitDefense'];
 const _charDescKeys=['descBalanced','descDoubleJump','descRunner','descEvasion','descAgile','descDefense'];
 const _themeNameKeys=['themeDeepSea','themeAquaDawn','themeEmerald','themeSunset','themeVolcano','themeCrimson','themeAbyss','themeNeonBloom','themeFrostHell','themeGoldenZone'];
+const _packNameKeys=['packSpace','packSnow','packMagma','packOcean','packSakura'];
+function tPackName(idx){return t(_packNameKeys[idx]||'packSpace');}
 function tCharName(idx){return t(_charNameKeys[idx]||'charCube');}
 function tCharTrait(idx){return t(_charTraitKeys[idx]||'traitBalanced');}
 function tCharDesc(idx){return t(_charDescKeys[idx]||'descBalanced');}
@@ -634,4 +824,7 @@ function setLang(lang){
   if(inp)inp.placeholder=t('namePlaceholder');
   if(note)note.innerHTML=t('guestNote')+'<br>'+t('guestNote2');
   if(btn)btn.textContent=t('startBtn');
+  // Rebuild language-dependent data
+  if(typeof _uh==='function'){UPDATE_HISTORY.length=0;_uh().forEach(h=>UPDATE_HISTORY.push(h));}
+  if(typeof _buildItems==='function'){ITEMS=_buildItems();}
 }

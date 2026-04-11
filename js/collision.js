@@ -23,6 +23,7 @@ function die(){
   player.alive=false;state=ST.DEAD;deadT=0;shakeI=14;switchBGM('dead');
   player.face='dead';sfx('death');vibrate([30,20,50]);
   bossRetry=null; // clear boss retry on death
+  bossPhase.active=false;bossPhase.prepare=0; // stop boss alert overlay on death screen
   // Record death position for stage mode marker (up to 10 per stage)
   if(isPackMode&&currentPackStage){
     const sid=currentPackStage.id;
@@ -90,7 +91,7 @@ let newHiEffT=0; // new highscore effect timer
 
 function useBomb(){
   if(bombCount<=0||(state!==ST.PLAY&&state!==ST.TUTORIAL))return;
-  if(bossPhase.active){sfx('hurt');vibrate(10);addPop(player.x,player.y-30,'\u30DC\u30B9\u6226\u4E2D\u306F\u4F7F\u3048\u306A\u3044!','#ff4444');return;}
+  if(bossPhase.active){sfx('hurt');vibrate(10);addPop(player.x,player.y-30,t('popBossNoItem'),'#ff4444');return;}
   bombCount--;sfx('bomb');vibrate([30,20,50]);shakeI=15;bombFlashT=20;
   // Kill all on-screen enemies
   let kills=0;
@@ -113,12 +114,12 @@ function useBomb(){
 }
 function useInvincible(){
   if(invCount<=0||(state!==ST.PLAY&&state!==ST.TUTORIAL))return;
-  if(bossPhase.active){sfx('hurt');vibrate(10);addPop(player.x,player.y-30,'\u30DC\u30B9\u6226\u4E2D\u306F\u4F7F\u3048\u306A\u3044!','#ff4444');return;}
+  if(bossPhase.active){sfx('hurt');vibrate(10);addPop(player.x,player.y-30,t('popBossNoItem'),'#ff4444');return;}
   invCount--;sfx('item');vibrate([20,10,30]);
   itemEff.invincible=state===ST.TUTORIAL?180:600;
   if(state===ST.PLAY)switchBGM('fever');
   emitParts(player.x,player.y,15,'#ff00ff',4,3);
-  addPop(player.x,player.y-30,'\u7121\u6575\u767A\u52D5!','#ff00ff');
+  addPop(player.x,player.y-30,t('popInvActivate'),'#ff00ff');
 }
 function applyItem(type){
   vibrate(25);
