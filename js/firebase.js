@@ -37,6 +37,20 @@ function fbSignInAnonymous() {
   if (!fbAuth) return Promise.reject('no-firebase');
   return fbAuth.signInAnonymously();
 }
+// Native bridge: RNからのGoogleトークンでサインイン
+function fbSignInWithGoogleIdToken(idToken) {
+  if (!fbAuth) return Promise.reject('no-firebase');
+  const credential = firebase.auth.GoogleAuthProvider.credential(idToken);
+  return fbAuth.signInWithCredential(credential);
+}
+// Native bridge: RNからのAppleトークンでサインイン
+function fbSignInWithAppleToken(identityToken) {
+  if (!fbAuth) return Promise.reject('no-firebase');
+  const provider = new firebase.auth.OAuthProvider('apple.com');
+  const credential = provider.credential({ idToken: identityToken });
+  return fbAuth.signInWithCredential(credential);
+}
+// Fallback: redirect (not used in RN app, kept for web)
 function fbSignInGoogle() {
   if (!fbAuth) return Promise.reject('no-firebase');
   const provider = new firebase.auth.GoogleAuthProvider();

@@ -2,6 +2,15 @@ import React, { useRef, useEffect, useCallback } from 'react';
 import { BackHandler, Platform, AppState } from 'react-native';
 import { WebView } from 'react-native-webview';
 import * as Haptics from 'expo-haptics';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+import * as AppleAuthentication from 'expo-apple-authentication';
+
+WebBrowser.maybeCompleteAuthSession();
+
+// ★ Firebase Console → Authentication → Sign-in method → Google →
+//   「ウェブクライアントID」をここに貼り付けてください
+const GOOGLE_WEB_CLIENT_ID = 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com';
 
 const GAME_URL = 'https://gravity-dash-cdce1.web.app/';
 
@@ -36,6 +45,11 @@ const BRIDGE_JS = `
           key: 'Escape', code: 'Escape', keyCode: 27
         }));
       }
+      // Google / Apple 認証結果をゲームに転送
+      if (msg.type === 'googleCredential' || msg.type === 'appleCredential' ||
+          msg.type === 'googleSignInError' || msg.type === 'appleSignInError') {
+        window.dispatchEvent(new CustomEvent('nativeAuthResult', { detail: msg }));
+      }
     } catch(err) {}
   });
   true;
@@ -46,6 +60,27 @@ export default function GameScreen({ onReady }) {
   const webViewRef = useRef(null);
   const appStateRef = useRef(AppState.currentState);
   const readyFired = useRef(false);
+
+  // Google OAuth (expo-auth-session)
+  const [, googleResponse, googlePromptAsync] = Google.useAuthRequest({
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+  });
+
+  // Google認証結果をWebViewに送る
+  useEffect(() => {
+    if (!googleResponse) return;
+    if (googleResponse.type === 'success') {
+      const idToken = googleResponse.params?.id_token;
+      if (idToken) {
+        webViewRef.current?.postMessage(JSON.stringify({ type: 'googleCredential', idToken }));
+      } else {
+        webViewRef.current?.postMessage(JSON.stringify({ type: 'googleSignInError' }));
+      }
+    } else if (googleResponse.type === 'error') {
+      webViewRef.current?.postMessage(JSON.stringify({ type: 'googleSignInError' }));
+    }
+    // dismiss はユーザーキャンセルなので何もしない
+  }, [googleResponse]);
 
   const fireReady = useCallback(() => {
     if (!readyFired.current) {
@@ -81,6 +116,35 @@ export default function GameScreen({ onReady }) {
     return () => sub.remove();
   }, []);
 
+  // Apple Sign-In (iOS native)
+  const handleAppleSignIn = useCallback(async () => {
+    if (Platform.OS !== 'ios') {
+      webViewRef.current?.postMessage(JSON.stringify({ type: 'appleSignInError' }));
+      return;
+    }
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+      if (credential.identityToken) {
+        webViewRef.current?.postMessage(JSON.stringify({
+          type: 'appleCredential',
+          identityToken: credential.identityToken,
+          fullName: credential.fullName?.givenName || '',
+        }));
+      } else {
+        webViewRef.current?.postMessage(JSON.stringify({ type: 'appleSignInError' }));
+      }
+    } catch (e) {
+      if (e.code !== 'ERR_REQUEST_CANCELED') {
+        webViewRef.current?.postMessage(JSON.stringify({ type: 'appleSignInError' }));
+      }
+    }
+  }, []);
+
   // WebViewからのメッセージ処理
   const onMessage = useCallback((event) => {
     try {
@@ -88,8 +152,14 @@ export default function GameScreen({ onReady }) {
       if (msg.type === 'vibrate') {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       }
+      if (msg.type === 'googleSignIn') {
+        googlePromptAsync();
+      }
+      if (msg.type === 'appleSignIn') {
+        handleAppleSignIn();
+      }
     } catch (e) {}
-  }, []);
+  }, [googlePromptAsync, handleAppleSignIn]);
 
   return (
     <WebView

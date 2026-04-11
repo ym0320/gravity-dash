@@ -1493,40 +1493,68 @@ loginBtn.addEventListener('click',()=>{
     _finishLogin(name);
   }).finally(()=>{loginBtn.disabled=false;});
 });
-// Google Sign-In (signInWithRedirect – result handled by fbRedirectResult event)
+// Google Sign-In (React Nativeネイティブ経由 – disallowed_useragent回避)
 const googleBtn=document.getElementById('googleBtn');
 if(googleBtn){
   googleBtn.addEventListener('click',()=>{
     initAudio();
     googleBtn.disabled=true;
     if(fbUser&&fbUser.isAnonymous)localStorage.setItem('gd5anonUid',fbUser.uid);
-    localStorage.setItem('gd5pendingProvider','google');
     localStorage.setItem('gd5prevMethod',fbLoginMethod||'');
-    fbSignInGoogle().catch(e=>{
-      console.warn('[Firebase] Google redirect error:',e);
-      localStorage.removeItem('gd5pendingProvider');
-      sfx('hurt');vibrate(10);
-      googleBtn.disabled=false;
-    });
+    // RNにGoogle認証を依頼
+    if(window.ReactNativeWebView){
+      window.ReactNativeWebView.postMessage(JSON.stringify({type:'googleSignIn'}));
+    } else {
+      // ウェブブラウザでの直接アクセス時はredirectにフォールバック
+      if(fbUser&&fbUser.isAnonymous)localStorage.setItem('gd5anonUid',fbUser.uid);
+      localStorage.setItem('gd5pendingProvider','google');
+      fbSignInGoogle().catch(()=>{googleBtn.disabled=false;});
+    }
   });
 }
-// Apple Sign-In (signInWithRedirect – result handled by fbRedirectResult event)
+// Apple Sign-In (React Nativeネイティブ経由)
 const appleBtn=document.getElementById('appleBtn');
 if(appleBtn){
   appleBtn.addEventListener('click',()=>{
     initAudio();
     appleBtn.disabled=true;
     if(fbUser&&fbUser.isAnonymous)localStorage.setItem('gd5anonUid',fbUser.uid);
-    localStorage.setItem('gd5pendingProvider','apple');
     localStorage.setItem('gd5prevMethod',fbLoginMethod||'');
-    fbSignInApple().catch(e=>{
-      console.warn('[Firebase] Apple redirect error:',e);
-      localStorage.removeItem('gd5pendingProvider');
-      sfx('hurt');vibrate(10);
-      appleBtn.disabled=false;
-    });
+    if(window.ReactNativeWebView){
+      window.ReactNativeWebView.postMessage(JSON.stringify({type:'appleSignIn'}));
+    } else {
+      localStorage.setItem('gd5pendingProvider','apple');
+      fbSignInApple().catch(()=>{appleBtn.disabled=false;});
+    }
   });
 }
+// RNからの認証結果を受け取る（native bridge）
+window.addEventListener('nativeAuthResult',(e)=>{
+  const msg=e.detail;
+  if(msg.type==='googleCredential'){
+    fbSignInWithGoogleIdToken(msg.idToken).then(cred=>{
+      _handleSocialLogin(cred.user,'google');
+    }).catch(err=>{
+      console.warn('[Firebase] Google credential error:',err);
+      if(googleBtn)googleBtn.disabled=false;
+      sfx('hurt');vibrate(10);
+    });
+  } else if(msg.type==='appleCredential'){
+    fbSignInWithAppleToken(msg.identityToken).then(cred=>{
+      _handleSocialLogin(cred.user,'apple');
+    }).catch(err=>{
+      console.warn('[Firebase] Apple credential error:',err);
+      if(appleBtn)appleBtn.disabled=false;
+      sfx('hurt');vibrate(10);
+    });
+  } else if(msg.type==='googleSignInError'){
+    if(googleBtn)googleBtn.disabled=false;
+    sfx('hurt');vibrate(10);
+  } else if(msg.type==='appleSignInError'){
+    if(appleBtn)appleBtn.disabled=false;
+    sfx('hurt');vibrate(10);
+  }
+});
 // Handle redirect result after page reload (Google/Apple sign-in)
 function _handleSocialLogin(user,providerName){
   const prevMethod=localStorage.getItem('gd5prevMethod')||'';
