@@ -485,25 +485,25 @@ function handleSettingsTouch(tx,ty){
       }
       return true;
     }
-    // X link
+    // Apple link
     if(tx>=s.px+20+s.linkBW+8&&tx<=s.px+20+s.linkBW+8+s.linkBW){
       sfx('select');
-      if(typeof fbLinkTwitter==='function'){
-        fbLinkTwitter().then(()=>{
-          addPop(W/2,H/2,t('xLinkDone'),'#1da1f2');sfx('item');vibrate(15);
+      if(typeof fbLinkApple==='function'){
+        fbLinkApple().then(()=>{
+          addPop(W/2,H/2,t('appleLinkDone'),'#aaa');sfx('item');vibrate(15);
         }).catch(e=>{
-          console.warn('[Firebase] Link Twitter error:',e);
+          console.warn('[Firebase] Link Apple error:',e);
           if(e.code==='auth/credential-already-in-use'&&e.credential){
-            fbHandleCredentialInUse(e.credential,'twitter').then(data=>{
+            fbHandleCredentialInUse(e.credential,'apple').then(data=>{
               if(data&&data.name){fbMergeCloudData(data);}
               fbSynced=true;fbSaveUserData();
-              addPop(W/2,H/2,t('xLinkDone'),'#1da1f2');sfx('item');vibrate(15);
+              addPop(W/2,H/2,t('appleLinkDone'),'#aaa');sfx('item');vibrate(15);
             }).catch(e2=>{
               console.warn('[Firebase] Switch error:',e2);
               addPop(W/2,H/2,t('linkFailed'),'#ff3860');sfx('hurt');vibrate(10);
             });
           } else if(e.code==='auth/credential-already-in-use'){
-            addPop(W/2,H/2,t('linkFailedLogoutX'),'#ff3860');sfx('hurt');vibrate(10);
+            addPop(W/2,H/2,t('linkFailedLogoutApple'),'#ff3860');sfx('hurt');vibrate(10);
           } else {
             addPop(W/2,H/2,t('linkFailed'),'#ff3860');sfx('hurt');vibrate(10);
           }
@@ -1543,7 +1543,7 @@ if(googleBtn){
         }
         // Step 3: New account (or switching from different social provider) – show name input
         // Clear lingering local data from previous provider to prevent bleed-through
-        if(prevMethod==='google'||prevMethod==='twitter'){
+        if(prevMethod==='google'||prevMethod==='apple'||prevMethod==='twitter'){
           playerName='';highScore=0;walletCoins=0;played=0;
           totalChestsOpened=0;storedChests=0;tutorialDone=false;
           unlockedChars=[0];ownedItems=[];packProgress={};totalStars=0;
@@ -1555,7 +1555,7 @@ if(googleBtn){
         _fbGoogleLoginInProgress=false;
         fbSynced=true;
         googleBtn.style.display='none';
-        if(twitterBtn)twitterBtn.style.display='none';
+        if(appleBtn)appleBtn.style.display='none';
         document.getElementById('loginDivider').style.display='none';
         document.getElementById('loginLabel').textContent=t('registerName');
         const ln=document.getElementById('loginNote');
@@ -1576,16 +1576,16 @@ if(googleBtn){
     }).finally(()=>{googleBtn.disabled=false;});
   });
 }
-// Twitter Sign-In
-const twitterBtn=document.getElementById('twitterBtn');
-if(twitterBtn){
-  twitterBtn.addEventListener('click',()=>{
+// Apple Sign-In
+const appleBtn=document.getElementById('appleBtn');
+if(appleBtn){
+  appleBtn.addEventListener('click',()=>{
     initAudio();
-    twitterBtn.disabled=true;
+    appleBtn.disabled=true;
     const prevMethod=fbLoginMethod; // capture before auth changes it
     const prevAnonUid=(fbUser&&fbUser.isAnonymous)?fbUser.uid:null;
     _fbGoogleLoginInProgress=true;
-    fbSignInTwitter().then(cred=>{
+    fbSignInApple().then(cred=>{
       const user=cred.user;
       fbUser=user;
       return fbLoadUserData(user.uid).then(data=>{
@@ -1622,8 +1622,7 @@ if(twitterBtn){
           });
         }
         // New account (or switching from different social provider) – show name input
-        // Clear lingering local data from previous provider to prevent bleed-through
-        if(prevMethod==='google'||prevMethod==='twitter'){
+        if(prevMethod==='google'||prevMethod==='apple'||prevMethod==='twitter'){
           playerName='';highScore=0;walletCoins=0;played=0;
           totalChestsOpened=0;storedChests=0;tutorialDone=false;
           unlockedChars=[0];ownedItems=[];packProgress={};totalStars=0;
@@ -1634,7 +1633,7 @@ if(twitterBtn){
         }
         _fbGoogleLoginInProgress=false;
         fbSynced=true;
-        if(twitterBtn)twitterBtn.style.display='none';
+        appleBtn.style.display='none';
         googleBtn.style.display='none';
         document.getElementById('loginDivider').style.display='none';
         document.getElementById('loginLabel').textContent=t('registerName');
@@ -1642,18 +1641,18 @@ if(twitterBtn){
         ln2.textContent=t('nameNote');
         ln2.style.color='#fff4';
         if(user.displayName){
-          const tName=user.displayName.replace(/[<>&"']/g,'').substring(0,12);
-          nameInput.value=tName;
-          loginBtn.classList.toggle('ready',tName.trim().length>=1);
+          const aName=user.displayName.replace(/[<>&"']/g,'').substring(0,12);
+          nameInput.value=aName;
+          loginBtn.classList.toggle('ready',aName.trim().length>=1);
         }
         nameInput.placeholder=t('namePlaceholderAlt');
         nameInput.focus();
       });
     }).catch(e=>{
-      console.warn('[Firebase] Twitter sign-in error:',e);
+      console.warn('[Firebase] Apple sign-in error:',e);
       _fbGoogleLoginInProgress=false;
       sfx('hurt');vibrate(10);
-    }).finally(()=>{twitterBtn.disabled=false;});
+    }).finally(()=>{appleBtn.disabled=false;});
   });
 }
 // Auto-login for returning Firebase users (check on page load)

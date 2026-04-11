@@ -3024,7 +3024,7 @@ function drawTitle(){
     // Login method indicator (above logout button)
     const methodY=resetBtnY+42;
     ctx.fillStyle='#fff3';ctx.font='9px monospace';ctx.textAlign='center';
-    const methodStr=fbLoginMethod==='google'?t('googleAccount'):fbLoginMethod==='twitter'?t('xAccount'):fbLoginMethod==='anonymous'?t('guestLogin'):'';
+    const methodStr=fbLoginMethod==='google'?t('googleAccount'):fbLoginMethod==='apple'?t('appleAccount'):fbLoginMethod==='twitter'?t('xAccount'):fbLoginMethod==='anonymous'?t('guestLogin'):'';
     if(methodStr)ctx.fillText(methodStr,W/2,methodY);
     // Account linking buttons (guest users only)
     let linkBtnOffset=0;
@@ -3036,11 +3036,11 @@ function drawTitle(){
       ctx.strokeStyle='#4285f466';ctx.lineWidth=1;rr(px+20,linkY,linkBW,28,6);ctx.stroke();
       ctx.fillStyle='#4285f4';ctx.font='bold 10px monospace';ctx.textAlign='center';
       ctx.fillText(t('googleLink'),px+20+linkBW/2,linkY+18);
-      // X link
-      ctx.fillStyle='#1da1f222';rr(px+20+linkBW+8,linkY,linkBW,28,6);ctx.fill();
-      ctx.strokeStyle='#1da1f266';ctx.lineWidth=1;rr(px+20+linkBW+8,linkY,linkBW,28,6);ctx.stroke();
-      ctx.fillStyle='#1da1f2';ctx.font='bold 10px monospace';ctx.textAlign='center';
-      ctx.fillText(t('xLink'),px+20+linkBW+8+linkBW/2,linkY+18);
+      // Apple link
+      ctx.fillStyle='#ffffff22';rr(px+20+linkBW+8,linkY,linkBW,28,6);ctx.fill();
+      ctx.strokeStyle='#ffffff66';ctx.lineWidth=1;rr(px+20+linkBW+8,linkY,linkBW,28,6);ctx.stroke();
+      ctx.fillStyle='#fff';ctx.font='bold 10px monospace';ctx.textAlign='center';
+      ctx.fillText(t('appleLink'),px+20+linkBW+8+linkBW/2,linkY+18);
       linkBtnOffset=42;
     }
     // Logout button

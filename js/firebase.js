@@ -41,23 +41,28 @@ function fbSignInGoogle() {
   const provider = new firebase.auth.GoogleAuthProvider();
   return fbAuth.signInWithPopup(provider);
 }
-function fbSignInTwitter() {
+function fbSignInApple() {
   if (!fbAuth) return Promise.reject('no-firebase');
-  const provider = new firebase.auth.TwitterAuthProvider();
+  const provider = new firebase.auth.OAuthProvider('apple.com');
+  provider.addScope('email');
+  provider.addScope('name');
   return fbAuth.signInWithPopup(provider);
 }
 // Link anonymous account to a provider (keeps same UID & data)
-function _fbLinkWithProvider(ProviderClass, methodName) {
+function _fbLinkWithProvider(provider, methodName) {
   if (!fbAuth || !fbUser) return Promise.reject('no-user');
-  const provider = new ProviderClass();
   return fbUser.linkWithPopup(provider).then(cred => {
     fbLoginMethod = methodName;
     localStorage.setItem('gd5loginMethod', methodName);
     return cred;
   });
 }
-function fbLinkGoogle() { return _fbLinkWithProvider(firebase.auth.GoogleAuthProvider, 'google'); }
-function fbLinkTwitter() { return _fbLinkWithProvider(firebase.auth.TwitterAuthProvider, 'twitter'); }
+function fbLinkGoogle() { return _fbLinkWithProvider(new firebase.auth.GoogleAuthProvider(), 'google'); }
+function fbLinkApple() {
+  const p = new firebase.auth.OAuthProvider('apple.com');
+  p.addScope('email'); p.addScope('name');
+  return _fbLinkWithProvider(p, 'apple');
+}
 function fbSignOut() {
   if (!fbAuth) return Promise.resolve();
   return fbAuth.signOut();
@@ -125,6 +130,7 @@ if (fbAuth) {
     fbReady = true;
     if (user) {
       fbLoginMethod = user.isAnonymous ? 'anonymous' :
+        (user.providerData && user.providerData.some(p => p.providerId === 'apple.com')) ? 'apple' :
         (user.providerData && user.providerData.some(p => p.providerId === 'twitter.com')) ? 'twitter' : 'google';
       localStorage.setItem('gd5loginMethod', fbLoginMethod);
       if (_fbGoogleLoginInProgress) {
@@ -439,40 +445,30 @@ function fbCheckNameExists(name) {
     .catch(e => { console.warn('[Firebase] Name check error:', e); return false; });
 }
 
-// --- Firestore: find user data by name and migrate to current Google UID ---
-// Used when Google login has no data but an old anonymous account exists
-// Optional expectedOldUid: only migrate if the found doc belongs to this UID (safety)
+// --- Firestore: find user data by UID and migrate to current Google UID ---
+// Used when Google login has no data but an old anonymous account exists.
+// Requires expectedOldUid (the previous anonymous UID) — name-based lookup removed for security.
 function fbFindAndMigrateByName(name, expectedOldUid) {
-  if (!fbDb || !fbUser) return Promise.resolve(null);
-  return fbDb.collection('users').where('name', '==', name).limit(1).get()
-    .then(snap => {
-      if (snap.empty) return null;
-      let found = null;
-      let oldDocId = null;
-      snap.forEach(doc => { found = doc.data(); oldDocId = doc.id; });
-      if (!found) return null;
-      const newUid = fbUser.uid;
-      if (oldDocId === newUid) return found;
-      // Safety: if expectedOldUid provided, only migrate from that specific account
-      if (expectedOldUid && oldDocId !== expectedOldUid) return null;
+  if (!fbDb || !fbUser || !expectedOldUid) return Promise.resolve(null);
+  const newUid = fbUser.uid;
+  if (expectedOldUid === newUid) return Promise.resolve(null);
+  return fbDb.collection('users').doc(expectedOldUid).get()
+    .then(doc => {
+      if (!doc.exists) return null;
+      const found = doc.data();
+      // Verify the name matches to prevent migrating another user's account
+      if (!found.name || found.name !== name) return null;
       return fbDb.collection('users').doc(newUid).set(found, { merge: true }).then(() => {
-        // Migrate ranking entries and clean up old documents
-        return fbDb.collection('rankings').doc(oldDocId).get().then(rdoc => {
+        return fbDb.collection('rankings').doc(expectedOldUid).get().then(rdoc => {
           if (rdoc.exists) {
-            return fbDb.collection('rankings').doc(newUid).set(rdoc.data(), { merge: true }).then(() => {
-              fbDb.collection('rankings').doc(oldDocId).delete().catch(() => {});
-            });
+            return fbDb.collection('rankings').doc(newUid).set(rdoc.data(), { merge: true });
           }
         }).then(() => {
-          return fbDb.collection('challengeRankings').doc(oldDocId).get().then(crdoc => {
+          return fbDb.collection('challengeRankings').doc(expectedOldUid).get().then(crdoc => {
             if (crdoc.exists) {
-              return fbDb.collection('challengeRankings').doc(newUid).set(crdoc.data(), { merge: true }).then(() => {
-                fbDb.collection('challengeRankings').doc(oldDocId).delete().catch(() => {});
-              });
+              return fbDb.collection('challengeRankings').doc(newUid).set(crdoc.data(), { merge: true });
             }
           });
-        }).then(() => {
-          fbDb.collection('users').doc(oldDocId).delete().catch(() => {});
         });
       }).then(() => found);
     })

@@ -23,10 +23,11 @@ ja:{
   confirmDelete:'本当に削除しますか？',
   finalConfirm:'最終確認: タップで完全削除',
   googleAccount:'Googleアカウント',
+  appleAccount:'Appleアカウント',
   xAccount:'Xアカウント',
   guestLogin:'ゲストログイン',
   googleLink:'Google連携',
-  xLink:'X連携',
+  appleLink:'Apple連携',
   logout:'ログアウト',
   guestDataWarning:'ゲストの為データが消えます',
   confirmLogout:'本当にログアウト？',
@@ -312,10 +313,10 @@ ja:{
   nameChanged:'名前を変更しました',
   nameInUse:'この名前は使われています',
   googleLinkDone:'Google連携完了!',
-  xLinkDone:'X連携完了!',
+  appleLinkDone:'Apple連携完了!',
   linkFailed:'連携に失敗しました',
   linkFailedLogout:'連携に失敗しました\nログアウト後Googleでログインしてください',
-  linkFailedLogoutX:'連携に失敗しました\nログアウト後Xでログインしてください',
+  linkFailedLogoutApple:'連携に失敗しました\nログアウト後Appleでログインしてください',
   // === Stage Pack Names ===
   packSpace:'宇宙',
   packSnow:'雪山',
@@ -387,10 +388,11 @@ en:{
   confirmDelete:'Really delete?',
   finalConfirm:'Final: Tap to delete all',
   googleAccount:'Google Account',
+  appleAccount:'Apple Account',
   xAccount:'X Account',
   guestLogin:'Guest Login',
   googleLink:'Link Google',
-  xLink:'Link X',
+  appleLink:'Link Apple',
   logout:'Log Out',
   guestDataWarning:'Guest data will be lost',
   confirmLogout:'Really log out?',
@@ -676,10 +678,10 @@ en:{
   nameChanged:'Name changed',
   nameInUse:'This name is already taken',
   googleLinkDone:'Google linked!',
-  xLinkDone:'X linked!',
+  appleLinkDone:'Apple linked!',
   linkFailed:'Linking failed',
   linkFailedLogout:'Linking failed\nPlease log out and sign in with Google',
-  linkFailedLogoutX:'Linking failed\nPlease log out and sign in with X',
+  linkFailedLogoutApple:'Linking failed\nPlease log out and sign in with Apple',
   // === Stage Pack Names ===
   packSpace:'Space',
   packSnow:'Snow Mt.',
@@ -822,7 +824,7 @@ function setLang(lang){
   if(div){div.querySelector('span').textContent=t('or');}
   if(lbl)lbl.textContent=t('guestLoginLabel');
   if(inp)inp.placeholder=t('namePlaceholder');
-  if(note)note.innerHTML=t('guestNote')+'<br>'+t('guestNote2');
+  if(note){note.textContent=t('guestNote');const br=document.createElement('br');note.appendChild(br);note.appendChild(document.createTextNode(t('guestNote2')));}
   if(btn)btn.textContent=t('startBtn');
   // Rebuild language-dependent data
   if(typeof _uh==='function'){UPDATE_HISTORY.length=0;_uh().forEach(h=>UPDATE_HISTORY.push(h));}
