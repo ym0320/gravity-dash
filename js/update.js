@@ -4,6 +4,49 @@ let lastTime=0;
 // Circular trail buffer (avoids push/shift GC pressure)
 let _trailBuf=new Array(20),_trailHead=0,_trailLen=0;
 for(let _ti=0;_ti<20;_ti++)_trailBuf[_ti]={x:0,y:0,a:0};
+// Helper: reset player flip/jump state after landing or stomp
+function resetFlipState(){
+  resetFlipState();
+}
+
+// Shared chest open state machine: wobble -> burst -> reveal -> done
+// Used by ST.TITLE (with batch-mode extension) and ST.DEAD.
+function updateChestOpenStateMachine(){
+  chestOpen.t++;
+  if(chestOpen.phase==='wobble'&&chestOpen.t>=50){
+    chestOpen.phase='burst';chestOpen.t=0;sfxChestOpen();shakeI=15;vibrate([30,20,40,20,80]);
+  }
+  else if(chestOpen.phase==='burst'&&chestOpen.t>=40){
+    chestOpen.phase='reveal';chestOpen.t=0;
+    if(chestOpen.reward&&chestOpen.reward.type==='coin'){
+      walletCoins+=chestOpen.reward.amount;localStorage.setItem('gd5wallet',walletCoins.toString());
+    }
+    if(chestOpen.reward&&chestOpen.reward.type==='char'){
+      sfxSuperRare();shakeI=25;vibrate([40,20,60,30,80,40,100]);
+      if(chestOpen.reward.isNew){
+        unlockCharFromChest(chestOpen.reward.charIdx);
+      } else {
+        chestOpen.reward.bonusCoins=500;
+        walletCoins+=500;localStorage.setItem('gd5wallet',walletCoins.toString());
+      }
+    }
+    if(chestOpen.reward&&chestOpen.reward.type==='cosmetic'){
+      if(chestOpen.reward.item.rarity==='super_rare'){
+        sfxSuperRare();shakeI=30;vibrate([50,20,70,30,90,40,120]);
+      }
+      if(!chestOpen.reward.isNew){
+        walletCoins+=300;localStorage.setItem('gd5wallet',walletCoins.toString());
+      }
+    }
+  }
+  else if(chestOpen.phase==='reveal'){
+    const revealLen=chestOpen.reward&&chestOpen.reward.type==='char'?140:
+      (chestOpen.reward&&chestOpen.reward.type==='cosmetic'&&chestOpen.reward.item&&chestOpen.reward.item.rarity==='super_rare')?160:90;
+    if(chestOpen.t>=revealLen){
+      chestOpen.phase='done';chestOpen.t=0;
+    }
+  }
+}
 function update(dt){
   frame++;
   if(themeLerp<1)themeLerp=Math.min(1,themeLerp+0.015);
@@ -43,7 +86,7 @@ function update(dt){
     return;
   }
   if(state===ST.TUTORIAL){
-    frame++;tutStepT++;
+    tutStepT++;
     if(tutPhase==='success')tutSuccessT++;
     // Warp transition animation
     if(tutWarpPhase==='welcome'||tutWarpPhase==='warp'){
@@ -128,7 +171,6 @@ function update(dt){
       }
     }
     fip(parts,p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.07;p.vx*=0.99;p.life--;return p.life>0;});
-    fip(pops,p=>{p.y-=1.2;p.life--;return p.life>0;});
     if(bombFlashT>0)bombFlashT--;
     if(itemEff.invincible>0)itemEff.invincible--;
     return;
@@ -148,56 +190,21 @@ function update(dt){
     updateDemo();
     // Inventory/dead chest opening state machine
     if((inventoryOpen||deadChestOpen)&&chestOpen.phase!=='none'){
-      chestOpen.t++;
-      if(chestOpen.phase==='wobble'&&chestOpen.t>=50){
-        chestOpen.phase='burst';chestOpen.t=0;sfxChestOpen();shakeI=15;vibrate([30,20,40,20,80]);
-      }
-      else if(chestOpen.phase==='burst'&&chestOpen.t>=40){
-        chestOpen.phase='reveal';chestOpen.t=0;
-        if(chestOpen.reward&&chestOpen.reward.type==='coin'){
-          walletCoins+=chestOpen.reward.amount;localStorage.setItem('gd5wallet',walletCoins.toString());
-        }
-        if(chestOpen.reward&&chestOpen.reward.type==='char'){
-          sfxSuperRare();shakeI=25;vibrate([40,20,60,30,80,40,100]);
-          if(chestOpen.reward.isNew){
-            unlockCharFromChest(chestOpen.reward.charIdx);
-          } else {
-            chestOpen.reward.bonusCoins=500;
-            walletCoins+=500;localStorage.setItem('gd5wallet',walletCoins.toString());
-          }
-        }
-        if(chestOpen.reward&&chestOpen.reward.type==='cosmetic'){
-          if(chestOpen.reward.item.rarity==='super_rare'){
-            sfxSuperRare();shakeI=30;vibrate([50,20,70,30,90,40,120]);
-          }
-          if(!chestOpen.reward.isNew){
-            walletCoins+=300;localStorage.setItem('gd5wallet',walletCoins.toString());
-          }
+      // Run shared wobble->burst->reveal->done logic
+      updateChestOpenStateMachine();
+      // Batch-mode extension: when reveal completes, auto-advance instead of stopping at 'done'
+      if(chestOpen.phase==='done'&&chestBatchMode){
+        chestBatchResults.push(chestOpen.reward);
+        if(storedChests>0){
+          startInventoryChestOpen();
+          chestOpen.phase='wobble';chestOpen.t=0;
+          totalChestsOpened++;localStorage.setItem('gd5chestTotal',totalChestsOpened.toString());
+          storedChests--;localStorage.setItem('gd5storedChests',storedChests.toString());
+        } else {
+          chestOpen.phase='batchDone';chestOpen.t=0;chestBatchMode=false;
         }
       }
-      else if(chestOpen.phase==='reveal'){
-        const revealLen=chestOpen.reward&&chestOpen.reward.type==='char'?140:
-          (chestOpen.reward&&chestOpen.reward.type==='cosmetic'&&chestOpen.reward.item&&chestOpen.reward.item.rarity==='super_rare')?160:90;
-        if(chestOpen.t>=revealLen){
-          if(chestBatchMode){
-            // Auto-advance in batch mode: collect result and open next
-            chestBatchResults.push(chestOpen.reward);
-            if(storedChests>0){
-              startInventoryChestOpen();
-              chestOpen.phase='wobble';chestOpen.t=0;
-              totalChestsOpened++;localStorage.setItem('gd5chestTotal',totalChestsOpened.toString());
-              storedChests--;localStorage.setItem('gd5storedChests',storedChests.toString());
-            } else {
-              chestOpen.phase='batchDone';chestOpen.t=0;chestBatchMode=false;
-            }
-          } else {
-            chestOpen.phase='done';chestOpen.t=0;
-          }
-        }
-      }
-      else if(chestOpen.phase==='batchDone'){
-        // Just increment timer for sparkle animation
-      }
+      // batchDone phase: t++ handled above by updateChestOpenStateMachine; sparkle drawn by draw.js
     }
     return;
   }
@@ -207,34 +214,7 @@ function update(dt){
     for(let i=0;i<stars.length;i++){const s=stars[i];s.x-=s.sp*0.15;s.tw+=s.ts;if(s.x<-5)s.x=W+5;}
     // Chest opening on death screen
     if(deadChestOpen&&chestOpen.phase!=='none'){
-      chestOpen.t++;
-      if(chestOpen.phase==='wobble'&&chestOpen.t>=50){
-        chestOpen.phase='burst';chestOpen.t=0;sfxChestOpen();shakeI=15;vibrate([30,20,40,20,80]);
-      }
-      else if(chestOpen.phase==='burst'&&chestOpen.t>=40){
-        chestOpen.phase='reveal';chestOpen.t=0;
-        if(chestOpen.reward&&chestOpen.reward.type==='coin'){
-          walletCoins+=chestOpen.reward.amount;localStorage.setItem('gd5wallet',walletCoins.toString());
-        }
-        if(chestOpen.reward&&chestOpen.reward.type==='char'){
-          sfxSuperRare();shakeI=25;vibrate([40,20,60,30,80,40,100]);
-          if(chestOpen.reward.isNew){unlockCharFromChest(chestOpen.reward.charIdx);}
-          else{chestOpen.reward.bonusCoins=500;walletCoins+=500;localStorage.setItem('gd5wallet',walletCoins.toString());}
-        }
-        if(chestOpen.reward&&chestOpen.reward.type==='cosmetic'){
-          if(chestOpen.reward.item.rarity==='super_rare'){
-            sfxSuperRare();shakeI=30;vibrate([50,20,70,30,90,40,120]);
-          }
-          if(!chestOpen.reward.isNew){
-            walletCoins+=300;localStorage.setItem('gd5wallet',walletCoins.toString());
-          }
-        }
-      }
-      else if(chestOpen.phase==='reveal'){
-        const revealLen=chestOpen.reward&&chestOpen.reward.type==='char'?140:
-          (chestOpen.reward&&chestOpen.reward.type==='cosmetic'&&chestOpen.reward.item&&chestOpen.reward.item.rarity==='super_rare')?160:90;
-        if(chestOpen.t>=revealLen){chestOpen.phase='done';chestOpen.t=0;}
-      }
+      updateChestOpenStateMachine();
     }
     return;
   }
@@ -688,7 +668,7 @@ function update(dt){
       if(lS<H+100||rS<H+100) surfY=lS<H+100&&rS<H+100?Math.max(lS,rS):lS<H+100?lS:rS;
     }
     if(player.y+pr>=surfY&&surfY<H+100){
-      player.y=surfY-pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
+      player.y=surfY-pr;player.vy=0;player.grounded=true;resetFlipState();
     }
   } else {
     let surfY=ceilSurfaceY(player.x);
@@ -698,7 +678,7 @@ function update(dt){
       if(lS>-100||rS>-100) surfY=lS>-100&&rS>-100?Math.min(lS,rS):lS>-100?lS:rS;
     }
     if(player.y-pr<=surfY&&surfY>-100){
-      player.y=surfY+pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
+      player.y=surfY+pr;player.vy=0;player.grounded=true;resetFlipState();
     }
   }
 
@@ -726,13 +706,13 @@ function update(dt){
       if(player.x>=fp.x-pr*0.5&&player.x<=fp.x+fp.w+pr*0.5){
         if(player.gDir===1&&player.vy>=0){
           if(player.y+pr>=fp.y&&player.y+pr<fp.y+fp.th+8){
-            player.y=fp.y-pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
+            player.y=fp.y-pr;player.vy=0;player.grounded=true;resetFlipState();
             player._onFloatPlat=fp;
             break;
           }
         } else if(player.gDir===-1&&player.vy<=0){
           if(player.y-pr<=fp.y+fp.th&&player.y-pr>fp.y-8){
-            player.y=fp.y+fp.th+pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
+            player.y=fp.y+fp.th+pr;player.vy=0;player.grounded=true;resetFlipState();
             player._onFloatPlat=fp;
             break;
           }
@@ -783,7 +763,7 @@ function update(dt){
         // Ceiling moving hill - landing
         if(player.gDir===-1){
           if(player.y-pr<=surfY&&player.y-pr>surfY-20&&player.vy<=0){
-            player.y=surfY+pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
+            player.y=surfY+pr;player.vy=0;player.grounded=true;resetFlipState();
           } else if(player.y-pr<surfY-4&&player.y+pr>surfY&&player.grounded){
             player.y=surfY+pr;
           }
@@ -792,7 +772,7 @@ function update(dt){
         // Floor moving hill - landing
         if(player.gDir===1){
           if(player.y+pr>=surfY&&player.y+pr<surfY+20&&player.vy>=0){
-            player.y=surfY-pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
+            player.y=surfY-pr;player.vy=0;player.grounded=true;resetFlipState();
           } else if(player.y+pr>surfY+4&&player.y-pr<surfY&&player.grounded){
             player.y=surfY-pr;
           }
@@ -810,7 +790,7 @@ function update(dt){
       const forceDir=g.dir||1;
       // Force gravity direction and reset movement state so player can act again
       player.gDir=forceDir;player.vy=0;
-      flipCount=0;player.canFlip=true;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
+      resetFlipState();
       const col=forceDir===1?'#4488ff':'#ff66aa';
       if(forceDir===1)sfxGravDown();else sfxGravUp();
       vibrate([20,10,30]);shakeI=8;
@@ -830,14 +810,14 @@ function update(dt){
         const surfY2=H-fm.curH;
         if(player.gDir===1&&player.x+pr>fm.x&&player.x-pr<fm.x+fm.w){
           if(player.y+pr>=surfY2&&player.y+pr<surfY2+12&&player.vy>=0){
-            player.y=surfY2-pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
+            player.y=surfY2-pr;player.vy=0;player.grounded=true;resetFlipState();
           }
         }
       } else {
         const surfY2=fm.curH;
         if(player.gDir===-1&&player.x+pr>fm.x&&player.x-pr<fm.x+fm.w){
           if(player.y-pr<=surfY2&&player.y-pr>surfY2-12&&player.vy<=0){
-            player.y=surfY2+pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
+            player.y=surfY2+pr;player.vy=0;player.grounded=true;resetFlipState();
           }
         }
       }
@@ -948,7 +928,7 @@ function update(dt){
     if(ic.state==='stuck'&&!player.grounded&&player.gDir===1&&player.vy>=0){
       if(player.x>=ic.x-pr*0.3&&player.x<=ic.x+ic.w+pr*0.3){
         if(player.y+pr>=ic.baseY&&player.y+pr<ic.baseY+12){
-          player.y=ic.baseY-pr;player.vy=0;player.grounded=true;player.canFlip=true;flipCount=0;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
+          player.y=ic.baseY-pr;player.vy=0;player.grounded=true;resetFlipState();
         }
       }
     }
@@ -1337,7 +1317,7 @@ function update(dt){
           player.vy=-JUMP_POWER*0.7*player.gDir;
           player.grounded=false;
         }
-        flipCount=0;player.canFlip=true;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
+        resetFlipState();
         // Gravity stomp bonus
         const gstomp=flipTimer<40;
         // Stomp combo: base + combo bonus (additive)

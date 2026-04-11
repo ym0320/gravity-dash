@@ -1,4 +1,8 @@
 'use strict';
+// Named constant: 3 seconds * 60fps
+const COUNTDOWN_FRAMES = 180;
+// Generic axis-aligned rectangle hit test helper
+function hitRect(tx, ty, x, y, w, h){ return tx>=x && tx<=x+w && ty>=y && ty<=y+h; }
 let touchStartY=0,touchStartX=0,touchStartT=0,touchMoved=false,touchBtnUsed=false;
 let touchOriginY=0; // original Y at touchstart (not modified by scroll handlers)
 // Character modal (long-press on title to show details + animated demo)
@@ -13,7 +17,7 @@ function canvasXY(cx,cy){
 }
 
 // Pause button hit test (moved lower, larger area for reliability)
-function hitPauseBtn(px,py){return px>=W-58&&px<=W-4&&py>=safeTop+8&&py<=safeTop+52;}
+function hitPauseBtn(px,py){return hitRect(px,py,W-58,safeTop+8,54,44);}
 function itemBtnLayout(){const btnSz=44,btnGap=12,totalW=btnSz*2+btnGap,sx=W/2-totalW/2,by=H-PANEL_H+6;return{invX:sx,bombX:sx+btnSz+btnGap,y:by,sz:btnSz};}
 function hitInvBtn(px,py){const b=itemBtnLayout();return px>=b.invX&&px<=b.invX+b.sz&&py>=b.y&&py<=b.y+b.sz;}
 function hitBombBtn(px,py){const b=itemBtnLayout();return px>=b.bombX&&px<=b.bombX+b.sz&&py>=b.y&&py<=b.y+b.sz;}
@@ -287,7 +291,7 @@ function continueFromDeath(){
   coinCD=0;itemCD=0;enemyCD=0;birdCD=0;spikeCD=0;hillCD=0;floatCD=0;gravZoneCD=0;icicleCD=0;
   flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
   bossChests=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null};
-  state=ST.COUNTDOWN;countdownT=180;
+  state=ST.COUNTDOWN;countdownT=COUNTDOWN_FRAMES;
   curTheme=0;prevTheme=0;themeLerp=1; // reset theme to initial color
   bgmTierOffset=Math.floor(score/1000); // BGM restarts from play1, progresses every 1000 score
   _pauseSavedBGM=''; // clear any stale pause state
@@ -299,7 +303,7 @@ function startPackStageFromDead(){
   const sid=currentPackStage?currentPackStage.id:'';
   const hasCp=checkpointReached||stageCheckpoints[sid];
   resetPackStage(currentPackIdx,currentPackStageIdx,hasCp);
-  state=ST.COUNTDOWN;countdownT=180;
+  state=ST.COUNTDOWN;countdownT=COUNTDOWN_FRAMES;
   stopBGM(); // stop dead BGM, force restart when countdown ends
   sfx('countdown');
 }
@@ -351,9 +355,9 @@ function settingsLayout(){
   const logoutBtnY=methodY+8+linkBtnOffset;
   return{px,py,pw,ph,slX,barX,barW,barY1:slY1-8,barY2:slY2-8,barH,langY,langBtnX,langBtnW,langBtnH,engBtnX,nameY,tutBtnY,resetBtnY,linkY,linkBW,logoutBtnY,closeY:py+ph-42};
 }
-function hitSettingsGear(tx,ty){return tx>=W-44&&tx<=W-8&&ty>=safeTop+6&&ty<=safeTop+42;}
-function hitHelpBtn(tx,ty){return tx>=W-44&&tx<=W-8&&ty>=safeTop+44&&ty<=safeTop+80;}
-function hitUpdateBtn(tx,ty){return tx>=W-44&&tx<=W-8&&ty>=safeTop+82&&ty<=safeTop+118;}
+function hitSettingsGear(tx,ty){return hitRect(tx,ty,W-44,safeTop+6,36,36);}
+function hitHelpBtn(tx,ty){return hitRect(tx,ty,W-44,safeTop+44,36,36);}
+function hitUpdateBtn(tx,ty){return hitRect(tx,ty,W-44,safeTop+82,36,36);}
 function handleConfirmModalTouch(tx,ty){
   if(!confirmModal)return false;
   const mW=Math.min(280,W-40),mH=220;
@@ -618,13 +622,13 @@ function restartFromPause(){
     const sid2=currentPackStage?currentPackStage.id:'';
     const hasCp2=checkpointReached||stageCheckpoints[sid2];
     resetPackStage(currentPackIdx,currentPackStageIdx,hasCp2);
-    state=ST.COUNTDOWN;countdownT=180;
+    state=ST.COUNTDOWN;countdownT=COUNTDOWN_FRAMES;
     stopBGM(); // stop current BGM, force restart when countdown ends
     sfx('countdown');
   } else {
     bossRetry=null;isRetryGame=false;
     reset();
-    state=ST.COUNTDOWN;countdownT=180;
+    state=ST.COUNTDOWN;countdownT=COUNTDOWN_FRAMES;
     stopBGM(); // force restart when countdown ends
     sfx('countdown');
   }
@@ -639,7 +643,7 @@ function startChallenge(){
   bossRetry=null;isRetryGame=false;
   reset();
   hp=maxHp(); // full HP
-  state=ST.COUNTDOWN;countdownT=180;
+  state=ST.COUNTDOWN;countdownT=COUNTDOWN_FRAMES;
   titleTouchPos=null;
   sfx('countdown');
 }
@@ -663,11 +667,28 @@ function startCountdown(mode){
   } else {
     isRetryGame=false;
   }
-  state=ST.COUNTDOWN;countdownT=180; // 3 seconds at 60fps
+  state=ST.COUNTDOWN;countdownT=COUNTDOWN_FRAMES; // 3 seconds at 60fps
   titleTouchPos=null; // clear stale touch pos
   sfx('countdown');
 }
 
+
+// Shared inventory modal close/tap logic (touchstart and mousedown both use this)
+// Returns true if the event was fully handled, false if not in inventory modal.
+function handleInventoryModalTouch(px, py){
+  if(!inventoryOpen) return false;
+  const mW2=Math.min(300,W-24),mH2=Math.min(360,H-40);
+  const mX2=(W-mW2)/2,mY2=(H-mH2)/2;
+  const invClY=mY2+mH2-38;
+  if(px>=W/2-50&&px<=W/2+50&&py>=invClY&&py<=invClY+30&&chestOpen.phase==='none'){
+    inventoryOpen=false;sfx('cancel');return true;
+  }
+  if((px<mX2||px>mX2+mW2||py<mY2||py>mY2+mH2)&&chestOpen.phase==='none'){
+    inventoryOpen=false;sfx('cancel');return true;
+  }
+  handleInventoryChestTap(px,py);
+  return true;
+}
 canvas.addEventListener('touchstart',e=>{
   e.preventDefault();initAudio();
   const t=e.touches[0];
@@ -722,27 +743,13 @@ canvas.addEventListener('touchstart',e=>{
     // Cosmetic menu intercepts all input when open
     if(cosmeticMenuOpen){handleCosmeticTouch(p.x,p.y);titleTouchPos=null;return;}
     // Inventory modal intercepts all input when open
-    if(inventoryOpen){
-      const mW2=Math.min(300,W-24),mH2=Math.min(360,H-40);
-      const mX2=(W-mW2)/2,mY2=(H-mH2)/2;
-      // Footer close button
-      const invClY=mY2+mH2-38;
-      if(p.x>=W/2-50&&p.x<=W/2+50&&p.y>=invClY&&p.y<=invClY+30&&chestOpen.phase==='none'){
-        inventoryOpen=false;sfx('cancel');return;
-      }
-      // Tap outside modal
-      if((p.x<mX2||p.x>mX2+mW2||p.y<mY2||p.y>mY2+mH2)&&chestOpen.phase==='none'){
-        inventoryOpen=false;sfx('cancel');return;
-      }
-      handleInventoryChestTap(p.x,p.y);titleTouchPos=null;return;
-    }
+    if(inventoryOpen){if(handleInventoryModalTouch(p.x,p.y)){titleTouchPos=null;return;}return;}
     if(charModal.show){sfx('cancel');charModal.show=false;titleTouchPos=null;return;}
     longPressFired=false;titleTouchPos=p;
     const cidx=getCharGridIdx(p.x,p.y);
     if(cidx>=0&&isCharUnlocked(cidx)){
       longPressTimer=setTimeout(()=>{longPressFired=true;charModal={show:true,idx:cidx,animT:0};vibrate(15);sfxCharVoice(cidx);},400);
-    } else if(cidx>=0){
-    } else {
+    } else if(cidx<0){
       handleTitleTouch(p.x,p.y);
       titleTouchPos=null; // prevent touchend from re-calling handleTitleTouch
     }
@@ -979,18 +986,7 @@ canvas.addEventListener('mousedown',e=>{
   if(state===ST.TITLE){
     if(shopOpen){handleShopTouch(p.x,p.y);return;}
     if(cosmeticMenuOpen){handleCosmeticTouch(p.x,p.y);return;}
-    if(inventoryOpen){
-      const mW2=Math.min(300,W-24),mH2=Math.min(360,H-40);
-      const mX2=(W-mW2)/2,mY2=(H-mH2)/2;
-      const invClY=mY2+mH2-38;
-      if(p.x>=W/2-50&&p.x<=W/2+50&&p.y>=invClY&&p.y<=invClY+30&&chestOpen.phase==='none'){
-        inventoryOpen=false;sfx('cancel');return;
-      }
-      if((p.x<mX2||p.x>mX2+mW2||p.y<mY2||p.y>mY2+mH2)&&chestOpen.phase==='none'){
-        inventoryOpen=false;sfx('cancel');return;
-      }
-      handleInventoryChestTap(p.x,p.y);return;
-    }
+    if(inventoryOpen){handleInventoryModalTouch(p.x,p.y);return;}
     if(charModal.show){sfx('cancel');charModal.show=false;return;}
     // Long-press detection for character grid (same as touch)
     longPressFired=false;titleTouchPos=p;
