@@ -416,18 +416,18 @@ function handleSettingsTouch(tx,ty){
       // NG word check
       if(typeof ngCheck==='function'&&ngCheck(newName)){
         sfx('hurt');vibrate(15);
-        addPop(W/2,H/2,'\u3053\u306E\u540D\u524D\u306F\u4F7F\u7528\u3067\u304D\u307E\u305B\u3093','#ff3860');
+        addPop(W/2,H/2,t('popNameBanned'),'#ff3860');
         return true;
       }
       // Check name uniqueness then save
       fbCheckNameExists(newName).then(taken=>{
         if(taken){
           sfx('hurt');vibrate(15);
-          addPop(W/2,H/2,'\u3053\u306E\u540D\u524D\u306F\u4F7F\u308F\u308C\u3066\u3044\u307E\u3059','#ff3860');
+          addPop(W/2,H/2,t('nameInUse'),'#ff3860');
         } else {
           playerName=newName;localStorage.setItem('gd5username',playerName);
           nameEditMode=false;sfx('select');vibrate(10);
-          addPop(W/2,H/2,'\u540D\u524D\u3092\u5909\u66F4\u3057\u307E\u3057\u305F','#00e5ff');
+          addPop(W/2,H/2,t('nameChanged'),'#00e5ff');
           if(typeof fbSaveUserData==='function')fbSaveUserData();
         }
       });
@@ -460,7 +460,7 @@ function handleSettingsTouch(tx,ty){
       sfx('select');
       if(typeof fbLinkGoogle==='function'){
         fbLinkGoogle().then(()=>{
-          addPop(W/2,H/2,'Google\u9023\u643A\u5B8C\u4E86!','#4285f4');sfx('item');vibrate(15);
+          addPop(W/2,H/2,t('googleLinkDone'),'#4285f4');sfx('item');vibrate(15);
         }).catch(e=>{
           console.warn('[Firebase] Link Google error:',e);
           if(e.code==='auth/credential-already-in-use'&&e.credential){
@@ -468,15 +468,15 @@ function handleSettingsTouch(tx,ty){
             fbHandleCredentialInUse(e.credential,'google').then(data=>{
               if(data&&data.name){fbMergeCloudData(data);}
               fbSynced=true;fbSaveUserData();
-              addPop(W/2,H/2,'Google\u9023\u643A\u5B8C\u4E86!','#4285f4');sfx('item');vibrate(15);
+              addPop(W/2,H/2,t('googleLinkDone'),'#4285f4');sfx('item');vibrate(15);
             }).catch(e2=>{
               console.warn('[Firebase] Switch error:',e2);
-              addPop(W/2,H/2,'\u9023\u643A\u306B\u5931\u6557\u3057\u307E\u3057\u305F','#ff3860');sfx('hurt');vibrate(10);
+              addPop(W/2,H/2,t('linkFailed'),'#ff3860');sfx('hurt');vibrate(10);
             });
           } else if(e.code==='auth/credential-already-in-use'){
-            addPop(W/2,H/2,'\u9023\u643A\u306B\u5931\u6557\u3057\u307E\u3057\u305F\n\u30ED\u30B0\u30A2\u30A6\u30C8\u5F8CGoogle\u3067\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044','#ff3860');sfx('hurt');vibrate(10);
+            addPop(W/2,H/2,t('linkFailedLogout'),'#ff3860');sfx('hurt');vibrate(10);
           } else {
-            addPop(W/2,H/2,'\u9023\u643A\u306B\u5931\u6557\u3057\u307E\u3057\u305F','#ff3860');sfx('hurt');vibrate(10);
+            addPop(W/2,H/2,t('linkFailed'),'#ff3860');sfx('hurt');vibrate(10);
           }
         });
       }
@@ -487,22 +487,22 @@ function handleSettingsTouch(tx,ty){
       sfx('select');
       if(typeof fbLinkTwitter==='function'){
         fbLinkTwitter().then(()=>{
-          addPop(W/2,H/2,'X\u9023\u643A\u5B8C\u4E86!','#1da1f2');sfx('item');vibrate(15);
+          addPop(W/2,H/2,t('xLinkDone'),'#1da1f2');sfx('item');vibrate(15);
         }).catch(e=>{
           console.warn('[Firebase] Link Twitter error:',e);
           if(e.code==='auth/credential-already-in-use'&&e.credential){
             fbHandleCredentialInUse(e.credential,'twitter').then(data=>{
               if(data&&data.name){fbMergeCloudData(data);}
               fbSynced=true;fbSaveUserData();
-              addPop(W/2,H/2,'X\u9023\u643A\u5B8C\u4E86!','#1da1f2');sfx('item');vibrate(15);
+              addPop(W/2,H/2,t('xLinkDone'),'#1da1f2');sfx('item');vibrate(15);
             }).catch(e2=>{
               console.warn('[Firebase] Switch error:',e2);
-              addPop(W/2,H/2,'\u9023\u643A\u306B\u5931\u6557\u3057\u307E\u3057\u305F','#ff3860');sfx('hurt');vibrate(10);
+              addPop(W/2,H/2,t('linkFailed'),'#ff3860');sfx('hurt');vibrate(10);
             });
           } else if(e.code==='auth/credential-already-in-use'){
-            addPop(W/2,H/2,'\u9023\u643A\u306B\u5931\u6557\u3057\u307E\u3057\u305F\n\u30ED\u30B0\u30A2\u30A6\u30C8\u5F8CX\u3067\u30ED\u30B0\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044','#ff3860');sfx('hurt');vibrate(10);
+            addPop(W/2,H/2,t('linkFailedLogoutX'),'#ff3860');sfx('hurt');vibrate(10);
           } else {
-            addPop(W/2,H/2,'\u9023\u643A\u306B\u5931\u6557\u3057\u307E\u3057\u305F','#ff3860');sfx('hurt');vibrate(10);
+            addPop(W/2,H/2,t('linkFailed'),'#ff3860');sfx('hurt');vibrate(10);
           }
         });
       }
@@ -1192,7 +1192,7 @@ function handleTitleTouch(tx,ty){
         } else {
           // Locked: show hint to get from chest
           sfx('hurt');vibrate(15);
-          addPop(cx+charW/2,cy,'宝箱で入手!','#ffd700');
+          addPop(cx+charW/2,cy,t('popFromChest'),'#ffd700');
         }
         return;
       }
@@ -1384,7 +1384,7 @@ function confirmShopTap(){
     // Block purchase of secret/rare/super_rare items (gacha only)
     if(item.rarity==='rare'||item.rarity==='super_rare'){
       sfx('hurt');vibrate(15);
-      addPop(W/2,H/2,'\u30AC\u30C1\u30E3\u9650\u5B9A!',item.rarity==='super_rare'?'#ffd700':'#a855f7');
+      addPop(W/2,H/2,t('popGachaOnly'),item.rarity==='super_rare'?'#ffd700':'#a855f7');
       return;
     }
     shopConfirm={item,tab};sfx('select');
@@ -1496,7 +1496,7 @@ loginBtn.addEventListener('click',()=>{
   if(name.length<1){sfx('hurt');vibrate(10);return;}
   // NG word check
   if(typeof ngCheck==='function'&&ngCheck(name)){
-    nameError.textContent='この名前は使用できません';
+    nameError.textContent=t('nameUnavailable');
     sfx('hurt');vibrate(10);return;
   }
   nameError.textContent='';
@@ -1505,7 +1505,7 @@ loginBtn.addEventListener('click',()=>{
   if(fbUser&&!fbUser.isAnonymous){
     fbCheckNameExists(name).then(taken=>{
       if(taken){
-        nameError.textContent='この名前は使われています';
+        nameError.textContent=t('nameTaken');
         sfx('hurt');vibrate(10);
         return;
       }
@@ -1518,7 +1518,7 @@ loginBtn.addEventListener('click',()=>{
   fbSignInAnonymous().then(()=>{
     return fbCheckNameExists(name).then(taken=>{
       if(taken){
-        nameError.textContent='この名前は使われています';
+        nameError.textContent=t('nameTaken');
         sfx('hurt');vibrate(10);
         return;
       }
@@ -1592,16 +1592,16 @@ if(googleBtn){
         googleBtn.style.display='none';
         if(twitterBtn)twitterBtn.style.display='none';
         document.getElementById('loginDivider').style.display='none';
-        document.getElementById('loginLabel').textContent='名前を登録';
+        document.getElementById('loginLabel').textContent=t('registerName');
         const ln=document.getElementById('loginNote');
-        ln.textContent='※ランキングに表示されます。適切な名前を設定してください';
+        ln.textContent=t('nameNote');
         ln.style.color='#fff4';
         if(user.displayName){
           const gName=user.displayName.replace(/[<>&"']/g,'').substring(0,12);
           nameInput.value=gName;
           loginBtn.classList.toggle('ready',gName.trim().length>=1);
         }
-        nameInput.placeholder='お好きな名前';
+        nameInput.placeholder=t('namePlaceholderAlt');
         nameInput.focus();
       });
     }).catch(e=>{
@@ -1672,16 +1672,16 @@ if(twitterBtn){
         if(twitterBtn)twitterBtn.style.display='none';
         googleBtn.style.display='none';
         document.getElementById('loginDivider').style.display='none';
-        document.getElementById('loginLabel').textContent='名前を登録';
+        document.getElementById('loginLabel').textContent=t('registerName');
         const ln2=document.getElementById('loginNote');
-        ln2.textContent='※ランキングに表示されます。適切な名前を設定してください';
+        ln2.textContent=t('nameNote');
         ln2.style.color='#fff4';
         if(user.displayName){
           const tName=user.displayName.replace(/[<>&"']/g,'').substring(0,12);
           nameInput.value=tName;
           loginBtn.classList.toggle('ready',tName.trim().length>=1);
         }
-        nameInput.placeholder='お好きな名前';
+        nameInput.placeholder=t('namePlaceholderAlt');
         nameInput.focus();
       });
     }).catch(e=>{
@@ -1711,11 +1711,11 @@ fbOnReady(user=>{
 // ===== TUTORIAL (course-based) =====
 // Checkpoint distances calculated for player at W*0.25
 const TUT_CHECKPOINTS=[
-  {dist:160,type:'jump',msgKey:'tutJumpMsg',subKey:'tutJumpSub',pcSubKey:'tutJumpPcSub',icon:'tap'},
-  {dist:430,type:'flip_up',msgKey:'tutFlipUpMsg',subKey:'tutFlipUpSub',pcSubKey:'tutFlipUpPcSub',icon:'swipe_up'},
-  {dist:700,type:'flip_down',msgKey:'tutFlipDownMsg',subKey:'tutFlipDownSub',pcSubKey:'tutFlipDownPcSub',icon:'swipe_down'},
-  {dist:980,type:'double_flip',msgKey:'tutDoubleFlipMsg',subKey:'tutDoubleFlipSub',pcSubKey:'tutDoubleFlipPcSub',icon:'double'},
-  {dist:1300,type:'bomb',msgKey:'tutBombMsg',subKey:'tutBombSub',pcSubKey:'tutBombPcSub',icon:'bomb'},
+  {dist:160,type:'jump',msgKey:'tutJumpMsg',subKey:'tutJumpSub',icon:'tap'},
+  {dist:430,type:'flip_up',msgKey:'tutFlipUpMsg',subKey:'tutFlipUpSub',icon:'swipe_up'},
+  {dist:700,type:'flip_down',msgKey:'tutFlipDownMsg',subKey:'tutFlipDownSub',icon:'swipe_down'},
+  {dist:980,type:'double_flip',msgKey:'tutDoubleFlipMsg',subKey:'tutDoubleFlipSub',icon:'double'},
+  {dist:1300,type:'bomb',msgKey:'tutBombMsg',subKey:'tutBombSub',icon:'bomb'},
 ];
 function buildTutorialCourse(){
   tutCoursePlats=[];tutCourseCeil=[];tutCourseSpikes=[];

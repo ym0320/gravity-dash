@@ -4,8 +4,6 @@ const ctx=canvas.getContext('2d');
 // Performance: shadowBlur is extremely expensive on Canvas 2D.
 // Disable it on ALL platforms. Use glow-simulation techniques instead.
 Object.defineProperty(ctx,'shadowBlur',{set(){},get(){return 0;},configurable:true});
-const _isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent||'');
-const gameWrap=document.getElementById('gameWrap');
 const MAX_W=430;
 const MAX_H=844;
 let W,H,safeTop=0,safeBot=0;
@@ -30,8 +28,6 @@ function resize(){
 }
 resize();window.addEventListener('resize',resize);
 if(window.visualViewport)window.visualViewport.addEventListener('resize',resize);
-// Lock to portrait orientation on mobile
-try{if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('portrait').catch(()=>{});}catch(e){}
 
 // ===== CONSTANTS =====
 const GRAVITY=0.22;
