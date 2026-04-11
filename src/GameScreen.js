@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { BackHandler, Platform, AppState } from 'react-native';
+import Constants from 'expo-constants';
 import { WebView } from 'react-native-webview';
 import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
@@ -12,10 +13,13 @@ WebBrowser.maybeCompleteAuthSession();
 //   「ウェブクライアントID」をここに貼り付けてください
 const GOOGLE_WEB_CLIENT_ID = '4638520393-1bt3sfjolepmga5ema4o3g9nh8lbp54d.apps.googleusercontent.com';
 
-// ★ Google Cloud Console → 認証情報 → OAuth 2.0 クライアントID → iOS →
-//   バンドルID「com.ym0320.gGravHopper」でiOS用クライアントIDを作成して貼り付ける
-//   App Store公開前に必須。未設定の場合はGoogleログインがエラーになる（クラッシュはしない）
-const GOOGLE_IOS_CLIENT_ID = '4638520393-45de0k2fq3r90aj3l9mjdoab03iratmb.apps.googleusercontent.com';
+// iOS OAuth クライアントID
+// Expo Go (host.exp.Exponent) と本番ビルド (com.ym0320.gGravHopper) で別クライアントを使い分ける
+const GOOGLE_IOS_CLIENT_ID_EXPO = '4638520393-hb9mhusilflfq031ee3f3prfhgo7ak21.apps.googleusercontent.com';
+const GOOGLE_IOS_CLIENT_ID_PROD = '4638520393-45de0k2fq3r90aj3l9mjdoab03iratmb.apps.googleusercontent.com';
+const GOOGLE_IOS_CLIENT_ID = Constants.appOwnership === 'expo'
+  ? GOOGLE_IOS_CLIENT_ID_EXPO
+  : GOOGLE_IOS_CLIENT_ID_PROD;
 
 const GAME_URL = 'https://gravity-dash-cdce1.web.app/';
 
