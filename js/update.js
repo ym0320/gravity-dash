@@ -6,7 +6,9 @@ let _trailBuf=new Array(20),_trailHead=0,_trailLen=0;
 for(let _ti=0;_ti<20;_ti++)_trailBuf[_ti]={x:0,y:0,a:0};
 // Helper: reset player flip/jump state after landing or stomp
 function resetFlipState(){
-  resetFlipState();
+  flipCount=0;
+  flipTimer=999;
+  player.canFlip=true;
 }
 
 // Shared chest open state machine: wobble -> burst -> reveal -> done

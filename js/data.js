@@ -7,11 +7,10 @@ Object.defineProperty(ctx,'shadowBlur',{set(){},get(){return 0;},configurable:tr
 const MAX_W=430;
 const MAX_H=844;
 let W,H,safeTop=0,safeBot=0;
-// _appDpr: 1 in WebView (lower resolution = 4x fewer pixels = faster draw),
-// up to 2 on web (sharp retina rendering). Both resize() and draw() use this.
+// _appDpr: canvas DPR used by resize() and draw(). Both must match to avoid zoom bugs.
 let _appDpr=1;
 function resize(){
-  _appDpr=window.ReactNativeWebView?1:Math.min(window.devicePixelRatio||1,2);
+  _appDpr=Math.min(window.devicePixelRatio||1,2);
   // Use visualViewport if available and valid, else fallback to innerWidth/Height
   let vw=window.innerWidth,vh=window.innerHeight;
   if(window.visualViewport&&window.visualViewport.width>0&&window.visualViewport.height>0){
