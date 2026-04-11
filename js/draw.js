@@ -783,9 +783,10 @@ function drawIcicles(){
     const cx=ic.x+ic.w/2;
     const tipY=ic.tipY;
     // Icicle body: tapered triangle from ceiling
-    const gr=ctx.createLinearGradient(cx,ic.baseY,cx,tipY);
-    gr.addColorStop(0,'rgba(180,220,255,0.9)');gr.addColorStop(0.5,'rgba(140,200,255,0.85)');gr.addColorStop(1,'rgba(200,240,255,0.6)');
-    ctx.fillStyle=gr;
+    if(_lowQ){ctx.fillStyle='rgba(160,210,255,0.85)';}
+    else{const gr=ctx.createLinearGradient(cx,ic.baseY,cx,tipY);
+      gr.addColorStop(0,'rgba(180,220,255,0.9)');gr.addColorStop(0.5,'rgba(140,200,255,0.85)');gr.addColorStop(1,'rgba(200,240,255,0.6)');
+      ctx.fillStyle=gr;}
     ctx.beginPath();
     ctx.moveTo(ic.x,ic.baseY);
     ctx.lineTo(cx,tipY);
