@@ -4,13 +4,13 @@ export default `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Gravity Dash</title>
+<title>Grav Hopper</title>
 <meta name="description" content="Gravity-flip action runner. Tap to jump, swipe to flip gravity!">
 <meta name="theme-color" content="#0a0a2e">
 <meta name="screen-orientation" content="portrait">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Gravity Dash">
+<meta name="apple-mobile-web-app-title" content="Grav Hopper">
 <link rel="apple-touch-icon" id="apple-icon" href="icon.svg">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 

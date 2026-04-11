@@ -1,6 +1,6 @@
 {
-  "name": "Gravity Dash",
-  "short_name": "GravityDash",
+  "name": "Grav Hopper",
+  "short_name": "GravHopper",
   "description": "A gravity-flipping runner game. Tap to flip gravity, dodge obstacles, collect coins!",
   "start_url": "./index.html",
   "display": "fullscreen",

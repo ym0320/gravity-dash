@@ -1,4 +1,4 @@
-# Gravity Dash — Claude Instructions
+# Grav Hopper — Claude Instructions
 
 ## 自律実行ルール
 
@@ -25,7 +25,7 @@ git push
 ## プロジェクト概要
 
 - **種別**: Expo (React Native) + WebView でWeb版ゲームを包んだモバイルアプリ
-- **Web版**: Firebase Hosting (`https://gravity-dash-cdce1.web.app/`) から読み込み
+- **Web版**: Firebase Hosting (`https://grav-hopper-cdce1.web.app/`) から読み込み
 - **ゲームコード**: `js/` 配下の Vanilla JS (Canvas 2D)
 - **Expoコード**: `App.js`, `src/GameScreen.js`
 - **Firebase**: Auth（匿名・Google・Twitter）+ Firestore（クラウドセーブ・ランキング）
@@ -71,9 +71,9 @@ app.json                # Expoアプリ設定
 
 1. ユーザーが「許可」 → `eas build --platform ios --profile production`
 2. App Store Connect でアプリ登録
-   - Bundle ID: `com.gravitydash.app`
+   - Bundle ID: `com.ym0320.gGravHopper`
    - カテゴリ: ゲーム > アクション
    - 年齢制限: 4+
-   - プライバシーポリシー: `https://gravity-dash-cdce1.web.app/privacy.html`
+   - プライバシーポリシー: `https://grav-hopper-cdce1.web.app/privacy.html`
 3. スクリーンショット撮影（iPhone実機）
 4. `eas submit --platform ios --latest`

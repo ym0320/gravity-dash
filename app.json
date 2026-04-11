@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Gravity Dash",
-    "slug": "gravity-dash",
+    "name": "Grav Hopper",
+    "slug": "grav-hopper",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.gravitydash.app",
+      "bundleIdentifier": "com.ym0320.gGravHopper",
       "requireFullScreen": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -48,7 +48,7 @@
       }
     },
     "android": {
-      "package": "com.gravitydash.app",
+      "package": "com.ym0320.gGravHopper",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0a0a2e"
@@ -58,7 +58,8 @@
     "plugins": [
       "expo-screen-orientation",
       "expo-asset",
-      "expo-font"
+      "expo-font",
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {

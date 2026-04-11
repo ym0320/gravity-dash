@@ -13,7 +13,7 @@ WebBrowser.maybeCompleteAuthSession();
 const GOOGLE_WEB_CLIENT_ID = '4638520393-1bt3sfjolepmga5ema4o3g9nh8lbp54d.apps.googleusercontent.com';
 
 // ★ Google Cloud Console → 認証情報 → OAuth 2.0 クライアントID → iOS →
-//   バンドルID「com.gravitydash.app」でiOS用クライアントIDを作成して貼り付ける
+//   バンドルID「com.ym0320.gGravHopper」でiOS用クライアントIDを作成して貼り付ける
 //   App Store公開前に必須。未設定の場合はGoogleログインがエラーになる（クラッシュはしない）
 const GOOGLE_IOS_CLIENT_ID = null;
 

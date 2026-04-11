@@ -2711,8 +2711,8 @@ function drawTitle(){
   const p=Math.sin(titleT)*0.035+1;
   ctx.save();ctx.translate(W/2,H*0.18);ctx.scale(p,p);
   _shadow(35,'#00e5ff44');ctx.fillStyle='#00e5ff';
-  ctx.font='bold 44px monospace';ctx.textAlign='center';ctx.fillText('GRAVITY',0,0);
-  ctx.shadowColor='#ff386044';ctx.fillStyle='#ff3860';ctx.fillText('DASH',0,48);ctx.shadowBlur=0;
+  ctx.font='bold 44px monospace';ctx.textAlign='center';ctx.fillText('GRAV',0,0);
+  ctx.shadowColor='#ff386044';ctx.fillStyle='#ff3860';ctx.fillText('HOPPER',0,48);ctx.shadowBlur=0;
   ctx.restore();
 
   ctx.fillStyle='#ffffff33';ctx.font='11px monospace';ctx.textAlign='center';

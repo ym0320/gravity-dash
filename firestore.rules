@@ -1,8 +1,15 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // cosmetic ID: alphanumeric + _ - only, max 64 chars
+    function isValidCosmeticId(v) {
+      return v is string && v.size() <= 64 && v.matches('[a-zA-Z0-9_\\-]*');
+    }
+
     match /users/{userId} {
-      allow read: if request.auth != null;
+      // 自分のデータのみ読み取り可能
+      allow read: if request.auth != null && request.auth.uid == userId;
       allow write: if request.auth != null && request.auth.uid == userId
         && request.resource.data.name is string
         && request.resource.data.name.size() <= 12
@@ -21,25 +28,50 @@ service cloud.firestore {
         && request.resource.data.plays >= 0
         && request.resource.data.challBestKills is int
         && request.resource.data.challBestKills >= 0
-        && request.resource.data.challBestKills <= 9999;
+        && request.resource.data.challBestKills <= 9999
+        && (!('eqSkin'  in request.resource.data) || isValidCosmeticId(request.resource.data.eqSkin))
+        && (!('eqEyes'  in request.resource.data) || isValidCosmeticId(request.resource.data.eqEyes))
+        && (!('eqFx'    in request.resource.data) || isValidCosmeticId(request.resource.data.eqFx))
+        && (!('rankChar' in request.resource.data) || (request.resource.data.rankChar is int && request.resource.data.rankChar >= -1 && request.resource.data.rankChar <= 5))
+        && (!('rankSkin' in request.resource.data) || isValidCosmeticId(request.resource.data.rankSkin))
+        && (!('rankEyes' in request.resource.data) || isValidCosmeticId(request.resource.data.rankEyes))
+        && (!('rankFx'   in request.resource.data) || isValidCosmeticId(request.resource.data.rankFx))
+        && (!('challRankChar' in request.resource.data) || (request.resource.data.challRankChar is int && request.resource.data.challRankChar >= -1 && request.resource.data.challRankChar <= 5))
+        && (!('challRankSkin' in request.resource.data) || isValidCosmeticId(request.resource.data.challRankSkin))
+        && (!('challRankEyes' in request.resource.data) || isValidCosmeticId(request.resource.data.challRankEyes))
+        && (!('challRankFx'   in request.resource.data) || isValidCosmeticId(request.resource.data.challRankFx))
+        && (!('storedChests' in request.resource.data) || (request.resource.data.storedChests is int && request.resource.data.storedChests >= 0 && request.resource.data.storedChests <= 999))
+        && (!('freeRevives' in request.resource.data) || (request.resource.data.freeRevives is int && request.resource.data.freeRevives >= 0 && request.resource.data.freeRevives <= 5));
     }
+
     match /rankings/{userId} {
+      // ランキングは全認証ユーザーが読める（リーダーボード表示のため）
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == userId
         && request.resource.data.name is string
         && request.resource.data.name.size() <= 12
         && request.resource.data.score is int
         && request.resource.data.score >= 0
-        && request.resource.data.score <= 99999;
+        && request.resource.data.score <= 99999
+        && (!('char' in request.resource.data) || (request.resource.data.char is int && request.resource.data.char >= 0 && request.resource.data.char <= 5))
+        && (!('eqSkin' in request.resource.data) || isValidCosmeticId(request.resource.data.eqSkin))
+        && (!('eqEyes' in request.resource.data) || isValidCosmeticId(request.resource.data.eqEyes))
+        && (!('eqFx'   in request.resource.data) || isValidCosmeticId(request.resource.data.eqFx));
     }
+
     match /challengeRankings/{userId} {
+      // チャレンジランキングも全認証ユーザーが読める
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == userId
         && request.resource.data.name is string
         && request.resource.data.name.size() <= 12
         && request.resource.data.kills is int
         && request.resource.data.kills >= 0
-        && request.resource.data.kills <= 9999;
+        && request.resource.data.kills <= 9999
+        && (!('char' in request.resource.data) || (request.resource.data.char is int && request.resource.data.char >= 0 && request.resource.data.char <= 5))
+        && (!('eqSkin' in request.resource.data) || isValidCosmeticId(request.resource.data.eqSkin))
+        && (!('eqEyes' in request.resource.data) || isValidCosmeticId(request.resource.data.eqEyes))
+        && (!('eqFx'   in request.resource.data) || isValidCosmeticId(request.resource.data.eqFx));
     }
   }
 }
