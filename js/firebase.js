@@ -306,6 +306,8 @@ function fbLoadUserData(uid) {
 // --- Merge cloud data into local state ---
 // Cloud is authoritative – always overwrite local with cloud values
 function _clampInt(v,min,max){const n=parseInt(v);if(isNaN(n))return min;return Math.max(min,Math.min(max,n));}
+// Sanitize a cosmetic ID string from cloud/localStorage: must be non-empty string, max 64 chars, alphanumeric+underscore+hyphen only
+function _sanitizeCosmeticId(v){if(!v||typeof v!=='string')return'';return v.replace(/[^a-zA-Z0-9_\-]/g,'').substring(0,64);}
 function fbMergeCloudData(data) {
   if (!data) return;
   _fbDirty = false; // cloud data merged – no local changes to save
@@ -325,34 +327,40 @@ function fbMergeCloudData(data) {
     localStorage.setItem('gd5unlocked', JSON.stringify(unlockedChars));
   }
   if (data.owned && Array.isArray(data.owned)) {
-    const valid = data.owned.filter(v => typeof v === 'string');
+    // Sanitize each owned item ID to prevent arbitrary string injection
+    const valid = data.owned.filter(v => typeof v === 'string').map(_sanitizeCosmeticId).filter(v => v.length > 0);
     ownedItems = [...new Set([...ownedItems, ...valid])];
     localStorage.setItem('gd5owned', JSON.stringify(ownedItems));
   }
-  // Cosmetics
-  if (data.eqSkin) { equippedSkin = data.eqSkin; localStorage.setItem('gd5eqSkin', data.eqSkin); }
-  if (data.eqEyes) { equippedEyes = data.eqEyes; localStorage.setItem('gd5eqEyes', data.eqEyes); }
-  if (data.eqFx)   { equippedEffect = data.eqFx;  localStorage.setItem('gd5eqFx', data.eqFx); }
-  // Character
-  if (data.character !== undefined) { selChar = data.character; localStorage.setItem('gd5char', selChar.toString()); }
+  // Cosmetics (sanitize IDs before storing)
+  if (data.eqSkin) { equippedSkin = _sanitizeCosmeticId(data.eqSkin); localStorage.setItem('gd5eqSkin', equippedSkin); }
+  if (data.eqEyes) { equippedEyes = _sanitizeCosmeticId(data.eqEyes); localStorage.setItem('gd5eqEyes', equippedEyes); }
+  if (data.eqFx)   { equippedEffect = _sanitizeCosmeticId(data.eqFx);  localStorage.setItem('gd5eqFx', equippedEffect); }
+  // Character (clamp to valid index range 0-5)
+  if (data.character !== undefined) { selChar = _clampInt(data.character,0,5); localStorage.setItem('gd5char', selChar.toString()); }
   // Ranking cosmetics (captured at time of high score)
-  if (data.rankChar !== undefined) { rankChar = data.rankChar; localStorage.setItem('gd5rankChar', rankChar.toString()); }
-  if (data.rankSkin !== undefined) { rankSkin = data.rankSkin; localStorage.setItem('gd5rankSkin', rankSkin); }
-  if (data.rankEyes !== undefined) { rankEyes = data.rankEyes; localStorage.setItem('gd5rankEyes', rankEyes); }
-  if (data.rankFx !== undefined) { rankFx = data.rankFx; localStorage.setItem('gd5rankFx', rankFx); }
+  if (data.rankChar !== undefined) { rankChar = _clampInt(data.rankChar,-1,5); localStorage.setItem('gd5rankChar', rankChar.toString()); }
+  if (data.rankSkin !== undefined) { rankSkin = _sanitizeCosmeticId(data.rankSkin); localStorage.setItem('gd5rankSkin', rankSkin); }
+  if (data.rankEyes !== undefined) { rankEyes = _sanitizeCosmeticId(data.rankEyes); localStorage.setItem('gd5rankEyes', rankEyes); }
+  if (data.rankFx !== undefined) { rankFx = _sanitizeCosmeticId(data.rankFx); localStorage.setItem('gd5rankFx', rankFx); }
   // Challenge best
   if (data.challBestKills !== undefined && data.challBestKills > challengeBestKills) {
-    challengeBestKills = data.challBestKills; localStorage.setItem('gd5challBest', challengeBestKills.toString());
+    challengeBestKills = _clampInt(data.challBestKills,0,9999); localStorage.setItem('gd5challBest', challengeBestKills.toString());
   }
-  if (data.challRankChar !== undefined) { challRankChar = data.challRankChar; localStorage.setItem('gd5challRankChar', challRankChar.toString()); }
-  if (data.challRankSkin !== undefined) { challRankSkin = data.challRankSkin; localStorage.setItem('gd5challRankSkin', challRankSkin); }
-  if (data.challRankEyes !== undefined) { challRankEyes = data.challRankEyes; localStorage.setItem('gd5challRankEyes', challRankEyes); }
-  if (data.challRankFx !== undefined) { challRankFx = data.challRankFx; localStorage.setItem('gd5challRankFx', challRankFx); }
+  if (data.challRankChar !== undefined) { challRankChar = _clampInt(data.challRankChar,-1,5); localStorage.setItem('gd5challRankChar', challRankChar.toString()); }
+  if (data.challRankSkin !== undefined) { challRankSkin = _sanitizeCosmeticId(data.challRankSkin); localStorage.setItem('gd5challRankSkin', challRankSkin); }
+  if (data.challRankEyes !== undefined) { challRankEyes = _sanitizeCosmeticId(data.challRankEyes); localStorage.setItem('gd5challRankEyes', challRankEyes); }
+  if (data.challRankFx !== undefined) { challRankFx = _sanitizeCosmeticId(data.challRankFx); localStorage.setItem('gd5challRankFx', challRankFx); }
   // Tutorial
   if (data.tutorialDone) { tutorialDone = true; localStorage.setItem('gd5tutorialDone', '1'); }
   // Pack progress (merge, keep best stars)
   if (data.packProgress) {
+    // Only merge keys that are valid known stage IDs to prevent prototype/key injection
+    const _validStageIds = (typeof STAGE_PACKS !== 'undefined')
+      ? new Set(STAGE_PACKS.flatMap(p => p.stages.map(s => s.id)))
+      : null;
     for (const k in data.packProgress) {
+      if (_validStageIds && !_validStageIds.has(k)) continue; // skip unknown stage IDs
       if (!packProgress[k] || (data.packProgress[k].stars || 0) > (packProgress[k].stars || 0)) {
         packProgress[k] = data.packProgress[k];
       }
@@ -395,7 +403,7 @@ function fbRefreshRankings() {
     const data = cloud.map(d => ({ ...d }));
     if (!data.some(d => d.isPlayer) && highScore > 0) {
       const rc = rankChar >= 0 ? rankChar : selChar || 0;
-      data.push({ name: playerName || 'あなた', charIdx: rc, score: highScore,
+      data.push({ name: playerName || t('youDefault'), charIdx: rc, score: highScore,
         eqSkin: rankSkin || '', eqEyes: rankEyes || '', eqFx: rankFx || '', isPlayer: true });
     }
     data.sort((a, b) => b.score - a.score);
@@ -434,7 +442,7 @@ function fbRefreshChallengeRankings() {
     const data = cloud.map(d => ({ ...d }));
     if (!data.some(d => d.isPlayer) && challengeBestKills > 0) {
       const crc = challRankChar >= 0 ? challRankChar : selChar || 0;
-      data.push({ name: playerName || 'あなた', charIdx: crc, kills: challengeBestKills,
+      data.push({ name: playerName || t('youDefault'), charIdx: crc, kills: challengeBestKills,
         eqSkin: challRankSkin || '', eqEyes: challRankEyes || '', eqFx: challRankFx || '', isPlayer: true });
     }
     data.sort((a, b) => b.kills - a.kills);

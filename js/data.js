@@ -191,34 +191,28 @@ let helpOpen=false; // true when help/controls overlay is shown
 let updateInfoOpen=false; // true when update info modal is shown
 let updateInfoShown=false; // prevents auto-show more than once per session
 let updateInfoPage=0; // current page index for back number browsing
-const UPDATE_HISTORY=[
+function _uh(){return[
   {ver:'2026-02-22',notes:[
-    {title:'\u30AD\u30E3\u30E9\u30AF\u30BF\u30FC\u30D0\u30E9\u30F3\u30B9\u8ABF\u6574',items:[
-      '\u30BF\u30A4\u30E4\u3068\u30CB\u30F3\u30B8\u30E3\u306E\u901F\u5EA6\u3092\u5165\u308C\u66FF\u3048',
-      '\u30CB\u30F3\u30B8\u30E3\u3068\u30D0\u30A6\u30F3\u30B9\u306E\u30B8\u30E3\u30F3\u30D7\u529B\u3092\u5F37\u5316',
-      '\u30B9\u30C8\u30FC\u30F3\u306E\u91CD\u529B\u5897\u52A0\u3001\u30D0\u30A6\u30F3\u30B9\u306E\u91CD\u529B\u8EFD\u6E1B',
-      '\u30BF\u30A4\u30E4\u306E\u6BB5\u5DEE\u4E57\u8D8A\u3092\u5C11\u3057\u5F31\u4F53\u5316'
+    {title:t('uhCharBalance'),items:[
+      t('uhTireNinjaSpeed'),t('uhNinjaBounceJump'),t('uhStoneGravity'),t('uhTireStep')
     ]},
-    {title:'\u30B9\u30C6\u30FC\u30BF\u30B9\u8868\u793A\u306E\u6539\u5584',items:[
-      '\u30B9\u30C6\u30FC\u30BF\u30B9\u30D0\u30FC\u3092\u6ED1\u3089\u304B\u306A1\u672C\u30D0\u30FC\u306B\u5909\u66F4',
-      '\u5C0F\u6570\u70B9\u5358\u4F4D\u306E\u7D30\u304B\u3044\u5024\u3092\u8868\u793A',
-      '\u30AD\u30E3\u30E9\u8AAC\u660E\u6587\u3092\u3088\u308A\u5177\u4F53\u7684\u306B\u6539\u5584'
+    {title:t('uhStatusDisplay'),items:[
+      t('uhSmoothBar'),t('uhDecimalValues'),t('uhCharDesc')
     ]},
-    {title:'\u5B9D\u7BB1\u958B\u5C01\u306E\u6539\u5584',items:[
-      '\u4E00\u62EC\u958B\u5C01\u304C\u30861\u3064\u305A\u3064\u3086\u3063\u304F\u308A\u958B\u5C01\u3055\u308C\u308B\u3088\u3046\u306B',
-      '\u30B9\u30FC\u30D1\u30FC\u30EC\u30A2\u306F\u91D1\u8272\u3001\u30EC\u30A2\u306F\u7D2B\u306E\u7279\u6B8A\u30AB\u30FC\u30C9\u30C7\u30B6\u30A4\u30F3'
+    {title:t('uhChestImprove'),items:[
+      t('uhBatchOpen'),t('uhRareDesign')
     ]},
-    {title:'\u30B7\u30E7\u30C3\u30D7\u306E\u6539\u5584',items:[
-      '\u30A2\u30A4\u30C6\u30E0\u3092\u5B89\u3044\u9806\u306B\u4E26\u3073\u66FF\u3048',
-      '\u30B7\u30FC\u30AF\u30EC\u30C3\u30C8\u30A2\u30A4\u30C6\u30E0\u306F\u4E0B\u306B\u914D\u7F6E'
+    {title:t('uhShopImprove'),items:[
+      t('uhSortCheap'),t('uhSecretBottom')
     ]}
   ]},
   {ver:'2026-02-15',notes:[
-    {title:'\u30B2\u30FC\u30E0\u30EA\u30EA\u30FC\u30B9',items:[
-      '\u30B2\u30FC\u30E0\u521D\u56DE\u30EA\u30EA\u30FC\u30B9'
+    {title:t('uhGameRelease'),items:[
+      t('uhFirstRelease')
     ]}
   ]}
-];
+];}
+const UPDATE_HISTORY=_uh();
 const UPDATE_VER=UPDATE_HISTORY[0].ver;
 const UPDATE_NOTES=UPDATE_HISTORY[0].notes;
 let rankingOpen=false;
@@ -231,7 +225,7 @@ let CHALLENGE_RANKING_DATA=[];
 function rebuildRankingData(){
   const data=[];
   if(typeof highScore!=='undefined'&&highScore>0){
-    const pName=(typeof playerName!=='undefined'&&playerName)||'\u3042\u306A\u305F';
+    const pName=(typeof playerName!=='undefined'&&playerName)||t('youDefault');
     const rc=rankChar>=0?rankChar:selChar||0;
     data.push({name:pName,charIdx:rc,score:highScore,eqSkin:rankSkin||'',eqEyes:rankEyes||'',eqFx:rankFx||'',isPlayer:true});
   }
@@ -242,7 +236,7 @@ function rebuildRankingData(){
 function rebuildChallengeRankingData(){
   const data=[];
   if(typeof challengeBestKills!=='undefined'&&challengeBestKills>0){
-    const pName=(typeof playerName!=='undefined'&&playerName)||'\u3042\u306A\u305F';
+    const pName=(typeof playerName!=='undefined'&&playerName)||t('youDefault');
     const rc=challRankChar>=0?challRankChar:selChar||0;
     data.push({name:pName,charIdx:rc,kills:challengeBestKills,eqSkin:challRankSkin||'',eqEyes:challRankEyes||'',eqFx:challRankFx||'',isPlayer:true});
   }
@@ -1429,13 +1423,14 @@ function sfxChallengeBossAlert(){
 }
 
 // ===== ITEMS (5 types) =====
-const ITEMS=[
-  {name:'\u7121\u6575',desc:'10\u79D2\u9593\u7121\u6575',col:'#ff00ff',icon:'\u2B50\uFE0F',dur:600},
-  {name:'\u30B3\u30A4\u30F3\u5438\u53CE',desc:'\u81EA\u52D5\u53CE\u96C6',col:'#f59e0b',icon:'\u{1F9F2}',dur:600},
-  {name:'\u30DC\u30E0',desc:'\u753B\u9762\u4E0A\u306E\u6575\u3092\u4E00\u6383',col:'#ff4400',icon:'\u{1F4A3}',dur:0},
-  {name:'\u30CF\u30FC\u30C8',desc:'HP\u56DE\u5FA9',col:'#ff3860',icon:'\u2764\uFE0F',dur:0},
-  {name:'\u30B9\u30ED\u30FC',desc:'\u30B9\u30ED\u30FC\u30E2\u30FC\u30B7\u30E7\u30F3',col:'#a855f7',icon:'\u25F7',dur:600},
-];
+function _buildItems(){return[
+  {name:t('itemInvincible'),desc:t('itemDescInvincible'),col:'#ff00ff',icon:'\u2B50\uFE0F',dur:600},
+  {name:t('itemMagnet'),desc:t('itemDescMagnet'),col:'#f59e0b',icon:'\u{1F9F2}',dur:600},
+  {name:t('itemBomb'),desc:t('itemDescBomb'),col:'#ff4400',icon:'\u{1F4A3}',dur:0},
+  {name:t('itemHeart'),desc:t('itemDescHeart'),col:'#ff3860',icon:'\u2764\uFE0F',dur:0},
+  {name:t('itemSlow'),desc:t('itemDescSlow'),col:'#a855f7',icon:'\u25F7',dur:600},
+];}
+let ITEMS=_buildItems();
 
 
 // ===== STAGE MODE =====
@@ -1572,12 +1567,14 @@ let challengeKills=0; // total bosses defeated
 let challengePhase=0; // difficulty phase (increases every 3 kills)
 let challengeRetired=false; // true if player retired (vs died)
 let challengeNextBossT=0; // countdown timer between bosses
+// _sanitizeLsCosmId: sanitize cosmetic ID strings read from localStorage (alphanumeric+_- only, max 64 chars)
+function _sanitizeLsCosmId(v){if(!v||typeof v!=='string')return'';return v.replace(/[^a-zA-Z0-9_\-]/g,'').substring(0,64);}
 let challengeBestKills=Math.max(0,Math.min(9999,parseInt(localStorage.getItem('gd5challBest')||'0')||0));
 // Challenge ranking cosmetics (captured at time of best kills)
-let challRankChar=parseInt(localStorage.getItem('gd5challRankChar')||'-1');
-let challRankSkin=localStorage.getItem('gd5challRankSkin')||'';
-let challRankEyes=localStorage.getItem('gd5challRankEyes')||'';
-let challRankFx=localStorage.getItem('gd5challRankFx')||'';
+let challRankChar=Math.max(-1,Math.min(5,parseInt(localStorage.getItem('gd5challRankChar')||'-1')||0));
+let challRankSkin=_sanitizeLsCosmId(localStorage.getItem('gd5challRankSkin')||'');
+let challRankEyes=_sanitizeLsCosmId(localStorage.getItem('gd5challRankEyes')||'');
+let challRankFx=_sanitizeLsCosmId(localStorage.getItem('gd5challRankFx')||'');
 // Challenge boss queue (pre-generated wave order)
 let challBossQueue=[]; // [{type,type2,strength,isDual}]
 let challQueueIdx=0; // current position in queue
@@ -1618,7 +1615,7 @@ function extendChallBossQueue(){
 // ===== STATE =====
 const ST={TITLE:0,PLAY:1,DEAD:2,PAUSE:3,STAGE_CLEAR:4,STAGE_SEL:5,COUNTDOWN:6,LOGIN:7,TUTORIAL:8};
 // Login & tutorial
-let playerName=localStorage.getItem('gd5username')||'';
+let playerName=(localStorage.getItem('gd5username')||'').replace(/[<>&"']/g,'').substring(0,12);
 let tutorialDone=localStorage.getItem('gd5tutorialDone')==='1';
 let state=playerName?ST.TITLE:ST.LOGIN;
 // Login UI (HTML overlay)
@@ -1655,10 +1652,10 @@ let screenFadeIn=0; // white overlay fade-in timer for screen transitions
 let countdownT=0; // countdown timer (frames, counts down from 180 = 3 seconds)
 let score=0,highScore=Math.max(0,Math.min(99999,parseInt(localStorage.getItem('gd5hi')||'0')||0));
 // Ranking cosmetics: captured at time of high score
-let rankChar=parseInt(localStorage.getItem('gd5rankChar')||'-1');
-let rankSkin=localStorage.getItem('gd5rankSkin')||'';
-let rankEyes=localStorage.getItem('gd5rankEyes')||'';
-let rankFx=localStorage.getItem('gd5rankFx')||'';
+let rankChar=Math.max(-1,Math.min(5,parseInt(localStorage.getItem('gd5rankChar')||'-1')||0));
+let rankSkin=_sanitizeLsCosmId(localStorage.getItem('gd5rankSkin')||'');
+let rankEyes=_sanitizeLsCosmId(localStorage.getItem('gd5rankEyes')||'');
+let rankFx=_sanitizeLsCosmId(localStorage.getItem('gd5rankFx')||'');
 let newHi=false,speed=SPEED_INIT,frame=0,deadT=0,titleT=0;
 let combo=0,comboT=0,comboDsp=0,comboDspT=0;
 let airCombo=0; // aerial enemy kill combo (resets on grounded)
@@ -1946,10 +1943,10 @@ let shopOpen=false;
 let shopTab=0; // 0=skins, 1=eyes, 2=effects
 let shopScroll=0;
 // Owned items & equipped cosmetics (saved to localStorage)
-let ownedItems=(function(){try{const a=JSON.parse(localStorage.getItem('gd5owned')||'[]');if(!Array.isArray(a))return[];return a.filter(v=>typeof v==='string');}catch(e){return[];}})();
-let equippedSkin=localStorage.getItem('gd5eqSkin')||'';
-let equippedEyes=localStorage.getItem('gd5eqEyes')||'';
-let equippedEffect=localStorage.getItem('gd5eqFx')||'';
+let ownedItems=(function(){try{const a=JSON.parse(localStorage.getItem('gd5owned')||'[]');if(!Array.isArray(a))return[];return a.filter(v=>typeof v==='string').map(_sanitizeLsCosmId).filter(v=>v.length>0);}catch(e){return[];}})();
+let equippedSkin=_sanitizeLsCosmId(localStorage.getItem('gd5eqSkin')||'');
+let equippedEyes=_sanitizeLsCosmId(localStorage.getItem('gd5eqEyes')||'');
+let equippedEffect=_sanitizeLsCosmId(localStorage.getItem('gd5eqFx')||'');
 let cosmeticMenuOpen=false; // cosmetic equip menu
 let cosmeticTab=0; // 0=skins, 1=eyes, 2=effects
 let cosmeticScroll=0;
