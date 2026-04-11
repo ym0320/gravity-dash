@@ -12,6 +12,11 @@ WebBrowser.maybeCompleteAuthSession();
 //   「ウェブクライアントID」をここに貼り付けてください
 const GOOGLE_WEB_CLIENT_ID = '4638520393-1bt3sfjolepmga5ema4o3g9nh8lbp54d.apps.googleusercontent.com';
 
+// ★ Google Cloud Console → 認証情報 → OAuth 2.0 クライアントID → iOS →
+//   バンドルID「com.gravitydash.app」でiOS用クライアントIDを作成して貼り付ける
+//   App Store公開前に必須。未設定の場合はGoogleログインがエラーになる（クラッシュはしない）
+const GOOGLE_IOS_CLIENT_ID = null;
+
 const GAME_URL = 'https://gravity-dash-cdce1.web.app/';
 
 const BRIDGE_JS = `
@@ -62,8 +67,11 @@ export default function GameScreen({ onReady }) {
   const readyFired = useRef(false);
 
   // Google OAuth (expo-auth-session)
+  // iOS は iosClientId が必須。未設定時は webClientId をフォールバックに使い、
+  // クラッシュを防ぐ（実際の認証はエラーになり googleSignInError として処理される）
   const [, googleResponse, googlePromptAsync] = Google.useAuthRequest({
     webClientId: GOOGLE_WEB_CLIENT_ID,
+    iosClientId: GOOGLE_IOS_CLIENT_ID || GOOGLE_WEB_CLIENT_ID,
   });
 
   // Google認証結果をWebViewに送る
