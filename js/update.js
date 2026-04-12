@@ -1319,9 +1319,9 @@ function update(dt){
           player.vy=-JUMP_POWER*0.7*player.gDir;
           player.grounded=false;
         }
-        resetFlipState();
-        // Gravity stomp bonus
+        // Gravity stomp bonus (check before resetFlipState resets flipTimer)
         const gstomp=flipTimer<40;
+        resetFlipState();
         // Stomp combo: base + combo bonus (additive)
         const baseBon=gstomp?90:30;
         const bon=baseBon+stompCombo*(gstomp?60:30);
