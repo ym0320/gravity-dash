@@ -1154,9 +1154,8 @@ function draw(){
     const bat=bossPhase.alertT;
     // Flashing red vignette
     const flash=Math.sin(bat*0.3)*0.15+0.15;
-    const vg=ctx.createRadialGradient(W/2,H/2,H*0.2,W/2,H/2,H*0.8);
-    vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,`rgba(180,0,0,${flash})`);
-    ctx.fillStyle=vg;ctx.fillRect(-20,-20,W+40,H+40);
+    if(_lowQ){ctx.fillStyle=`rgba(180,0,0,${flash*0.5})`;ctx.fillRect(-20,-20,W+40,H+40);}
+    else{const vg=ctx.createRadialGradient(W/2,H/2,H*0.2,W/2,H/2,H*0.8);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,`rgba(180,0,0,${flash})`);ctx.fillStyle=vg;ctx.fillRect(-20,-20,W+40,H+40);}
     // Warning text
     if(bat>15){
       const ta=Math.min(1,(bat-15)/10)*Math.abs(Math.sin(bat*0.12));
@@ -2498,10 +2497,9 @@ function drawActionPanel(){
     const barX=(W-barW)/2,barY=py+10;
     // Bar background
     ctx.fillStyle='#ffffff15';rr(barX,barY,barW,barH,4);ctx.fill();
-    // Bar fill (gradient)
-    const barGr=ctx.createLinearGradient(barX,barY,barX+barW*prog,barY);
-    barGr.addColorStop(0,tc('ply'));barGr.addColorStop(1,'#ffd700');
-    ctx.fillStyle=barGr;
+    // Bar fill
+    if(_lowQ){ctx.fillStyle=tc('ply');}
+    else{const barGr=ctx.createLinearGradient(barX,barY,barX+barW*prog,barY);barGr.addColorStop(0,tc('ply'));barGr.addColorStop(1,'#ffd700');ctx.fillStyle=barGr;}
     rr(barX,barY,Math.max(2,barW*prog),barH,4);ctx.fill();
     // Checkpoint flag at 50%
     const cpX=barX+barW*0.5;
