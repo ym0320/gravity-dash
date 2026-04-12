@@ -223,48 +223,68 @@ function drawSplash(width, height) {
     pixels[i+2] = Math.round(pixels[i+2] * (1-a) + b * a);
   }
 
-  // 背景
+  function inRR(x, y, rx, ry, rw, rh, rad) {
+    const lx = x - rx, ly = y - ry;
+    if (lx < 0 || lx >= rw || ly < 0 || ly >= rh) return false;
+    const r2 = Math.min(rad, rw/2, rh/2);
+    if (lx < r2 && ly < r2) { const dx=lx-r2,dy=ly-r2; return dx*dx+dy*dy<=r2*r2; }
+    if (lx > rw-r2 && ly < r2) { const dx=lx-(rw-r2),dy=ly-r2; return dx*dx+dy*dy<=r2*r2; }
+    if (lx < r2 && ly > rh-r2) { const dx=lx-r2,dy=ly-(rh-r2); return dx*dx+dy*dy<=r2*r2; }
+    if (lx > rw-r2 && ly > rh-r2) { const dx=lx-(rw-r2),dy=ly-(rh-r2); return dx*dx+dy*dy<=r2*r2; }
+    return true;
+  }
+
+  function fillRR(rx, ry, rw, rh, rad, r, g, b, a=1) {
+    for (let y = Math.floor(ry); y <= Math.ceil(ry+rh); y++) {
+      for (let x = Math.floor(rx); x <= Math.ceil(rx+rw); x++) {
+        if (inRR(x, y, rx, ry, rw, rh, rad)) {
+          if (a >= 1) setPixel(x, y, r, g, b);
+          else blendPixel(x, y, r, g, b, a);
+        }
+      }
+    }
+  }
+
+  function fillCircle(cx, cy, rad, r, g, b, a=1) {
+    for (let y = Math.floor(cy-rad); y <= Math.ceil(cy+rad); y++) {
+      for (let x = Math.floor(cx-rad); x <= Math.ceil(cx+rad); x++) {
+        const dx=x-cx, dy=y-cy;
+        if (dx*dx+dy*dy <= rad*rad) {
+          if (a >= 1) setPixel(x, y, r, g, b);
+          else blendPixel(x, y, r, g, b, a);
+        }
+      }
+    }
+  }
+
+  // 背景グラデーション
   for (let y = 0; y < height; y++) {
     const c = lerpColor(top, bot, y / (height - 1));
     for (let x = 0; x < width; x++) setPixel(x, y, c[0], c[1], c[2]);
   }
 
-  // 中央にプレイヤー円
+  // 中央にキューブキャラクター（アイコンと同じデザイン）
   const cx = Math.floor(width / 2);
   const cy = Math.floor(height / 2);
-  const R  = Math.round(Math.min(width, height) * 0.12);
+  const r  = Math.round(Math.min(width, height) * 0.18); // スプラッシュの18%サイズ
 
-  const pInner = hexToRgb('#00e5ff');
-  const pOuter = hexToRgb('#0066aa');
-  const glow   = hexToRgb('#00e5ff');
+  // 外枠 col2
+  const col2 = hexToRgb('#00b8d4');
+  fillRR(cx-r, cy-r, r*2, r*2, r*0.3, col2[0], col2[1], col2[2]);
 
-  for (let y = cy - R - 4; y <= cy + R + 4; y++) {
-    for (let x = cx - R - 4; x <= cx + R + 4; x++) {
-      const dx = x - cx, dy = y - cy;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      if (dist <= R) {
-        const t = dist / R;
-        const c = lerpColor(pInner, pOuter, t);
-        setPixel(x, y, c[0], c[1], c[2]);
-      } else if (dist <= R + 4) {
-        const a = 1 - (dist - R) / 4;
-        blendPixel(x, y, glow[0], glow[1], glow[2], a * 0.5);
-      }
-    }
-  }
+  // 内側 col
+  const col = hexToRgb('#00e5ff');
+  fillRR(cx-r*0.6, cy-r*0.6, r*1.2, r*1.2, r*0.2, col[0], col[1], col[2]);
 
-  // 目
-  const eyeR = Math.max(1, Math.round(R * 0.12));
-  for (const [ex, ey] of [
-    [cx - Math.round(R * 0.3), cy - Math.round(R * 0.2)],
-    [cx + Math.round(R * 0.3), cy - Math.round(R * 0.2)],
-  ]) {
-    for (let dy = -eyeR; dy <= eyeR; dy++) {
-      for (let dx = -eyeR; dx <= eyeR; dx++) {
-        if (dx*dx + dy*dy <= eyeR*eyeR) setPixel(ex+dx, ey+dy, 240, 240, 255);
-      }
-    }
-  }
+  // ハイライト
+  fillRR(cx-r*0.75, cy-r*0.75, r*1.5, r*1.5, r*0.2, 255, 255, 255, 0.12);
+
+  // 目（アイコンと同じロジック）
+  const eY = cy + (-r * 0.15);
+  const ex = cx + r * 0.2;
+  fillCircle(ex, eY, r*0.28, 255, 255, 255);
+  fillCircle(cx + r*0.28, eY, r*0.14, 10, 10, 46);
+  fillCircle(cx + r*0.33, eY - r*0.1, r*0.06, 255, 255, 255);
 
   return pixels;
 }
