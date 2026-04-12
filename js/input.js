@@ -774,18 +774,18 @@ canvas.addEventListener('touchmove',e=>{
     const mH2=Math.min(500,H-30),listH2=mH2-140,totalH2=items.length*54;
     const maxS=Math.max(0,totalH2-listH2);
     shopScroll=Math.max(0,Math.min(maxS,shopScroll-dy2*2));
-    if(Math.abs(t.clientY-touchOriginY)>10)touchMoved=true;
+    if(Math.abs(t.clientY-touchOriginY)>18)touchMoved=true;
     return;
   }
   // Cosmetic scroll
   if(cosmeticMenuOpen){
     const dy2=t.clientY-touchStartY;touchStartY=t.clientY;
     const allItems=cosmeticTab===0?SHOP_ITEMS.skins:cosmeticTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
-    const ownedList=[{id:''}].concat(allItems.filter(it=>ownsItem(it.id)));
+    const ownedList=[{id:''}].concat(shopSorted(allItems.filter(it=>ownsItem(it.id)),true));
     const mH2=Math.min(500,H-30),listH2=mH2-184,totalH2=ownedList.length*48;
     const maxS=Math.max(0,totalH2-listH2);
     cosmeticScroll=Math.max(0,Math.min(maxS,cosmeticScroll-dy2*2));
-    if(Math.abs(t.clientY-touchOriginY)>10)touchMoved=true;
+    if(Math.abs(t.clientY-touchOriginY)>18)touchMoved=true;
     return;
   }
   const dy=t.clientY-touchStartY;
@@ -1226,7 +1226,7 @@ canvas.addEventListener('wheel',e=>{
   if(cosmeticMenuOpen){
     e.preventDefault();
     const allItems=cosmeticTab===0?SHOP_ITEMS.skins:cosmeticTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
-    const ownedList=[{id:''}].concat(allItems.filter(it=>ownsItem(it.id)));
+    const ownedList=[{id:''}].concat(shopSorted(allItems.filter(it=>ownsItem(it.id)),true));
     const mH2=Math.min(500,H-30),listH2=mH2-184,totalH2=ownedList.length*48;
     const maxS=Math.max(0,totalH2-listH2);
     cosmeticScroll=Math.max(0,Math.min(maxS,cosmeticScroll+e.deltaY*1.5));
@@ -1399,7 +1399,7 @@ function handleCosmeticTouch(tx,ty){
   cosmeticPendingTap=null;
   const listY=mY+134,listH=mH-184;
   const allItems=cosmeticTab===0?SHOP_ITEMS.skins:cosmeticTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
-  const ownedList=[{id:'',name:'\u306A\u3057',desc:'\u30C7\u30D5\u30A9\u30EB\u30C8'}].concat(shopSorted(allItems.filter(it=>ownsItem(it.id))));
+  const ownedList=[{id:'',name:'\u306A\u3057',desc:'\u30C7\u30D5\u30A9\u30EB\u30C8'}].concat(shopSorted(allItems.filter(it=>ownsItem(it.id)),true));
   const rowH=48;
   for(let i=0;i<ownedList.length;i++){
     const iy=listY+i*rowH-cosmeticScroll;
@@ -1415,7 +1415,7 @@ function confirmCosmeticTap(){
   const tab=cosmeticPendingTap.tab,idx=cosmeticPendingTap.idx;
   cosmeticPendingTap=null;
   const allItems=tab===0?SHOP_ITEMS.skins:tab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
-  const ownedList=[{id:'',name:'\u306A\u3057',desc:'\u30C7\u30D5\u30A9\u30EB\u30C8'}].concat(shopSorted(allItems.filter(it=>ownsItem(it.id))));
+  const ownedList=[{id:'',name:'\u306A\u3057',desc:'\u30C7\u30D5\u30A9\u30EB\u30C8'}].concat(shopSorted(allItems.filter(it=>ownsItem(it.id)),true));
   if(idx>=ownedList.length)return;
   const item=ownedList[idx];
   // Show equip confirmation dialog
