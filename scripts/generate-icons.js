@@ -99,14 +99,10 @@ function lerpColor(c1, c2, t) {
 }
 
 // ── アイコン描画 ─────────────────────────────────────────────────
-// 背景グラデーション + プレイヤー(円) + プラットフォーム + 星
+// キューブキャラクターがアイコン全体を占める「顔アップ」デザイン
 
 function drawIcon(size) {
   const pixels = Buffer.alloc(size * size * 3);
-
-  const top    = hexToRgb('#0a0a2e');
-  const mid    = hexToRgb('#1a1a4e');
-  const bot    = hexToRgb('#0f0f23');
 
   function setPixel(x, y, r, g, b) {
     if (x < 0 || x >= size || y < 0 || y >= size) return;
@@ -122,87 +118,159 @@ function drawIcon(size) {
     pixels[i+2] = Math.round(pixels[i+2] * (1-a) + b * a);
   }
 
-  // 背景グラデーション
-  for (let y = 0; y < size; y++) {
-    const t = y / (size - 1);
-    const c = t < 0.5 ? lerpColor(top, mid, t * 2) : lerpColor(mid, bot, (t - 0.5) * 2);
-    for (let x = 0; x < size; x++) setPixel(x, y, c[0], c[1], c[2]);
-  }
+  // ── 背景（ダークネイビー）──
+  const bgColor = hexToRgb('#06061a');
+  for (let y = 0; y < size; y++)
+    for (let x = 0; x < size; x++)
+      setPixel(x, y, bgColor[0], bgColor[1], bgColor[2]);
 
-  const S = size / 256; // スケール係数
+  // ── キューブ本体（角丸正方形、アイコンの96%） ──
+  const pad = Math.round(size * 0.02);
+  const cubeSize = size - pad * 2;
+  const cubeX = pad, cubeY = pad;
+  const radius = Math.round(size * 0.13); // 角丸半径
 
-  // 星をランダムに配置 (seedベース)
-  const stars = [
-    [30,20], [80,15], [120,35], [200,10], [230,40], [50,60],
-    [170,25], [210,55], [140,45], [90,70], [250,30], [20,80],
-    [190,65], [60,90], [240,75], [110,85],
-  ];
-  for (const [sx, sy] of stars) {
-    const x = Math.round(sx * S);
-    const y = Math.round(sy * S);
-    const br = 180 + Math.floor((sx * 7 + sy * 13) % 75);
-    blendPixel(x, y, br, br, br, 0.9);
-  }
+  // キューブ本体カラー（上：明るいシアン → 下：深ブルー）
+  const cubeTop = hexToRgb('#00d4f0');
+  const cubeMid = hexToRgb('#0077cc');
+  const cubeBot = hexToRgb('#002266');
 
-  // プラットフォーム (床と天井)
-  const platColor = hexToRgb('#2a3a6a');
-  const platGlow  = hexToRgb('#00e5ff');
-  const floorY = Math.round(185 * S);
-  const ceilY  = Math.round(70  * S);
-  const thick  = Math.max(2, Math.round(6 * S));
-
-  for (let x = 0; x < size; x++) {
-    for (let t = 0; t < thick; t++) {
-      setPixel(x, floorY + t, platColor[0], platColor[1], platColor[2]);
-      setPixel(x, ceilY  + t, platColor[0], platColor[1], platColor[2]);
+  function inRoundedRect(x, y) {
+    const lx = x - cubeX, ly = y - cubeY;
+    if (lx < 0 || lx >= cubeSize || ly < 0 || ly >= cubeSize) return false;
+    // Corner checks
+    if (lx < radius && ly < radius) {
+      const dx = lx - radius, dy = ly - radius;
+      return dx*dx + dy*dy <= radius*radius;
     }
-    // グロー
-    blendPixel(x, floorY - 1, platGlow[0], platGlow[1], platGlow[2], 0.4);
-    blendPixel(x, ceilY  - 1, platGlow[0], platGlow[1], platGlow[2], 0.4);
+    if (lx > cubeSize - radius && ly < radius) {
+      const dx = lx - (cubeSize - radius), dy = ly - radius;
+      return dx*dx + dy*dy <= radius*radius;
+    }
+    if (lx < radius && ly > cubeSize - radius) {
+      const dx = lx - radius, dy = ly - (cubeSize - radius);
+      return dx*dx + dy*dy <= radius*radius;
+    }
+    if (lx > cubeSize - radius && ly > cubeSize - radius) {
+      const dx = lx - (cubeSize - radius), dy = ly - (cubeSize - radius);
+      return dx*dx + dy*dy <= radius*radius;
+    }
+    return true;
   }
 
-  // プレイヤー (グラデーション円)
-  const cx = Math.round(128 * S);
-  const cy = Math.round(128 * S);
-  const R  = Math.round(40  * S);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      if (!inRoundedRect(x, y)) continue;
+      const ly = y - cubeY;
+      const t = ly / cubeSize;
+      // 上部明るめ、中間ミッドブルー、下部暗め
+      const c = t < 0.45
+        ? lerpColor(cubeTop, cubeMid, t / 0.45)
+        : lerpColor(cubeMid, cubeBot, (t - 0.45) / 0.55);
+      // 左右端を少し暗くして立体感
+      const lx = x - cubeX;
+      const edgeFade = Math.min(lx, cubeSize - lx) / (cubeSize * 0.25);
+      const fade = Math.max(0.6, Math.min(1.0, edgeFade));
+      setPixel(x, y, Math.round(c[0]*fade), Math.round(c[1]*fade), Math.round(c[2]*fade));
+    }
+  }
 
-  const pInner = hexToRgb('#00e5ff');
-  const pOuter = hexToRgb('#0066aa');
-  const glow   = hexToRgb('#00e5ff');
+  // ── 上端ハイライト（明るいエッジ）──
+  const hlColor = hexToRgb('#80f0ff');
+  const hlThick = Math.round(size * 0.018);
+  for (let y = cubeY; y < cubeY + hlThick; y++) {
+    for (let x = cubeX; x < cubeX + cubeSize; x++) {
+      if (!inRoundedRect(x, y)) continue;
+      const alpha = 1 - (y - cubeY) / hlThick;
+      blendPixel(x, y, hlColor[0], hlColor[1], hlColor[2], alpha * 0.55);
+    }
+  }
 
-  for (let y = cy - R - 3; y <= cy + R + 3; y++) {
-    for (let x = cx - R - 3; x <= cx + R + 3; x++) {
+  // ── 右端シャドウ（影で立体感）──
+  const shadowThick = Math.round(size * 0.035);
+  for (let x = cubeX + cubeSize - shadowThick; x < cubeX + cubeSize; x++) {
+    for (let y = cubeY; y < cubeY + cubeSize; y++) {
+      if (!inRoundedRect(x, y)) continue;
+      const alpha = (x - (cubeX + cubeSize - shadowThick)) / shadowThick;
+      blendPixel(x, y, 0, 0, 0, alpha * 0.4);
+    }
+  }
+
+  // ── 内側グロー（キューブ中央を少し明るく）──
+  const cx = Math.round(size / 2), cy = Math.round(size * 0.45);
+  const glowR = Math.round(size * 0.35);
+  for (let y = cy - glowR; y <= cy + glowR; y++) {
+    for (let x = cx - glowR; x <= cx + glowR; x++) {
+      if (!inRoundedRect(x, y)) continue;
       const dx = x - cx, dy = y - cy;
       const dist = Math.sqrt(dx*dx + dy*dy);
-      if (dist <= R) {
-        const t = dist / R;
-        const c = lerpColor(pInner, pOuter, t);
-        setPixel(x, y, c[0], c[1], c[2]);
-      } else if (dist <= R + 3) {
-        const a = 1 - (dist - R) / 3;
-        blendPixel(x, y, glow[0], glow[1], glow[2], a * 0.6);
+      if (dist < glowR) {
+        const a = (1 - dist / glowR) * 0.18;
+        blendPixel(x, y, 200, 240, 255, a);
       }
     }
   }
 
-  // 目 (白い点)
-  const eyeR = Math.max(1, Math.round(5 * S));
-  for (const [ex, ey] of [[-12, -8], [12, -8]].map(([dx, dy]) => [cx + Math.round(dx*S), cy + Math.round(dy*S)])) {
-    for (let dy = -eyeR; dy <= eyeR; dy++) {
-      for (let dx = -eyeR; dx <= eyeR; dx++) {
-        if (dx*dx + dy*dy <= eyeR*eyeR) setPixel(ex+dx, ey+dy, 240, 240, 255);
+  // ── 目（白目 + 青い瞳） ──
+  const eyeOffsetX = Math.round(size * 0.175);
+  const eyeOffsetY = Math.round(size * -0.05);
+  const eyeWhiteR  = Math.round(size * 0.125);
+  const pupilR     = Math.round(size * 0.07);
+  const pupilShift = Math.round(size * 0.025);
+
+  const eyeCenters = [
+    [cx - eyeOffsetX, cy + eyeOffsetY],
+    [cx + eyeOffsetX, cy + eyeOffsetY],
+  ];
+
+  for (const [ex, ey] of eyeCenters) {
+    // 白目
+    for (let dy = -eyeWhiteR; dy <= eyeWhiteR; dy++) {
+      for (let dx = -eyeWhiteR; dx <= eyeWhiteR; dx++) {
+        if (dx*dx + dy*dy <= eyeWhiteR*eyeWhiteR) {
+          if (inRoundedRect(ex+dx, ey+dy))
+            setPixel(ex+dx, ey+dy, 245, 248, 255);
+        }
+      }
+    }
+    // 瞳（ダークブルー）
+    const px = ex + pupilShift, py = ey + pupilShift;
+    for (let dy = -pupilR; dy <= pupilR; dy++) {
+      for (let dx = -pupilR; dx <= pupilR; dx++) {
+        if (dx*dx + dy*dy <= pupilR*pupilR) {
+          if (inRoundedRect(px+dx, py+dy))
+            setPixel(px+dx, py+dy, 10, 30, 80);
+        }
+      }
+    }
+    // ハイライト（白い小点）
+    const hlR = Math.round(eyeWhiteR * 0.22);
+    const hlX = ex - Math.round(eyeWhiteR * 0.3);
+    const hlY = ey - Math.round(eyeWhiteR * 0.3);
+    for (let dy = -hlR; dy <= hlR; dy++) {
+      for (let dx = -hlR; dx <= hlR; dx++) {
+        if (dx*dx + dy*dy <= hlR*hlR) {
+          if (inRoundedRect(hlX+dx, hlY+dy))
+            setPixel(hlX+dx, hlY+dy, 255, 255, 255);
+        }
       }
     }
   }
 
-  // コイン (黄色い小円)
-  const coinPositions = [[175, 128], [195, 118], [215, 128]];
-  for (const [ccx, ccy] of coinPositions) {
-    const cr = Math.max(1, Math.round(8 * S));
-    const ccX = Math.round(ccx * S), ccY = Math.round(ccy * S);
-    for (let dy = -cr; dy <= cr; dy++) {
-      for (let dx = -cr; dx <= cr; dx++) {
-        if (dx*dx + dy*dy <= cr*cr) setPixel(ccX+dx, ccY+dy, 255, 200, 0);
+  // ── 口（小さい弧）──
+  const mouthY = cy + Math.round(size * 0.18);
+  const mouthW = Math.round(size * 0.18);
+  const mouthH = Math.round(size * 0.07);
+  const mouthThick = Math.max(2, Math.round(size * 0.022));
+  for (let t = 0; t <= 100; t++) {
+    const angle = Math.PI * t / 100; // 0 to PI (bottom arc)
+    const mx = Math.round(cx + Math.cos(angle) * mouthW * -1); // mirror for smile
+    const my = Math.round(mouthY - Math.sin(angle) * mouthH);
+    for (let tt = -mouthThick; tt <= mouthThick; tt++) {
+      for (let tw = -mouthThick; tw <= mouthThick; tw++) {
+        if (tt*tt + tw*tw <= mouthThick*mouthThick)
+          if (inRoundedRect(mx+tw, my+tt))
+            setPixel(mx+tw, my+tt, 20, 50, 120);
       }
     }
   }
