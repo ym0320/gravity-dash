@@ -221,7 +221,7 @@ let rankingTab='endless'; // 'endless' | 'challenge'
 let RANKING_DATA=[];
 let CHALLENGE_RANKING_DATA=[];
 // DEBUG: サンプルランキングデータ（スクリーンショット用・リリース前に削除）
-const _DEBUG_SAMPLE_RANKING=true;
+const _DEBUG_SAMPLE_RANKING=false;
 const _SAMPLE_NAMES_EN=['xStarDust','MoonWalker','NightOwl','SakuraRin','ThunderBolt','GhostHunter','PixelKing','CosmicAce','TurboNinja','BounceQueen','ShadowFox','RollerX','IceBreaker','NovaFlash','HappyPanda','DarkMatter','CubeRookie','SpeedDemon','LuckyClover','StoneWall'];
 const _SAMPLE_NAMES_JA=['ほしくず','ムーンウォーク','ヨルノフクロウ','さくらりん','カミナリ','ゴーストハンター','ドット王','コスモエース','しのび','バウンス姫','シャドウ狐','ローラーX','こおり丸','ノヴァ','ハッピーパンダ','ダークマター','キューブ初心者','スピードマン','クローバー','いしかべ'];
 function _sampleName(i){return gameLang==='ja'?_SAMPLE_NAMES_JA[i]:_SAMPLE_NAMES_EN[i];}
