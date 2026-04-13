@@ -220,6 +220,33 @@ let rankingTab='endless'; // 'endless' | 'challenge'
 // Dynamic ranking data (cloud only, no sample data)
 let RANKING_DATA=[];
 let CHALLENGE_RANKING_DATA=[];
+// DEBUG: サンプルランキングデータ（スクリーンショット用・リリース前に削除）
+const _DEBUG_SAMPLE_RANKING=true;
+const _SAMPLE_NAMES_EN=['xStarDust','MoonWalker','NightOwl','SakuraRin','ThunderBolt','GhostHunter','PixelKing','CosmicAce','TurboNinja','BounceQueen','ShadowFox','RollerX','IceBreaker','NovaFlash','HappyPanda','DarkMatter','CubeRookie','SpeedDemon','LuckyClover','StoneWall'];
+const _SAMPLE_NAMES_JA=['ほしくず','ムーンウォーク','ヨルノフクロウ','さくらりん','カミナリ','ゴーストハンター','ドット王','コスモエース','しのび','バウンス姫','シャドウ狐','ローラーX','こおり丸','ノヴァ','ハッピーパンダ','ダークマター','キューブ初心者','スピードマン','クローバー','いしかべ'];
+function _sampleName(i){return gameLang==='ja'?_SAMPLE_NAMES_JA[i]:_SAMPLE_NAMES_EN[i];}
+const _SAMPLE_BASE=[
+  {charIdx:0,score:48720,kills:156,eqSkin:'skin_rainbow',eqEyes:'eye_star',eqFx:'fx_celestial'},
+  {charIdx:1,score:42150,kills:142,eqSkin:'skin_gold',eqEyes:'eye_fire',eqFx:'fx_fire_aura'},
+  {charIdx:3,score:38900,kills:131,eqSkin:'skin_galaxy',eqEyes:'eye_void',eqFx:'fx_shadow'},
+  {charIdx:0,score:35600,kills:125,eqSkin:'skin_pink',eqEyes:'eye_smile',eqFx:'fx_sakura'},
+  {charIdx:4,score:33200,kills:118,eqSkin:'skin_emerald',eqEyes:'eye_cyber',eqFx:'fx_electric'},
+  {charIdx:3,score:30800,kills:110,eqSkin:'skin_shadow',eqEyes:'eye_galaxy',eqFx:'fx_void_aura'},
+  {charIdx:5,score:28500,kills:103,eqSkin:'skin_chrome',eqEyes:'eye_diamond',eqFx:'fx_star_trail'},
+  {charIdx:0,score:26100,kills:97,eqSkin:'skin_ice',eqEyes:'eye_blink',eqFx:'fx_sparkle'},
+  {charIdx:4,score:24800,kills:90,eqSkin:'skin_sunset',eqEyes:'eye_angry',eqFx:'fx_plasma_trail'},
+  {charIdx:1,score:22400,kills:84,eqSkin:'skin_red',eqEyes:'eye_heart',eqFx:'fx_hearts'},
+  {charIdx:4,score:20100,kills:78,eqSkin:'skin_void',eqEyes:'eye_cat',eqFx:'fx_shadow'},
+  {charIdx:2,score:18700,kills:72,eqSkin:'skin_plasma',eqEyes:'eye_glitch',eqFx:'fx_rainbow'},
+  {charIdx:5,score:17200,kills:66,eqSkin:'skin_ice',eqEyes:'eye_spiral',eqFx:'fx_ice_aura'},
+  {charIdx:0,score:15800,kills:60,eqSkin:'skin_aurora',eqEyes:'eye_pulse',eqFx:'fx_supernova'},
+  {charIdx:1,score:14500,kills:55,eqSkin:'',eqEyes:'eye_smile',eqFx:'fx_sparkle'},
+  {charIdx:3,score:13100,kills:49,eqSkin:'skin_skeleton',eqEyes:'eye_hypno',eqFx:'fx_void_aura'},
+  {charIdx:0,score:11800,kills:43,eqSkin:'',eqEyes:'',eqFx:''},
+  {charIdx:2,score:10400,kills:38,eqSkin:'skin_inferno',eqEyes:'eye_fire',eqFx:'fx_fire_aura'},
+  {charIdx:0,score:9200,kills:32,eqSkin:'skin_emerald',eqEyes:'eye_cat',eqFx:'fx_sakura'},
+  {charIdx:5,score:8000,kills:27,eqSkin:'',eqEyes:'eye_angry',eqFx:''},
+];
 function rebuildRankingData(){
   const data=[];
   if(typeof highScore!=='undefined'&&highScore>0){
@@ -227,6 +254,7 @@ function rebuildRankingData(){
     const rc=rankChar>=0?rankChar:selChar||0;
     data.push({name:pName,charIdx:rc,score:highScore,eqSkin:rankSkin||'',eqEyes:rankEyes||'',eqFx:rankFx||'',isPlayer:true});
   }
+  if(_DEBUG_SAMPLE_RANKING)for(let i=0;i<_SAMPLE_BASE.length;i++)data.push({name:_sampleName(i),charIdx:_SAMPLE_BASE[i].charIdx,score:_SAMPLE_BASE[i].score,eqSkin:_SAMPLE_BASE[i].eqSkin,eqEyes:_SAMPLE_BASE[i].eqEyes,eqFx:_SAMPLE_BASE[i].eqFx,isPlayer:false});
   data.sort((a,b)=>b.score-a.score);
   RANKING_DATA=data.slice(0,100);
   RANKING_DATA.forEach((d,i)=>d.rank=i+1);
@@ -238,6 +266,7 @@ function rebuildChallengeRankingData(){
     const rc=challRankChar>=0?challRankChar:selChar||0;
     data.push({name:pName,charIdx:rc,kills:challengeBestKills,eqSkin:challRankSkin||'',eqEyes:challRankEyes||'',eqFx:challRankFx||'',isPlayer:true});
   }
+  if(_DEBUG_SAMPLE_RANKING)for(let i=0;i<_SAMPLE_BASE.length;i++)data.push({name:_sampleName(i),charIdx:_SAMPLE_BASE[i].charIdx,kills:_SAMPLE_BASE[i].kills,eqSkin:_SAMPLE_BASE[i].eqSkin,eqEyes:_SAMPLE_BASE[i].eqEyes,eqFx:_SAMPLE_BASE[i].eqFx,isPlayer:false});
   data.sort((a,b)=>b.kills-a.kills);
   CHALLENGE_RANKING_DATA=data.slice(0,100);
   CHALLENGE_RANKING_DATA.forEach((d,i)=>d.rank=i+1);
