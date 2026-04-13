@@ -1,6 +1,6 @@
 'use strict';
 // ===== INTERNATIONALIZATION =====
-let gameLang=localStorage.getItem('gd5lang')||'ja';
+let gameLang=localStorage.getItem('gd5lang')||(navigator.language&&navigator.language.startsWith('ja')?'ja':'en');
 
 const I18N={
 ja:{
