@@ -450,6 +450,7 @@ function fbRefreshRankings() {
       data.push({ name: playerName || t('youDefault'), charIdx: rc, score: highScore,
         eqSkin: rankSkin || '', eqEyes: rankEyes || '', eqFx: rankFx || '', isPlayer: true });
     }
+    if(_DEBUG_SAMPLE_RANKING)for(let i=0;i<_SAMPLE_BASE.length;i++)data.push({name:_sampleName(i),charIdx:_SAMPLE_BASE[i].charIdx,score:_SAMPLE_BASE[i].score,eqSkin:_SAMPLE_BASE[i].eqSkin,eqEyes:_SAMPLE_BASE[i].eqEyes,eqFx:_SAMPLE_BASE[i].eqFx,isPlayer:false});
     data.sort((a, b) => b.score - a.score);
     RANKING_DATA = data.slice(0, 100);
     RANKING_DATA.forEach((d, i) => d.rank = i + 1);
@@ -466,6 +467,7 @@ function fbRefreshChallengeRankings() {
       data.push({ name: playerName || t('youDefault'), charIdx: crc, kills: challengeBestKills,
         eqSkin: challRankSkin || '', eqEyes: challRankEyes || '', eqFx: challRankFx || '', isPlayer: true });
     }
+    if(_DEBUG_SAMPLE_RANKING)for(let i=0;i<_SAMPLE_BASE.length;i++)data.push({name:_sampleName(i),charIdx:_SAMPLE_BASE[i].charIdx,kills:_SAMPLE_BASE[i].kills,eqSkin:_SAMPLE_BASE[i].eqSkin,eqEyes:_SAMPLE_BASE[i].eqEyes,eqFx:_SAMPLE_BASE[i].eqFx,isPlayer:false});
     data.sort((a, b) => b.kills - a.kills);
     CHALLENGE_RANKING_DATA = data.slice(0, 100);
     CHALLENGE_RANKING_DATA.forEach((d, i) => d.rank = i + 1);
