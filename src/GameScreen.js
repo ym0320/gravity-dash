@@ -6,6 +6,7 @@ import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -136,23 +137,37 @@ export default function GameScreen({ onReady }) {
     );
   }, []);
 
-  // Apple Sign-In (iOS native)
+  // Apple Sign-In (iOS native) — nonce でリプレイ攻撃を防止
   const handleAppleSignIn = useCallback(async () => {
     if (Platform.OS !== 'ios') {
       dispatchToWebView({ type: 'appleSignInError', errorCode: 'not-ios' });
       return;
     }
     try {
+      // rawNonce を生成し、SHA256 ハッシュを Apple に渡す
+      const rawNonce = Array.from(
+        { length: 32 },
+        () => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[
+          Math.floor(Math.random() * 62)
+        ]
+      ).join('');
+      const hashedNonce = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        rawNonce
+      );
+
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
           AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
         ],
+        nonce: hashedNonce,
       });
       if (credential.identityToken) {
         dispatchToWebView({
           type: 'appleCredential',
           identityToken: credential.identityToken,
+          rawNonce,
           fullName: credential.fullName?.givenName || '',
         });
       } else {

@@ -43,11 +43,13 @@ function fbSignInWithGoogleIdToken(idToken) {
   const credential = firebase.auth.GoogleAuthProvider.credential(idToken);
   return fbAuth.signInWithCredential(credential);
 }
-// Native bridge: RNからのAppleトークンでサインイン
-function fbSignInWithAppleToken(identityToken) {
+// Native bridge: RNからのAppleトークンでサインイン（rawNonce でリプレイ攻撃防止）
+function fbSignInWithAppleToken(identityToken, rawNonce) {
   if (!fbAuth) return Promise.reject('no-firebase');
   const provider = new firebase.auth.OAuthProvider('apple.com');
-  const credential = provider.credential({ idToken: identityToken });
+  const credentialOptions = { idToken: identityToken };
+  if (rawNonce) credentialOptions.rawNonce = rawNonce;
+  const credential = provider.credential(credentialOptions);
   return fbAuth.signInWithCredential(credential);
 }
 // Fallback: redirect (not used in RN app, kept for web)

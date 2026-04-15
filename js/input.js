@@ -1573,7 +1573,7 @@ window.addEventListener('nativeAuthResult',(e)=>{
     });
   } else if(msg.type==='appleCredential'){
     const _noteAC=document.getElementById('loginNote');
-    fbSignInWithAppleToken(msg.identityToken).then(cred=>{
+    fbSignInWithAppleToken(msg.identityToken,msg.rawNonce).then(cred=>{
       _handleSocialLogin(cred.user,'apple');
     }).catch(err=>{
       const code=(err&&err.code)||'unknown';
