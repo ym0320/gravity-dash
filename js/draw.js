@@ -2915,7 +2915,7 @@ function drawTitle(){
   // Settings panel overlay
   if(settingsOpen){
     ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,W,H);
-    const pw=Math.min(280,W-30),ph=524,px=W/2-pw/2,py=H/2-ph/2;
+    const pw=Math.min(280,W-30),ph=564,px=W/2-pw/2,py=H/2-ph/2;
     const panGr=ctx.createLinearGradient(px,py,px,py+ph);
     panGr.addColorStop(0,'rgba(15,15,40,0.97)');panGr.addColorStop(1,'rgba(8,8,25,0.97)');
     ctx.fillStyle=panGr;rr(px,py,pw,ph,14);ctx.fill();
@@ -3061,6 +3061,12 @@ function drawTitle(){
         ctx.fillText(t('confirmLogout'),W/2,logoutBtnY+20);
       }
     }
+    // Delete Account button
+    const deleteAccBtnY=logoutBtnY+38;
+    ctx.fillStyle='#88000018';rr(px+20,deleteAccBtnY,pw-40,28,6);ctx.fill();
+    ctx.strokeStyle='#88000044';ctx.lineWidth=1;rr(px+20,deleteAccBtnY,pw-40,28,6);ctx.stroke();
+    ctx.fillStyle='#aa3333';ctx.font='11px monospace';ctx.textAlign='center';
+    ctx.fillText(t('deleteAccount'),W/2,deleteAccBtnY+18);
     // Close button
     const closeY=py+ph-42;
     ctx.fillStyle='#00e5ff22';rr(W/2-60,closeY,120,32,8);ctx.fill();
@@ -3074,20 +3080,23 @@ function drawTitle(){
       const mX2=W/2-mW2/2,mY2=H/2-mH2/2;
       // Modal box
       ctx.fillStyle='#1a1a2e';rr(mX2,mY2,mW2,mH2,14);ctx.fill();
-      const borderCol=confirmModal.type==='reset'?'#ff4444':'#ff8600';
+      const borderCol=confirmModal.type==='reset'?'#ff4444':confirmModal.type==='deleteAccount'?'#cc2222':'#ff8600';
       ctx.strokeStyle=borderCol;ctx.lineWidth=2;rr(mX2,mY2,mW2,mH2,14);ctx.stroke();
       // Icon
       ctx.font='32px monospace';ctx.textAlign='center';
       ctx.fillStyle=borderCol;
-      ctx.fillText(confirmModal.type==='reset'?'\u26A0':'\u{1F6AA}',W/2,mY2+44);
+      ctx.fillText(confirmModal.type==='reset'?'\u26A0':confirmModal.type==='deleteAccount'?'\u{1F5D1}':'\u{1F6AA}',W/2,mY2+44);
       // Title
       ctx.font='bold 16px monospace';ctx.fillStyle='#fff';
-      ctx.fillText(confirmModal.type==='reset'?t('dataResetTitle'):t('logoutTitle'),W/2,mY2+72);
+      ctx.fillText(confirmModal.type==='reset'?t('dataResetTitle'):confirmModal.type==='deleteAccount'?t('deleteAccountTitle'):t('logoutTitle'),W/2,mY2+72);
       // Description
       ctx.font='12px monospace';ctx.fillStyle='#fff8';
       if(confirmModal.step===0){
         if(confirmModal.type==='reset'){
           ctx.fillText(t('allDataDeleted'),W/2,mY2+100);
+          ctx.fillText(t('cannotUndo'),W/2,mY2+118);
+        } else if(confirmModal.type==='deleteAccount'){
+          ctx.fillText(t('deleteAccountDesc'),W/2,mY2+100);
           ctx.fillText(t('cannotUndo'),W/2,mY2+118);
         } else {
           if(fbLoginMethod==='anonymous'){
@@ -3118,7 +3127,7 @@ function drawTitle(){
       ctx.fillStyle=cBg;rr(confirmX2,btnY2,btnW2,btnH2,8);ctx.fill();
       ctx.strokeStyle=borderCol;ctx.lineWidth=2;rr(confirmX2,btnY2,btnW2,btnH2,8);ctx.stroke();
       ctx.fillStyle=borderCol;ctx.font='bold 13px monospace';
-      const cLabel=confirmModal.type==='logout'?t('logoutBtn'):confirmModal.step===0?t('deleteBtn'):t('completeDelete');
+      const cLabel=confirmModal.type==='logout'?t('logoutBtn'):confirmModal.type==='deleteAccount'?(confirmModal.step===0?t('deleteBtn'):t('completeDelete')):confirmModal.step===0?t('deleteBtn'):t('completeDelete');
       ctx.fillText(cLabel,confirmX2+btnW2/2,btnY2+26);
     }
   }

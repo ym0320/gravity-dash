@@ -352,7 +352,8 @@ function settingsLayout(){
   const linkY=methodY+10;
   const linkBW=(pw-48)/2;
   const logoutBtnY=methodY+8+linkBtnOffset;
-  return{px,py,pw,ph,slX,barX,barW,barY1:slY1-8,barY2:slY2-8,barH,langY,langBtnX,langBtnW,langBtnH,engBtnX,nameY,tutBtnY,resetBtnY,linkY,linkBW,logoutBtnY,closeY:py+ph-42};
+  const deleteAccBtnY=logoutBtnY+38;
+  return{px,py,pw,ph,slX,barX,barW,barY1:slY1-8,barY2:slY2-8,barH,langY,langBtnX,langBtnW,langBtnH,engBtnX,nameY,tutBtnY,resetBtnY,linkY,linkBW,logoutBtnY,deleteAccBtnY,closeY:py+ph-42};
 }
 function hitSettingsGear(tx,ty){return hitRect(tx,ty,W-44,safeTop+6,36,36);}
 function hitHelpBtn(tx,ty){return hitRect(tx,ty,W-44,safeTop+44,36,36);}
@@ -379,6 +380,18 @@ function handleConfirmModalTouch(tx,ty){
       confirmModal=null;settingsOpen=false;
       if(typeof fbDeleteUserData==='function'){fbDeleteUserData().finally(()=>location.reload());}
       else{location.reload();}
+    } else if(confirmModal.type==='deleteAccount'){
+      // Delete Account: 2-step confirmation
+      if(confirmModal.step===0){confirmModal.step=1;sfx('hurt');vibrate(30);return true;}
+      sfx('bomb');vibrate(50);
+      confirmModal=null;settingsOpen=false;
+      const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gd5'))keys.push(k);}
+      keys.forEach(k=>localStorage.removeItem(k));
+      if(typeof fbDeleteAccount==='function'){
+        fbDeleteAccount()
+          .then(()=>{addPop(W/2,H/2,t('deleteAccountDone'),'#ff4444');setTimeout(()=>location.reload(),1200);})
+          .catch(()=>{addPop(W/2,H/2,t('deleteAccountError'),'#ff3860');sfx('hurt');});
+      } else{location.reload();}
     } else {
       // Logout: single confirmation
       sfx('cancel');vibrate(30);
@@ -515,6 +528,11 @@ function handleSettingsTouch(tx,ty){
   // Logout button - always show confirmation modal
   if(tx>=s.px+20&&tx<=s.px+s.pw-20&&ty>=s.logoutBtnY&&ty<=s.logoutBtnY+30){
     confirmModal={type:'logout',step:0};sfx('hurt');vibrate(15);
+    return true;
+  }
+  // Delete Account button
+  if(tx>=s.px+20&&tx<=s.px+s.pw-20&&ty>=s.deleteAccBtnY&&ty<=s.deleteAccBtnY+28){
+    confirmModal={type:'deleteAccount',step:0};sfx('hurt');vibrate(20);
     return true;
   }
   // BGM slider

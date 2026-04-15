@@ -534,3 +534,17 @@ function fbDeleteUserData() {
     fbDb.collection('challengeRankings').doc(uid).delete().catch(() => {})
   ]).then(() => fbSignOut());
 }
+
+// --- Account deletion (Guideline 5.1.1(v)) ---
+// Deletes Firestore data AND the Firebase Auth user account.
+function fbDeleteAccount() {
+  if (!fbUser) return Promise.reject('no-user');
+  const uid = fbUser.uid;
+  const user = fbUser;
+  const deletions = fbDb ? [
+    fbDb.collection('users').doc(uid).delete().catch(() => {}),
+    fbDb.collection('rankings').doc(uid).delete().catch(() => {}),
+    fbDb.collection('challengeRankings').doc(uid).delete().catch(() => {})
+  ] : [];
+  return Promise.all(deletions).then(() => user.delete());
+}
