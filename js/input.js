@@ -336,7 +336,7 @@ function handleHelpTouch(tx,ty){
 
 // Settings panel input helpers (must match drawTitle layout)
 function settingsLayout(){
-  const pw=Math.min(280,W-30),ph=564,px=W/2-pw/2,py=H/2-ph/2;
+  const pw=Math.min(280,W-30),ph=582,px=W/2-pw/2,py=H/2-ph/2;
   const slW=pw-50,slX=px+25,barX=slX+42,barW=slW-42;
   const slY1=py+52,slY2=slY1+44;
   const barH=10;
@@ -352,7 +352,7 @@ function settingsLayout(){
   const linkY=methodY+10;
   const linkBW=(pw-48)/2;
   const logoutBtnY=methodY+8+linkBtnOffset;
-  const deleteAccBtnY=logoutBtnY+38;
+  const deleteAccBtnY=logoutBtnY+56;
   return{px,py,pw,ph,slX,barX,barW,barY1:slY1-8,barY2:slY2-8,barH,langY,langBtnX,langBtnW,langBtnH,engBtnX,nameY,tutBtnY,resetBtnY,linkY,linkBW,logoutBtnY,deleteAccBtnY,closeY:py+ph-42};
 }
 function hitSettingsGear(tx,ty){return hitRect(tx,ty,W-44,safeTop+6,36,36);}
@@ -1575,8 +1575,10 @@ window.addEventListener('nativeAuthResult',(e)=>{
     fbSignInWithAppleToken(msg.identityToken).then(cred=>{
       _handleSocialLogin(cred.user,'apple');
     }).catch(err=>{
-      console.warn('[Firebase] Apple credential error:',err);
+      const code=(err&&err.code)||'unknown';
+      console.warn('[Firebase] Apple credential error:',code,err);
       if(appleBtn)appleBtn.disabled=false;
+      addPop(W/2,H/2,'Apple Firebase error: '+code,'#ff3860');
       sfx('hurt');vibrate(10);
     });
   } else if(msg.type==='googleSignInError'){

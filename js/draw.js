@@ -2915,7 +2915,7 @@ function drawTitle(){
   // Settings panel overlay
   if(settingsOpen){
     ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,W,H);
-    const pw=Math.min(280,W-30),ph=564,px=W/2-pw/2,py=H/2-ph/2;
+    const pw=Math.min(280,W-30),ph=582,px=W/2-pw/2,py=H/2-ph/2;
     const panGr=ctx.createLinearGradient(px,py,px,py+ph);
     panGr.addColorStop(0,'rgba(15,15,40,0.97)');panGr.addColorStop(1,'rgba(8,8,25,0.97)');
     ctx.fillStyle=panGr;rr(px,py,pw,ph,14);ctx.fill();
@@ -3062,7 +3062,7 @@ function drawTitle(){
       }
     }
     // Delete Account button
-    const deleteAccBtnY=logoutBtnY+38;
+    const deleteAccBtnY=logoutBtnY+56;
     ctx.fillStyle='#88000018';rr(px+20,deleteAccBtnY,pw-40,28,6);ctx.fill();
     ctx.strokeStyle='#88000044';ctx.lineWidth=1;rr(px+20,deleteAccBtnY,pw-40,28,6);ctx.stroke();
     ctx.fillStyle='#aa3333';ctx.font='11px monospace';ctx.textAlign='center';
