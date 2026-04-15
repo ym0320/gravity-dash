@@ -1588,8 +1588,12 @@ window.addEventListener('nativeAuthResult',(e)=>{
     if(appleBtn)appleBtn.disabled=false;
     const code=msg.errorCode||'unknown';
     console.warn('[Apple] Sign in error:',code,msg.errorMessage||'');
+    const _note=document.getElementById('loginNote');
+    if(_note)_note.textContent='Apple Sign In error: '+code;
     addPop(W/2,H/2,'Apple Sign In error: '+code,'#ff3860');
     sfx('hurt');vibrate(10);
+  } else if(msg.type==='appleSignInCanceled'){
+    if(appleBtn)appleBtn.disabled=false;
   }
 });
 // Handle redirect result after page reload (Google/Apple sign-in)

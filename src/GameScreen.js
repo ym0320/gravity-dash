@@ -128,10 +128,18 @@ export default function GameScreen({ onReady }) {
     return () => sub.remove();
   }, []);
 
+  // WebViewにイベントを直接発火するヘルパー（postMessageより確実）
+  const dispatchToWebView = useCallback((msg) => {
+    const json = JSON.stringify(msg).replace(/\\/g, '\\\\').replace(/`/g, '\\`');
+    webViewRef.current?.injectJavaScript(
+      `window.dispatchEvent(new CustomEvent('nativeAuthResult',{detail:${json}}));true;`
+    );
+  }, []);
+
   // Apple Sign-In (iOS native)
   const handleAppleSignIn = useCallback(async () => {
     if (Platform.OS !== 'ios') {
-      webViewRef.current?.postMessage(JSON.stringify({ type: 'appleSignInError' }));
+      dispatchToWebView({ type: 'appleSignInError', errorCode: 'not-ios' });
       return;
     }
     try {
@@ -142,24 +150,27 @@ export default function GameScreen({ onReady }) {
         ],
       });
       if (credential.identityToken) {
-        webViewRef.current?.postMessage(JSON.stringify({
+        dispatchToWebView({
           type: 'appleCredential',
           identityToken: credential.identityToken,
           fullName: credential.fullName?.givenName || '',
-        }));
+        });
       } else {
-        webViewRef.current?.postMessage(JSON.stringify({ type: 'appleSignInError' }));
+        dispatchToWebView({ type: 'appleSignInError', errorCode: 'no-token' });
       }
     } catch (e) {
       if (e.code !== 'ERR_REQUEST_CANCELED') {
-        webViewRef.current?.postMessage(JSON.stringify({
+        dispatchToWebView({
           type: 'appleSignInError',
           errorCode: e.code || 'unknown',
           errorMessage: e.message || '',
-        }));
+        });
+      } else {
+        // キャンセル時はボタンを再有効化するためのイベントを送る
+        dispatchToWebView({ type: 'appleSignInCanceled' });
       }
     }
-  }, []);
+  }, [dispatchToWebView]);
 
   // WebViewからのメッセージ処理
   const onMessage = useCallback((event) => {
