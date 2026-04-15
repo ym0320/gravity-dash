@@ -37,7 +37,7 @@ ja:{
   deleteAccountDesc:'アカウントと全データを完全に削除します',
   deleteAccountConfirm:'本当に削除しますか？',
   deleteAccountDone:'アカウントを削除しました',
-  deleteAccountError:'削除に失敗しました。再ログインしてお試しください',
+  deleteAccountError:'削除失敗。一度ログアウトして再ログインしてからお試しください',
   close:'閉じる',
   language:'言語',
   // === Confirm Modal ===
@@ -408,7 +408,7 @@ en:{
   deleteAccountDesc:'Permanently delete your account and all data',
   deleteAccountConfirm:'Are you sure?',
   deleteAccountDone:'Account deleted',
-  deleteAccountError:'Deletion failed. Please sign in again and try',
+  deleteAccountError:'Deletion failed. Please log out, sign in again, then retry',
   close:'Close',
   language:'Language',
   // === Confirm Modal ===

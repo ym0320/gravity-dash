@@ -542,9 +542,9 @@ function fbDeleteAccount() {
   const uid = fbUser.uid;
   const user = fbUser;
   const deletions = fbDb ? [
-    fbDb.collection('users').doc(uid).delete().catch(() => {}),
-    fbDb.collection('rankings').doc(uid).delete().catch(() => {}),
-    fbDb.collection('challengeRankings').doc(uid).delete().catch(() => {})
+    fbDb.collection('users').doc(uid).delete().catch(e => console.warn('[Firebase] delete users failed:', e)),
+    fbDb.collection('rankings').doc(uid).delete().catch(e => console.warn('[Firebase] delete rankings failed:', e)),
+    fbDb.collection('challengeRankings').doc(uid).delete().catch(e => console.warn('[Firebase] delete challengeRankings failed:', e))
   ] : [];
   return Promise.all(deletions).then(() => user.delete());
 }

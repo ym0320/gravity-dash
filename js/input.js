@@ -336,7 +336,7 @@ function handleHelpTouch(tx,ty){
 
 // Settings panel input helpers (must match drawTitle layout)
 function settingsLayout(){
-  const pw=Math.min(280,W-30),ph=524,px=W/2-pw/2,py=H/2-ph/2;
+  const pw=Math.min(280,W-30),ph=564,px=W/2-pw/2,py=H/2-ph/2;
   const slW=pw-50,slX=px+25,barX=slX+42,barW=slW-42;
   const slY1=py+52,slY2=slY1+44;
   const barH=10;
@@ -385,12 +385,26 @@ function handleConfirmModalTouch(tx,ty){
       if(confirmModal.step===0){confirmModal.step=1;sfx('hurt');vibrate(30);return true;}
       sfx('bomb');vibrate(50);
       confirmModal=null;settingsOpen=false;
-      const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gd5'))keys.push(k);}
-      keys.forEach(k=>localStorage.removeItem(k));
+      // Stop pending auto-saves before deletion
+      fbSynced=false;if(typeof _fbSaveTimer!=='undefined')clearTimeout(_fbSaveTimer);
       if(typeof fbDeleteAccount==='function'){
         fbDeleteAccount()
-          .then(()=>{addPop(W/2,H/2,t('deleteAccountDone'),'#ff4444');setTimeout(()=>location.reload(),1200);})
-          .catch(()=>{addPop(W/2,H/2,t('deleteAccountError'),'#ff3860');sfx('hurt');});
+          .then(()=>{
+            // Clear localStorage only after Firebase deletion succeeds
+            const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gd5'))keys.push(k);}
+            keys.forEach(k=>localStorage.removeItem(k));
+            addPop(W/2,H/2,t('deleteAccountDone'),'#ff4444');
+            setTimeout(()=>location.reload(),1200);
+          })
+          .catch(err=>{
+            // auth/requires-recent-login: session too old, need re-auth
+            if(err&&err.code==='auth/requires-recent-login'){
+              addPop(W/2,H/2,t('deleteAccountError'),'#ff8600');
+            } else {
+              addPop(W/2,H/2,t('deleteAccountError'),'#ff3860');
+            }
+            sfx('hurt');
+          });
       } else{location.reload();}
     } else {
       // Logout: single confirmation
