@@ -1572,13 +1572,14 @@ window.addEventListener('nativeAuthResult',(e)=>{
       sfx('hurt');vibrate(10);
     });
   } else if(msg.type==='appleCredential'){
+    const _noteAC=document.getElementById('loginNote');
     fbSignInWithAppleToken(msg.identityToken).then(cred=>{
       _handleSocialLogin(cred.user,'apple');
     }).catch(err=>{
       const code=(err&&err.code)||'unknown';
       console.warn('[Firebase] Apple credential error:',code,err);
       if(appleBtn)appleBtn.disabled=false;
-      addPop(W/2,H/2,'Apple Firebase error: '+code,'#ff3860');
+      if(_noteAC){_noteAC.textContent='Apple error: '+code;_noteAC.style.color='#ff3860';}
       sfx('hurt');vibrate(10);
     });
   } else if(msg.type==='googleSignInError'){
@@ -1589,11 +1590,12 @@ window.addEventListener('nativeAuthResult',(e)=>{
     const code=msg.errorCode||'unknown';
     console.warn('[Apple] Sign in error:',code,msg.errorMessage||'');
     const _note=document.getElementById('loginNote');
-    if(_note)_note.textContent='Apple Sign In error: '+code;
-    addPop(W/2,H/2,'Apple Sign In error: '+code,'#ff3860');
+    if(_note){_note.textContent='Apple Sign In error: '+code;_note.style.color='#ff3860';}
     sfx('hurt');vibrate(10);
   } else if(msg.type==='appleSignInCanceled'){
     if(appleBtn)appleBtn.disabled=false;
+    const _noteC=document.getElementById('loginNote');
+    if(_noteC){_noteC.textContent='キャンセルされました。もう一度試してください。';_noteC.style.color='#ff9800cc';}
   }
 });
 // Handle redirect result after page reload (Google/Apple sign-in)

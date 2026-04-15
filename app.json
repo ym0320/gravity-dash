@@ -16,6 +16,9 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.ym0320.gGravHopper",
       "requireFullScreen": true,
+      "entitlements": {
+        "com.apple.developer.applesignin": ["Default"]
+      },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "このアプリはカメラを使用しません",
