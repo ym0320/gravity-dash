@@ -152,7 +152,11 @@ export default function GameScreen({ onReady }) {
       }
     } catch (e) {
       if (e.code !== 'ERR_REQUEST_CANCELED') {
-        webViewRef.current?.postMessage(JSON.stringify({ type: 'appleSignInError' }));
+        webViewRef.current?.postMessage(JSON.stringify({
+          type: 'appleSignInError',
+          errorCode: e.code || 'unknown',
+          errorMessage: e.message || '',
+        }));
       }
     }
   }, []);

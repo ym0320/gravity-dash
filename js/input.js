@@ -1584,6 +1584,9 @@ window.addEventListener('nativeAuthResult',(e)=>{
     sfx('hurt');vibrate(10);
   } else if(msg.type==='appleSignInError'){
     if(appleBtn)appleBtn.disabled=false;
+    const code=msg.errorCode||'unknown';
+    console.warn('[Apple] Sign in error:',code,msg.errorMessage||'');
+    addPop(W/2,H/2,'Apple Sign In error: '+code,'#ff3860');
     sfx('hurt');vibrate(10);
   }
 });
