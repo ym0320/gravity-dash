@@ -8,8 +8,10 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // 自分のデータのみ読み取り可能
-      allow read: if request.auth != null && request.auth.uid == userId;
+      // 自分のデータのみ取得可能
+      allow get: if request.auth != null && request.auth.uid == userId;
+      // 名前重複チェック用の list クエリ（limit 1 のみ許可）
+      allow list: if request.auth != null && request.query.limit <= 1;
       allow write: if request.auth != null && request.auth.uid == userId
         && request.resource.data.name is string
         && request.resource.data.name.size() <= 12

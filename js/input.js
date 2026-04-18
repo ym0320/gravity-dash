@@ -1626,7 +1626,16 @@ function _handleSocialLogin(user,providerName){
           if(!tutorialDone){startTutorial();}else{state=ST.TITLE;switchBGM('title');}
         } else {
           fbSynced=true;_fbGoogleLoginInProgress=false;
-          if(localName){_finishLogin(localName);}else{_showSocialNameInput(user,prevMethod);}
+          if(localName){
+            // Check name uniqueness before auto-registering with existing localName
+            // (prevents duplicate names when re-login gives different UID)
+            fbCheckNameExists(localName).then(taken=>{
+              if(taken) _showSocialNameInput(user,prevMethod);
+              else _finishLogin(localName);
+            });
+          } else {
+            _showSocialNameInput(user,prevMethod);
+          }
         }
       });
     }
