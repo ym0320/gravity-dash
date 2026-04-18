@@ -81,6 +81,15 @@ function fbLinkApple() {
 }
 function fbSignOut() {
   if (!fbAuth) return Promise.resolve();
+  // ログアウト時にローカルデータを消す（自動匿名ログインで新UIDにコピーされて重複を作らないように）
+  try {
+    const ks = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('gd5')) ks.push(k);
+    }
+    ks.forEach(k => localStorage.removeItem(k));
+  } catch (e) {}
   return fbAuth.signOut();
 }
 // Handle auth/credential-already-in-use: sign in as existing user & migrate anon data
@@ -513,6 +522,13 @@ function fbFindAndMigrateByName(name, expectedOldUid) {
               return fbDb.collection('challengeRankings').doc(newUid).set(crdoc.data(), { merge: true });
             }
           });
+        }).then(() => {
+          // 古いドキュメントを削除して重複を防ぐ
+          return Promise.all([
+            fbDb.collection('users').doc(expectedOldUid).delete().catch(() => {}),
+            fbDb.collection('rankings').doc(expectedOldUid).delete().catch(() => {}),
+            fbDb.collection('challengeRankings').doc(expectedOldUid).delete().catch(() => {})
+          ]);
         });
       }).then(() => found);
     })
