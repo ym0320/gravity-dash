@@ -1537,10 +1537,16 @@ if(googleBtn){
     if(window.ReactNativeWebView){
       window.ReactNativeWebView.postMessage(JSON.stringify({type:'googleSignIn'}));
     } else {
-      // ウェブブラウザでの直接アクセス時はredirectにフォールバック
-      if(fbUser&&fbUser.isAnonymous)localStorage.setItem('gd5anonUid',fbUser.uid);
+      // ウェブブラウザはpopup優先（redirectへフォールバック）
       localStorage.setItem('gd5pendingProvider','google');
-      fbSignInGoogle().catch(()=>{googleBtn.disabled=false;});
+      fbSignInGoogle().then(result=>{
+        // popup成功時はUserCredentialが返る。redirectの場合はundefinedでgetRedirectResultが処理
+        if(result&&result.user)_handleSocialLogin(result.user,'google');
+      }).catch(err=>{
+        console.warn('[Firebase] Google sign-in error:',err);
+        googleBtn.disabled=false;
+        sfx('hurt');vibrate(10);
+      });
     }
   });
 }
@@ -1555,8 +1561,15 @@ if(appleBtn){
     if(window.ReactNativeWebView){
       window.ReactNativeWebView.postMessage(JSON.stringify({type:'appleSignIn'}));
     } else {
+      // ウェブブラウザはpopup優先（redirectへフォールバック）
       localStorage.setItem('gd5pendingProvider','apple');
-      fbSignInApple().catch(()=>{appleBtn.disabled=false;});
+      fbSignInApple().then(result=>{
+        if(result&&result.user)_handleSocialLogin(result.user,'apple');
+      }).catch(err=>{
+        console.warn('[Firebase] Apple sign-in error:',err);
+        appleBtn.disabled=false;
+        sfx('hurt');vibrate(10);
+      });
     }
   });
 }

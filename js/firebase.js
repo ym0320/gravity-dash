@@ -52,18 +52,32 @@ function fbSignInWithAppleToken(identityToken, rawNonce) {
   const credential = provider.credential(credentialOptions);
   return fbAuth.signInWithCredential(credential);
 }
-// Fallback: redirect (not used in RN app, kept for web)
+// Web用: popup 優先、blockされたら redirect にフォールバック
+// Chromeのサードパーティcookie制限でredirectが動かないケースを避ける
+function _isPopupBlockedError(err) {
+  const code = err && err.code;
+  return code === 'auth/popup-blocked' ||
+         code === 'auth/cancelled-popup-request' ||
+         code === 'auth/popup-closed-by-user' ||
+         code === 'auth/operation-not-supported-in-this-environment';
+}
 function fbSignInGoogle() {
   if (!fbAuth) return Promise.reject('no-firebase');
   const provider = new firebase.auth.GoogleAuthProvider();
-  return fbAuth.signInWithRedirect(provider);
+  return fbAuth.signInWithPopup(provider).catch(err => {
+    if (_isPopupBlockedError(err)) return fbAuth.signInWithRedirect(provider);
+    throw err;
+  });
 }
 function fbSignInApple() {
   if (!fbAuth) return Promise.reject('no-firebase');
   const provider = new firebase.auth.OAuthProvider('apple.com');
   provider.addScope('email');
   provider.addScope('name');
-  return fbAuth.signInWithRedirect(provider);
+  return fbAuth.signInWithPopup(provider).catch(err => {
+    if (_isPopupBlockedError(err)) return fbAuth.signInWithRedirect(provider);
+    throw err;
+  });
 }
 // Link anonymous account to a provider via redirect (keeps same UID & data)
 function fbLinkGoogle() {
