@@ -106,7 +106,7 @@ html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:#000;t
 body{display:flex;justify-content:center;align-items:center}
 #gameWrap{width:100%;max-width:430px;height:100%;height:100dvh;max-height:844px;position:relative;overflow:hidden;background:#0a0a1a;border-radius:0}
 @media(min-height:845px){#gameWrap{border-radius:12px;box-shadow:0 0 40px #00e5ff22}}
-canvas{display:block;width:100%;height:100%}
+canvas{display:block;width:100%;height:100%;transform:translateZ(0);-webkit-transform:translateZ(0);backface-visibility:hidden;-webkit-backface-visibility:hidden;will-change:transform}
 #loginOverlay{display:none;position:absolute;top:0;left:0;width:100%;height:100%;z-index:100;background:linear-gradient(180deg,#0a0a2e 0%,#1a1a4e 50%,#0f0f23 100%);flex-direction:column;align-items:center;justify-content:flex-start;padding-top:12vh;font-family:monospace;overflow:hidden}
 #loginOverlay.active{display:flex}
 #loginOverlay .stars{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:hidden}

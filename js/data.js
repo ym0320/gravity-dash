@@ -10,7 +10,10 @@ let W,H,safeTop=0,safeBot=0;
 // _appDpr: canvas DPR used by resize() and draw(). Both must match to avoid zoom bugs.
 let _appDpr=1;
 function resize(){
-  _appDpr=Math.min(window.devicePixelRatio||1,2);
+  // Cap DPR: WebView uses 1.5 (lighter), browser uses 2
+  // Higher DPR means more pixels to draw per frame — a major FPS cost
+  const _maxDpr=window.ReactNativeWebView?1.5:2;
+  _appDpr=Math.min(window.devicePixelRatio||1,_maxDpr);
   // Use visualViewport if available and valid, else fallback to innerWidth/Height
   let vw=window.innerWidth,vh=window.innerHeight;
   if(window.visualViewport&&window.visualViewport.width>0&&window.visualViewport.height>0){

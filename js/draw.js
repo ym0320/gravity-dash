@@ -1090,7 +1090,7 @@ function draw(){
       const scrollX=(frame*1.2)%spacing;
       ctx.save();
       for(let row=0;row<2;row++){
-        const baseY=row===0?safeTop+46:H-PANEL_H-8;
+        const baseY=row===0?safeTop+46:H-PANEL_H-safeBot-8;
         const flip=row===0?-1:1;
         for(let i=-1;i<count;i++){
           const kx=i*spacing+scrollX;
@@ -2475,7 +2475,7 @@ function drawUI(){
   ctx.fillStyle='#fffa';ctx.fillRect(pauseX+14,pauseY+8,6,24);ctx.fillRect(pauseX+28,pauseY+8,6,24);
 
   // === BOTTOM AREA (above action panel) ===
-  const panelTop=H-PANEL_H;
+  const panelTop=H-PANEL_H-safeBot;
 
   // Speed and coins are shown in drawActionPanel (right side of panel)
 
@@ -2484,9 +2484,10 @@ function drawUI(){
 
 function drawActionPanel(){
   // Semi-transparent bottom panel for thumb controls
-  const py=H-PANEL_H;
-  // Panel background
-  ctx.fillStyle='rgba(0,0,0,0.55)';ctx.fillRect(0,py,W,PANEL_H);
+  // Lift above iPhone home indicator (safeBot) so buttons don't overlap it
+  const py=H-PANEL_H-safeBot;
+  // Panel background (extend to bottom edge for visual continuity)
+  ctx.fillStyle='rgba(0,0,0,0.55)';ctx.fillRect(0,py,W,PANEL_H+safeBot);
   ctx.fillStyle='rgba(255,255,255,0.06)';ctx.fillRect(0,py,W,1);
 
   // Center area: item buttons (endless/challenge) OR progress bar (pack mode)

@@ -755,26 +755,40 @@ function update(dt){
     }
   }
 
+  // Clear _onMovingHill when not grounded (before collision re-sets it)
+  if(!player.grounded)player._onMovingHill=null;
   // Moving hill collision (acts as temporary elevated terrain, both floor and ceiling)
+  // At high game speed, hills can shift several pixels per frame, so we also
+  // explicitly "stick" to the hill each frame when the player is already on it
+  // (fixes the micro-bounce / missed-jump bug on moving floors)
   for(let i=0;i<movingHills.length;i++){const mh=movingHills[i];
     const curH=mh.baseH+Math.sin(mh.phase)*mh.ampH;
     if(player.x+pr>mh.x&&player.x-pr<mh.x+mh.w){
       const surfY=mh.isFloor?H-curH:curH;
-      const thickness=20;
       if(!mh.isFloor){
-        // Ceiling moving hill - landing
+        // Ceiling moving hill
         if(player.gDir===-1){
-          if(player.y-pr<=surfY&&player.y-pr>surfY-20&&player.vy<=0){
+          // Follow the hill if already grounded on it
+          if(player.grounded&&player._onMovingHill===mh){
+            player.y=surfY+pr;player.vy=0;
+          } else if(player.y-pr<=surfY+4&&player.y-pr>surfY-24&&player.vy<=0){
+            // Landing (slightly wider vertical tolerance)
             player.y=surfY+pr;player.vy=0;player.grounded=true;resetFlipState();
+            player._onMovingHill=mh;
           } else if(player.y-pr<surfY-4&&player.y+pr>surfY&&player.grounded){
             player.y=surfY+pr;
           }
         }
       } else {
-        // Floor moving hill - landing
+        // Floor moving hill
         if(player.gDir===1){
-          if(player.y+pr>=surfY&&player.y+pr<surfY+20&&player.vy>=0){
+          // Follow the hill if already grounded on it
+          if(player.grounded&&player._onMovingHill===mh){
+            player.y=surfY-pr;player.vy=0;
+          } else if(player.y+pr>=surfY-4&&player.y+pr<surfY+24&&player.vy>=0){
+            // Landing (slightly wider vertical tolerance)
             player.y=surfY-pr;player.vy=0;player.grounded=true;resetFlipState();
+            player._onMovingHill=mh;
           } else if(player.y+pr>surfY+4&&player.y-pr<surfY&&player.grounded){
             player.y=surfY-pr;
           }

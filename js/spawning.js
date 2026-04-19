@@ -361,6 +361,11 @@ function trySpawnFallingMtn(){
   if(packRng()<chance){
     const isFloor=packRng()<0.5;
     const platArr=isFloor?platforms:ceilPlats;
+    // Early-stage fix: allow spawning in the visible area if no falling mtn exists yet
+    const isFallingStageType=isPackMode&&currentPackStage&&(currentPackStage.stageType==='moving'||currentPackStage.stageType==='normal');
+    const earlyStage=(isFallingStageType||isGimmickFalling)&&fallingMtns.length===0&&rawDist<600;
+    const gapMinX=earlyStage?(player.x+60):W;
+    const gapMaxX=earlyStage?(W+400):(W+300);
     // Look for gaps between platforms in the upcoming area
     let gapX=-1,gapW=0;
     for(let i=0;i<platArr.length-1;i++){
@@ -368,7 +373,7 @@ function trySpawnFallingMtn(){
       const gStart=p1.x+p1.w;
       const gEnd=p2.x;
       const gap=gEnd-gStart;
-      if(gap>=50&&gStart>W&&gStart<W+300){
+      if(gap>=50&&gStart>gapMinX&&gStart<gapMaxX){
         gapX=gStart;gapW=gap;break;
       }
     }
@@ -432,6 +437,13 @@ function trySpawnMovingHill(){
   if(packRng()<chance){
     const isFloor=isGravityStage?true:(packRng()<0.5); // gravity stage: floor hills only
     const platArr=isFloor?platforms:ceilPlats;
+    // Early-stage fix: the stage can start with gaps already visible on screen
+    // Normally we only spawn in W-200..W+200 (near the right edge) but that means
+    // for gravity/moving stages, no hill exists until terrain scrolls ~half a screen in.
+    // When few hills exist and we're still early, allow spawning in the visible area too.
+    const earlyStage=(isGravityStage||isMovingStage||isGimmickMoving)&&movingHills.length<2&&rawDist<600;
+    const gapMinX=earlyStage?(player.x+40):(W-200);
+    const gapMaxX=earlyStage?(W+300):(W+200);
     // Find a gap (abyss) in platforms to place the moving hill over
     let gapX=-1,gapW=0;
     for(let i=0;i<platArr.length-1;i++){
@@ -439,7 +451,7 @@ function trySpawnMovingHill(){
       const gStart=p1.x+p1.w;
       const gEnd=p2.x;
       const gap=gEnd-gStart;
-      if(gap>=50&&gStart>W-200&&gStart<W+200){
+      if(gap>=50&&gStart>gapMinX&&gStart<gapMaxX){
         gapX=gStart;gapW=gap;break;
       }
     }
