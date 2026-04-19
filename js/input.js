@@ -720,25 +720,65 @@ function handleInventoryModalTouch(px, py){
   handleInventoryChestTap(px,py);
   return true;
 }
-// FPS overlay toggle: 5 quick taps in top-left corner (60x60)
+// FPS overlay toggle: 3 quick taps on the overlay itself (when visible) or top-left 80x80 (when hidden)
 let _fpsTapCount=0,_fpsLastTap=0;
 function _checkFpsToggle(px,py){
-  if(px>60||py>safeTop+60)return;
+  // When overlay is visible: tap on the overlay box to toggle off (180x50 at 6,safeTop+6)
+  // When hidden: 80x80 top-left corner to toggle on
+  const inHotspot=window._fpsShow
+    ? (px>=0&&px<=180&&py>=safeTop&&py<=safeTop+56)
+    : (px<=80&&py<=safeTop+80);
+  if(!inHotspot)return;
   const now=Date.now();
-  if(now-_fpsLastTap>600)_fpsTapCount=0;
+  if(now-_fpsLastTap>700)_fpsTapCount=0;
   _fpsTapCount++;_fpsLastTap=now;
-  if(_fpsTapCount>=5){
+  const needed=window._fpsShow?3:5;
+  if(_fpsTapCount>=needed){
     window._fpsShow=!window._fpsShow;
     try{localStorage.setItem('gd5fps',window._fpsShow?'1':'0');}catch(e){}
     _fpsTapCount=0;
   }
 }
 try{if(localStorage.getItem('gd5fps')==='1')window._fpsShow=true;}catch(e){}
+
+// Secret combo: simultaneous touch on Ranking + Settings buttons → unlock Stage mode
+let _secretTouchIds={ranking:null,settings:null};
+function _checkSecretStageUnlock(identifier,px,py,phase){
+  if(state!==ST.TITLE)return;
+  if(phase==='down'){
+    // Ranking button bounds (from handleTitleTouch): 8..44 x safeTop+6..safeTop+42
+    if(px>=8&&px<=44&&py>=safeTop+6&&py<=safeTop+42){
+      _secretTouchIds.ranking=identifier;
+    }
+    // Settings gear: W-44..W-8 x safeTop+6..safeTop+42
+    if(px>=W-44&&px<=W-8&&py>=safeTop+6&&py<=safeTop+42){
+      _secretTouchIds.settings=identifier;
+    }
+    if(_secretTouchIds.ranking!==null&&_secretTouchIds.settings!==null){
+      _secretTouchIds.ranking=null;_secretTouchIds.settings=null;
+      try{sfx('select');}catch(e){}
+      if(typeof addPop==='function')addPop(W/2,H/2,'STAGE MODE UNLOCK!','#ffd700');
+      isPackMode=false;state=ST.STAGE_SEL;stageSelScroll=0;stageSelGuardT=30;
+      if(typeof switchBGM==='function')switchBGM('title');
+      return true;
+    }
+  } else if(phase==='up'){
+    if(_secretTouchIds.ranking===identifier)_secretTouchIds.ranking=null;
+    if(_secretTouchIds.settings===identifier)_secretTouchIds.settings=null;
+  }
+  return false;
+}
 canvas.addEventListener('touchstart',e=>{
   e.preventDefault();initAudio();
   const t=e.touches[0];
   const p=canvasXY(t.clientX,t.clientY);
   _checkFpsToggle(p.x,p.y);
+  // Secret combo: scan every new touch for ranking+settings simultaneous press
+  for(let _i=0;_i<e.changedTouches.length;_i++){
+    const _ct=e.changedTouches[_i];
+    const _cp=canvasXY(_ct.clientX,_ct.clientY);
+    if(_checkSecretStageUnlock(_ct.identifier,_cp.x,_cp.y,'down'))return;
+  }
   touchStartY=t.clientY;touchStartX=t.clientX;touchOriginY=t.clientY;touchStartT=Date.now();touchMoved=false;touchBtnUsed=false;
   // Update info modal intercepts all input when open
   if(updateInfoOpen){handleUpdateInfoTouch(p.x,p.y);return;}
@@ -851,6 +891,10 @@ canvas.addEventListener('touchmove',e=>{
 
 canvas.addEventListener('touchend',e=>{
   e.preventDefault();
+  // Secret combo cleanup
+  for(let _i=0;_i<e.changedTouches.length;_i++){
+    _checkSecretStageUnlock(e.changedTouches[_i].identifier,0,0,'up');
+  }
   if(draggingSlider){
     if(draggingSlider==='sfx')sfx('coin'); // preview SE at new volume
     draggingSlider=null;return;

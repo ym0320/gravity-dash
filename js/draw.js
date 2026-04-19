@@ -1254,22 +1254,25 @@ function draw(){
   if(window._fpsShow)drawFpsOverlay();
 }
 
-// Diagnostic FPS overlay — toggled by 5 quick taps on top-left corner
+// Diagnostic FPS overlay — toggled by 5 quick taps on top-left corner (enable)
+// or 3 quick taps on the overlay itself (disable)
 function drawFpsOverlay(){
   const fps=Math.round(_fpsSmooth||60);
   const fpsMin=Math.round(_fpsMin||60);
   const col=fps>=55?'#4ade80':(fps>=40?'#fbbf24':'#f87171');
-  const x=6,y=safeTop+6,w=168,h=46;
-  ctx.fillStyle='rgba(0,0,0,0.65)';rr(x,y,w,h,4);ctx.fill();
+  const x=6,y=safeTop+6,w=180,h=56;
+  ctx.fillStyle='rgba(0,0,0,0.7)';rr(x,y,w,h,4);ctx.fill();
   if(_gcSpikeT>0){ctx.fillStyle='rgba(248,113,113,0.25)';rr(x,y,w,h,4);ctx.fill();}
   ctx.font='bold 13px monospace';ctx.textAlign='left';ctx.textBaseline='top';
   ctx.fillStyle=col;ctx.fillText('FPS '+fps+' (min '+fpsMin+')',x+6,y+4);
   ctx.font='10px monospace';ctx.fillStyle='#e5e7eb';
   const pN=parts?parts.length:0,eN=enemies?enemies.length:0,bN=bullets?bullets.length:0;
   const cN=coins?coins.length:0,poN=pops?pops.length:0;
-  ctx.fillText('P:'+pN+' E:'+eN+' B:'+bN+' C:'+cN+' Po:'+poN,x+6,y+20);
+  ctx.fillText('P:'+pN+' E:'+eN+' B:'+bN+' C:'+cN+' Po:'+poN,x+6,y+18);
   ctx.fillStyle=_gcSpikeT>0?'#f87171':'#9ca3af';
-  ctx.fillText('lastSpike:'+_lastBigDt+'ms'+(_lowQ?' LOW':''),x+6,y+32);
+  ctx.fillText('lastSpike:'+_lastBigDt+'ms'+(_lowQ?' LOW':''),x+6,y+30);
+  ctx.fillStyle='#6b7280';ctx.font='9px monospace';
+  ctx.fillText('tap here 3x to close',x+6,y+44);
 }
 
 function drawCoin(c){
