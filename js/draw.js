@@ -1250,6 +1250,25 @@ function draw(){
   if(state===ST.DEAD){drawDead();if(deadChestOpen&&chestOpen.phase!=='none')drawChestOpen();}
   if(state===ST.PAUSE)drawPause();
   if(state===ST.STAGE_CLEAR)drawStageClear();
+  if(window._fpsShow)drawFpsOverlay();
+}
+
+// Diagnostic FPS overlay — toggled by 5 quick taps on top-left corner
+function drawFpsOverlay(){
+  const fps=Math.round(_fpsSmooth||60);
+  const fpsMin=Math.round(_fpsMin||60);
+  const col=fps>=55?'#4ade80':(fps>=40?'#fbbf24':'#f87171');
+  const x=6,y=safeTop+6,w=168,h=46;
+  ctx.fillStyle='rgba(0,0,0,0.65)';rr(x,y,w,h,4);ctx.fill();
+  if(_gcSpikeT>0){ctx.fillStyle='rgba(248,113,113,0.25)';rr(x,y,w,h,4);ctx.fill();}
+  ctx.font='bold 13px monospace';ctx.textAlign='left';ctx.textBaseline='top';
+  ctx.fillStyle=col;ctx.fillText('FPS '+fps+' (min '+fpsMin+')',x+6,y+4);
+  ctx.font='10px monospace';ctx.fillStyle='#e5e7eb';
+  const pN=parts?parts.length:0,eN=enemies?enemies.length:0,bN=bullets?bullets.length:0;
+  const cN=coins?coins.length:0,poN=pops?pops.length:0;
+  ctx.fillText('P:'+pN+' E:'+eN+' B:'+bN+' C:'+cN+' Po:'+poN,x+6,y+20);
+  ctx.fillStyle=_gcSpikeT>0?'#f87171':'#9ca3af';
+  ctx.fillText('lastSpike:'+_lastBigDt+'ms'+(_lowQ?' LOW':''),x+6,y+32);
 }
 
 function drawCoin(c){

@@ -720,10 +720,25 @@ function handleInventoryModalTouch(px, py){
   handleInventoryChestTap(px,py);
   return true;
 }
+// FPS overlay toggle: 5 quick taps in top-left corner (60x60)
+let _fpsTapCount=0,_fpsLastTap=0;
+function _checkFpsToggle(px,py){
+  if(px>60||py>safeTop+60)return;
+  const now=Date.now();
+  if(now-_fpsLastTap>600)_fpsTapCount=0;
+  _fpsTapCount++;_fpsLastTap=now;
+  if(_fpsTapCount>=5){
+    window._fpsShow=!window._fpsShow;
+    try{localStorage.setItem('gd5fps',window._fpsShow?'1':'0');}catch(e){}
+    _fpsTapCount=0;
+  }
+}
+try{if(localStorage.getItem('gd5fps')==='1')window._fpsShow=true;}catch(e){}
 canvas.addEventListener('touchstart',e=>{
   e.preventDefault();initAudio();
   const t=e.touches[0];
   const p=canvasXY(t.clientX,t.clientY);
+  _checkFpsToggle(p.x,p.y);
   touchStartY=t.clientY;touchStartX=t.clientX;touchOriginY=t.clientY;touchStartT=Date.now();touchMoved=false;touchBtnUsed=false;
   // Update info modal intercepts all input when open
   if(updateInfoOpen){handleUpdateInfoTouch(p.x,p.y);return;}
