@@ -1239,7 +1239,8 @@ function draw(){
   ctx.restore();
   // === Draw UI and overlays OUTSIDE shake translate (fixed position) ===
   // Bottom action panel (must be outside shake so it doesn't jitter with gravity/impacts)
-  if(state===ST.PLAY){
+  // Also draw during PAUSE so terrain doesn't show through the home-indicator area
+  if(state===ST.PLAY||state===ST.PAUSE){
     drawActionPanel();
   }
   drawUI();
