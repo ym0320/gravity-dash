@@ -741,6 +741,9 @@ function _checkFpsToggle(px,py){
 }
 try{if(localStorage.getItem('gd5fps')==='1')window._fpsShow=true;}catch(e){}
 
+// Secret combo settling flag: ignore all STAGE_SEL touch processing until the
+// user's unlock fingers are fully released (prevents stray taps/scrolls)
+let _secretUnlockSettling=false;
 // Secret combo: simultaneous touch on Ranking + Settings buttons → unlock Stage mode
 // Check all currently active touches (e.touches) on every touchstart to detect
 // the case "first finger on ranking, then second finger on settings"
@@ -764,8 +767,9 @@ function _checkSecretStageUnlockFromEvent(e){
   if(typeof cosmeticMenuOpen!=='undefined')cosmeticMenuOpen=false;
   helpOpen=false;
   if(typeof updateInfoOpen!=='undefined')updateInfoOpen=false;
-  isPackMode=false;state=ST.STAGE_SEL;stageSelScroll=0;stageSelGuardT=45;
+  isPackMode=false;state=ST.STAGE_SEL;stageSelScroll=0;stageSelGuardT=20;
   stageSelDragging=false;stageSelTouchY=0;
+  _secretUnlockSettling=true; // cleared on touchend when no touches remain
   if(typeof switchBGM==='function')switchBGM('title');
   return true;
 }
@@ -876,7 +880,7 @@ canvas.addEventListener('touchmove',e=>{
   const dx=t.clientX-touchStartX;
   if(Math.abs(dy)>20||Math.abs(dx)>20){touchMoved=true;if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}}
   // Stage selection scroll
-  if(state===ST.STAGE_SEL){
+  if(state===ST.STAGE_SEL&&!_secretUnlockSettling){
     const scrollDy=t.clientY-stageSelTouchY;
     if(Math.abs(scrollDy)>5){stageSelDragging=true;stageSelScroll+=scrollDy;stageSelTouchY=t.clientY;
     const viewH=H-70-safeTop-safeBot;
@@ -888,6 +892,12 @@ canvas.addEventListener('touchmove',e=>{
 
 canvas.addEventListener('touchend',e=>{
   e.preventDefault();
+  // Clear settling flag once all unlock fingers have lifted, and suppress the
+  // "finger lifted" tap processing so stray positions don't trigger buttons
+  if(_secretUnlockSettling){
+    if(!e.touches||e.touches.length===0){_secretUnlockSettling=false;}
+    return;
+  }
   if(draggingSlider){
     if(draggingSlider==='sfx')sfx('coin'); // preview SE at new volume
     draggingSlider=null;return;
