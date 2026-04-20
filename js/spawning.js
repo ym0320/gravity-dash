@@ -631,17 +631,21 @@ function trySpawnMagmaFire(){
 function trySpawnBird(){
   if(birdCD>0){birdCD--;return;}
   if(bossPhase.active)return;
-  if(isPackMode&&currentPackStage&&currentPackStage.noHazards)return;
+  // birdSwarm: 鳥だけのステージ — noHazardsチェックをスキップし頻度UP
+  const swarmMode=isPackMode&&currentPackStage&&currentPackStage.birdSwarm;
+  if(!swarmMode&&isPackMode&&currentPackStage&&currentPackStage.noHazards)return;
   if(!isPackMode&&score<30)return;
   // Spawn chance
-  const chance=isPackMode?0.018:0.014;
+  const chance=swarmMode?0.14:(isPackMode?0.018:0.014);
   if(packRng()<chance){
-    birdCD=160+Math.floor(packRng()*100); // cooldown after spawn
+    // swarmMode はクールダウン短縮（連続で出現）
+    birdCD=swarmMode?(35+Math.floor(packRng()*25)):(160+Math.floor(packRng()*100));
     const gd=player.gDir;
     const sz=11;
     // Spawn at player's Y level, fly horizontally toward player
-    const fy=player.y;
-    const flySpd=1.0+packRng()*0.5; // slow horizontal speed
+    // swarmMode では高さをばらけさせて複数パスで攻めてくる
+    const fy=swarmMode?(player.y+(packRng()-0.5)*220):player.y;
+    const flySpd=swarmMode?(1.2+packRng()*0.6):(1.0+packRng()*0.5);
     enemies.push({x:W+30,y:fy,vy:0,gDir:gd,walkSpd:0,sz:sz,alive:true,fr:packRng()*100,
       type:7,shootT:999,flySpd:flySpd});
   } else {
