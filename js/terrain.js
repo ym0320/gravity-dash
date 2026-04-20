@@ -321,8 +321,8 @@ function generatePackPlatform(arr,isCeil,stage){
   }
   // --- ALTERNATING CHASM stage: floor/ceiling alternate having platforms ---
   else if(sType==='altChasm'){
-    const zoneLen=150;
-    const buffer=30; // both sides solid within buffer of zone boundary
+    const zoneLen=stage.altChasmZoneLen||150;
+    const buffer=(typeof stage.altChasmBuffer==='number')?stage.altChasmBuffer:30; // both sides solid within buffer of zone boundary
     // Use floor generation position as shared reference so both sides stay in sync
     const refDist=Math.max(0,(packFloorGenX-W*0.5)*0.08);
     const zone=Math.floor(refDist/zoneLen);
