@@ -137,9 +137,11 @@ function trySpawnEnemy(){
     if(mhPlat){plat=mhPlat;useMH=true;}
   }
   if(!plat)return;
-  const chance=isPackMode?0.5:Math.min(0.3,0.04+(score-30)*0.002);
+  // forceEnemyType のステージは内部chanceとCDを緩めて敵密度を上げる
+  const isForcedStage=isPackMode&&currentPackStage&&typeof currentPackStage.forceEnemyType==='number';
+  const chance=isForcedStage?0.9:(isPackMode?0.5:Math.min(0.3,0.04+(score-30)*0.002));
   if(packRng()<chance){
-    enemyCD=isPackMode?(25+Math.floor(packRng()*25)):(55+Math.floor(packRng()*50));
+    enemyCD=isForcedStage?(8+Math.floor(packRng()*10)):(isPackMode?(25+Math.floor(packRng()*25)):(55+Math.floor(packRng()*50)));
     const ex=Math.max(useMH?plat.x+plat.w*0.3:W+13,plat.x);
     const sz=13;
     // Choose enemy type

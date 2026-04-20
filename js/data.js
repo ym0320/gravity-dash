@@ -1522,19 +1522,19 @@ const STAGE_PACKS=[
   {name:'雪山',theme:1,unlock:12,starsPerStage:2,stages:[
     // 2-1: つらら雨 — 頭上からつららが降ってくる、敵はクリボーのみ
     {id:'2-1',name:'2-1',dist:1000,spdMul:1.3,seed:2001,hillChance:0.30,gapChance:0.25,
-      enemyChance:0.25,forceEnemyType:0,icicleChance:0.4,noFloatPlat:true,noMovingHill:true,
+      enemyChance:0.85,forceEnemyType:0,icicleChance:0.4,noFloatPlat:true,noMovingHill:true,
       coins:[{pos:0.25,yOff:-90},{pos:0.55,yOff:-180},{pos:0.80,yOff:-70}]},
     // 2-2: ダッシャー追走 — 高速ダッシャーに追われる
     {id:'2-2',name:'2-2',dist:1000,spdMul:1.35,seed:2002,hillChance:0.30,gapChance:0.30,
-      enemyChance:0.40,forceEnemyType:6,noFloatPlat:true,noMovingHill:true,noHazards:true,
+      enemyChance:0.90,forceEnemyType:6,noFloatPlat:true,noMovingHill:true,noHazards:true,
       coins:[{pos:0.25,yOff:-100},{pos:0.55,yOff:-220},{pos:0.80,yOff:-80}]},
     // 2-3: 浮遊足場ゾーン — 飛行敵 + 浮遊プラットフォームでの空中移動
     {id:'2-3',name:'2-3',dist:1000,spdMul:1.4,seed:2003,hillChance:0.25,gapChance:0.55,
-      enemyChance:0.22,forceEnemyType:2,stageType:'chasm',noMovingHill:true,noHazards:true,
+      enemyChance:0.85,forceEnemyType:2,stageType:'chasm',noMovingHill:true,noHazards:true,
       coins:[{pos:0.25,yOff:-160},{pos:0.55,yOff:-250},{pos:0.80,yOff:-180}]},
     // 2-4: 見え隠れするファントム — 消える敵だけの心理戦
     {id:'2-4',name:'2-4',dist:1000,spdMul:1.4,seed:2004,hillChance:0.35,gapChance:0.28,
-      enemyChance:0.35,forceEnemyType:5,noFloatPlat:true,noMovingHill:true,noHazards:true,
+      enemyChance:0.90,forceEnemyType:5,noFloatPlat:true,noMovingHill:true,noHazards:true,
       coins:[{pos:0.25,yOff:-130},{pos:0.55,yOff:-200},{pos:0.80,yOff:-100}]},
     // 2-5: 雪だるまボス戦 — void地形で立ち回る
     {id:'2-5',name:'2-5',dist:1000,spdMul:1.5,seed:2005,hillChance:0.50,gapChance:0.48,enemyChance:0.30,boss:true,noFloatPlat:true,
@@ -1548,16 +1548,16 @@ const STAGE_PACKS=[
       coins:[{pos:0.25,yOff:-100},{pos:0.55,yOff:-200},{pos:0.80,yOff:-80}]},
     // 3-2: 爆弾兵団 — ボンバー敵で溢れる
     {id:'3-2',name:'3-2',dist:1000,spdMul:1.4,seed:3002,hillChance:0.35,gapChance:0.30,
-      enemyChance:0.45,forceEnemyType:3,magma:true,noFloatPlat:true,noMovingHill:true,noHazards:true,
+      enemyChance:0.85,forceEnemyType:3,magma:true,noFloatPlat:true,noMovingHill:true,noHazards:true,
       coins:[{pos:0.25,yOff:-90},{pos:0.55,yOff:-200},{pos:0.80,yOff:-70}]},
     // 3-3: マグマのヒビ割れ — altChasmで交互に地面が無くなる
-    {id:'3-3',name:'3-3',dist:1000,spdMul:1.45,seed:3003,enemyChance:0.30,forceEnemyType:0,
+    {id:'3-3',name:'3-3',dist:1000,spdMul:1.45,seed:3003,enemyChance:0.85,forceEnemyType:0,
       magma:true,stageType:'altChasm',altChasmZoneLen:110,altChasmBuffer:25,
       noFloatPlat:true,noMovingHill:true,noHazards:true,
       coins:[{pos:0.25,yOff:-80},{pos:0.55,yOff:-120},{pos:0.80,yOff:-160}]},
     // 3-4: 射手の谷 — キャノン（射撃敵）のみ、たくさん弾が飛ぶ
     {id:'3-4',name:'3-4',dist:1000,spdMul:1.5,seed:3004,hillChance:0.40,gapChance:0.30,
-      enemyChance:0.50,forceEnemyType:1,magma:true,noFloatPlat:true,noMovingHill:true,noHazards:true,
+      enemyChance:0.90,forceEnemyType:1,magma:true,noFloatPlat:true,noMovingHill:true,noHazards:true,
       coins:[{pos:0.25,yOff:-100},{pos:0.55,yOff:-220},{pos:0.80,yOff:-80}]},
     // 3-5: マグマボス — ガーディアン戦 + 火球ハザード
     {id:'3-5',name:'3-5',dist:1000,spdMul:1.55,seed:3005,hillChance:0.45,gapChance:0.40,enemyChance:0.25,boss:true,
@@ -1567,15 +1567,15 @@ const STAGE_PACKS=[
   {name:'海',theme:3,unlock:36,starsPerStage:2,stages:[
     // 4-1: 飛行敵の群れ — 空から襲い来る
     {id:'4-1',name:'4-1',dist:1000,spdMul:1.4,seed:4001,hillChance:0.35,gapChance:0.30,
-      enemyChance:0.45,forceEnemyType:2,noFloatPlat:true,noMovingHill:true,noHazards:true,
+      enemyChance:0.90,forceEnemyType:2,noFloatPlat:true,noMovingHill:true,noHazards:true,
       coins:[{pos:0.25,yOff:-120},{pos:0.55,yOff:-220},{pos:0.80,yOff:-80}]},
     // 4-2: バウンド敵 — 垂直移動敵、予測が鍵
     {id:'4-2',name:'4-2',dist:1000,spdMul:1.45,seed:4002,hillChance:0.35,gapChance:0.30,
-      enemyChance:0.40,forceEnemyType:4,noFloatPlat:true,noMovingHill:true,noHazards:true,
+      enemyChance:0.85,forceEnemyType:4,noFloatPlat:true,noMovingHill:true,noHazards:true,
       coins:[{pos:0.25,yOff:-100},{pos:0.55,yOff:-180},{pos:0.80,yOff:-90}]},
     // 4-3: 分裂スライム — 倒すと子分裂、数の波
     {id:'4-3',name:'4-3',dist:1000,spdMul:1.5,seed:4003,hillChance:0.35,gapChance:0.25,
-      enemyChance:0.30,forceEnemyType:8,noFloatPlat:true,noMovingHill:true,noHazards:true,
+      enemyChance:0.75,forceEnemyType:8,noFloatPlat:true,noMovingHill:true,noHazards:true,
       coins:[{pos:0.25,yOff:-110},{pos:0.55,yOff:-200},{pos:0.80,yOff:-90}]},
     // 4-4: 落ちる床サバイバル — fallingMtn密集、敵なし、他ハザードなし
     {id:'4-4',name:'4-4',dist:1000,spdMul:1.5,seed:4004,hillChance:0.30,gapChance:0.55,enemyChance:0,
@@ -1592,12 +1592,12 @@ const STAGE_PACKS=[
       stageType:'void',gravZoneBoost:true,noFloatPlat:true,noMovingHill:true,noHazards:true,
       coins:[{pos:0.25,yOff:-250},{pos:0.55,yOff:-180},{pos:0.80,yOff:-300}]},
     // 5-2: 動く床+敵 — movingステージで敵が加わる難関
-    {id:'5-2',name:'5-2',dist:1000,spdMul:1.55,seed:5002,enemyChance:0.28,forceEnemyType:0,
+    {id:'5-2',name:'5-2',dist:1000,spdMul:1.55,seed:5002,enemyChance:0.75,forceEnemyType:0,
       stageType:'moving',noHazards:true,
       coins:[{pos:0.25,yOff:-140},{pos:0.55,yOff:-220},{pos:0.80,yOff:-160}]},
     // 5-3: スパイク＋敵 — spikeOnly地獄に敵も加わる
     {id:'5-3',name:'5-3',dist:1000,spdMul:1.5,seed:5003,hillChance:0.35,gapChance:0.25,
-      enemyChance:0.25,forceEnemyType:0,stageType:'spikeOnly',denseSpikes:true,
+      enemyChance:0.70,forceEnemyType:0,stageType:'spikeOnly',denseSpikes:true,
       noMovingHill:true,noFloatPlat:true,
       coins:[{pos:0.25,yOff:-100},{pos:0.55,yOff:-180},{pos:0.80,yOff:-90}]},
     // 5-4: 混合敵カオス — 全敵タイプ混在
