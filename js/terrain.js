@@ -184,6 +184,11 @@ function resetPackStage(pi,si,fromCheckpoint){
   // When starting from checkpoint, use offset seed so terrain is fresh but deterministic
   const seedOff=cpStart?5000:0;
   stageRng=mulberry32(stage.seed+seedOff);stageCeilRng=mulberry32(stage.seed+111+seedOff);stageSpawnRng=mulberry32(stage.seed+555+seedOff);gotNewStars=0;
+  // 他プレイヤーの死亡マーカーを読み込み（最大20件、非同期）
+  otherDeathMarks=[];
+  if(typeof fbLoadOtherDeathMarks==='function'){
+    fbLoadOtherDeathMarks(stage.id).then(marks=>{otherDeathMarks=marks||[];});
+  }
   player.x=W*0.2;player.gDir=1;player.vy=0;
   player.rot=0;player.rotTarget=0;_trailHead=0;_trailLen=0;player.faceTimer=0;player.alive=true;
   player.grounded=false;player.face='normal';player.canFlip=true;

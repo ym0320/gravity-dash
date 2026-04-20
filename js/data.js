@@ -1602,6 +1602,8 @@ let stageSelScroll=0,stageSelTarget=0;
 let gotNewStars=0; // how many new stars obtained this clear
 // Death markers for stage mode: {stageId: {dist, gDir}} — records where player last died
 let stageDeathMarks={};
+// 他プレイヤーの死亡マーカー（ステージ開始時にFirestoreから読み込む）
+let otherDeathMarks=[];
 // Checkpoint system: {stageId: true} for stages with checkpoint reached
 let stageCheckpoints=JSON.parse(localStorage.getItem('gd5checkpoints')||'{}');
 let stageResetConfirm=false; // true when showing reset confirmation modal

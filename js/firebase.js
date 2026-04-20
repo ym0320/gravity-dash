@@ -501,6 +501,40 @@ function fbRefreshChallengeRankings() {
   });
 }
 
+// --- Firestore: death marks for stage mode (ghosts of other players) ---
+function fbSaveDeathMark(stageId, dist, py, gDir) {
+  if (!fbDb || !fbUser || !stageId) return Promise.resolve();
+  return fbDb.collection('stageDeaths').add({
+    stageId: String(stageId).substring(0, 16),
+    uid: fbUser.uid,
+    dist: Math.round(dist),
+    py: Math.round(py),
+    gDir: gDir === -1 ? -1 : 1,
+    ts: firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(e => console.warn('[Firebase] death mark save error:', e));
+}
+// Load up to 20 recent death marks from OTHER players for a stage
+function fbLoadOtherDeathMarks(stageId) {
+  if (!fbDb || !stageId) return Promise.resolve([]);
+  return fbDb.collection('stageDeaths')
+    .where('stageId', '==', String(stageId).substring(0, 16))
+    .limit(50)
+    .get()
+    .then(snap => {
+      const marks = [];
+      const myUid = fbUser ? fbUser.uid : '';
+      snap.forEach(doc => {
+        if (marks.length >= 20) return;
+        const d = doc.data();
+        if (d.uid === myUid) return; // skip self
+        if (typeof d.dist !== 'number' || typeof d.py !== 'number') return;
+        marks.push({ dist: d.dist, py: d.py, gDir: d.gDir === -1 ? -1 : 1 });
+      });
+      return marks;
+    })
+    .catch(e => { console.warn('[Firebase] death marks load error:', e); return []; });
+}
+
 // --- Firestore: check if name is already taken (by another user) ---
 function fbCheckNameExists(name) {
   if (!fbDb || !fbUser) return Promise.resolve(false);

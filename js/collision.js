@@ -30,6 +30,10 @@ function die(){
     if(!stageDeathMarks[sid])stageDeathMarks[sid]=[];
     stageDeathMarks[sid].push({dist:rawDist,gDir:player.gDir,py:player.y});
     if(stageDeathMarks[sid].length>10)stageDeathMarks[sid].shift();
+    // Firestoreにも保存（他のプレイヤーのゴースト用）
+    if(typeof fbSaveDeathMark==='function'){
+      fbSaveDeathMark(sid,rawDist,player.y,player.gDir);
+    }
   }
   // Transfer earned chests to inventory storage
   runChests=bossChests; // preserve count for dead screen

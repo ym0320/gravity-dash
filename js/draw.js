@@ -869,27 +869,50 @@ function draw(){
   if(isPackMode)drawAmbient();
   if(state===ST.COUNTDOWN){drawCountdown();ctx.restore();return;}
 
-  // Pack mode: draw death markers from previous attempts (up to 10)
-  if(isPackMode&&currentPackStage&&stageDeathMarks[currentPackStage.id]){
-    const dmarks=stageDeathMarks[currentPackStage.id];
-    for(let di=0;di<dmarks.length;di++){
-      const dm=dmarks[di];
-      const markScreenX=player.x+(dm.dist-rawDist)/(speed*0.08)*speed;
-      if(markScreenX>-40&&markScreenX<W+40){
-        // Use stored player.y for pinpoint placement, fallback to surface
-        const markY=dm.py!=null?dm.py:(dm.gDir===1?floorSurfaceY(markScreenX):ceilSurfaceY(markScreenX));
-        const pulse=Math.sin(frame*0.08+di)*0.15+0.85;
-        const r=12;
-        ctx.save();
-        ctx.globalAlpha=0.8*pulse;
-        // White circle
-        ctx.fillStyle='#fff';
-        ctx.beginPath();ctx.arc(markScreenX,markY,r,0,Math.PI*2);ctx.fill();
-        ctx.strokeStyle='#ff3860';ctx.lineWidth=3;ctx.lineCap='round';
-        const cr=7;
-        ctx.beginPath();ctx.moveTo(markScreenX-cr,markY-cr);ctx.lineTo(markScreenX+cr,markY+cr);ctx.stroke();
-        ctx.beginPath();ctx.moveTo(markScreenX+cr,markY-cr);ctx.lineTo(markScreenX-cr,markY+cr);ctx.stroke();
-        ctx.restore();
+  // Pack mode: draw death markers (other players first, then own on top)
+  if(isPackMode&&currentPackStage){
+    // 他プレイヤー（ゴースト）: 青い円 + グレーのX、控えめに表示
+    if(otherDeathMarks&&otherDeathMarks.length>0){
+      for(let di=0;di<otherDeathMarks.length;di++){
+        const dm=otherDeathMarks[di];
+        const markScreenX=player.x+(dm.dist-rawDist)/(speed*0.08)*speed;
+        if(markScreenX>-40&&markScreenX<W+40){
+          const markY=dm.py!=null?dm.py:(dm.gDir===1?floorSurfaceY(markScreenX):ceilSurfaceY(markScreenX));
+          const pulse=Math.sin(frame*0.06+di*0.7)*0.1+0.75;
+          const r=10;
+          ctx.save();
+          ctx.globalAlpha=0.55*pulse;
+          ctx.fillStyle='#a5b4fc'; // 薄い青
+          ctx.beginPath();ctx.arc(markScreenX,markY,r,0,Math.PI*2);ctx.fill();
+          ctx.strokeStyle='#64748b'; // グレーX
+          ctx.lineWidth=2.5;ctx.lineCap='round';
+          const cr=5.5;
+          ctx.beginPath();ctx.moveTo(markScreenX-cr,markY-cr);ctx.lineTo(markScreenX+cr,markY+cr);ctx.stroke();
+          ctx.beginPath();ctx.moveTo(markScreenX+cr,markY-cr);ctx.lineTo(markScreenX-cr,markY+cr);ctx.stroke();
+          ctx.restore();
+        }
+      }
+    }
+    // 自分: 白い円 + 赤のX（目立たせる）
+    if(stageDeathMarks[currentPackStage.id]){
+      const dmarks=stageDeathMarks[currentPackStage.id];
+      for(let di=0;di<dmarks.length;di++){
+        const dm=dmarks[di];
+        const markScreenX=player.x+(dm.dist-rawDist)/(speed*0.08)*speed;
+        if(markScreenX>-40&&markScreenX<W+40){
+          const markY=dm.py!=null?dm.py:(dm.gDir===1?floorSurfaceY(markScreenX):ceilSurfaceY(markScreenX));
+          const pulse=Math.sin(frame*0.08+di)*0.15+0.85;
+          const r=12;
+          ctx.save();
+          ctx.globalAlpha=0.8*pulse;
+          ctx.fillStyle='#fff';
+          ctx.beginPath();ctx.arc(markScreenX,markY,r,0,Math.PI*2);ctx.fill();
+          ctx.strokeStyle='#ff3860';ctx.lineWidth=3;ctx.lineCap='round';
+          const cr=7;
+          ctx.beginPath();ctx.moveTo(markScreenX-cr,markY-cr);ctx.lineTo(markScreenX+cr,markY+cr);ctx.stroke();
+          ctx.beginPath();ctx.moveTo(markScreenX+cr,markY-cr);ctx.lineTo(markScreenX-cr,markY+cr);ctx.stroke();
+          ctx.restore();
+        }
       }
     }
   }
