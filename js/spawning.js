@@ -460,14 +460,15 @@ function trySpawnMovingHill(){
     const hw=Math.min(gapW*0.85,150+packRng()*200); // wide: 150-350px
     const hx=gapX+(gapW-hw)/2; // center in gap
     // Check overlap: don't spawn where new hill overlaps existing movingHill or fallingMtn
-    // Gravity stage uses larger buffer (80px) to ensure clear visual separation
-    const buf=isGravityStage?200:20;
+    // Gravity stage: 大幅に余白を広げて視覚的にも機能的にも重ならないようにする
+    const buf=isGravityStage?380:20;
     let hasFalling=false;for(let _i=0;_i<fallingMtns.length;_i++){const fm=fallingMtns[_i];if(hx<fm.x+fm.w+buf&&hx+hw>fm.x-buf){hasFalling=true;break;}}
     if(hasFalling){hillCD=30+Math.floor(packRng()*15);return;}
     let hasMH=false;for(let _i=0;_i<movingHills.length;_i++){const mh=movingHills[_i];if(hx<mh.x+mh.w+buf&&hx+hw>mh.x-buf){hasMH=true;break;}}
-    if(hasMH){hillCD=30+Math.floor(packRng()*15);return;}
+    if(hasMH){hillCD=isGravityStage?(80+Math.floor(packRng()*40)):(30+Math.floor(packRng()*15));return;}
     const isGimmickMoving2=terrainGimmickPhase.active&&terrainGimmickPhase.type==='moving';
-    hillCD=isGimmickMoving2?(40+Math.floor(packRng()*30)):(120+Math.floor(packRng()*80));
+    // gravity stage は CD を長めにして連続スポーンを抑制
+    hillCD=isGravityStage?(200+Math.floor(packRng()*120)):(isGimmickMoving2?(40+Math.floor(packRng()*30)):(120+Math.floor(packRng()*80)));
     if(isGimmickMoving2){terrainGimmickPhase.len--;if(terrainGimmickPhase.len<=0){terrainGimmickPhase.active=false;terrainGimmickPhase.cd=800+Math.floor(packRng()*400);}}
     const baseH=GROUND_H;
     const ampH=40+packRng()*50;
@@ -635,16 +636,15 @@ function trySpawnBird(){
   const swarmMode=isPackMode&&currentPackStage&&currentPackStage.birdSwarm;
   if(!swarmMode&&isPackMode&&currentPackStage&&currentPackStage.noHazards)return;
   if(!isPackMode&&score<30)return;
-  // Spawn chance
-  const chance=swarmMode?0.14:(isPackMode?0.018:0.014);
+  // Spawn chance（swarm: 約3倍密度）
+  const chance=swarmMode?0.40:(isPackMode?0.018:0.014);
   if(packRng()<chance){
-    // swarmMode はクールダウン短縮（連続で出現）
-    birdCD=swarmMode?(35+Math.floor(packRng()*25)):(160+Math.floor(packRng()*100));
+    // swarmMode はクールダウン大幅短縮（連続で出現）
+    birdCD=swarmMode?(12+Math.floor(packRng()*10)):(160+Math.floor(packRng()*100));
     const gd=player.gDir;
     const sz=11;
-    // Spawn at player's Y level, fly horizontally toward player
-    // swarmMode では高さをばらけさせて複数パスで攻めてくる
-    const fy=swarmMode?(player.y+(packRng()-0.5)*220):player.y;
+    // Spawn at player's Y (endlessモード同様)
+    const fy=player.y;
     const flySpd=swarmMode?(1.2+packRng()*0.6):(1.0+packRng()*0.5);
     enemies.push({x:W+30,y:fy,vy:0,gDir:gd,walkSpd:0,sz:sz,alive:true,fr:packRng()*100,
       type:7,shootT:999,flySpd:flySpd});

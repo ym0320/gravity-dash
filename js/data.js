@@ -1496,24 +1496,25 @@ const STAGE_THEMES=[
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t^=t+Math.imul(t^t>>>7,61|t);return((t^t>>>14)>>>0)/4294967296;};}
 const STAGE_PACKS=[
   {name:'宇宙',theme:0,unlock:0,starsPerStage:2,stages:[
+    // Pack1 全ステージ spdMul:1.1 固定（進行ごとに速くならない）
     // 1-1: お試し — ウォーカーまばら、ハザードなし
     {id:'1-1',name:'1-1',dist:1000,spdMul:1.1,seed:1001,hillChance:0.80,gapChance:0,
       noFloatPlat:true,noHazards:true,noMovingHill:true,walkerOnly:true,enemyChance:0.10,
       coins:[{pos:0.25,yOff:-70},{pos:0.55,yOff:-100},{pos:0.80,yOff:-140}]},
-    // 1-2: 虫の大群 — ウォーカー密集(swarm)
-    {id:'1-2',name:'1-2',dist:1000,spdMul:1.3,seed:1002,enemyChance:0.55,
-      stageType:'swarm',walkerOnly:true,noFloatPlat:true,noMovingHill:true,noHazards:true,
-      coins:[{pos:0.30,yOff:-130},{pos:0.55,yOff:-200},{pos:0.80,yOff:-100}]},
-    // 1-3: 白い鳥の大群 — 鳥敵だらけ、地上敵なし
-    {id:'1-3',name:'1-3',dist:1000,spdMul:1.4,seed:1003,enemyChance:0,
-      birdSwarm:true,noFloatPlat:true,noMovingHill:true,noHazards:true,
+    // 1-2: 長いギャップ交互 — altChasmで床/天井交互に抜け穴
+    {id:'1-2',name:'1-2',dist:1000,spdMul:1.1,seed:1002,enemyChance:0,
+      stageType:'altChasm',noFloatPlat:true,noMovingHill:true,noHazards:true,
+      coins:[{pos:0.25,yOff:-50},{pos:0.55,yOff:-80},{pos:0.80,yOff:-150}]},
+    // 1-3: 白い鳥の大群 — 鳥だけ(3倍密度)、player.y追従、地面は平坦+ギャップのみ
+    {id:'1-3',name:'1-3',dist:1000,spdMul:1.1,seed:1003,enemyChance:0,gapChance:0.25,hillChance:0,
+      birdSwarm:true,flatGround:true,noFloatPlat:true,noMovingHill:true,noHazards:true,
       coins:[{pos:0.28,yOff:-60},{pos:0.55,yOff:-200},{pos:0.78,yOff:-80}]},
-    // 1-4: 上下床の連続(gravity) — そのまま
-    {id:'1-4',name:'1-4',dist:1000,spdMul:1.65,seed:1004,hillChance:0.45,gapChance:0.42,enemyChance:0,
+    // 1-4: 上下床の連続(gravity) — 重ならないよう間隔強化
+    {id:'1-4',name:'1-4',dist:1000,spdMul:1.1,seed:1004,hillChance:0.45,gapChance:0.42,enemyChance:0,
       stageType:'gravity',noFloatPlat:true,
       coins:[{pos:0.30,yOff:-50},{pos:0.55,yOff:-50},{pos:0.78,yOff:-50}]},
     // 1-5: スパイク地獄 — 赤スパイクだらけ、敵なし
-    {id:'1-5',name:'1-5',dist:1000,spdMul:1.6,seed:1005,enemyChance:0,
+    {id:'1-5',name:'1-5',dist:1000,spdMul:1.1,seed:1005,enemyChance:0,
       stageType:'spikeOnly',denseSpikes:true,noMovingHill:true,noFloatPlat:true,
       coins:[{pos:0.25,yOff:-80},{pos:0.55,yOff:-180},{pos:0.80,yOff:-60}]},
   ]},

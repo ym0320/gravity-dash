@@ -402,7 +402,10 @@ function generatePackPlatform(arr,isCeil,stage){
     }
     let h=lastH;
     const hc=stage.hillChance||0.08;
-    if(rng()<hc){
+    // flatGround: 凹凸なし、高さ変動を完全に止める
+    if(stage.flatGround){
+      h=GROUND_H;
+    } else if(rng()<hc){
       const dh=(rng()<0.5?1:-1)*(10+rng()*50);
       h=Math.max(65+safeBot,Math.min(H*0.42,h+dh));
     }

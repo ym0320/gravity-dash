@@ -4612,21 +4612,24 @@ function drawDead(){
   ctx.fillText(t('gameOver'),W/2,H*0.16);ctx.shadowBlur=0;
 
   // Rating comment with color (based on score, 5000 = legendary)
-  let rating='',ratingCol='#fff6';
-  if(score>=5000){rating=t('ratingLegend');ratingCol='#ffd700';}
-  else if(score>=3000){rating=t('ratingGodlike');ratingCol='#ff44ff';}
-  else if(score>=2000){rating=t('ratingSuperhuman');ratingCol='#00e5ff';}
-  else if(score>=1000){rating=t('ratingMaster');ratingCol='#34d399';}
-  else if(score>=500){rating=t('ratingExcellent');ratingCol='#ff6b35';}
-  else if(score>=200){rating=t('ratingGood');ratingCol='#a0d0ff';}
-  else if(score>=100){rating=t('ratingNice');ratingCol='#fff8';}
-  else if(score>=50){rating=t('ratingOkay');ratingCol='#fff5';}
-  else if(score>=10){rating=t('ratingTryHard');ratingCol='#fff4';}
-  if(rating){
-    const rp=Math.sin(deadT*0.08)*0.15+0.85;
-    ctx.globalAlpha=rp*e;ctx.fillStyle=ratingCol;ctx.font='bold 15px monospace';
-    _shadow(10,ratingCol+'66');
-    ctx.fillText(rating,W/2,H*0.21);ctx.shadowBlur=0;ctx.globalAlpha=e;
+  // ステージモードではレーティング非表示（スコア概念なし）
+  if(!isPackMode){
+    let rating='',ratingCol='#fff6';
+    if(score>=5000){rating=t('ratingLegend');ratingCol='#ffd700';}
+    else if(score>=3000){rating=t('ratingGodlike');ratingCol='#ff44ff';}
+    else if(score>=2000){rating=t('ratingSuperhuman');ratingCol='#00e5ff';}
+    else if(score>=1000){rating=t('ratingMaster');ratingCol='#34d399';}
+    else if(score>=500){rating=t('ratingExcellent');ratingCol='#ff6b35';}
+    else if(score>=200){rating=t('ratingGood');ratingCol='#a0d0ff';}
+    else if(score>=100){rating=t('ratingNice');ratingCol='#fff8';}
+    else if(score>=50){rating=t('ratingOkay');ratingCol='#fff5';}
+    else if(score>=10){rating=t('ratingTryHard');ratingCol='#fff4';}
+    if(rating){
+      const rp=Math.sin(deadT*0.08)*0.15+0.85;
+      ctx.globalAlpha=rp*e;ctx.fillStyle=ratingCol;ctx.font='bold 15px monospace';
+      _shadow(10,ratingCol+'66');
+      ctx.fillText(rating,W/2,H*0.21);ctx.shadowBlur=0;ctx.globalAlpha=e;
+    }
   }
 
   // Main result card
@@ -4647,20 +4650,28 @@ function drawDead(){
   // Character (show fully damaged)
   drawCharacter(W/2,cardY+(newHi?46:38),selChar,16,0,1,'dead',maxHp());
 
-  // Score section
+  // Score section (ステージモードでは獲得スター数を表示)
   const scoreY=cardY+(newHi?68:60);
-  ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.fillText(t('score'),W/2,scoreY);
-  ctx.fillStyle='#fff';ctx.font='bold 38px monospace';
-  _shadow(8,'#fff2');ctx.fillText(score,W/2,scoreY+38);ctx.shadowBlur=0;
+  if(isPackMode){
+    // 獲得スター数を大きく表示
+    ctx.fillStyle='#ffd70099';ctx.font='10px monospace';
+    ctx.fillText(gameLang==='ja'?'獲得スター':'STARS',W/2,scoreY);
+    ctx.fillStyle='#ffd700';ctx.font='bold 38px monospace';
+    _shadow(10,'#ffd70044');ctx.fillText('\u2605 '+(stageBigCollected||0)+' / 3',W/2,scoreY+38);ctx.shadowBlur=0;
+  } else {
+    ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.fillText(t('score'),W/2,scoreY);
+    ctx.fillStyle='#fff';ctx.font='bold 38px monospace';
+    _shadow(8,'#fff2');ctx.fillText(score,W/2,scoreY+38);ctx.shadowBlur=0;
 
-  // Best score
-  ctx.fillStyle='#fff4';ctx.font='11px monospace';
-  ctx.fillText(t('best')+': '+highScore,W/2,scoreY+56);
+    // Best score
+    ctx.fillStyle='#fff4';ctx.font='11px monospace';
+    ctx.fillText(t('best')+': '+highScore,W/2,scoreY+56);
 
-  // Combo
-  if(maxCombo>1){
-    ctx.fillStyle='#ff6b3599';ctx.font='10px monospace';
-    ctx.fillText(t('maxCombo')+': '+maxCombo+'x',W/2,scoreY+72);
+    // Combo
+    if(maxCombo>1){
+      ctx.fillStyle='#ff6b3599';ctx.font='10px monospace';
+      ctx.fillText(t('maxCombo')+': '+maxCombo+'x',W/2,scoreY+72);
+    }
   }
 
   // Divider line
