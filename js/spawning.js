@@ -636,11 +636,11 @@ function trySpawnBird(){
   const swarmMode=isPackMode&&currentPackStage&&currentPackStage.birdSwarm;
   if(!swarmMode&&isPackMode&&currentPackStage&&currentPackStage.noHazards)return;
   if(!isPackMode&&score<30)return;
-  // Spawn chance（swarm: 約3倍密度）
-  const chance=swarmMode?0.40:(isPackMode?0.018:0.014);
+  // Spawn chance（swarm: 超高密度）
+  const chance=swarmMode?0.80:(isPackMode?0.018:0.014);
   if(packRng()<chance){
-    // swarmMode はクールダウン大幅短縮（連続で出現）
-    birdCD=swarmMode?(12+Math.floor(packRng()*10)):(160+Math.floor(packRng()*100));
+    // swarmMode はクールダウン超短縮（連続で出現）
+    birdCD=swarmMode?(6+Math.floor(packRng()*8)):(160+Math.floor(packRng()*100));
     const gd=player.gDir;
     const sz=11;
     // Spawn at player's Y (endlessモード同様)

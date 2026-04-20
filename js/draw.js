@@ -4632,71 +4632,75 @@ function drawDead(){
     }
   }
 
-  // Main result card
-  const cardW=Math.min(270,W-30),cardX=W/2-cardW/2;
-  const cardY=H*0.24,cardH=210+(runChests>0?56:0);
-  const cardGr=ctx.createLinearGradient(cardX,cardY,cardX,cardY+cardH);
-  cardGr.addColorStop(0,'rgba(10,10,30,0.92)');cardGr.addColorStop(1,'rgba(5,5,20,0.92)');
-  ctx.fillStyle=cardGr;rr(cardX,cardY,cardW,cardH,14);ctx.fill();
-  ctx.strokeStyle='#ffffff12';ctx.lineWidth=1;rr(cardX,cardY,cardW,cardH,14);ctx.stroke();
-  // Accent top border
-  const accentCol=score>=5000?'#ffd700':score>=1000?'#00e5ff':tc('obs');
-  ctx.strokeStyle=accentCol+'66';ctx.lineWidth=2;
-  ctx.beginPath();ctx.moveTo(cardX+14,cardY);ctx.lineTo(cardX+cardW-14,cardY);ctx.stroke();
-
-  // New record badge
-  if(newHi){const np=Math.sin(deadT*0.12)*0.3+0.7;ctx.globalAlpha=np*e;ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';_shadow(12,'#ffd70066');ctx.fillText(t('newRecord'),W/2,cardY+18);ctx.shadowBlur=0;ctx.globalAlpha=e;}
-
-  // Character (show fully damaged)
-  drawCharacter(W/2,cardY+(newHi?46:38),selChar,16,0,1,'dead',maxHp());
-
-  // Score section (ステージモードでは獲得スター数を表示)
-  const scoreY=cardY+(newHi?68:60);
+  // Card metrics (shared with button layout below)
+  let cardY,cardH;
+  // ステージモード: シンプルなスター数のみ中央揃え
   if(isPackMode){
-    // 獲得スター数を大きく表示
-    ctx.fillStyle='#ffd70099';ctx.font='10px monospace';
-    ctx.fillText(gameLang==='ja'?'獲得スター':'STARS',W/2,scoreY);
-    ctx.fillStyle='#ffd700';ctx.font='bold 38px monospace';
-    _shadow(10,'#ffd70044');ctx.fillText('\u2605 '+(stageBigCollected||0)+' / 3',W/2,scoreY+38);ctx.shadowBlur=0;
+    const cardW=Math.min(260,W-40),cardX=W/2-cardW/2;
+    cardY=H*0.30;cardH=170;
+    // Card background (simple, centered)
+    ctx.fillStyle='rgba(10,10,30,0.92)';rr(cardX,cardY,cardW,cardH,14);ctx.fill();
+    ctx.strokeStyle='#ffd70044';ctx.lineWidth=1.5;rr(cardX,cardY,cardW,cardH,14);ctx.stroke();
+    // Character (fixed to cube = idx 0)
+    drawCharacter(W/2,cardY+36,0,18,0,1,'dead',maxHp());
+    // "獲得スター" label
+    ctx.fillStyle='#ffd70099';ctx.font='11px monospace';ctx.textAlign='center';
+    ctx.fillText(gameLang==='ja'?'獲得スター':'STARS',W/2,cardY+78);
+    // ★ N / 3（大きく中央）
+    ctx.fillStyle='#ffd700';ctx.font='bold 42px monospace';ctx.textAlign='center';
+    _shadow(14,'#ffd70066');
+    ctx.fillText('\u2605 '+(stageBigCollected||0)+' / 3',W/2,cardY+128);
+    ctx.shadowBlur=0;
   } else {
+    // Endless mode (original layout)
+    const cardW=Math.min(270,W-30),cardX=W/2-cardW/2;
+    cardY=H*0.24;cardH=210+(runChests>0?56:0);
+    const cardGr=ctx.createLinearGradient(cardX,cardY,cardX,cardY+cardH);
+    cardGr.addColorStop(0,'rgba(10,10,30,0.92)');cardGr.addColorStop(1,'rgba(5,5,20,0.92)');
+    ctx.fillStyle=cardGr;rr(cardX,cardY,cardW,cardH,14);ctx.fill();
+    ctx.strokeStyle='#ffffff12';ctx.lineWidth=1;rr(cardX,cardY,cardW,cardH,14);ctx.stroke();
+    // Accent top border
+    const accentCol=score>=5000?'#ffd700':score>=1000?'#00e5ff':tc('obs');
+    ctx.strokeStyle=accentCol+'66';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(cardX+14,cardY);ctx.lineTo(cardX+cardW-14,cardY);ctx.stroke();
+
+    // New record badge
+    if(newHi){const np=Math.sin(deadT*0.12)*0.3+0.7;ctx.globalAlpha=np*e;ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';_shadow(12,'#ffd70066');ctx.fillText(t('newRecord'),W/2,cardY+18);ctx.shadowBlur=0;ctx.globalAlpha=e;}
+
+    // Character (show fully damaged)
+    drawCharacter(W/2,cardY+(newHi?46:38),selChar,16,0,1,'dead',maxHp());
+
+    const scoreY=cardY+(newHi?68:60);
     ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.fillText(t('score'),W/2,scoreY);
     ctx.fillStyle='#fff';ctx.font='bold 38px monospace';
     _shadow(8,'#fff2');ctx.fillText(score,W/2,scoreY+38);ctx.shadowBlur=0;
-
-    // Best score
     ctx.fillStyle='#fff4';ctx.font='11px monospace';
     ctx.fillText(t('best')+': '+highScore,W/2,scoreY+56);
-
-    // Combo
     if(maxCombo>1){
       ctx.fillStyle='#ff6b3599';ctx.font='10px monospace';
       ctx.fillText(t('maxCombo')+': '+maxCombo+'x',W/2,scoreY+72);
     }
-  }
 
-  // Divider line
-  const divY=scoreY+(maxCombo>1?82:70);
-  ctx.strokeStyle='#ffffff0a';ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(cardX+20,divY);ctx.lineTo(cardX+cardW-20,divY);ctx.stroke();
+    const divY=scoreY+(maxCombo>1?82:70);
+    ctx.strokeStyle='#ffffff0a';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(cardX+20,divY);ctx.lineTo(cardX+cardW-20,divY);ctx.stroke();
 
-  // Coin section: earned coins and wallet
-  const coinY=divY+18;
-  ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';
-  ctx.fillText(t('earned')+' \u25CF'+totalCoins,W/2-40,coinY);
-  ctx.fillStyle='#fff5';ctx.font='11px monospace';
-  ctx.fillText(t('held')+': '+walletCoins,W/2+50,coinY);
+    const coinY=divY+18;
+    ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';
+    ctx.fillText(t('earned')+' \u25CF'+totalCoins,W/2-40,coinY);
+    ctx.fillStyle='#fff5';ctx.font='11px monospace';
+    ctx.fillText(t('held')+': '+walletCoins,W/2+50,coinY);
 
-  // Chest acquisition display + open button (only chests earned this run)
-  if(runChests>0){
-    const chestY=coinY+20;
-    ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';ctx.textAlign='center';
-    ctx.fillText(t('chests')+' \u00D7'+runChests,W/2,chestY);
-    // "Open chests" button
-    const ocW=140,ocH=28,ocX=W/2-ocW/2,ocY=chestY+6;
-    ctx.fillStyle='#ffd70018';rr(ocX,ocY,ocW,ocH,6);ctx.fill();
-    ctx.strokeStyle='#ffd700';ctx.lineWidth=1;rr(ocX,ocY,ocW,ocH,6);ctx.stroke();
-    ctx.fillStyle='#ffd700';ctx.font='bold 11px monospace';
-    ctx.fillText(t('openChests'),W/2,ocY+19);
+    if(runChests>0){
+      const chestY=coinY+20;
+      ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';ctx.textAlign='center';
+      ctx.fillText(t('chests')+' \u00D7'+runChests,W/2,chestY);
+      const ocW=140,ocH=28,ocX=W/2-ocW/2,ocY=chestY+6;
+      ctx.fillStyle='#ffd70018';rr(ocX,ocY,ocW,ocH,6);ctx.fill();
+      ctx.strokeStyle='#ffd700';ctx.lineWidth=1;rr(ocX,ocY,ocW,ocH,6);ctx.stroke();
+      ctx.fillStyle='#ffd700';ctx.font='bold 11px monospace';
+      ctx.fillText(t('openChests'),W/2,ocY+19);
+    }
   }
 
   // --- Action buttons (below card) ---

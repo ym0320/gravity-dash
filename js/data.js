@@ -1505,9 +1505,9 @@ const STAGE_PACKS=[
     {id:'1-2',name:'1-2',dist:1000,spdMul:1.1,seed:1002,enemyChance:0,
       stageType:'altChasm',noFloatPlat:true,noMovingHill:true,noHazards:true,
       coins:[{pos:0.25,yOff:-50},{pos:0.55,yOff:-80},{pos:0.80,yOff:-150}]},
-    // 1-3: 白い鳥の大群 — 鳥だけ(3倍密度)、player.y追従、地面は平坦+ギャップのみ
-    {id:'1-3',name:'1-3',dist:1000,spdMul:1.1,seed:1003,enemyChance:0,gapChance:0.25,hillChance:0,
-      birdSwarm:true,flatGround:true,noFloatPlat:true,noMovingHill:true,noHazards:true,
+    // 1-3: 白い鳥の大群 — 鳥だけ(超高密度)、起伏ありギャップ多様
+    {id:'1-3',name:'1-3',dist:1000,spdMul:1.1,seed:1003,enemyChance:0,gapChance:0.30,hillChance:0.40,
+      birdSwarm:true,noFloatPlat:true,noMovingHill:true,noHazards:true,
       coins:[{pos:0.28,yOff:-60},{pos:0.55,yOff:-200},{pos:0.78,yOff:-80}]},
     // 1-4: 上下床の連続(gravity) — 重ならないよう間隔強化
     {id:'1-4',name:'1-4',dist:1000,spdMul:1.1,seed:1004,hillChance:0.45,gapChance:0.42,enemyChance:0,

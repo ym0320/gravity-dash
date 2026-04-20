@@ -244,7 +244,7 @@ function resetPackStage(pi,si,fromCheckpoint){
   gravRushPhase={active:false,len:0,cd:0};
   terrainGimmickPhase={active:false,type:'',len:0,cd:0};
   bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:99999,lastBossScore:0,lastBossRawDist:0,bossCount:0,bossType:'',bossType2:null,challStrength:1,challIsDual:false};
-  hp=1;hurtT=0; // Stage mode: always 1 HP (one-hit death)
+  hp=3;hurtT=0; // Stage mode: 3 HP
   curTheme=0;prevTheme=0;themeLerp=1;
   bossChests=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null};
 }
