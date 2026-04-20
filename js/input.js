@@ -17,7 +17,7 @@ function canvasXY(cx,cy){
 
 // Pause button hit test (moved lower, larger area for reliability)
 function hitPauseBtn(px,py){return hitRect(px,py,W-58,safeTop+8,54,44);}
-function itemBtnLayout(){const btnSz=44,btnGap=12,totalW=btnSz*2+btnGap,sx=W/2-totalW/2,by=H-PANEL_H-safeBot+6;return{invX:sx,bombX:sx+btnSz+btnGap,y:by,sz:btnSz};}
+function itemBtnLayout(){const btnSz=44,btnGap=12,totalW=btnSz*2+btnGap,sx=W/2-totalW/2,by=H-PANEL_H-Math.min(safeBot,10)+6;return{invX:sx,bombX:sx+btnSz+btnGap,y:by,sz:btnSz};}
 function hitInvBtn(px,py){const b=itemBtnLayout();return px>=b.invX&&px<=b.invX+b.sz&&py>=b.y&&py<=b.y+b.sz;}
 function hitBombBtn(px,py){const b=itemBtnLayout();return px>=b.bombX&&px<=b.bombX+b.sz&&py>=b.y&&py<=b.y+b.sz;}
 function pauseBtnLayout(){
