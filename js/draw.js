@@ -4352,20 +4352,8 @@ function drawChestOpen(){
     ctx.fillStyle='#fff6';ctx.font='10px monospace';
     ctx.fillText(chestBatchResults.length+' '+t('chestsOpenedCount'),cx,mY+40);
 
-    // Sort: rarest LAST for dramatic buildup
-    const sorted=[...chestBatchResults].sort((a,b)=>{
-      const rank=r=>{
-        if(!r)return 0;
-        if(r.type==='coin')return 1+(1000-(r.amount||0))/10000;
-        if(r.type==='cosmetic'&&r.item&&!r.item.rarity)return 3;
-        if(r.type==='char'&&!r.isNew)return 4;
-        if(r.type==='char'&&r.isNew)return 5;
-        if(r.type==='cosmetic'&&r.item&&r.item.rarity==='rare')return 6;
-        if(r.type==='cosmetic'&&r.item&&r.item.rarity==='super_rare')return 7;
-        return 2;
-      };
-      return rank(a)-rank(b);
-    });
+    // 引いた順をそのまま保持（コイン→アイテムの並び替えを廃止）
+    const sorted=[...chestBatchResults];
 
     // Calculate reveal timing per card (slow sequential opening)
     const n=sorted.length;
