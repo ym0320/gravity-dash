@@ -146,7 +146,10 @@ function trySpawnEnemy(){
     let eType=0;
     const tr=packRng();
     if(isPackMode&&currentPackStage){
-      if(currentPackStage.walkerOnly){eType=0;}
+      if(typeof currentPackStage.forceEnemyType==='number'){
+        // forceEnemyType: 指定した敵タイプのみ出現（0:walker, 1:cannon, 2:flyer, 3:bomber, 4:vertMover, 5:phantom, 6:dasher, 8:splitter）
+        eType=currentPackStage.forceEnemyType;
+      } else if(currentPackStage.walkerOnly){eType=0;}
       else {
       const stageIdx=currentPackStageIdx; // 0-4
       const progress=dist/currentPackStage.dist;
@@ -349,14 +352,16 @@ function trySpawnSpike(){
 function trySpawnFallingMtn(){
   if(fallingMtnCD>0){fallingMtnCD--;return;}
   if(bossPhase.active)return;
-  if(isPackMode&&currentPackStage&&currentPackStage.noHazards)return;
+  const boostStage=isPackMode&&currentPackStage&&currentPackStage.fallingMtnBoost;
+  // fallingMtnBoost stage: noHazardsでも落ちる床を出す（主役ギミック）
+  if(!boostStage&&isPackMode&&currentPackStage&&currentPackStage.noHazards)return;
   if(isPackMode&&currentPackStage&&currentPackStage.stageType==='altChasm')return;
   if(!isPackMode&&bossPhase.bossCount<2)return; // endless: only after 2nd boss
   // During terrain gimmick phase (moving type), skip falling spawns
   if(terrainGimmickPhase.active&&terrainGimmickPhase.type==='moving')return;
   // Find a gap (abyss) in floor or ceiling platforms to place the falling floor over
   const isGimmickFalling=terrainGimmickPhase.active&&terrainGimmickPhase.type==='falling';
-  let chance=isPackMode?0.15:(score>=6000?Math.min(0.12,0.04+(score-6000)*0.0002):Math.min(0.06,0.01+(score-4000)*0.0003));
+  let chance=boostStage?0.45:(isPackMode?0.15:(score>=6000?Math.min(0.12,0.04+(score-6000)*0.0002):Math.min(0.06,0.01+(score-4000)*0.0003)));
   if(isGimmickFalling)chance=0.35; // high spawn rate during gimmick phase
   if(packRng()<chance){
     const isFloor=packRng()<0.5;
@@ -384,7 +389,7 @@ function trySpawnFallingMtn(){
     let hasFM=false;for(let _i=0;_i<fallingMtns.length;_i++){if(Math.abs(fallingMtns[_i].x-gapX)<gapW){hasFM=true;break;}}
     if(hasFM){fallingMtnCD=30+Math.floor(packRng()*15);return;}
     const isGimmickFalling2=terrainGimmickPhase.active&&terrainGimmickPhase.type==='falling';
-    fallingMtnCD=isGimmickFalling2?(40+Math.floor(packRng()*30)):(180+Math.floor(packRng()*120));
+    fallingMtnCD=boostStage?(70+Math.floor(packRng()*50)):(isGimmickFalling2?(40+Math.floor(packRng()*30)):(180+Math.floor(packRng()*120)));
     if(isGimmickFalling2){terrainGimmickPhase.len--;if(terrainGimmickPhase.len<=0){terrainGimmickPhase.active=false;terrainGimmickPhase.cd=800+Math.floor(packRng()*400);}}
     const fw=Math.min(gapW*0.85,140+packRng()*180); // wide: 140-320px (2-5x original)
     const fx=gapX+(gapW-fw)/2; // center in gap
@@ -483,18 +488,22 @@ let gravZoneChain=0; // tracks how many zones spawned in current chain
 let gravZoneChainTarget=0; // how many to spawn in this chain
 function trySpawnGravZone(){
   if(gravZoneCD>0){gravZoneCD--;return;}
-  if(isPackMode&&currentPackStage&&currentPackStage.noHazards)return;
+  const boostStage=isPackMode&&currentPackStage&&currentPackStage.gravZoneBoost;
+  // gravZoneBoostはnoHazardsでも重力ゾーンを出す（ステージの主役ギミック）
+  if(!boostStage&&isPackMode&&currentPackStage&&currentPackStage.noHazards)return;
   if(isPackMode&&currentPackStage&&currentPackStage.stageType==='altChasm')return;
   if(!isPackMode&&(bossPhase.bossCount<1||bossPhase.active))return;
   if(isPackMode&&bossPhase.active)return;
   if(!isPackMode&&score<150)return;
-  // Void boss stage (1-5 etc): no gravity zones (walls are the main mechanic)
-  if(isPackMode&&currentPackStage&&currentPackStage.stageType==='void'&&currentPackStage.boss)return;
+  // Void boss stage: no gravity zones except gravZoneBoost stages
+  if(!boostStage&&isPackMode&&currentPackStage&&currentPackStage.stageType==='void'&&currentPackStage.boss)return;
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
   let doSpawn=false;
-  if(gravRushPhase.active){
-    // Gravity rush phase: very high spawn rate, rapid zones
+  if(boostStage){
+    // gravZoneBoost: 固定間隔でどんどん出す
+    doSpawn=true;
+  } else if(gravRushPhase.active){
     doSpawn=true;
   } else if(gravZoneChain>0&&gravZoneChain<gravZoneChainTarget){
     doSpawn=true;
@@ -508,6 +517,12 @@ function trySpawnGravZone(){
     // dir: 1=force down (blue), -1=force up (pink)
     const gdir=packRng()<0.5?1:-1;
     gravZones.push({x:gx,w:gw,triggered:false,fadeT:0,dir:gdir});
+    if(boostStage){
+      // 80-140フレームの固定間隔で出現（連発感）
+      gravZoneCD=80+Math.floor(packRng()*60);
+      gravZoneChain=0;gravZoneChainTarget=0;
+      return;
+    }
     if(gravRushPhase.active){
       // Gravity rush: rapid short gaps, count down
       gravRushPhase.len--;
