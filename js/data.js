@@ -1918,8 +1918,13 @@ function updateDemo(){
 let player={x:0,y:0,vy:0,gDir:1,rot:0,rotTarget:0,trail:[],alive:true,grounded:false,face:'normal',canFlip:true};
 
 // ===== NEW GIMMICK CONSTANTS =====
-// Enemy action speed multiplier: scales up every 5000 score, 2x at 10000
-function enemySpeedMul(){return Math.min(2,1+score/10000);}
+// Enemy action speed multiplier (endless): 10000→1.3x, 20000→1.5x, 30000→2.0x
+function enemySpeedMul(){
+  if(score>=30000)return 2.0;
+  if(score>=20000)return 1.5;
+  if(score>=10000)return 1.3;
+  return 1.0;
+}
 const BOSS_HITBOX_SCALE=0.65;
 let fallingMtns=[],fallingMtnCD=0;
 // Coin tiers: color and multiplier change based on score
