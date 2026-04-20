@@ -636,18 +636,19 @@ function trySpawnBird(){
   const swarmMode=isPackMode&&currentPackStage&&currentPackStage.birdSwarm;
   if(!swarmMode&&isPackMode&&currentPackStage&&currentPackStage.noHazards)return;
   if(!isPackMode&&score<30)return;
-  // Spawn chance（swarm: 超高密度）
-  const chance=swarmMode?0.80:(isPackMode?0.018:0.014);
+  // swarmMode: 固定間隔で1体ずつ出現（まとまらず等間隔）
+  if(swarmMode){
+    birdCD=22; // 60fps / 22 ≈ 2.7体/秒 の一定リズム
+    enemies.push({x:W+30,y:player.y,vy:0,gDir:player.gDir,walkSpd:0,sz:11,alive:true,fr:packRng()*100,
+      type:7,shootT:999,flySpd:1.3+packRng()*0.4});
+    return;
+  }
+  // Endless/その他: 低確率ランダム
+  const chance=isPackMode?0.018:0.014;
   if(packRng()<chance){
-    // swarmMode はクールダウン超短縮（連続で出現）
-    birdCD=swarmMode?(6+Math.floor(packRng()*8)):(160+Math.floor(packRng()*100));
-    const gd=player.gDir;
-    const sz=11;
-    // Spawn at player's Y (endlessモード同様)
-    const fy=player.y;
-    const flySpd=swarmMode?(1.2+packRng()*0.6):(1.0+packRng()*0.5);
-    enemies.push({x:W+30,y:fy,vy:0,gDir:gd,walkSpd:0,sz:sz,alive:true,fr:packRng()*100,
-      type:7,shootT:999,flySpd:flySpd});
+    birdCD=160+Math.floor(packRng()*100);
+    enemies.push({x:W+30,y:player.y,vy:0,gDir:player.gDir,walkSpd:0,sz:11,alive:true,fr:packRng()*100,
+      type:7,shootT:999,flySpd:1.0+packRng()*0.5});
   } else {
     birdCD=30+Math.floor(packRng()*20);
   }

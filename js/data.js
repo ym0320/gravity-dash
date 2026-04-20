@@ -1501,10 +1501,10 @@ const STAGE_PACKS=[
     {id:'1-1',name:'1-1',dist:1000,spdMul:1.1,seed:1001,hillChance:0.80,gapChance:0,
       noFloatPlat:true,noHazards:true,noMovingHill:true,walkerOnly:true,enemyChance:0.10,
       coins:[{pos:0.25,yOff:-70},{pos:0.55,yOff:-100},{pos:0.80,yOff:-140}]},
-    // 1-2: クリボー大群 + 短いギャップ交互 — 上下反転必須、陸の重なり無し
-    {id:'1-2',name:'1-2',dist:1000,spdMul:1.1,seed:1002,enemyChance:0.50,
+    // 1-2: クリボー大群 + 上下交互チャズム — 境界にgravZoneで反転必須
+    {id:'1-2',name:'1-2',dist:1000,spdMul:1.1,seed:1002,enemyChance:0.85,
       stageType:'altChasm',walkerOnly:true,noFloatPlat:true,noMovingHill:true,noHazards:true,
-      altChasmZoneLen:100,altChasmBuffer:0,
+      altChasmZoneLen:80,altChasmBuffer:25, // 小バッファで安全な反転領域を確保
       coins:[{pos:0.25,yOff:-50},{pos:0.55,yOff:-80},{pos:0.80,yOff:-150}]},
     // 1-3: 白い鳥の大群 — 鳥だけ(超高密度)、起伏ありギャップ多様
     {id:'1-3',name:'1-3',dist:1000,spdMul:1.1,seed:1003,enemyChance:0,gapChance:0.30,hillChance:0.40,

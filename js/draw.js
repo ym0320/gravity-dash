@@ -4634,22 +4634,31 @@ function drawDead(){
 
   // Card metrics (shared with button layout below)
   let cardY,cardH;
-  // ステージモード: シンプルなスター数のみ中央揃え（コイン/所持表示は無し）
+  // ステージモード: シンプルなスター表示のみ中央揃え
   if(isPackMode){
     const cardW=Math.min(260,W-40),cardX=W/2-cardW/2;
     cardY=H*0.32;cardH=150;
     // Card background
     ctx.fillStyle='rgba(10,10,30,0.92)';rr(cardX,cardY,cardW,cardH,14);ctx.fill();
     ctx.strokeStyle='#ffd70044';ctx.lineWidth=1.5;rr(cardX,cardY,cardW,cardH,14);ctx.stroke();
-    // Character (fixed to cube = idx 0), smaller and top of card
-    drawCharacter(W/2,cardY+32,0,15,0,1,'dead',maxHp());
-    // "獲得スター" label (離して配置、キャラと重ならないように)
+    // Character: キューブ(0)固定、コスメなしで純粋に
+    drawCharacter(W/2,cardY+32,0,15,0,1,'dead',1,false);
+    // ラベル
     ctx.fillStyle='#ffd70099';ctx.font='11px monospace';ctx.textAlign='center';
     ctx.fillText(gameLang==='ja'?'獲得スター':'STARS',W/2,cardY+72);
-    // ★ N / 3（大きく中央）
-    ctx.fillStyle='#ffd700';ctx.font='bold 42px monospace';ctx.textAlign='center';
-    _shadow(14,'#ffd70066');
-    ctx.fillText('\u2605 '+(stageBigCollected||0)+' / 3',W/2,cardY+118);
+    // ☆★★ 3つのスターを視覚的に表示
+    const scY=cardY+118,sStep=46,scX=W/2-sStep;
+    ctx.font='bold 40px monospace';ctx.textAlign='center';
+    for(let i=0;i<3;i++){
+      const got=i<(stageBigCollected||0);
+      if(got){
+        ctx.fillStyle='#ffd700';_shadow(14,'#ffd70088');
+        ctx.fillText('\u2605',scX+i*sStep,scY);
+      } else {
+        ctx.fillStyle='#ffffff33';ctx.shadowBlur=0;
+        ctx.fillText('\u2606',scX+i*sStep,scY);
+      }
+    }
     ctx.shadowBlur=0;
   } else {
     // Endless mode (original layout)

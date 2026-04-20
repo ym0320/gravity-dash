@@ -450,16 +450,31 @@ function update(dt){
     if(sType==='gravity'){
       // Gravity stage: moving hills only (only way to traverse abyss)
       if(!nearGoal){
-        // Spawn moving hills directly (no gap detection needed for abyss)
         if(hillCD>0)hillCD--;
         if(hillCD<=0){
+          // 新しい上下床のスペースを決定する前に、既存の上下床との重なりをチェック
           const hx=W+30+packRng()*120;
           const hw=50+packRng()*45;
           const isFloor=packRng()<0.5;
-          const baseH=GROUND_H;
-          const ampH=40+packRng()*50;
-          movingHills.push({x:hx,w:hw,baseH:baseH,ampH:ampH,phase:packRng()*6.28,spd:0.03+packRng()*0.02,isFloor:isFloor});
-          hillCD=25+Math.floor(packRng()*30);
+          // 同じisFloor側に存在する他の上下床との重なり禁止（絶対ルール）
+          // 余白280pxを含めて完全に重ならない位置のみ許可
+          const minGap=280;
+          let overlap=false;
+          for(let _i=0;_i<movingHills.length;_i++){
+            const mh=movingHills[_i];
+            if(mh.isFloor!==isFloor)continue; // 床と天井は別扱い（視覚的に重ならない）
+            if(hx<mh.x+mh.w+minGap && hx+hw>mh.x-minGap){overlap=true;break;}
+          }
+          if(overlap){
+            // 重なる位置なら短いCDで再試行
+            hillCD=15+Math.floor(packRng()*15);
+          } else {
+            const baseH=GROUND_H;
+            const ampH=40+packRng()*50;
+            movingHills.push({x:hx,w:hw,baseH:baseH,ampH:ampH,phase:packRng()*6.28,spd:0.03+packRng()*0.02,isFloor:isFloor});
+            // 通常CDを長く（確実に前の床が十分スクロールするまで待つ）
+            hillCD=90+Math.floor(packRng()*60);
+          }
         }
       }
     } else if(sType==='void'){
