@@ -1323,46 +1323,77 @@ function drawEnemy(en){
   if(en.bossType==='bruiser'){drawBossBruiser(en);return;}
   if(en.bossType==='guardian'){drawBossGuardian(en);return;}
   if(en.bossType==='wizard'){if(en.variant==='snowman')drawBossSnowman(en);else drawBossWizard(en);return;}
-  if(en.type===1){drawShooter(en);return;}
-  if(en.type===2){drawFlyer(en);return;}
-  if(en.type===3){drawBomber(en);return;}
-  if(en.type===4){drawVertMover(en);return;}
-  if(en.type===5){drawPhantom(en);return;}
-  if(en.type===6){drawDasher(en);return;}
-  if(en.type===7){drawBird(en);return;}
-  if(en.type===8){drawSplitter(en);return;}
-  if(en.type===9){drawMiniSlime(en);return;}
-  const s=en.sz,flip=en.gDir;
-  ctx.save();ctx.translate(en.x,en.y);
-  if(flip===-1)ctx.scale(1,-1);
-  // Body (mushroom/goomba shape) - layered fills instead of gradient
-  ctx.fillStyle='#6b3410';
-  ctx.beginPath();ctx.arc(0,-s*0.15,s*0.85,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#a0522d';
-  ctx.beginPath();ctx.arc(0,-s*0.15,s*0.5,0,Math.PI*2);ctx.fill();
-  // Feet (animated)
-  const fw=s*0.3,fh=s*0.2,step=Math.sin(en.fr*2)*s*0.18;
-  ctx.fillStyle='#4a2508';
-  ctx.fillRect(-s*0.5+step,s*0.4,fw,fh);
-  ctx.fillRect(s*0.2-step,s*0.4,fw,fh);
-  // Direction indicator for patrol enemies
-  if(en.patrolDir!==undefined){
-    ctx.fillStyle='#4a2508';
-    const arrowX=en.patrolDir>0?s*0.6:-s*0.6;
-    ctx.beginPath();ctx.moveTo(arrowX,0);ctx.lineTo(arrowX-en.patrolDir*4,-3);ctx.lineTo(arrowX-en.patrolDir*4,3);ctx.closePath();ctx.fill();
+  // Speed tier glow (drawn behind enemy)
+  if(!isPackMode){
+    const esm=enemySpeedMul();
+    const sz0=en.sz||PLAYER_R;
+    if(esm>=1.5){
+      ctx.save();ctx.globalAlpha=0.22;ctx.fillStyle='#ff3300';
+      ctx.beginPath();ctx.arc(en.x,en.y,sz0*1.6,0,TAU);ctx.fill();ctx.restore();
+    } else if(esm>=1.3){
+      ctx.save();ctx.globalAlpha=0.15;ctx.fillStyle='#7744ff';
+      ctx.beginPath();ctx.arc(en.x,en.y,sz0*1.45,0,TAU);ctx.fill();ctx.restore();
+    }
   }
-  // Angry eyes
-  ctx.fillStyle='#fff';
-  ctx.beginPath();ctx.arc(-s*0.25,-s*0.25,s*0.22,0,TAU);ctx.fill();
-  ctx.beginPath();ctx.arc(s*0.25,-s*0.25,s*0.22,0,TAU);ctx.fill();
-  ctx.fillStyle='#1a0a00';
-  ctx.beginPath();ctx.arc(-s*0.2,-s*0.28,s*0.12,0,TAU);ctx.fill();
-  ctx.beginPath();ctx.arc(s*0.3,-s*0.28,s*0.12,0,TAU);ctx.fill();
-  // Angry eyebrows
-  ctx.strokeStyle='#4a2508';ctx.lineWidth=2;
-  ctx.beginPath();ctx.moveTo(-s*0.45,-s*0.3);ctx.lineTo(-s*0.1,-s*0.48);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(s*0.45,-s*0.3);ctx.lineTo(s*0.1,-s*0.48);ctx.stroke();
-  ctx.restore();
+  // Type-specific draw (no early return so post-effects can run)
+  if(en.type===1)drawShooter(en);
+  else if(en.type===2)drawFlyer(en);
+  else if(en.type===3)drawBomber(en);
+  else if(en.type===4)drawVertMover(en);
+  else if(en.type===5)drawPhantom(en);
+  else if(en.type===6)drawDasher(en);
+  else if(en.type===7)drawBird(en);
+  else if(en.type===8)drawSplitter(en);
+  else if(en.type===9)drawMiniSlime(en);
+  else{
+    // Walker (type 0) - mushroom/goomba
+    const s=en.sz,flip=en.gDir;
+    ctx.save();ctx.translate(en.x,en.y);
+    if(flip===-1)ctx.scale(1,-1);
+    ctx.fillStyle='#6b3410';
+    ctx.beginPath();ctx.arc(0,-s*0.15,s*0.85,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#a0522d';
+    ctx.beginPath();ctx.arc(0,-s*0.15,s*0.5,0,Math.PI*2);ctx.fill();
+    const fw=s*0.3,fh=s*0.2,step=Math.sin(en.fr*2)*s*0.18;
+    ctx.fillStyle='#4a2508';
+    ctx.fillRect(-s*0.5+step,s*0.4,fw,fh);
+    ctx.fillRect(s*0.2-step,s*0.4,fw,fh);
+    if(en.patrolDir!==undefined){
+      ctx.fillStyle='#4a2508';
+      const arrowX=en.patrolDir>0?s*0.6:-s*0.6;
+      ctx.beginPath();ctx.moveTo(arrowX,0);ctx.lineTo(arrowX-en.patrolDir*4,-3);ctx.lineTo(arrowX-en.patrolDir*4,3);ctx.closePath();ctx.fill();
+    }
+    ctx.fillStyle='#fff';
+    ctx.beginPath();ctx.arc(-s*0.25,-s*0.25,s*0.22,0,TAU);ctx.fill();
+    ctx.beginPath();ctx.arc(s*0.25,-s*0.25,s*0.22,0,TAU);ctx.fill();
+    ctx.fillStyle='#1a0a00';
+    ctx.beginPath();ctx.arc(-s*0.2,-s*0.28,s*0.12,0,TAU);ctx.fill();
+    ctx.beginPath();ctx.arc(s*0.3,-s*0.28,s*0.12,0,TAU);ctx.fill();
+    ctx.strokeStyle='#4a2508';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(-s*0.45,-s*0.3);ctx.lineTo(-s*0.1,-s*0.48);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(s*0.45,-s*0.3);ctx.lineTo(s*0.1,-s*0.48);ctx.stroke();
+    ctx.restore();
+  }
+  // Speed tier overlay + red eyes (drawn on top of enemy)
+  if(!isPackMode){
+    const esm=enemySpeedMul();
+    const sz1=en.sz||PLAYER_R;
+    if(esm>=1.5){
+      const flip=en.gDir||1;
+      const eyeY=en.y-sz1*0.22*flip;
+      ctx.save();
+      ctx.globalAlpha=0.2;ctx.fillStyle='#ff2200';
+      ctx.beginPath();ctx.arc(en.x,en.y,sz1,0,TAU);ctx.fill();
+      ctx.globalAlpha=0.92;ctx.fillStyle='#ff0000';
+      ctx.beginPath();ctx.arc(en.x-sz1*0.22,eyeY,sz1*0.15,0,TAU);ctx.fill();
+      ctx.beginPath();ctx.arc(en.x+sz1*0.22,eyeY,sz1*0.15,0,TAU);ctx.fill();
+      ctx.restore();
+    } else if(esm>=1.3){
+      ctx.save();ctx.globalAlpha=0.16;ctx.fillStyle='#8855ee';
+      ctx.beginPath();ctx.arc(en.x,en.y,sz1,0,TAU);ctx.fill();
+      ctx.restore();
+    }
+  }
 }
 function drawFlyer(en){
   const s=en.sz;
@@ -4445,7 +4476,7 @@ function drawChestOpen(){
       const col2=i%cols,row2=Math.floor(i/cols);
       const cardX=startX+col2*(cardW+gap);
       const cardY2=startY+row2*(cardH+gap)-scrollY;
-      if(cardY2+cardH<startY-10||cardY2>startY+visH+10)return;
+      if(cardY2+cardH<startY-10||cardY2>startY+visH+10)continue;
 
       const rar=rw2.type==='cosmetic'&&rw2.item?rw2.item.rarity:null;
       const isNewChar=rw2.type==='char'&&rw2.isNew;

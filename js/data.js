@@ -69,6 +69,16 @@ const THEMES=[
   {bg1:'#141420',bg2:'#202038',gnd:'#3a3a58',gnd2:'#2c2c48',line:'#7878a8',ply:'#e2e8f0',obs:'#f43f5e',n:'フロストヘル'},
   // 9000+: 金×黒 — 最終ステージ
   {bg1:'#0e0a02',bg2:'#1c1608',gnd:'#302808',gnd2:'#261e06',line:'#a88020',ply:'#ffd700',obs:'#ff2060',n:'ゴールデンゾーン'},
+  // 10000-10999: 深紫 — ダークマター次元
+  {bg1:'#0e0420',bg2:'#1a0838',gnd:'#2c1058',gnd2:'#220c48',line:'#7820d0',ply:'#d946ef',obs:'#22d3ee',n:'ダークマター'},
+  // 11000-11999: ブラッドレッド — 血の魔城
+  {bg1:'#200004',bg2:'#380008',gnd:'#560010',gnd2:'#44000c',line:'#c80020',ply:'#ff6080',obs:'#a3e635',n:'ブラッドキャッスル'},
+  // 12000-12999: コバルト — 電磁嵐
+  {bg1:'#020c22',bg2:'#04183c',gnd:'#082c60',gnd2:'#062050',line:'#1050e0',ply:'#60a8ff',obs:'#fb923c',n:'エレクトリック'},
+  // 13000-13999: 白銀 — 天空神殿
+  {bg1:'#101028',bg2:'#1c1c40',gnd:'#2c2c60',gnd2:'#24244e',line:'#9898c8',ply:'#e8f0ff',obs:'#f43f5e',n:'ヘブンズゲート'},
+  // 14000+: 金×白 — 伝説の頂点
+  {bg1:'#0c0a00',bg2:'#1a1600',gnd:'#2a2000',gnd2:'#201800',line:'#d8a820',ply:'#ffe880',obs:'#ff2060',n:'レジェンド'},
 ];
 let curTheme=0,prevTheme=0,themeLerp=1;
 function lerpColor(a,b,t){
@@ -527,6 +537,66 @@ const BGM_PLAY10={tempo:134, // score 9000+: Final Overdrive - Em, maximum inten
   melVol:0.26,harmVol:0.10,bassVol:0.28,chordVol:0.07,
   melWave:'sawtooth',harmWave:'triangle',bassWave:'sawtooth',
   drums:'rumble'};
+const BGM_PLAY11={tempo:136, // score 10000-10999: Dark Ascent - Am, intense minor run
+  melody:[440,0,523,659, 784,659,523,440, 523,659,784,880, 0,784,659,0,
+          880,0,784,659, 523,440,523,0, 659,784,880,0, 784,659,440,0],
+  harmony:[330,0,330,440, 0,440,0,330, 392,0,392,494, 0,494,0,392,
+           330,0,330,440, 0,440,0,330, 392,0,440,523, 0,494,0,330],
+  bass:[110,0,220,110, 175,0,349,175, 131,0,262,131, 165,0,330,165,
+        110,220,0,110, 175,349,0,175, 131,262,0,131, 165,330,0,165],
+  chords:[[220,262,330],[196,247,294],[175,220,262],[131,165,196],
+          [220,262,330],[196,247,294],[175,220,262],[131,165,196]],
+  melVol:0.27,harmVol:0.10,bassVol:0.28,chordVol:0.07,
+  melWave:'sawtooth',harmWave:'triangle',bassWave:'sawtooth',
+  drums:'nightmare'};
+const BGM_PLAY12={tempo:138, // score 11000-11999: Crimson Gate - Dm, heavy synth
+  melody:[587,0,698,880, 1047,880,784,0, 698,587,0,523, 587,698,880,0,
+          880,0,784,698, 587,0,698,784, 880,1047,0,880, 784,698,587,0],
+  harmony:[440,0,440,523, 0,587,0,440, 392,0,392,466, 0,523,0,392,
+           466,0,466,587, 0,698,0,523, 440,0,440,523, 0,587,0,440],
+  bass:[147,0,294,147, 220,0,440,220, 175,0,349,175, 131,0,262,131,
+        147,294,0,147, 220,440,0,220, 175,349,0,175, 131,262,0,131],
+  chords:[[294,349,440],[220,277,330],[175,220,262],[131,165,196],
+          [294,349,440],[220,277,330],[175,220,262],[131,165,196]],
+  melVol:0.28,harmVol:0.10,bassVol:0.29,chordVol:0.07,
+  melWave:'sawtooth',harmWave:'triangle',bassWave:'sawtooth',
+  drums:'nightmare'};
+const BGM_PLAY13={tempo:140, // score 12000-12999: Storm Rush - Em, frantic intensity
+  melody:[659,0,784,988, 1175,988,784,659, 784,988,1175,1319, 0,1175,988,0,
+          1319,1175,988,784, 659,784,988,0, 1175,0,1319,1175, 988,784,659,0],
+  harmony:[494,0,494,659, 0,784,0,659, 587,0,587,784, 0,784,0,659,
+           523,0,523,659, 0,784,0,659, 587,0,659,784, 0,880,0,659],
+  bass:[165,0,330,165, 247,0,494,247, 196,0,392,196, 294,0,587,294,
+        165,330,0,165, 247,494,0,247, 196,392,0,196, 294,587,0,294],
+  chords:[[330,392,494],[247,294,392],[196,247,294],[294,370,440],
+          [330,392,494],[247,294,392],[196,247,294],[294,370,440]],
+  melVol:0.29,harmVol:0.10,bassVol:0.30,chordVol:0.07,
+  melWave:'square',harmWave:'triangle',bassWave:'sawtooth',
+  drums:'rumble'};
+const BGM_PLAY14={tempo:142, // score 13000-13999: Void March - Cm, epic apocalypse
+  melody:[523,0,622,784, 932,0,784,622, 523,622,784,880, 0,932,1047,0,
+          1047,932,784,622, 523,0,622,784, 932,1047,0,932, 784,622,523,0],
+  harmony:[415,0,415,523, 0,622,0,523, 466,0,466,587, 0,784,0,622,
+           466,0,466,587, 0,698,0,587, 523,0,523,622, 0,784,0,622],
+  bass:[131,0,262,131, 196,0,392,196, 165,0,330,165, 233,0,466,233,
+        131,262,0,131, 196,392,0,196, 165,330,0,165, 233,466,0,233],
+  chords:[[262,311,392],[196,233,294],[165,196,247],[233,277,349],
+          [262,311,392],[196,233,294],[165,196,247],[233,277,349]],
+  melVol:0.30,harmVol:0.10,bassVol:0.30,chordVol:0.07,
+  melWave:'sawtooth',harmWave:'triangle',bassWave:'sawtooth',
+  drums:'nightmare'};
+const BGM_PLAY15={tempo:144, // score 14000+: Absolute Zero - Am high, transcendent max
+  melody:[880,1047,1319,1568, 1760,1568,1319,1047, 880,1047,1319,1568, 0,1319,1047,0,
+          1047,1319,1568,1760, 1568,1319,1047,880, 1047,1319,1568,0, 1319,1175,1047,880],
+  harmony:[659,0,659,880, 0,880,0,784, 784,0,784,1047, 0,1047,0,880,
+           784,0,784,1047, 0,1047,0,880, 659,0,659,880, 0,880,0,784],
+  bass:[220,0,440,220, 175,0,349,175, 220,440,0,220, 175,349,0,175,
+        262,0,523,262, 220,0,440,220, 196,0,392,196, 220,440,0,220],
+  chords:[[440,523,659],[349,440,523],[294,349,440],[330,392,494],
+          [440,523,659],[349,440,523],[294,349,440],[330,392,494]],
+  melVol:0.30,harmVol:0.10,bassVol:0.30,chordVol:0.07,
+  melWave:'sawtooth',harmWave:'sawtooth',bassWave:'sawtooth',
+  drums:'rumble'};
 // Boss: Nightmare Awakens - Cm with tritones, ominous chromatic horror
 const BGM_BOSS={tempo:105,
   melody:[131,0,0,156, 0,175,0,0, 131,0,156,0, 185,0,0,0,
@@ -689,11 +759,12 @@ function playFeverBGM(){
 // bgmTierOffset: on coin continue, set to current tier so BGM restarts from play1
 let bgmTierOffset=0;
 function getPlayBGM(){
-  const tier=Math.min(Math.max(Math.floor(score/1000)-bgmTierOffset,0),9);
-  return[BGM_PLAY1,BGM_PLAY2,BGM_PLAY3,BGM_PLAY4,BGM_PLAY5,BGM_PLAY6,BGM_PLAY7,BGM_PLAY8,BGM_PLAY9,BGM_PLAY10][tier];
+  const tier=Math.min(Math.max(Math.floor(score/1000)-bgmTierOffset,0),14);
+  return[BGM_PLAY1,BGM_PLAY2,BGM_PLAY3,BGM_PLAY4,BGM_PLAY5,BGM_PLAY6,BGM_PLAY7,BGM_PLAY8,BGM_PLAY9,BGM_PLAY10,
+         BGM_PLAY11,BGM_PLAY12,BGM_PLAY13,BGM_PLAY14,BGM_PLAY15][tier];
 }
 function getPlayBGMType(){
-  const tier=Math.min(Math.max(Math.floor(score/1000)-bgmTierOffset,0),9);
+  const tier=Math.min(Math.max(Math.floor(score/1000)-bgmTierOffset,0),14);
   return'play'+(tier+1);
 }
 
@@ -718,6 +789,7 @@ function switchBGM(type){
   if(type==='fever'){feverBI=0;feverStarted=false;playFeverBGM();return;}
   const BGM_MAP={title0:BGM_TITLES[0],title1:BGM_TITLES[1],title2:BGM_TITLES[2],title3:BGM_TITLES[3],title4:BGM_TITLES[4],title5:BGM_TITLES[5],
     play1:BGM_PLAY1,play2:BGM_PLAY2,play3:BGM_PLAY3,play4:BGM_PLAY4,play5:BGM_PLAY5,play6:BGM_PLAY6,play7:BGM_PLAY7,play8:BGM_PLAY8,play9:BGM_PLAY9,play10:BGM_PLAY10,
+    play11:BGM_PLAY11,play12:BGM_PLAY12,play13:BGM_PLAY13,play14:BGM_PLAY14,play15:BGM_PLAY15,
     stage1:BGM_STAGE1,stage2:BGM_STAGE2,stage3:BGM_STAGE3,
     boss:BGM_BOSS,dead:BGM_DEAD,challenge:BGM_CHALLENGE,collapse:BGM_COLLAPSE,pause:BGM_PAUSE};
   const def=BGM_MAP[type]||BGM_PLAY1;
@@ -1943,8 +2015,9 @@ function updateDemo(){
 let player={x:0,y:0,vy:0,gDir:1,rot:0,rotTarget:0,trail:[],alive:true,grounded:false,face:'normal',canFlip:true};
 
 // ===== NEW GIMMICK CONSTANTS =====
-// Enemy action speed multiplier (endless): 10000→1.3x, 20000→1.5x, 30000→2.0x
+// Enemy action speed multiplier (endless): 10000→1.3x, 20000→1.5x, 30000→2.0x, 40000→2.5x(cap)
 function enemySpeedMul(){
+  if(score>=40000)return 2.5;
   if(score>=30000)return 2.0;
   if(score>=20000)return 1.5;
   if(score>=10000)return 1.3;
@@ -1957,7 +2030,10 @@ const COIN_TIERS=[
   {min:0,    col:'#ffd700',glow:'#ffd70055',sparkCol:'#ffd700',mul:1,   name:'gold'},
   {min:5000, col:'#ff8c00',glow:'#ff8c0055',sparkCol:'#ff8c00',mul:1.5, name:'orange'},
   {min:10000,col:'#ff69b4',glow:'#ff69b455',sparkCol:'#ff69b4',mul:2,   name:'pink'},
-  {min:15000,col:'#ff2020',glow:'#ff202055',sparkCol:'#ff2020',mul:2.5, name:'red'}
+  {min:15000,col:'#ff2020',glow:'#ff202055',sparkCol:'#ff2020',mul:2.5, name:'red'},
+  {min:20000,col:'#c084fc',glow:'#c084fc55',sparkCol:'#c084fc',mul:3,   name:'purple'},
+  {min:25000,col:'#00cfff',glow:'#00cfff55',sparkCol:'#00cfff',mul:4,   name:'cyan'},
+  {min:30000,col:'#fff176',glow:'#fff17655',sparkCol:'#fff176',mul:5,   name:'stellar'}
 ];
 let _coinTierCache=null,_coinTierScore=-1;
 function getCoinTier(){if(score===_coinTierScore&&_coinTierCache)return _coinTierCache;_coinTierScore=score;for(let i=COIN_TIERS.length-1;i>=0;i--)if(score>=COIN_TIERS[i].min){_coinTierCache=COIN_TIERS[i];return _coinTierCache;}_coinTierCache=COIN_TIERS[0];return _coinTierCache;}

@@ -126,8 +126,8 @@ function spawnBossEnemies(){
     };
   }
   function addDodgeQueue(delayOffset){
-    const dodgeCount=10; // fixed at 10 for all levels
-    const baseSpd=1.5+Math.min(bc-1,12)*0.3; // lv1=1.5, lv2=1.8, lv3=2.1...
+    const dodgeCount=isDual?10:5; // dual=10体, 通常=5体
+    const baseSpd=1.5+Math.min(bc-1,12)*0.2; // lv1=1.5, lv2=1.7, lv3=1.9... (上昇率を抑制)
     const baseInterval=Math.max(35,80-Math.min(bc-1,11)*5); // lv1=80, lv2=75, lv3=70...
     let lastFloor=Math.random()<0.5; // first one random, then strictly alternate
     for(let i=0;i<dodgeCount;i++){
