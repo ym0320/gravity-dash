@@ -8,6 +8,7 @@ let touchOriginY=0; // original Y at touchstart (not modified by scroll handlers
 // Character modal (long-press on title to show details + animated demo)
 let charModal={show:false,idx:0,animT:0};
 let longPressTimer=null,longPressFired=false,titleTouchPos=null;
+let settingsGearHoldTimer=null,settingsGearHoldFired=false;
 let draggingSlider=null; // 'bgm' or 'sfx' when dragging a settings slider
 
 function canvasXY(cx,cy){
@@ -20,6 +21,54 @@ function hitPauseBtn(px,py){return hitRect(px,py,W-58,safeTop+8,54,44);}
 function itemBtnLayout(){const btnSz=44,btnGap=12,totalW=btnSz*2+btnGap,sx=W/2-totalW/2,by=H-PANEL_H-Math.min(safeBot,10)+6;return{invX:sx,bombX:sx+btnSz+btnGap,y:by,sz:btnSz};}
 function hitInvBtn(px,py){const b=itemBtnLayout();return px>=b.invX&&px<=b.invX+b.sz&&py>=b.y&&py<=b.y+b.sz;}
 function hitBombBtn(px,py){const b=itemBtnLayout();return px>=b.bombX&&px<=b.bombX+b.sz&&py>=b.y&&py<=b.y+b.sz;}
+function specialBtnLayout(){const b=itemBtnLayout(),sz=40,pad=(b.sz-sz)/2,x=b.invX+pad,y=b.y+pad;return{x,y,sz,cx:x+sz/2,cy:y+sz/2,r:sz/2};}
+function hitSpecialBtn(px,py){
+  if(!isSpecialModeEnabled())return false;
+  const b=specialBtnLayout(),dx=px-b.cx,dy=py-b.cy;
+  return dx*dx+dy*dy<=b.r*b.r;
+}
+function clearSettingsGearHold(){
+  if(settingsGearHoldTimer){clearTimeout(settingsGearHoldTimer);settingsGearHoldTimer=null;}
+}
+function primeSettingsGearHold(px,py){
+  titleTouchPos={x:px,y:py};
+  settingsGearHoldFired=false;
+  clearSettingsGearHold();
+}
+function toggleSpecialModeFromGear(){
+  setSpecialModeEnabled(true);
+}
+function handleSpecialActivationInput(){
+  if(!isSpecialModeEnabled())return false;
+  if(specialState.active){sfx('click');return true;}
+  if(bossPhase.active||bossPhase.reward){
+    sfx('hurt');vibrate('hurt');
+    addPop(player.x,player.y-30,'BOSS LOCK','#94a3b8');
+    return true;
+  }
+  if(canActivateSpecial()){
+    queueSpecialActivation('manual');
+    sfx('select');vibrate('milestone');
+    return true;
+  }
+  sfx('cancel');
+  return true;
+}
+function triggerAirJump(unlimited){
+  const jp=JUMP_POWER*ct().jumpMul*0.85;
+  player.vy=-jp*player.gDir;
+  player.grounded=false;
+  if(unlimited){
+    djumpAvailable=true;
+    djumpUsed=false;
+  } else {
+    djumpUsed=true;
+    djumpAvailable=false;
+  }
+  sfx('jump');vibrate('jump');
+  player.face='flip';setTimeout(()=>{if(player.alive)player.face='normal';},180);
+  emitParts(player.x,player.y,8,'#ffaa00',3,2.5);
+}
 function pauseBtnLayout(){
   const hasSSel=isPackMode&&!isChallengeMode;
   const bBase=hasSSel?0.40:0.42;
@@ -71,6 +120,57 @@ function hitDeadBtn(px,py){
   }
   return null;
 }
+function chestModalLayout(){
+  const mW=Math.min(300,W-24),mH=Math.min(400,H-40);
+  return{mW,mH,mX:(W-mW)/2,mY:(H-mH)/2};
+}
+function chestCloseBtnRect(){
+  const {mX,mY,mW}=chestModalLayout();
+  return{x:mX+mW-38,y:mY+10,w:28,h:28};
+}
+function hitChestCloseBtn(px,py){
+  const b=chestCloseBtnRect();
+  return hitRect(px,py,b.x,b.y,b.w,b.h);
+}
+function applyChestRewardNow(reward){
+  if(!reward)return;
+  if(reward.type==='coin'){
+    walletCoins+=reward.amount;localStorage.setItem('gd5wallet',walletCoins.toString());
+    return;
+  }
+  if(reward.type==='char'){
+    if(reward.isNew){
+      unlockCharFromChest(reward.charIdx);
+    } else {
+      reward.bonusCoins=500;
+      walletCoins+=500;localStorage.setItem('gd5wallet',walletCoins.toString());
+    }
+    return;
+  }
+  if(reward.type==='cosmetic'&&!reward.isNew){
+    walletCoins+=300;localStorage.setItem('gd5wallet',walletCoins.toString());
+  }
+}
+function clearChestOpenState(){
+  chestOpen.phase='none';chestOpen.t=0;chestOpen.charIdx=-1;chestOpen.parts=[];chestOpen.reward=null;
+  chestOpen.rewardGranted=false;
+  chestOpen._lastRevealIdx=-1;
+}
+function closeChestSequence(){
+  if(chestOpen.phase==='waiting'){
+    clearChestOpenState();
+  } else {
+    if(!chestOpen.rewardGranted){
+      applyChestRewardNow(chestOpen.reward);
+      chestOpen.rewardGranted=true;
+    }
+    clearChestOpenState();
+  }
+  chestBatchMode=false;
+  chestBatchResults=[];
+  if(deadChestOpen)deadChestOpen=false;
+  if(typeof fbSaveUserData==='function')fbSaveUserData();
+}
 function canFreeRevive(){return freeRevivesUsed<5;}
 function handleDeadBtn(btnId){
   if(btnId==='continue'){
@@ -99,6 +199,11 @@ function handleDeadBtn(btnId){
 }
 function handleInventoryChestTap(tapX,tapY){
   if(!inventoryOpen&&!deadChestOpen)return false;
+  if(chestOpen.phase!=='none'&&chestOpen.phase!=='batchDone'&&tapX!==undefined&&hitChestCloseBtn(tapX,tapY)){
+    closeChestSequence();
+    sfx('cancel');
+    return true;
+  }
   // Check for batch open button tap (only in inventory, NOT game over, phase=none, 2+ chests)
   if(!deadChestOpen&&chestOpen.phase==='none'&&storedChests>=2&&tapX!==undefined){
     const cx=W/2,mW2=Math.min(300,W-24),mH2=Math.min(400,H-40);
@@ -263,7 +368,8 @@ function startInventoryChestOpen(){
   else{reward={type:'coin',amount:60};}
   chestOpen.phase='waiting';chestOpen.t=0;
   chestOpen.charIdx=reward.type==='char'?reward.charIdx:-1;
-  chestOpen.parts=[];chestOpen.reward=reward;
+  chestOpen.parts=[];chestOpen.reward=reward;chestOpen.rewardGranted=false;
+  chestOpen._lastRevealIdx=-1;
 }
 function continueFromDeath(){
   // Keep score, reset speed, revive player, start with countdown
@@ -282,14 +388,14 @@ function continueFromDeath(){
   // Clear hazards
   enemies=[];bullets=[];spikes=[];items=[];floatPlats=[];movingHills=[];gravZones=[];icicles=[];
   bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:(Math.floor(rawDist/BOSS_INTERVAL)+1)*BOSS_INTERVAL,lastBossScore:score,lastBossRawDist:rawDist,bossCount:bossPhase.bossCount||0,bossType:'',noDamage:true};
-  itemEff={invincible:0,magnet:0};bombCount=0;bombFlashT=0;invCount=0;
+  itemEff={invincible:0,magnet:0,slowmo:0};bombCount=0;bombFlashT=0;invCount=0;
   djumpAvailable=!!ct().hasDjump;djumpUsed=false;ghostPhaseT=0;ghostInvis=false;
   player._quakeStunned=false;player._quakeStunT=0;
   deadT=0;newHi=false;combo=0;comboT=0;comboDsp=0;comboDspT=0;airCombo=0;stompCombo=0;
   shakeX=0;shakeY=0;shakeI=0;flipCount=0;flipTimer=999;
   coinCD=0;itemCD=0;enemyCD=0;birdCD=0;spikeCD=0;hillCD=0;floatCD=0;gravZoneCD=0;icicleCD=0;
   flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
-  bossChests=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null};
+  bossChests=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null,rewardGranted:false,_lastRevealIdx:-1};
   state=ST.COUNTDOWN;countdownT=COUNTDOWN_FRAMES;
   curTheme=0;prevTheme=0;themeLerp=1; // reset theme to initial color
   bgmTierOffset=Math.floor(score/1000); // BGM restarts from play1, progresses every 1000 score
@@ -593,6 +699,40 @@ function resumeFromPauseMenu(){state=ST.PLAY;if(_pauseSavedBGM){switchBGM(_pause
 // Auto-pause when page loses visibility or focus
 // Stop BGM timers when hidden to prevent audio burst on return
 let bgmBeforePause='';
+let _resumeBgmHooked=false;
+function restoreVisibleBGM(){
+  if(document.hidden)return;
+  initAudio();
+  const target=bgmBeforePause||_pauseSavedBGM||bgmCurrent||(state===ST.TITLE||state===ST.LOGIN?'title':(isChallengeMode?'challenge':'play'));
+  const _restart=()=>{
+    if(document.hidden)return;
+    if(target){switchBGM(target);}
+    bgmBeforePause='';
+  };
+  if(audioCtx&&audioCtx.state==='suspended'){
+    audioCtx.resume().then(_restart).catch(()=>{});
+    if(!_resumeBgmHooked){
+      _resumeBgmHooked=true;
+      const resumeAudio=()=>{
+        initAudio();
+        if(audioCtx&&audioCtx.state==='suspended'){
+          audioCtx.resume().then(_restart).catch(()=>{});
+        } else {
+          _restart();
+        }
+        document.removeEventListener('touchstart',resumeAudio,true);
+        document.removeEventListener('mousedown',resumeAudio,true);
+        document.removeEventListener('keydown',resumeAudio,true);
+        _resumeBgmHooked=false;
+      };
+      document.addEventListener('touchstart',resumeAudio,{capture:true,once:true});
+      document.addEventListener('mousedown',resumeAudio,{capture:true,once:true});
+      document.addEventListener('keydown',resumeAudio,{capture:true,once:true});
+    }
+  } else {
+    _restart();
+  }
+}
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden){
     if(state===ST.PLAY||state===ST.COUNTDOWN){
@@ -607,22 +747,11 @@ document.addEventListener('visibilitychange',()=>{
   } else {
     // Page visible again: reset game loop timing to prevent stutter
     lastTime=0;_tickAcc=0;_skipDraw=2;_recoveryFrames=5;
-    // Resume AudioContext then restart BGM
-    const _restoreBGM=()=>{
-      if(bgmBeforePause){switchBGM(bgmBeforePause);bgmBeforePause='';}
-      else if(audioCtx&&!bgmCurrent){
-        // Restore BGM based on current game state
-        if(state===ST.PLAY||state===ST.PAUSE){switchBGM(isChallengeMode?'challenge':'play');}
-        else if(state===ST.TITLE||state===ST.LOGIN){switchBGM('title');}
-      }
-    };
-    if(audioCtx&&audioCtx.state==='suspended'){
-      audioCtx.resume().then(_restoreBGM).catch(()=>{});
-    } else {
-      _restoreBGM();
-    }
+    restoreVisibleBGM();
   }
 });
+window.addEventListener('focus',restoreVisibleBGM);
+window.addEventListener('pageshow',restoreVisibleBGM);
 // Try auto-init audio on page load (works if browser allows or user previously interacted)
 (function autoInitBGM(){
   try{
@@ -794,7 +923,6 @@ canvas.addEventListener('touchstart',e=>{
   if(state===ST.LOGIN){handleLoginTouch(p.x,p.y);return;}
   // Tutorial
   if(state===ST.TUTORIAL){handleTutorialTouch(p.x,p.y);return;}
-  // Settings gear button on title screen (delay for dev mode combo)
   if(state===ST.TITLE&&!charModal.show&&hitSettingsGear(p.x,p.y)){sfx('click');settingsOpen=true;return;}
   if(state===ST.TITLE&&!charModal.show&&hitHelpBtn(p.x,p.y)){sfx('select');helpOpen=true;return;}
   if(state===ST.STAGE_SEL){stageSelTouchY=t.clientY;stageSelDragging=false;return;}
@@ -808,8 +936,9 @@ canvas.addEventListener('touchstart',e=>{
     if(hitQuitBtn(p.x,p.y)){_pauseSavedBGM='';if(isChallengeMode){challengeRetired=true;sfx('cancel');player.alive=false;state=ST.DEAD;deadT=0;switchBGM('dead');return;}sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     return;
   }
-  if(state===ST.PLAY&&!isPackMode&&hitInvBtn(p.x,p.y)){useInvincible();touchBtnUsed=true;return;}
+  if(state===ST.PLAY&&!isPackMode&&!isSpecialModeEnabled()&&hitInvBtn(p.x,p.y)){useInvincible();touchBtnUsed=true;return;}
   if(state===ST.PLAY&&!isPackMode&&hitBombBtn(p.x,p.y)){useBomb();touchBtnUsed=true;return;}
+  if(state===ST.PLAY&&hitSpecialBtn(p.x,p.y)){touchBtnUsed=handleSpecialActivationInput();return;}
   if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');enterPause();touchBtnUsed=true;return;}
   if(state===ST.TITLE){
     // Shop modal intercepts all input when open
@@ -858,7 +987,7 @@ canvas.addEventListener('touchmove',e=>{
   // Shop scroll
   if(shopOpen){
     const dy2=t.clientY-touchStartY;touchStartY=t.clientY;
-    const items=shopSorted(shopTab===0?SHOP_ITEMS.skins:shopTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects);
+    const items=shopSorted(shopTab===0?SHOP_ITEMS.skins:shopTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects,true);
     const mH2=Math.min(500,H-30),listH2=mH2-140,totalH2=items.length*54;
     const maxS=Math.max(0,totalH2-listH2);
     shopScroll=Math.max(0,Math.min(maxS,shopScroll-dy2*2));
@@ -868,8 +997,7 @@ canvas.addEventListener('touchmove',e=>{
   // Cosmetic scroll
   if(cosmeticMenuOpen){
     const dy2=t.clientY-touchStartY;touchStartY=t.clientY;
-    const allItems=cosmeticTab===0?SHOP_ITEMS.skins:cosmeticTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
-    const ownedList=[{id:''}].concat(shopSorted(allItems.filter(it=>ownsItem(it.id)),true));
+    const ownedList=cosmeticListForTab(cosmeticTab);
     const mH2=Math.min(500,H-30),listH2=mH2-184,totalH2=ownedList.length*48;
     const maxS=Math.max(0,totalH2-listH2);
     cosmeticScroll=Math.max(0,Math.min(maxS,cosmeticScroll-dy2*2));
@@ -878,7 +1006,11 @@ canvas.addEventListener('touchmove',e=>{
   }
   const dy=t.clientY-touchStartY;
   const dx=t.clientX-touchStartX;
-  if(Math.abs(dy)>20||Math.abs(dx)>20){touchMoved=true;if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}}
+  if(Math.abs(dy)>20||Math.abs(dx)>20){
+    touchMoved=true;
+    if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}
+    clearSettingsGearHold();
+  }
   // Stage selection scroll
   if(state===ST.STAGE_SEL&&!_secretUnlockSettling){
     const scrollDy=t.clientY-stageSelTouchY;
@@ -903,6 +1035,7 @@ canvas.addEventListener('touchend',e=>{
     draggingSlider=null;return;
   }
   if(updateInfoOpen||helpOpen||settingsOpen||rankingOpen||inventoryOpen)return;
+  clearSettingsGearHold();
   // Stage selection: handle tap only if user didn't drag
   if(state===ST.STAGE_SEL){
     if(!stageSelDragging){const ct3=e.changedTouches[0];const cp2=canvasXY(ct3.clientX,ct3.clientY);handleStageSelTouch(cp2.x,cp2.y);}
@@ -1000,13 +1133,10 @@ canvas.addEventListener('touchend',e=>{
       sfx('jump');vibrate('jump');
       player.face='flip';setTimeout(()=>{if(player.alive)player.face='normal';},180);
       emitParts(player.x,player.y+PLAYER_R*player.gDir,6,tc('ply'),2.5,2);
+    } else if(isSpecialActive('bounce')){
+      triggerAirJump(true);
     } else if(djumpAvailable&&!djumpUsed){
-      djumpUsed=true;djumpAvailable=false;
-      const jp=JUMP_POWER*ct().jumpMul*0.85;
-      player.vy=-jp*player.gDir;
-      sfx('jump');vibrate('jump');
-      player.face='flip';setTimeout(()=>{if(player.alive)player.face='normal';},180);
-      emitParts(player.x,player.y,8,'#ffaa00',3,2.5);
+      triggerAirJump(false);
     }
   }
 },{passive:false});
@@ -1043,8 +1173,9 @@ canvas.addEventListener('mousedown',e=>{
     if(hitQuitBtn(p.x,p.y)){_pauseSavedBGM='';if(isChallengeMode){challengeRetired=true;sfx('cancel');player.alive=false;state=ST.DEAD;deadT=0;switchBGM('dead');return;}sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     return;
   }
-  if(state===ST.PLAY&&!isPackMode&&hitInvBtn(p.x,p.y)){useInvincible();return;}
+  if(state===ST.PLAY&&!isPackMode&&!isSpecialModeEnabled()&&hitInvBtn(p.x,p.y)){useInvincible();return;}
   if(state===ST.PLAY&&!isPackMode&&hitBombBtn(p.x,p.y)){useBomb();return;}
+  if(state===ST.PLAY&&hitSpecialBtn(p.x,p.y)){handleSpecialActivationInput();return;}
   if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');enterPause();return;}
   if(state===ST.TITLE){
     if(shopOpen){handleShopTouch(p.x,p.y);return;}
@@ -1079,9 +1210,11 @@ canvas.addEventListener('mousemove',e=>{
   const p=canvasXY(e.clientX,e.clientY);
   if(draggingSlider){updateSliderDrag(p.x);}
   if(longPressTimer&&titleTouchPos&&(Math.abs(p.x-titleTouchPos.x)>20||Math.abs(p.y-titleTouchPos.y)>20)){clearTimeout(longPressTimer);longPressTimer=null;}
+  clearSettingsGearHold();
 });
 canvas.addEventListener('mouseup',()=>{
   if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}
+  clearSettingsGearHold();
   if(state===ST.TITLE&&!longPressFired&&titleTouchPos){handleTitleTouch(titleTouchPos.x,titleTouchPos.y);titleTouchPos=null;}
   longPressFired=false;
   if(shopOpen&&shopPendingTap){confirmShopTap();}
@@ -1101,6 +1234,12 @@ document.addEventListener('keydown',e=>{
     if(state===ST.PAUSE){sfx('select');resumeFromPauseMenu();return;}
   }
   if(e.code==='KeyR'&&state===ST.PAUSE){e.preventDefault();_pauseSavedBGM='';restartFromPause();return;}
+  if((e.code==='KeyC'||e.code==='KeyF')&&state===ST.PLAY){
+    e.preventDefault();
+    initAudio();
+    handleSpecialActivationInput();
+    return;
+  }
   if(state===ST.LOGIN)return; // login handled by HTML overlay
   // Tutorial keyboard
   if(state===ST.TUTORIAL){
@@ -1166,12 +1305,11 @@ document.addEventListener('keydown',e=>{
       sfx('jump');vibrate('jump');
       emitParts(player.x,player.y+PLAYER_R*player.gDir,6,tc('ply'),2.5,2);
     }
+    else if(state===ST.PLAY&&isSpecialActive('bounce')&&!player._quakeStunned){
+      triggerAirJump(true);
+    }
     else if(state===ST.PLAY&&djumpAvailable&&!djumpUsed&&!player._quakeStunned){
-      djumpUsed=true;djumpAvailable=false;
-      const jp=JUMP_POWER*ct().jumpMul*0.85;
-      player.vy=-jp*player.gDir;
-      sfx('jump');vibrate('jump');
-      emitParts(player.x,player.y,8,'#ffaa00',3,2.5);
+      triggerAirJump(false);
     }
   }
   // ArrowUp: gravity flip to ceiling (gDir 1→-1)
@@ -1195,7 +1333,7 @@ document.addEventListener('keydown',e=>{
     }
   }
   if((e.code==='KeyB'||e.code==='KeyX')&&state===ST.PLAY){e.preventDefault();useBomb();}
-  if((e.code==='KeyV'||e.code==='KeyZ')&&state===ST.PLAY){e.preventDefault();useInvincible();}
+  if((e.code==='KeyV'||e.code==='KeyZ')&&state===ST.PLAY){e.preventDefault();if(isSpecialModeEnabled())handleSpecialActivationInput();else useInvincible();}
 });
 
 function getCharGridIdx(tx,ty){
@@ -1218,7 +1356,7 @@ function handleTitleTouch(tx,ty){
   }
   // Inventory button (top-left, row 2)
   if(tx>=8&&tx<=44&&ty>=safeTop+44&&ty<=safeTop+80){
-    inventoryOpen=true;chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null};
+    inventoryOpen=true;chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null,rewardGranted:false,_lastRevealIdx:-1};
     sfx('select');return;
   }
   // Shop button (top-left, row 3)
@@ -1312,15 +1450,14 @@ canvas.addEventListener('wheel',e=>{
   }
   if(shopOpen){
     e.preventDefault();
-    const items=shopSorted(shopTab===0?SHOP_ITEMS.skins:shopTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects);
+    const items=shopSorted(shopTab===0?SHOP_ITEMS.skins:shopTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects,true);
     const mH2=Math.min(500,H-30),listH2=mH2-140,totalH2=items.length*54;
     const maxS=Math.max(0,totalH2-listH2);
     shopScroll=Math.max(0,Math.min(maxS,shopScroll+e.deltaY*1.5));
   }
   if(cosmeticMenuOpen){
     e.preventDefault();
-    const allItems=cosmeticTab===0?SHOP_ITEMS.skins:cosmeticTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
-    const ownedList=[{id:''}].concat(shopSorted(allItems.filter(it=>ownsItem(it.id)),true));
+    const ownedList=cosmeticListForTab(cosmeticTab);
     const mH2=Math.min(500,H-30),listH2=mH2-184,totalH2=ownedList.length*48;
     const maxS=Math.max(0,totalH2-listH2);
     cosmeticScroll=Math.max(0,Math.min(maxS,cosmeticScroll+e.deltaY*1.5));
@@ -1418,26 +1555,33 @@ function handleShopTouch(tx,ty){
   // Item rows - record pending tap (confirmed on touchend if no scroll)
   shopPendingTap=null;
   const listY=mY+90,listH=mH-140;
-  const items=shopSorted(shopTab===0?SHOP_ITEMS.skins:shopTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects);
+  const items=shopSorted(shopTab===0?SHOP_ITEMS.skins:shopTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects,true);
   const rowH=54;
   for(let i=0;i<items.length;i++){
     const iy=listY+i*rowH-shopScroll;
     if(iy+rowH<listY||iy>listY+listH)continue;
     if(tx>=mX+8&&tx<=mX+mW-8&&ty>=iy+2&&ty<=iy+rowH-2){
-      shopPendingTap={idx:i,tab:shopTab};
+      shopPendingTap={itemId:items[i].id,tab:shopTab};
       return;
     }
   }
 }
 function confirmShopTap(){
   if(!shopPendingTap)return;
-  const tab=shopPendingTap.tab,idx=shopPendingTap.idx;
+  const tab=shopPendingTap.tab,itemId=shopPendingTap.itemId;
   shopPendingTap=null;
-  const items=shopSorted(tab===0?SHOP_ITEMS.skins:tab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects);
-  if(idx>=items.length)return;
-  const item=items[idx];
+  const items=shopSorted(tab===0?SHOP_ITEMS.skins:tab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects,true);
+  const item=items.find(it=>it.id===itemId);
+  if(!item)return;
   if(ownsItem(item.id)){
-    // Already owned - do nothing (equip via cosmetic menu instead)
+    if((tab===0&&equippedSkin===item.id)||(tab===1&&equippedEyes===item.id)||(tab===2&&equippedEffect===item.id)){
+      sfx('click');
+      return;
+    }
+    if(tab===0)equipSkin(item.id);
+    else if(tab===1)equipEyes(item.id);
+    else equipEffect(item.id);
+    sfx('select');vibrate(10);
     return;
   } else {
     // Block purchase of secret/rare/super_rare items (gacha only)
@@ -1492,26 +1636,29 @@ function handleCosmeticTouch(tx,ty){
   // Item rows - record pending tap (confirmed on touchend if no scroll)
   cosmeticPendingTap=null;
   const listY=mY+134,listH=mH-184;
-  const allItems=cosmeticTab===0?SHOP_ITEMS.skins:cosmeticTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
-  const ownedList=[{id:'',name:'\u306A\u3057',desc:'\u30C7\u30D5\u30A9\u30EB\u30C8'}].concat(shopSorted(allItems.filter(it=>ownsItem(it.id)),true));
+  const ownedList=cosmeticListForTab(cosmeticTab);
   const rowH=48;
   for(let i=0;i<ownedList.length;i++){
     const iy=listY+i*rowH-cosmeticScroll;
     if(iy+rowH<listY||iy>listY+listH)continue;
     if(tx>=mX+8&&tx<=mX+mW-8&&ty>=iy+2&&ty<=iy+rowH-2){
-      cosmeticPendingTap={idx:i,tab:cosmeticTab};
+      cosmeticPendingTap={itemId:ownedList[i].id,tab:cosmeticTab};
       return;
     }
   }
 }
 function confirmCosmeticTap(){
   if(!cosmeticPendingTap)return;
-  const tab=cosmeticPendingTap.tab,idx=cosmeticPendingTap.idx;
+  const tab=cosmeticPendingTap.tab,itemId=cosmeticPendingTap.itemId;
   cosmeticPendingTap=null;
-  const allItems=tab===0?SHOP_ITEMS.skins:tab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
-  const ownedList=[{id:'',name:'\u306A\u3057',desc:'\u30C7\u30D5\u30A9\u30EB\u30C8'}].concat(shopSorted(allItems.filter(it=>ownsItem(it.id)),true));
-  if(idx>=ownedList.length)return;
-  const item=ownedList[idx];
+  const ownedList=cosmeticListForTab(tab);
+  const item=ownedList.find(it=>it.id===itemId);
+  if(!item)return;
+  if(item.id!==''&&!ownsItem(item.id)){
+    sfx('hurt');vibrate(10);
+    addPop(W/2,H/2,'???',item.rarity==='super_rare'?'#ffd700':item.rarity==='rare'?'#a855f7':'#fff8');
+    return;
+  }
   // Show equip confirmation dialog
   cosmeticConfirm={item,tab};sfx('select');
 }
