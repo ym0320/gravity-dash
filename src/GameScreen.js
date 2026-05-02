@@ -70,6 +70,8 @@ export default function GameScreen({ onReady }) {
   const webViewRef = useRef(null);
   const appStateRef = useRef(AppState.currentState);
   const readyFired = useRef(false);
+  const hapticGateRef = useRef({ style: '', at: 0 });
+  const hapticNativeRef = useRef(0); // global native gate: limits actual Taptic Engine calls
 
   // Google OAuth (expo-auth-session)
   // iOS は iosClientId が必須。未設定時は webClientId をフォールバックに使い、
@@ -196,22 +198,30 @@ export default function GameScreen({ onReady }) {
       if (msg.type === 'haptic') {
         const isIOS = Platform.OS === 'ios';
         const { style } = msg;
+        const now = Date.now();
+        const minGap = style === 'coin' ? 45 : (style === 'jump' || style === 'flip' ? 28 : 18);
+        const gate = hapticGateRef.current;
+        if (gate.style === style && now - gate.at < minGap) return;
+        gate.style = style;
+        gate.at = now;
 
-        // Android: use Vibration.vibrate with distinct duration patterns
-        // iOS: use expo-haptics Taptic Engine for crisp distinct feedback
+        // Native gate: limits actual Taptic Engine calls (inc. setTimeout chains) to 1 per 35ms
+        const H = (fn) => { const n=Date.now(); if(n-hapticNativeRef.current<35)return; hapticNativeRef.current=n; fn(); };
+
+        // Android: Vibration.vibrate | iOS: selectionAsync for frequent events, impactAsync for rare
         switch (style) {
 
           case 'flip':
             if (isIOS) {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
+              H(() => Haptics.selectionAsync()); // lighter than impactAsync — designed for rapid input
             } else {
-              Vibration.vibrate(35); // short, sharp
+              Vibration.vibrate(35);
             }
             break;
 
           case 'jump':
             if (isIOS) {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              H(() => Haptics.selectionAsync());
             } else {
               Vibration.vibrate(20);
             }
@@ -219,125 +229,134 @@ export default function GameScreen({ onReady }) {
 
           case 'coin':
             if (isIOS) {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              H(() => Haptics.selectionAsync()); // most frequent — must be lightest
             } else {
-              Vibration.vibrate(15); // very short tick
+              Vibration.vibrate(15);
             }
             break;
 
           case 'bigcoin':
             if (isIOS) {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              H(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
             } else {
-              Vibration.vibrate([0, 40, 30, 40]); // double pulse
+              Vibration.vibrate([0, 40, 30, 40]);
             }
             break;
 
           case 'stomp':
             if (isIOS) {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+              H(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy));
             } else {
-              Vibration.vibrate(80); // solid thud
+              Vibration.vibrate(80);
             }
             break;
 
           case 'stomp_heavy':
             if (isIOS) {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-              setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy), 90);
+              H(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy));
+              setTimeout(() => H(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)), 90);
             } else {
-              Vibration.vibrate([0, 80, 50, 100]); // double heavy
+              Vibration.vibrate([0, 80, 50, 100]);
             }
             break;
 
           case 'hurt':
             if (isIOS) {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+              H(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning));
             } else {
-              Vibration.vibrate([0, 50, 30, 50, 30, 50]); // warning triple buzz
+              Vibration.vibrate([0, 50, 30, 50, 30, 50]);
             }
             break;
 
           case 'death':
             if (isIOS) {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy), 150);
+              H(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error));
+              setTimeout(() => H(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)), 150);
             } else {
-              Vibration.vibrate([0, 100, 40, 80, 40, 150]); // error crescendo
+              Vibration.vibrate([0, 100, 40, 80, 40, 150]);
             }
             break;
 
           case 'item':
             if (isIOS) {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              H(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
             } else {
-              Vibration.vibrate([0, 30, 20, 60]); // short-long success
+              Vibration.vibrate([0, 30, 20, 60]);
             }
             break;
 
           case 'bomb':
             if (isIOS) {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-              setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium), 90);
-              setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light), 200);
+              H(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy));
+              setTimeout(() => H(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)), 90);
+              setTimeout(() => H(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)), 200);
             } else {
-              Vibration.vibrate([0, 120, 40, 80, 40, 40]); // explosion decay
+              Vibration.vibrate([0, 120, 40, 80, 40, 40]);
             }
             break;
 
           case 'milestone':
             if (isIOS) {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              H(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
             } else {
-              Vibration.vibrate([0, 40, 20, 40, 20, 80]); // build-up
+              Vibration.vibrate([0, 40, 20, 40, 20, 80]);
             }
             break;
 
           case 'newhi':
             if (isIOS) {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success), 220);
+              H(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success));
+              setTimeout(() => H(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)), 220);
             } else {
-              Vibration.vibrate([0, 60, 30, 60, 30, 100]); // double achievement
+              Vibration.vibrate([0, 60, 30, 60, 30, 100]);
             }
             break;
 
           case 'chest':
             if (isIOS) {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-              setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium), 160);
+              H(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy));
+              setTimeout(() => H(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)), 160);
             } else {
-              Vibration.vibrate([0, 100, 60, 60]); // thunk + follow
+              Vibration.vibrate([0, 100, 60, 60]);
+            }
+            break;
+
+          case 'chest_normal':
+            if (isIOS) {
+              H(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light));
+              setTimeout(() => H(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)), 80);
+            } else {
+              Vibration.vibrate([0, 18, 35, 22]);
+            }
+            break;
+
+          case 'chest_rare':
+            if (isIOS) {
+              H(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
+              setTimeout(() => H(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)), 120);
+              setTimeout(() => H(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)), 260);
+            } else {
+              Vibration.vibrate([0, 55, 45, 90, 40, 45]);
             }
             break;
 
           case 'chest_super':
             if (isIOS) {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-              setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy), 110);
-              setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success), 300);
+              H(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy));
+              setTimeout(() => H(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)), 110);
+              setTimeout(() => H(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)), 300);
             } else {
-              Vibration.vibrate([0, 100, 50, 100, 50, 80, 30, 60]); // epic reveal
+              Vibration.vibrate([0, 100, 50, 100, 50, 80, 30, 60]);
             }
             break;
 
-          // ボス警告: SEと完全同期した2秒間の段階的振動
-          // SE構造: 5つの降下音 (0, 0.3, 0.6, 0.9, 1.2秒) + サイレン上昇 + 重撃 (1.8秒)
+          // ボス警告: 10連→4連に削減（35ms native gate でさらにフィルタ）
           case 'boss_warn':
             if (isIOS) {
-              // 5 heavy taps matching descending tones, then siren pulses, final impact
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-              setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy), 300);
-              setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy), 600);
-              setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy), 900);
-              setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy), 1200);
-              // Siren phase: rapid light pulses building up
-              setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium), 1350);
-              setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium), 1500);
-              setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium), 1650);
-              // Final impact
-              setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error), 1800);
-              setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy), 1950);
+              H(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy));
+              setTimeout(() => H(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)), 600);
+              setTimeout(() => H(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)), 1200);
+              setTimeout(() => H(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)), 1800);
             } else {
               // Android: continuous pattern — ON:80ms OFF:120ms × 5 tones, then rapid siren, then big hit
               Vibration.vibrate([
@@ -357,7 +376,7 @@ export default function GameScreen({ onReady }) {
 
           default:
             if (isIOS) {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              H(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium));
             } else {
               Vibration.vibrate(50);
             }
@@ -371,6 +390,9 @@ export default function GameScreen({ onReady }) {
         if (Platform.OS === 'android') {
           Vibration.vibrate([0, ...pattern]);
         } else {
+          const n = Date.now();
+          if (n - hapticNativeRef.current < 35) return;
+          hapticNativeRef.current = n;
           const total = pattern.reduce((a, b) => a + b, 0);
           const style = total >= 150 ? Haptics.ImpactFeedbackStyle.Heavy
                       : total >= 60  ? Haptics.ImpactFeedbackStyle.Medium

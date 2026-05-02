@@ -1669,27 +1669,23 @@ function sfxBossRoar(bossType){
   }catch(e){}
 }
 const _isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent);
-// HAPTIC DIAG: false = disable iOS haptics entirely to test if Taptic Engine is causing FPS spikes
-// Set back to true once confirmed not the cause, or after adding proper throttling
-let _hapticEnabled=false;
 let _hapticLastStyle='',_hapticLastAt=0;
-let _hapticGlobalLastAt=0; // cross-style global cooldown (ms)
+let _hapticGlobalLastAt=0;
 function vibrate(ms){
   try{
-    // iOS haptic test: skip all postMessage haptics when _hapticEnabled=false
-    if(_isIOS&&!_hapticEnabled)return;
     if(window.ReactNativeWebView){
-      // String = named haptic style sent directly to native for rich feedback
       if(typeof ms==='string'){
         const now=Date.now();
-        const minGap=ms==='coin'?45:(ms==='jump'||ms==='flip'?28:18);
+        // Wider per-style gaps to reduce Taptic Engine call rate
+        const minGap=ms==='coin'?60:(ms==='jump'||ms==='flip'?40:30);
         if(ms===_hapticLastStyle&&now-_hapticLastAt<minGap)return;
-        // Global cross-style cooldown: prevent concurrent different-style calls
-        if(_isIOS&&now-_hapticGlobalLastAt<20)return;
+        // iOS global cross-style cooldown: hard cap on total haptic rate
+        if(_isIOS&&now-_hapticGlobalLastAt<40)return;
         _hapticLastStyle=ms;_hapticLastAt=now;_hapticGlobalLastAt=now;
         window.ReactNativeWebView.postMessage(JSON.stringify({type:'haptic',style:ms}));
       } else {
-        // Legacy numeric/array: keep sending via navigator for backward compat
+        // Legacy numeric/array: apply iOS global cooldown here too
+        if(_isIOS){const now=Date.now();if(now-_hapticGlobalLastAt<40)return;_hapticGlobalLastAt=now;}
         if(navigator.vibrate)navigator.vibrate(ms);
       }
     } else if(navigator.vibrate){
