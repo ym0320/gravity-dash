@@ -157,7 +157,8 @@ function createSpecialState(){
     bonusHpGranted:0,
     bonusHpCurrent:0,
     visualCharIdx:0,
-    lastGainAt:0
+    lastGainAt:0,
+    hintT:0
   };
 }
 let specialState=createSpecialState();
@@ -319,6 +320,7 @@ function activateSpecialSkill(source,forced){
   specialState.type=getSpecialType();
   specialState.t=Math.round(SPECIAL_DURATION*(specialState.type==='cube'?1.5:1));
   specialState.gauge=0;
+  specialState.hintT=240;
   specialState.forced=!!forced;
   specialState.visualCharIdx=selChar;
   specialState.bonusHpGranted=0;

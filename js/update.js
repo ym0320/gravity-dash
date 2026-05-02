@@ -9,10 +9,80 @@ function resetFlipState(){
   flipCount=0;
   flipTimer=999;
   player.canFlip=true;
+  djumpUsed=false;
+  djumpAvailable=!!ct().hasDjump||isSpecialActive('bounce');
+  if(typeof refreshAirActionState==='function')refreshAirActionState(true);
+}
+function triggerCoinSwitch(cs){
+  cs.activated=true;cs.flashT=40;
+  sfx('item');vibrate('item');shakeI=4;
+  addPop(cs.x,cs.y-20,t('popCoinSwitch'),COIN_SW_COL);
+  emitParts(cs.x,cs.y,10,COIN_SW_COL,3,2);
+  const totalCoins2=30+Math.floor(Math.random()*71);
+  const cols=Math.ceil(Math.sqrt(totalCoins2*1.5));
+  const rows=Math.ceil(totalCoins2/cols);
+  const spacing=24;
+  const startX2=cs.x+40;
+  const surfY3=cs.isFloor?cs.y:cs.y;
+  let placed=0;
+  for(let r2=0;r2<rows&&placed<totalCoins2;r2++){
+    for(let c2=0;c2<cols&&placed<totalCoins2;c2++){
+      const cx2=startX2+c2*spacing;
+      const cy2=cs.isFloor?surfY3-10-r2*spacing:surfY3+10+r2*spacing;
+      if(!coinOverlaps(cx2,cy2)){coins.push({x:cx2,y:cy2,sz:9,col:false,p:Math.random()*6.28});placed++;}
+    }
+  }
+}
+function rewardEnemySpecialKill(en,col,bonus){
+  en.alive=false;
+  sfxEnemyDeath(en.type);vibrate('stomp');shakeI=Math.max(shakeI,4);
+  dist+=cubeSpecialKillBonus(bonus);
+  addPop(en.x,en.y-en.sz*en.gDir,'+'+cubeSpecialKillBonus(bonus),col);
+  emitParts(en.x,en.y,15,col,4,3);
+  player.face='happy';player.faceTimer=18;
+}
+function rewardStackedStompEnemy(en,gstomp){
+  en.alive=false;
+  const baseBon=gstomp?90:30;
+  const bon=cubeSpecialKillBonus(baseBon+stompCombo*(gstomp?60:30));
+  stompCombo++;
+  dist+=bon;
+  addSpecialGauge((gstomp?SPECIAL_STOMP_GAIN:SPECIAL_KILL_GAIN)+Math.min(stompCombo,6)*0.8);
+  addPop(en.x,en.y-en.sz*en.gDir,'+'+bon,gstomp?'#ffd700':'#ff3860');
+  emitParts(en.x,en.y,gstomp?20:12,gstomp?'#ffd700':'#ff3860',gstomp?5:4,gstomp?4:3);
+}
+function stompRescuedByStep(en){
+  if(en._prevY===undefined)return false;
+  if(en.gDir===1){
+    return en._prevY>en.y&&player.vy>=0&&player.y<en._prevY-en.sz*0.2;
+  }
+  return en._prevY<en.y&&player.vy<=0&&player.y>en._prevY+en.sz*0.2;
 }
 
 // Shared chest open state machine: wobble -> burst -> reveal -> done
 // Used by ST.TITLE (with batch-mode extension) and ST.DEAD.
+function chestRewardRarity(reward){
+  if(!reward)return 'normal';
+  if(reward.type==='char')return 'super_rare';
+  if(reward.type==='cosmetic'&&reward.item&&reward.item.rarity)return reward.item.rarity;
+  return 'normal';
+}
+function playChestRevealFeedback(reward){
+  const rar=chestRewardRarity(reward);
+  if(rar==='super_rare'){
+    if(typeof sfxSuperRare==='function')sfxSuperRare();
+    shakeI=Math.max(shakeI,30);
+    vibrate('chest_super');
+  } else if(rar==='rare'){
+    if(typeof sfxRare==='function')sfxRare();
+    shakeI=Math.max(shakeI,18);
+    vibrate('chest');
+  } else {
+    if(typeof sfxChestNormal==='function')sfxChestNormal();
+    shakeI=Math.max(shakeI,6);
+    vibrate('jump');
+  }
+}
 function updateChestOpenStateMachine(){
   chestOpen.t++;
   if(chestOpen.phase==='wobble'&&chestOpen.t>=50){
@@ -20,11 +90,11 @@ function updateChestOpenStateMachine(){
   }
   else if(chestOpen.phase==='burst'&&chestOpen.t>=40){
     chestOpen.phase='reveal';chestOpen.t=0;
+    playChestRevealFeedback(chestOpen.reward);
     if(chestOpen.reward&&chestOpen.reward.type==='coin'){
       walletCoins+=chestOpen.reward.amount;localStorage.setItem('gd5wallet',walletCoins.toString());
     }
     if(chestOpen.reward&&chestOpen.reward.type==='char'){
-      sfxSuperRare();shakeI=25;vibrate('chest_super');
       if(chestOpen.reward.isNew){
         unlockCharFromChest(chestOpen.reward.charIdx);
       } else {
@@ -33,17 +103,15 @@ function updateChestOpenStateMachine(){
       }
     }
     if(chestOpen.reward&&chestOpen.reward.type==='cosmetic'){
-      if(chestOpen.reward.item.rarity==='super_rare'){
-        sfxSuperRare();shakeI=30;vibrate('chest_super');
-      }
       if(!chestOpen.reward.isNew){
         walletCoins+=300;localStorage.setItem('gd5wallet',walletCoins.toString());
       }
     }
+    chestOpen.rewardGranted=true;
   }
   else if(chestOpen.phase==='reveal'){
-    const revealLen=chestOpen.reward&&chestOpen.reward.type==='char'?140:
-      (chestOpen.reward&&chestOpen.reward.type==='cosmetic'&&chestOpen.reward.item&&chestOpen.reward.item.rarity==='super_rare')?160:90;
+    const revealRarity=chestRewardRarity(chestOpen.reward);
+    const revealLen=revealRarity==='super_rare'?160:revealRarity==='rare'?120:95;
     if(chestOpen.t>=revealLen){
       chestOpen.phase='done';chestOpen.t=0;
     }
@@ -61,6 +129,9 @@ function update(dt){
   fip(pops,p=>{p.y-=1.2;p.life--;return p.life>0;});
 
   if(state===ST.PAUSE)return; // freeze everything while paused
+  if(state!==ST.PLAY&&specialState.active)endSpecialSkill(true);
+  if(state!==ST.PLAY&&specialState.requested)clearSpecialActivationRequest();
+  if((bossPhase.active||bossPhase.reward)&&specialState.requested)clearSpecialActivationRequest();
 
   if(state===ST.COUNTDOWN){
     countdownT--;
@@ -243,15 +314,15 @@ function update(dt){
 
   // === PLAYING ===
   // Ghost character periodic transparency (immune to enemy attacks while transparent)
-  if(ct().shape==='ghost'){
+  if(ct().shape==='ghost'&&!isSpecialActive('ghost')){
     // Use equipped skin color for ghost particles (default: ghost's own color)
     const _sd=getEquippedSkinData();
     const ghostCol=_sd?(_sd.col==='rainbow'?'#ff00ff':_sd.col):ct().col;
     ghostPhaseT++;
-    if(ghostInvis&&ghostPhaseT>=60){
+    if(ghostInvis&&ghostPhaseT>=GHOST_PHASE_DURATION){
       ghostInvis=false;ghostPhaseT=0;
       emitParts(player.x,player.y,6,ghostCol,2,1);
-    } else if(!ghostInvis&&ghostPhaseT>=60){
+    } else if(!ghostInvis&&ghostPhaseT>=GHOST_PHASE_DURATION){
       ghostInvis=true;ghostPhaseT=0;
       emitParts(player.x,player.y,8,ghostCol,3,2);
     }
@@ -261,7 +332,7 @@ function update(dt){
         vx:(Math.random()-0.5)*0.5,vy:(Math.random()-0.5)*0.5,
         life:10,ml:10,sz:Math.random()*2+1,col:ghostCol+'66'});
     }
-  } else {ghostInvis=false;ghostPhaseT=0;}
+  } else if(!isSpecialActive('ghost')) {ghostInvis=false;ghostPhaseT=0;}
   // Hurt invincibility timer
   if(hurtT>0)hurtT--;
   if(magmaHurtT>0)magmaHurtT--;
@@ -269,10 +340,21 @@ function update(dt){
   if(player.faceTimer>0){player.faceTimer--;if(player.faceTimer<=0&&player.alive)player.face='normal';}
   // Item timers
   const wasInvincible=itemEff.invincible>0;
-  const prevInvT=itemEff.invincible;
   for(const k in itemEff)if(itemEff[k]>0)itemEff[k]--;
   if(wasInvincible&&itemEff.invincible<=0&&state===ST.PLAY){
-    switchBGM(bossPhase.active?'boss':'play');
+    syncGameplayBGM(true);
+  }
+  if(canChargeSpecial())addSpecialGauge(SPECIAL_TIME_GAIN);
+  if(specialState.requested)tryActivateSpecialSkill(specialState.requestSource||'manual',false);
+  if(specialState.active){
+    if(specialState.t>0)specialState.t--;
+    if(specialState.hintT>0)specialState.hintT--;
+    if(isSpecialActive('bounce')||isSpecialActive('ninja'))refreshAirActionState(true);
+    if(isSpecialActive('ghost')){
+      ghostInvis=true;
+      ghostPhaseT=0;
+    }
+    if(specialState.t<=0)endSpecialSkill(true);
   }
 
   if(isPackMode&&currentPackStage){
@@ -284,8 +366,10 @@ function update(dt){
   }
 
   // Distance scoring (score freezes during boss, catches up on victory)
-  dist+=speed*0.08;
-  rawDist+=speed*0.08;
+  const frameDist=speed*0.08;
+  dist+=frameDist;
+  rawDist+=frameDist;
+  if(canChargeSpecial())addSpecialGauge(frameDist*SPECIAL_DISTANCE_GAIN);
   if(!bossPhase.active){
     const ns=Math.floor(dist);
     if(ns>score){
@@ -393,7 +477,7 @@ function update(dt){
       for(let i=0;i<30&&parts.length<MAX_PARTS;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*3,vy:1+Math.random()*3,life:60+Math.random()*40,ml:100,sz:Math.random()*5+2,col:['#ffd700','#00e5ff','#ff3860','#34d399','#a855f7'][i%5]});
     }
     // Star scrolling and collection
-    const pr2=PLAYER_R*ct().sizeMul;
+    const pr2=playerRadius();
     for(let i=0;i<stageBigCoins.length;i++){const bc=stageBigCoins[i];
       bc.x-=speed;bc.p+=0.06;
       // Compute Y from floor surface + offset
@@ -663,7 +747,7 @@ function update(dt){
 
   // Physics
   flipTimer++;
-  const pr=PLAYER_R*ct().sizeMul;
+  const pr=playerRadius();
   // Quake stun: completely freeze player (no gravity, no movement)
   if(player._quakeStunned){
     player.vy=0;
@@ -676,7 +760,7 @@ function update(dt){
 
   // Ground collision
   player.grounded=false;
-  const isTire=ct().shape==='tire';
+  const isTire=ct().shape==='tire'||isSpecialActive('tire');
   if(player.gDir===1){
     let surfY=floorSurfaceY(player.x);
     // Tire gap bridging: if over a void, check if tire edges are still on ground
@@ -755,7 +839,7 @@ function update(dt){
       sp.state='hidden';sp.timer=0;
     }
     // Collision when spikes are up
-    if(sp.state==='up'&&itemEff.invincible<=0&&hurtT<=0){
+    if(sp.state==='up'&&!playerDamageImmune()&&hurtT<=0){
       if(player.x+pr>sp.x&&player.x-pr<sp.x+sp.w){
         if(sp.isFloor){
           // Floor spike: points up from baseY
@@ -946,7 +1030,7 @@ function update(dt){
       if(ic.fadeT<=0)ic.state='gone';
     }
     // Collision: while hanging or falling (stuck icicles are safe platforms)
-    if((ic.state==='fall'||ic.state==='hang')&&itemEff.invincible<=0&&hurtT<=0){
+    if((ic.state==='fall'||ic.state==='hang')&&!playerDamageImmune()&&hurtT<=0){
       const icTop=ic.baseY;
       const icBot=ic.tipY;
       if(player.x+pr>ic.x&&player.x-pr<ic.x+ic.w){
@@ -983,7 +1067,7 @@ function update(dt){
     if(fb.isFloor&&fb.y>H+30)fb.alive=false;
     if(!fb.isFloor&&fb.y<-30)fb.alive=false;
     // Collision with player
-    if(itemEff.invincible<=0&&hurtT<=0){
+    if(!playerDamageImmune()&&hurtT<=0){
       const dx=player.x-fb.x,dy=player.y-fb.y;
       if(dx*dx+dy*dy<(pr+fb.sz*0.5)*(pr+fb.sz*0.5)){
         hurt(true);
@@ -1003,28 +1087,19 @@ function update(dt){
   fip(coinSwitches,cs=>cs.x+cs.r>-50);
   for(let i=0;i<coinSwitches.length;i++){const cs=coinSwitches[i];
     if(cs.activated)continue;
+    const magR=playerItemMagnetRadius();
+    const magStr=playerItemMagnetStrength();
+    if(magR>0&&magStr>0){
+      const mdx=player.x-cs.x,mdy=player.y-cs.y,md2=mdx*mdx+mdy*mdy;
+      if(md2<magR*magR){
+        cs.x+=mdx*magStr*0.7;cs.y+=mdy*magStr*0.7;
+        if(md2<(pr+cs.r+10)*(pr+cs.r+10)){triggerCoinSwitch(cs);continue;}
+      }
+    }
     const dx3=player.x-cs.x,dy3=player.y-cs.y;
     const csR=pr+cs.r+4;
     if(dx3*dx3+dy3*dy3<csR*csR){
-      cs.activated=true;cs.flashT=40;
-      sfx('item');vibrate('item');shakeI=4;
-      addPop(cs.x,cs.y-20,t('popCoinSwitch'),COIN_SW_COL);
-      emitParts(cs.x,cs.y,10,COIN_SW_COL,3,2);
-      // Spawn 30-100 coins in organized grid ahead
-      const totalCoins2=30+Math.floor(Math.random()*71);
-      const cols=Math.ceil(Math.sqrt(totalCoins2*1.5));
-      const rows=Math.ceil(totalCoins2/cols);
-      const spacing=24;
-      const startX2=cs.x+40;
-      const surfY3=cs.isFloor?cs.y:cs.y;
-      let placed=0;
-      for(let r2=0;r2<rows&&placed<totalCoins2;r2++){
-        for(let c2=0;c2<cols&&placed<totalCoins2;c2++){
-          const cx2=startX2+c2*spacing;
-          const cy2=cs.isFloor?surfY3-10-r2*spacing:surfY3+10+r2*spacing;
-          if(!coinOverlaps(cx2,cy2)){coins.push({x:cx2,y:cy2,sz:9,col:false,p:Math.random()*6.28});placed++;}
-        }
-      }
+      triggerCoinSwitch(cs);
     }
   }
 
@@ -1035,7 +1110,7 @@ function update(dt){
     hurt(true);return;
   }
   // Boundaries (void fall = instant death, lose all HP)
-  if(player.y+pr>H+30||player.y-pr<-30){die();return;}
+  if(player.y+pr>H+30||player.y-pr<-30){die(false);return;}
 
   // Rotation (tire spins continuously when grounded)
   if(ct().shape==='tire'&&player.grounded){
@@ -1060,19 +1135,20 @@ function update(dt){
     c.x-=speed;c.p+=0.08;
     if(!c.col){
       let cd=pr+c.sz;
-      const charMag=ct().coinMag;
-      if(itemEff.magnet>0||charMag>0){
+      const magR=playerCoinMagnetRadius();
+      const magStr=playerCoinMagnetStrength();
+      if(magR>0&&magStr>0){
         const dx=player.x-c.x,dy=player.y-c.y,d2=dx*dx+dy*dy;
-        const magR=itemEff.magnet>0?180:charMag;
-        const magStr=itemEff.magnet>0?0.12:0.06;
         if(d2<magR*magR){c.x+=dx*magStr;c.y+=dy*magStr;}if(itemEff.magnet>0)cd*=1.8;
       }
       const dx=player.x-c.x,dy=player.y-c.y;
       if(dx*dx+dy*dy<cd*cd){
         c.col=true;totalCoins++;combo++;comboDsp=combo;comboDspT=55;
-        if(combo>maxCombo)maxCombo=combo;
         const cTier=getCoinTier();
-        const bon=Math.ceil((3+Math.min(combo-1,8))*ct().coinMul*cTier.mul);
+        const tierGain=1+(Math.max(1,cTier.mul)-1)*SPECIAL_COIN_TIER_FACTOR;
+        addSpecialGauge(SPECIAL_COIN_GAIN*tierGain+Math.min(combo,8)*SPECIAL_COMBO_GAIN);
+        if(combo>maxCombo)maxCombo=combo;
+        const bon=Math.ceil((3+Math.min(combo-1,8))*ct().coinMul*cTier.mul*cubeSpecialCoinMul());
         dist+=bon;sfx(combo>1?'combo':'coin');
         addPop(c.x,c.y-14,'+'+bon,cTier.col);vibrate('coin');
         if(combo>1)addPop(c.x,c.y-34,combo+'x','#ff6b35');
@@ -1095,9 +1171,16 @@ function update(dt){
   for(let i=0;i<items.length;i++){const it=items[i];
     it.x-=speed;it.p+=0.06;
     if(!it.col){
+      const magR=playerItemMagnetRadius();
+      const magStr=playerItemMagnetStrength();
+      if(magR>0&&magStr>0){
+        const mdx=player.x-it.x,mdy=player.y-it.y,md2=mdx*mdx+mdy*mdy;
+        if(md2<magR*magR){it.x+=mdx*magStr;it.y+=mdy*magStr;}
+      }
       const dx=player.x-it.x,dy=player.y-it.y;
       if(dx*dx+dy*dy<(pr+it.sz)*(pr+it.sz)){
         it.col=true;
+        addSpecialGauge(SPECIAL_ITEM_GAIN);
         applyItem(it.t);
         addPop(it.x,it.y-18,ITEMS[it.t].name+'!',ITEMS[it.t].col);
         emitParts(it.x,it.y,12,ITEMS[it.t].col,4,3);
@@ -1111,6 +1194,7 @@ function update(dt){
   const esm=enemySpeedMul(); // enemy speed multiplier (1.0 to 2.0)
   for(let i=0;i<enemies.length;i++){const en=enemies[i];
     if(!en.alive)continue;
+    en._prevY=en.y;
     // Boss enemies with custom movement: handled by updateBossPhase
     if(en.bossType)continue;
     en.fr+=0.12;
@@ -1136,16 +1220,16 @@ function update(dt){
       // Edge detection with cooldown to prevent jitter on narrow platforms
       if(en._edgeCD>0){en._edgeCD--;}
       if(en.gDir===1){
-        const sy=floorSurfaceY(en.x);
-        const aheadSy=floorSurfaceY(en.x+en.patrolDir*(en.sz+4));
+        const sy=floorSupportY(en.x);
+        const aheadSy=floorSupportY(en.x+en.patrolDir*(en.sz+4));
         if(sy<H+100){
           en.y=sy-en.sz;en.vy=0;
           if(!en._edgeCD&&(aheadSy>H+100||aheadSy>sy+5)){en.patrolDir*=-1;en._edgeCD=15;en.patrolOriginX=en.x;}
         }
         else{en.vy=(en.vy||0)+GRAVITY;en.y+=en.vy;}
       }else{
-        const sy=ceilSurfaceY(en.x);
-        const aheadSy=ceilSurfaceY(en.x+en.patrolDir*(en.sz+4));
+        const sy=ceilSupportY(en.x);
+        const aheadSy=ceilSupportY(en.x+en.patrolDir*(en.sz+4));
         if(sy>-100){
           en.y=sy+en.sz;en.vy=0;
           if(!en._edgeCD&&(aheadSy<-100||aheadSy<sy-5)){en.patrolDir*=-1;en._edgeCD=15;en.patrolOriginX=en.x;}
@@ -1160,7 +1244,7 @@ function update(dt){
         if(en.x>en.patrolOriginX+en.patrolRange) en.patrolDir=-1;
         if(en.x<en.patrolOriginX-en.patrolRange) en.patrolDir=1;
       }
-      const sy=floorSurfaceY(en.x);
+      const sy=floorSupportY(en.x);
       if(sy<H+100){en.y=sy-en.sz;en.vy=0;}
       else{en.vy=(en.vy||0)+GRAVITY;en.y+=en.vy;}
     } else if(en.type===4){
@@ -1176,8 +1260,8 @@ function update(dt){
         // Random speed variation (sinusoidal + noise)
         const spdMod=0.6+Math.sin(en.moveTimer*0.07)*0.4+Math.sin(en.moveTimer*0.17)*0.2;
         en.y+=en.moveDir*en.moveSpd*spdMod*esm;
-        const floorY=floorSurfaceY(en.x);
-        const ceilY2=ceilSurfaceY(en.x);
+        const floorY=floorSupportY(en.x);
+        const ceilY2=ceilSupportY(en.x);
         if(en.y+en.sz>=floorY){
           en.y=floorY-en.sz;en.moveDir=-1;en.pauseT=5+Math.floor(Math.random()*15);en.gDir=1;
         }
@@ -1205,11 +1289,11 @@ function update(dt){
       // Dasher: patrol → warn → dash → cooldown → patrol
       en.patrolOriginX-=speed;
       if(en.gDir===1){
-        const sy=floorSurfaceY(en.x);
+        const sy=floorSupportY(en.x);
         if(sy<H+100){en.y=sy-en.sz;en.vy=0;}
         else{en.vy=(en.vy||0)+GRAVITY;en.y+=en.vy;}
       } else {
-        const sy=ceilSurfaceY(en.x);
+        const sy=ceilSupportY(en.x);
         if(sy>-100){en.y=sy+en.sz;en.vy=0;}
         else{en.vy=(en.vy||0)-GRAVITY;en.y+=en.vy;}
       }
@@ -1244,13 +1328,13 @@ function update(dt){
       if(en.x>en.patrolOriginX+en.patrolRange) en.patrolDir=-1;
       if(en.x<en.patrolOriginX-en.patrolRange) en.patrolDir=1;
       if(en.gDir===1){
-        const sy=floorSurfaceY(en.x);
-        const aheadSy=floorSurfaceY(en.x+en.patrolDir*(en.sz+4));
+        const sy=floorSupportY(en.x);
+        const aheadSy=floorSupportY(en.x+en.patrolDir*(en.sz+4));
         if(sy<H+100){en.y=sy-en.sz;en.vy=0;if(aheadSy>H+100||aheadSy>sy+30)en.patrolDir*=-1;}
         else{en.vy=(en.vy||0)+GRAVITY;en.y+=en.vy;}
       } else {
-        const sy=ceilSurfaceY(en.x);
-        const aheadSy=ceilSurfaceY(en.x+en.patrolDir*(en.sz+4));
+        const sy=ceilSupportY(en.x);
+        const aheadSy=ceilSupportY(en.x+en.patrolDir*(en.sz+4));
         if(sy>-100){en.y=sy+en.sz;en.vy=0;if(aheadSy<-100||aheadSy<sy-30)en.patrolDir*=-1;}
         else{en.vy=(en.vy||0)-GRAVITY;en.y+=en.vy;}
       }
@@ -1281,10 +1365,10 @@ function update(dt){
       const expired=en.lifeT!==undefined&&en.lifeT<=0;
       if(!expired){
         if(en.gDir===1){
-          const sy=floorSurfaceY(en.x);
+          const sy=floorSupportY(en.x);
           if(en.y+en.sz>=sy&&sy<H+100){en.y=sy-en.sz;en.vy=en.bounceVy;}
         } else {
-          const sy=ceilSurfaceY(en.x);
+          const sy=ceilSupportY(en.x);
           if(en.y-en.sz<=sy&&sy>-100){en.y=sy+en.sz;en.vy=en.bounceVy;}
         }
       }
@@ -1294,13 +1378,27 @@ function update(dt){
       // Cannon moves but can't climb steps (falls off edges naturally)
       en.x-=en.walkSpd*esm;
       if(en.gDir===1){
-        const sy=floorSurfaceY(en.x);
+        const sy=floorSupportY(en.x);
         if(sy<H+100){en.y=sy-en.sz;en.vy=0;}
         else{en.vy=(en.vy||0)+GRAVITY;en.y+=en.vy;}
       }else{
-        const sy=ceilSurfaceY(en.x);
+        const sy=ceilSupportY(en.x);
         if(sy>-100){en.y=sy+en.sz;en.vy=0;}
         else{en.vy=(en.vy||0)-GRAVITY;en.y+=en.vy;}
+      }
+    }
+    if(isSpecialActive('tire')){
+      const tdx=player.x-en.x,tdy=player.y-en.y,td2=tdx*tdx+tdy*tdy;
+      const tMagR=SPECIAL_TIRE_MAGNET_RADIUS;
+      if(td2<tMagR*tMagR){
+        en.x+=tdx*SPECIAL_TIRE_MAGNET_STRENGTH;
+        en.y+=tdy*SPECIAL_TIRE_MAGNET_STRENGTH;
+        const killR=pr+en.sz+10;
+        if(td2<killR*killR){
+          const bon=cubeSpecialKillBonus(Math.floor(10+Math.min(score*0.1,20)));
+          rewardEnemySpecialKill(en,'#f59e0b',bon);
+          continue;
+        }
       }
     }
     // Collision with player (boss enemies handle their own collision)
@@ -1310,9 +1408,10 @@ function update(dt){
       const dx2=player.x-en.x,dy2=player.y-en.y;
       const d2=Math.sqrt(dx2*dx2+dy2*dy2);
       if(d2<pr+en.sz){
-        if(itemEff.invincible>0){
+        if(playerDamageImmune()){
           en.alive=false;sfx('stomp');vibrate('stomp');shakeI=4;
-          const bon2=Math.floor(10+Math.min(score*0.1,20));dist+=bon2;
+          const bon2=cubeSpecialKillBonus(Math.floor(10+Math.min(score*0.1,20)));dist+=bon2;
+          addSpecialGauge(SPECIAL_KILL_GAIN);
           addPop(en.x,en.y-en.sz*en.gDir,'+'+bon2,'#ff00ff');
           emitParts(en.x,en.y,15,'#ff00ff',4,3);
         } else { hurt(); }
@@ -1323,14 +1422,10 @@ function update(dt){
     const enR=pr+en.sz;
     if(dx*dx+dy*dy<enR*enR){
       // Invincible: destroy enemy on contact
-      if(itemEff.invincible>0){
-        en.alive=false;
-        sfxEnemyDeath(en.type);vibrate('stomp');shakeI=4;
-        const bon=Math.floor(10+Math.min(score*0.1,20));
-        dist+=bon;
-        addPop(en.x,en.y-en.sz*en.gDir,'+'+bon,'#ff00ff');
-        emitParts(en.x,en.y,15,'#ff00ff',4,3);
-        player.face='happy';player.faceTimer=18;
+      if(playerDamageImmune()){
+        const bon=cubeSpecialKillBonus(Math.floor(10+Math.min(score*0.1,20)));
+        addSpecialGauge(SPECIAL_KILL_GAIN);
+        rewardEnemySpecialKill(en,'#ff00ff',bon);
         continue;
       }
       // Fast kill trait (Flame): destroy on contact at high speed
@@ -1338,7 +1433,7 @@ function update(dt){
       // Tire roll kill: grounded tire destroys ground-based enemies by rolling into them
       const tireRoll=isTire&&player.grounded&&(en.type===0||en.type===1||en.type===3);
       // Check stomp: player approaching from the "top" of the enemy
-      const stomped=fkill||tireRoll||(en.gDir===1&&player.y<en.y-en.sz*0.2&&player.vy>=0)||(en.gDir===-1&&player.y>en.y+en.sz*0.2&&player.vy<=0);
+      const stomped=fkill||tireRoll||(en.gDir===1&&player.y<en.y-en.sz*0.2&&player.vy>=0)||(en.gDir===-1&&player.y>en.y+en.sz*0.2&&player.vy<=0)||stompRescuedByStep(en);
       if(stomped){
         en.alive=false;
         // Tire: crush without bouncing; others: bounce off enemy
@@ -1348,20 +1443,28 @@ function update(dt){
           player.vy=-JUMP_POWER*0.7*player.gDir;
           player.grounded=false;
         }
-        // Gravity stomp bonus (check before resetFlipState resets flipTimer)
+        flipCount=0;player.canFlip=true;djumpUsed=false;if(typeof refreshAirActionState==='function')refreshAirActionState(true);else if(ct().hasDjump)djumpAvailable=true;
+        // Gravity stomp bonus
         const gstomp=flipTimer<40;
-        resetFlipState();
         // Stomp combo: base + combo bonus (additive)
         const baseBon=gstomp?90:30;
-        const bon=baseBon+stompCombo*(gstomp?60:30);
+        const bon=cubeSpecialKillBonus(baseBon+stompCombo*(gstomp?60:30));
         stompCombo++;
         dist+=bon;
+        addSpecialGauge((gstomp?SPECIAL_STOMP_GAIN:SPECIAL_KILL_GAIN)+Math.min(stompCombo,6)*0.8);
         if(gstomp){sfx('gstompHeavy');sfxEnemyDeath(en.type);vibrate('stomp_heavy');shakeI=8;}else{sfxEnemyDeath(en.type);vibrate('stomp');}
         if(stompCombo>=2)sfxStompCombo(stompCombo);
         addPop(en.x,en.y-en.sz*en.gDir,'+'+bon,gstomp?'#ffd700':'#ff3860');
         if(stompCombo>=2){addPop(en.x,en.y-en.sz*en.gDir-22,t('popCombo').replace('{0}',stompCombo),gstomp?'#ffd700':'#ff6600');emitParts(en.x,en.y,14+stompCombo*3,gstomp?'#ffd700':'#ff6600',4,3);}
         if(gstomp){addPop(en.x,en.y-en.sz*en.gDir-(stompCombo>=2?40:22),t('popGStomp'),'#ffd700');emitParts(en.x,en.y,20,'#ffd700',5,4);}
         else{emitParts(en.x,en.y,12,'#ff3860',4,3);}
+        for(let j=i+1;j<enemies.length;j++){
+          const other=enemies[j];
+          if(!other.alive||other.bossType||(other.type===5&&!other.visible))continue;
+          const odx=player.x-other.x,ody=player.y-other.y;
+          const otherR=pr+other.sz;
+          if(odx*odx+ody*ody<otherR*otherR)rewardStackedStompEnemy(other,gstomp);
+        }
         // Aerial combo: consecutive kills without touching ground
         if(!player.grounded){airCombo++;sfxAirCombo(airCombo);const acb=airCombo*5;dist+=acb;addPop(en.x,en.y-en.sz*en.gDir-36,airCombo+' AIR COMBO!','#00e5ff');emitParts(en.x,en.y,8,'#00e5ff',3,2);}
         player.face='happy';player.faceTimer=18;
@@ -1404,7 +1507,7 @@ function update(dt){
   }
 
   // Update bullets
-  const bpr=PLAYER_R*ct().sizeMul;
+  const bpr=playerRadius();
   for(let i=0;i<bullets.length;i++){const b=bullets[i];
     b.x+=b.vx;b.y+=b.vy;b.life--;
     // Shockwave: stays on floor, tall hitbox
@@ -1414,7 +1517,7 @@ function update(dt){
       // Tall collision area (player must jump over)
       const dx=player.x-b.x,dy=player.y-(b.y-20);
       if(Math.abs(dx)<bpr+b.sz&&dy>-40&&dy<30){
-        if(itemEff.invincible<=0&&hurtT<=0){b.life=0;hurt();}
+        if(!playerDamageImmune()&&hurtT<=0){b.life=0;hurt();}
       }
       // Particles trail
       if(b.life%3===0&&parts.length<MAX_PARTS)parts.push({x:b.x,y:b.y,vx:(Math.random()-0.5)*0.5,vy:-1-Math.random()*2,life:12,ml:12,sz:Math.random()*4+2,col:'#ffaa00'});
@@ -1443,11 +1546,10 @@ function update(dt){
   }
   fip(bullets,b=>b.life>0&&(b.wizBullet||(b.x>-50&&b.x<W+100&&b.y>-50&&b.y<H+50)));
 
-  // Wall collision: hitting the side of a higher platform step
-  // Grounded players auto-step any terrain height change (smooth terrain following)
-  // Airborne players: small steps auto-step, large steps cause damage (wall hit)
+  // Wall collision: hitting the side of a higher platform step.
+  // Normal characters can clear up to half their height; tires can clear up to full height.
   {
-    const STEP_TOLERANCE=pr; // airborne: half character height
+    const STEP_TOLERANCE=isTire?pr*2:pr*1.5;
     if(player.gDir===1){
       for(let i=0;i<platforms.length;i++){
         const p=platforms[i];
@@ -1455,8 +1557,7 @@ function update(dt){
           const surfY=H-p.h;
           if(player.y+pr>surfY+4){
             const stepH=player.y+pr-surfY;
-            if(player.grounded||isTire||stepH<=STEP_TOLERANCE){
-              // Grounded / tire / small step: auto step up
+            if(stepH<=STEP_TOLERANCE){
               player.y=surfY-pr;player.vy=0;player.grounded=true;
             } else {
               hurt(true);return;
@@ -1471,8 +1572,7 @@ function update(dt){
           const surfY=p.h;
           if(player.y-pr<surfY-4){
             const stepH=surfY-(player.y-pr);
-            if(player.grounded||isTire||stepH<=STEP_TOLERANCE){
-              // Grounded / tire / small step: auto step up
+            if(stepH<=STEP_TOLERANCE){
               player.y=surfY+pr;player.vy=0;player.grounded=true;
             } else {
               hurt(true);return;
@@ -1540,7 +1640,7 @@ function updateChallTransition(){
     platforms.length=0;ceilPlats.length=0;
     platforms.push({x:player.x-100,w:300,h:GROUND_H});
     ceilPlats.push({x:player.x-100,w:300,h:GROUND_H});
-    player.y=H-GROUND_H-PLAYER_R*ct().sizeMul;
+    player.y=H-GROUND_H-playerRadius();
     player.vy=0;player.grounded=true;player.gDir=1;
     enemies=[];bullets=[];
   }
