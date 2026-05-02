@@ -79,6 +79,16 @@ const THEMES=[
   {bg1:'#101028',bg2:'#1c1c40',gnd:'#2c2c60',gnd2:'#24244e',line:'#9898c8',ply:'#e8f0ff',obs:'#f43f5e',n:'ヘブンズゲート'},
   // 14000+: 金×白 — 伝説の頂点
   {bg1:'#0c0a00',bg2:'#1a1600',gnd:'#2a2000',gnd2:'#201800',line:'#d8a820',ply:'#ffe880',obs:'#ff2060',n:'レジェンド'},
+  // 15000-15999: ティールネオン — 深海電脳都市
+  {bg1:'#02161a',bg2:'#05303a',gnd:'#0c4a56',gnd2:'#083742',line:'#1dd3b0',ply:'#7df9ff',obs:'#ff5a5f',n:'ネオンアビス'},
+  // 16000-16999: ローズゴールド — 灼けた宮殿
+  {bg1:'#24100e',bg2:'#3f1e1b',gnd:'#6a3429',gnd2:'#54271f',line:'#ff9b71',ply:'#ffd166',obs:'#7c4dff',n:'ローズパレス'},
+  // 17000-17999: ライムストーム — 酸性雷域
+  {bg1:'#121a02',bg2:'#223506',gnd:'#36560d',gnd2:'#294309',line:'#b8f12f',ply:'#f4ff7a',obs:'#00c2ff',n:'ライムストーム'},
+  // 18000-18999: サファイアノワール — 冷たい最終夜
+  {bg1:'#040814',bg2:'#0b1430',gnd:'#13244f',gnd2:'#0f1c3c',line:'#6ea8fe',ply:'#c7e0ff',obs:'#ff7bcb',n:'サファイアノワール'},
+  // 19000+: 白熱スペクトラム — 超高密度の終着点
+  {bg1:'#12040e',bg2:'#24081b',gnd:'#401033',gnd2:'#32102a',line:'#ff4fd8',ply:'#fff08a',obs:'#00f0ff',n:'スペクトラム'},
 ];
 let curTheme=0,prevTheme=0,themeLerp=1;
 function lerpColor(a,b,t){
@@ -103,7 +113,7 @@ function tca(k,a){const c=tc(k);if(c[0]==='#')return c+(a<16?'0':'')+Math.round(
 // ===== CHARACTERS =====
 const CHARS=[
   {name:'\u30AD\u30E5\u30FC\u30D6',shape:'cube',col:'#00e5ff',col2:'#00b8d4',eye:'#fff',pupil:'#0a0a2e',
-   trait:'\u30D0\u30E9\u30F3\u30B9\u578B',desc:'\u6A19\u6E96\u7684\u306A\u6027\u80FD',jumpMul:1,speedMul:1,sizeMul:1,gravMul:1,coinMul:1,coinMag:0,maxFlip:2,startShield:false,fastKill:false,price:0},
+   trait:'\u30D0\u30E9\u30F3\u30B9\u578B',desc:'\u901F\u5EA6\u30FB\u30B8\u30E3\u30F3\u30D7\u30FB\u30B3\u30A4\u30F3\u5C11\u3057UP',jumpMul:1.03,speedMul:1.03,sizeMul:1,gravMul:1,coinMul:1.05,coinMag:0,maxFlip:2,startShield:false,fastKill:false,price:0},
   {name:'\u30D0\u30A6\u30F3\u30B9',shape:'ball',col:'#ff6b6b',col2:'#e04040',eye:'#fff',pupil:'#2a0a0a',
    trait:'2\u6BB5\u30B8\u30E3\u30F3\u30D7\u578B',desc:'\u5E38\u66422\u6BB5\u30B8\u30E3\u30F3\u30D7',jumpMul:1.05,speedMul:0.95,sizeMul:1.05,gravMul:0.92,coinMul:1,coinMag:0,maxFlip:2,startShield:false,fastKill:false,hasDjump:true,price:50},
   {name:'\u30BF\u30A4\u30E4',shape:'tire',col:'#555555',col2:'#333333',eye:'#fff',pupil:'#111',
@@ -117,6 +127,243 @@ const CHARS=[
 ];
 function ct(){return CHARS[selChar];}
 function maxHp(){return HP_MAX+(ct().hpBonus||0);}
+const ITEM_INVINCIBLE_DURATION=600;
+const ITEM_MAGNET_DURATION=600;
+const SPECIAL_GAUGE_MAX=100;
+const SPECIAL_DURATION=ITEM_MAGNET_DURATION;
+const SPECIAL_TIME_GAIN=0.006;
+const SPECIAL_DISTANCE_GAIN=0.018;
+const SPECIAL_COIN_GAIN=0.35;
+const SPECIAL_COIN_TIER_FACTOR=0.25;
+const SPECIAL_ITEM_GAIN=1.2;
+const SPECIAL_COMBO_GAIN=0.04;
+const SPECIAL_KILL_GAIN=2.5;
+const SPECIAL_STOMP_GAIN=4;
+const SPECIAL_GHOST_MAGNET_RADIUS=90;
+const SPECIAL_GHOST_MAGNET_STRENGTH=0.08;
+const SPECIAL_TIRE_MAGNET_RADIUS=270;
+const SPECIAL_TIRE_MAGNET_STRENGTH=0.07;
+const GHOST_PHASE_DURATION=120;
+let specialModeEnabled=true;
+function createSpecialState(){
+  return {
+    gauge:0,
+    active:false,
+    type:'',
+    t:0,
+    requested:false,
+    requestSource:'',
+    forced:false,
+    bonusHpGranted:0,
+    bonusHpCurrent:0,
+    visualCharIdx:0,
+    lastGainAt:0
+  };
+}
+let specialState=createSpecialState();
+function saveSpecialModeEnabled(){
+  specialModeEnabled=true;
+}
+function setSpecialModeEnabled(v){
+  specialModeEnabled=true;
+  saveSpecialModeEnabled();
+}
+function isSpecialModeEnabled(){
+  return true;
+}
+function resetSpecialState(){
+  const wasActive=specialState&&specialState.active;
+  specialState=createSpecialState();
+  if(wasActive){
+    ghostInvis=false;
+  }
+}
+function canChargeSpecial(){
+  return isSpecialModeEnabled()&&state===ST.PLAY&&player&&player.alive&&!specialState.active&&!bossPhase.active&&!bossPhase.reward;
+}
+function canActivateSpecial(forced){
+  return isSpecialModeEnabled()&&state===ST.PLAY&&player&&player.alive&&!specialState.active&&!bossPhase.active&&!bossPhase.reward&&((!!forced)||specialState.gauge>=SPECIAL_GAUGE_MAX);
+}
+function getSpecialType(){
+  const shape=ct().shape||'cube';
+  return shape==='ball'?'bounce':shape;
+}
+function isSpecialActive(type){
+  return !!specialState.active&&(!type||specialState.type===type);
+}
+function queueSpecialActivation(source){
+  specialState.requested=true;
+  specialState.requestSource=source||'manual';
+  return canActivateSpecial();
+}
+function clearSpecialActivationRequest(){
+  specialState.requested=false;
+  specialState.requestSource='';
+}
+function addSpecialGauge(amount){
+  if(!canChargeSpecial()||!(amount>0))return false;
+  const prev=specialState.gauge;
+  specialState.gauge=Math.min(SPECIAL_GAUGE_MAX,specialState.gauge+amount);
+  if(specialState.gauge>prev)specialState.lastGainAt=frame||0;
+  return specialState.gauge>prev;
+}
+function addSpecialGaugeReward(amount){
+  if(!isSpecialModeEnabled()||state!==ST.PLAY||!player||!player.alive||specialState.active||!(amount>0))return false;
+  const prev=specialState.gauge;
+  specialState.gauge=Math.min(SPECIAL_GAUGE_MAX,specialState.gauge+amount);
+  if(specialState.gauge>prev)specialState.lastGainAt=frame||0;
+  return specialState.gauge>prev;
+}
+function playerSizeMul(){
+  return ct().sizeMul*(isSpecialActive('stone')?2:1);
+}
+function playerRadius(){
+  return PLAYER_R*playerSizeMul();
+}
+function specialDamageImmune(){
+  return isSpecialActive('cube');
+}
+function cubeSpecialActive(){
+  return isSpecialActive('cube');
+}
+function cubeSpecialCoinMul(){
+  return cubeSpecialActive()?2:1;
+}
+function cubeSpecialKillBonus(baseBonus){
+  return cubeSpecialActive()?100:baseBonus;
+}
+function playerDamageImmune(){
+  return itemEff.invincible>0||specialDamageImmune();
+}
+function specialGhostActive(){
+  return isSpecialActive('ghost');
+}
+function playerCoinMagnetRadius(){
+  if(isSpecialActive('tire'))return SPECIAL_TIRE_MAGNET_RADIUS;
+  if(itemEff.magnet>0)return 180;
+  if(isSpecialActive('ghost'))return SPECIAL_GHOST_MAGNET_RADIUS;
+  return ct().coinMag||0;
+}
+function playerCoinMagnetStrength(){
+  if(isSpecialActive('tire'))return SPECIAL_TIRE_MAGNET_STRENGTH;
+  if(itemEff.magnet>0)return 0.12;
+  if(isSpecialActive('ghost'))return SPECIAL_GHOST_MAGNET_STRENGTH;
+  return ct().coinMag>0?0.06:0;
+}
+function playerItemMagnetRadius(){
+  if(isSpecialActive('tire'))return SPECIAL_TIRE_MAGNET_RADIUS;
+  if(isSpecialActive('ghost'))return SPECIAL_GHOST_MAGNET_RADIUS;
+  return 0;
+}
+function playerItemMagnetStrength(){
+  if(isSpecialActive('tire'))return SPECIAL_TIRE_MAGNET_STRENGTH;
+  if(isSpecialActive('ghost'))return SPECIAL_GHOST_MAGNET_STRENGTH;
+  return 0;
+}
+function currentGameplayBGM(){
+  if(state!==ST.PLAY)return bgmCurrent||'play';
+  if(itemEff.invincible>0||specialState.active)return 'fever';
+  if(isChallengeMode)return 'challenge';
+  if(bossPhase&&bossPhase.active)return 'boss';
+  return 'play';
+}
+function syncGameplayBGM(force){
+  const target=currentGameplayBGM();
+  if(force||bgmCurrent!==target)switchBGM(target);
+  return target;
+}
+function rescuePlayerFromForcedSpecial(){
+  if(!player)return;
+  const pr=playerRadius();
+  const dir=player.gDir===-1?-1:1;
+  const scanXs=[player.x,player.x-24,player.x+24,player.x-48,player.x+48,player.x-84,player.x+84];
+  let surf=dir===1?H+200:-200;
+  let found=false;
+  for(let i=0;i<scanXs.length;i++){
+    const sx=Math.max(pr+8,Math.min(W-pr-8,scanXs[i]));
+    const sy=dir===1?floorSupportY(sx):ceilSupportY(sx);
+    if(dir===1){
+      if(sy<H+100&&(!found||Math.abs(sx-player.x)<Math.abs((player._rescueX||player.x)-player.x))){
+        surf=sy;player._rescueX=sx;found=true;
+      }
+    } else if(sy>-100&&(!found||Math.abs(sx-player.x)<Math.abs((player._rescueX||player.x)-player.x))){
+      surf=sy;player._rescueX=sx;found=true;
+    }
+  }
+  player.x=found?player._rescueX:Math.max(pr+8,Math.min(W-pr-8,player.x));
+  delete player._rescueX;
+  if(found){
+    player.y=dir===1?surf-pr:surf+pr;
+    player.grounded=true;
+  } else {
+    player.y=dir===1?(H-GROUND_H-pr):(GROUND_H+pr);
+    player.grounded=false;
+  }
+  player.vy=0;
+  if(typeof resetFlipState==='function')resetFlipState();
+  else refreshAirActionState(true);
+}
+function refreshAirActionState(resetJumpUsed){
+  if(resetJumpUsed)djumpUsed=false;
+  if(isSpecialActive('bounce')){
+    djumpAvailable=true;
+    if(resetJumpUsed)djumpUsed=false;
+  } else {
+    djumpAvailable=!!ct().hasDjump;
+  }
+  if(isSpecialActive('ninja'))player.canFlip=true;
+}
+function activateSpecialSkill(source,forced){
+  if(!canActivateSpecial(forced))return false;
+  specialState.active=true;
+  specialState.type=getSpecialType();
+  specialState.t=Math.round(SPECIAL_DURATION*(specialState.type==='cube'?1.5:1));
+  specialState.gauge=0;
+  specialState.forced=!!forced;
+  specialState.visualCharIdx=selChar;
+  specialState.bonusHpGranted=0;
+  specialState.bonusHpCurrent=0;
+  clearSpecialActivationRequest();
+  if(forced){
+    hurtT=Math.max(hurtT,HURT_INVINCIBLE);
+    rescuePlayerFromForcedSpecial();
+  }
+  if(specialState.type==='stone'){
+    specialState.bonusHpGranted=3;
+    hp+=specialState.bonusHpGranted;
+    specialState.bonusHpCurrent=3;
+  }
+  if(specialState.type==='ghost'){
+    ghostInvis=true;
+    ghostPhaseT=0;
+  }
+  refreshAirActionState(true);
+  if(state===ST.PLAY)syncGameplayBGM(true);
+  return true;
+}
+function endSpecialSkill(silent){
+  if(!specialState.active)return;
+  const endingType=specialState.type;
+  if(endingType==='stone'){
+    hp=Math.max(0,hp-specialState.bonusHpCurrent);
+    specialState.bonusHpCurrent=0;
+    specialState.bonusHpGranted=0;
+  }
+  specialState.active=false;
+  specialState.type='';
+  specialState.t=0;
+  specialState.forced=false;
+  clearSpecialActivationRequest();
+  if(endingType==='ghost'&&(!ct()||ct().shape!=='ghost')){
+    ghostInvis=false;
+  }
+  refreshAirActionState(true);
+  if(state===ST.PLAY)syncGameplayBGM(true);
+  if(!silent&&hp<=0)hp=1;
+}
+function tryActivateSpecialSkill(source,forced){
+  return activateSpecialSkill(source||'manual',forced);
+}
 let selChar=Math.max(0,Math.min(5,parseInt(localStorage.getItem('gd5char')||'0')||0));
 let walletCoins=Math.max(0,Math.min(9999999,parseInt(localStorage.getItem('gd5wallet')||'0')||0));
 let unlockedChars=(function(){try{const a=JSON.parse(localStorage.getItem('gd5unlocked')||'[0]');if(!Array.isArray(a))return[0];return a.filter(v=>typeof v==='number'&&v>=0&&v<=5);}catch(e){return[0];}})();
@@ -293,10 +540,24 @@ function initAudio(){
     if(audioCtx.state==='suspended')audioCtx.resume();
     bgmGain=audioCtx.createGain();bgmGain.gain.value=0.15*bgmVol;bgmGain.connect(audioCtx.destination);
     sfxGain=audioCtx.createGain();sfxGain.gain.value=sfxVol;sfxGain.connect(audioCtx.destination);
+    _prewarmNoiseBuffers();
     switchBGM('title');
   }catch(e){}
 }
-function setBgmVol(v){bgmVol=v;localStorage.setItem('gd5bgmVol',v.toString());if(bgmGain){bgmGain.gain.cancelScheduledValues(audioCtx.currentTime);bgmGain.gain.value=0.15*v;}}
+let _bgmPaused=false;
+function setBgmVol(v){
+  bgmVol=v;localStorage.setItem('gd5bgmVol',v.toString());
+  if(bgmGain){bgmGain.gain.cancelScheduledValues(audioCtx.currentTime);bgmGain.gain.value=0.15*v;}
+  if(v===0&&!_bgmPaused){
+    // BGM volume off: stop the scheduler entirely (not just mute) to eliminate AudioNode generation overhead
+    _bgmPaused=true;
+    if(bgmTimer){clearTimeout(bgmTimer);bgmTimer=null;}
+    if(feverTimer){clearTimeout(feverTimer);feverTimer=null;}
+  } else if(v>0&&_bgmPaused){
+    _bgmPaused=false;
+    if(bgmCurrent){const cur=bgmCurrent;bgmCurrent='';switchBGM(cur);}
+  }
+}
 function setSfxVol(v){sfxVol=v;localStorage.setItem('gd5sfxVol',v.toString());if(sfxGain)sfxGain.gain.value=v;}
 
 // Helper: create oscillator routed through bgmGain (auto-disconnect on end to prevent leak)
@@ -308,11 +569,31 @@ function bgmOsc(type,freq,t,dur,vol){
   o.onended=function(){try{g.disconnect();}catch(e){}};
   o.start(t);o.stop(t+dur);return o;
 }
+const _noiseBufCache={};
+const _noiseCommonDur=[0.015,0.02,0.03,0.04,0.05,0.06,0.08,0.12,0.15,0.25];
+function _noiseBuffersFor(dur){
+  const len=Math.max(1,Math.floor(audioCtx.sampleRate*dur));
+  const key=audioCtx.sampleRate+'|'+len;
+  let entry=_noiseBufCache[key];
+  if(entry)return entry;
+  const bufs=[];
+  for(let v=0;v<4;v++){
+    const buf=audioCtx.createBuffer(1,len,audioCtx.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);
+    bufs.push(buf);
+  }
+  entry=_noiseBufCache[key]={bufs:bufs,idx:0};
+  return entry;
+}
+function _prewarmNoiseBuffers(){
+  if(!audioCtx)return;
+  for(let i=0;i<_noiseCommonDur.length;i++)_noiseBuffersFor(_noiseCommonDur[i]);
+}
 function bgmNoise(t,dur,vol){
   const n=audioCtx.createBufferSource();
-  const buf=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*dur)),audioCtx.sampleRate);
-  const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);
-  n.buffer=buf;const g=audioCtx.createGain();n.connect(g);g.connect(bgmGain);
+  const entry=_noiseBuffersFor(dur);
+  n.buffer=entry.bufs[entry.idx++&3];const g=audioCtx.createGain();n.connect(g);g.connect(bgmGain);
   g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur*0.9);
   n.onended=function(){try{g.disconnect();}catch(e){}};
   n.start(t);n.stop(t+dur);
@@ -414,9 +695,73 @@ const BGM_TITLE6={tempo:100,
   melVol:0.22,harmVol:0.09,bassVol:0.18,chordVol:0.07,
   melWave:'triangle',harmWave:'sine',bassWave:'sine',
   drums:'soft'};
-const BGM_TITLES=[BGM_TITLE,BGM_TITLE2,BGM_TITLE3,BGM_TITLE4,BGM_TITLE5,BGM_TITLE6];
-// Play1 (0-999): Starlight Stroll - dreamy, calm, C pentatonic, slow waltz feel
-// Play BGMs: 10 unique tracks, tempo gradually increases 100→134 over score 0→9000+
+// Title7: moonlit ambient, D minor, sparse floating intro
+const BGM_TITLE7={tempo:84,
+  melody:[587,0,0,698, 0,0,784,0, 880,0,0,784, 0,698,0,0,
+          523,0,0,587, 0,698,0,0, 784,0,698,0, 587,0,0,0],
+  harmony:[0,0,440,0, 0,0,0,392, 0,0,523,0, 0,0,0,440,
+           0,0,392,0, 0,0,0,349, 0,0,440,0, 0,0,0,392],
+  bass:[147,0,0,0, 0,0,0,0, 131,0,0,0, 0,0,0,0,
+        110,0,0,0, 0,0,0,0, 131,0,0,0, 0,0,0,0],
+  chords:[[294,349,440],[262,330,392],[220,262,330],[262,330,392],
+          [294,349,440],[220,262,330],[262,330,392],[294,349,440]],
+  melVol:0.16,harmVol:0.07,bassVol:0.10,chordVol:0.07,
+  melWave:'sine',harmWave:'sine',bassWave:'sine',
+  drums:'none'};
+// Title8: brass-like march, C major, heroic and game-start ready
+const BGM_TITLE8={tempo:118,
+  melody:[523,659,784,0, 784,659,523,0, 659,784,880,0, 784,659,523,0,
+          880,988,1047,0, 988,880,784,0, 659,784,880,659, 523,0,0,0],
+  harmony:[392,0,392,0, 330,0,330,0, 440,0,440,0, 392,0,392,0,
+           494,0,494,0, 440,0,440,0, 392,0,440,0, 330,0,330,0],
+  bass:[131,0,262,131, 110,0,220,110, 147,0,294,147, 131,0,262,131,
+        165,0,330,165, 147,0,294,147, 131,262,0,131, 110,0,220,0],
+  chords:[[262,330,392],[220,262,330],[294,370,440],[262,330,392],
+          [330,392,494],[294,370,440],[262,330,392],[220,262,330]],
+  melVol:0.23,harmVol:0.09,bassVol:0.19,chordVol:0.06,
+  melWave:'triangle',harmWave:'triangle',bassWave:'sine',
+  drums:'drive'};
+// Title9: tropical bounce, A major, sunny syncopation
+const BGM_TITLE9={tempo:124,
+  melody:[880,988,1047,988, 880,740,659,0, 740,880,988,880, 740,659,587,0,
+          988,1047,1175,1047, 988,880,740,0, 880,988,1047,880, 740,659,587,0],
+  harmony:[659,0,659,0, 554,0,554,0, 587,0,587,0, 494,0,494,0,
+           740,0,740,0, 659,0,659,0, 587,0,587,0, 494,0,554,0],
+  bass:[220,0,440,0, 185,0,370,0, 196,0,392,0, 165,0,330,0,
+        247,0,494,0, 220,0,440,0, 196,0,392,0, 165,0,330,0],
+  chords:[[440,554,659],[370,466,554],[392,494,587],[330,415,494],
+          [494,622,740],[440,554,659],[392,494,587],[330,415,494]],
+  melVol:0.22,harmVol:0.08,bassVol:0.18,chordVol:0.06,
+  melWave:'triangle',harmWave:'sine',bassWave:'triangle',
+  drums:'pop'};
+// Title10: arcade rave, E minor, punchy square lead
+const BGM_TITLE10={tempo:136,
+  melody:[659,784,988,784, 659,784,988,1175, 1319,1175,988,784, 659,0,784,0,
+          784,988,1175,988, 784,659,784,0, 988,1175,1319,1175, 988,784,659,0],
+  harmony:[494,0,494,587, 0,659,0,587, 523,0,523,659, 0,494,0,440,
+           587,0,587,698, 0,784,0,698, 659,0,659,784, 0,587,0,494],
+  bass:[165,0,330,165, 196,0,392,196, 220,0,440,220, 165,0,330,165,
+        196,0,392,196, 165,330,0,165, 220,0,440,220, 196,392,0,196],
+  chords:[[330,392,494],[392,494,587],[440,523,659],[330,392,494],
+          [392,494,587],[330,392,494],[440,523,659],[392,494,587]],
+  melVol:0.24,harmVol:0.09,bassVol:0.21,chordVol:0.06,
+  melWave:'square',harmWave:'triangle',bassWave:'sawtooth',
+  drums:'edm'};
+// Title11: night drive, F# minor, cool electronic glide
+const BGM_TITLE11={tempo:96,
+  melody:[740,0,831,740, 659,0,554,659, 740,831,988,0, 831,740,659,0,
+          554,659,740,0, 659,554,494,554, 659,0,740,659, 554,494,415,0],
+  harmony:[494,0,494,0, 440,0,440,0, 370,0,370,0, 494,0,440,0,
+           415,0,415,0, 440,0,440,0, 494,0,494,0, 415,0,370,0],
+  bass:[185,0,92,185, 220,0,110,220, 139,0,69,139, 185,0,92,185,
+        185,92,0,185, 220,110,0,220, 139,69,0,139, 185,0,220,185],
+  chords:[[370,494,587],[440,554,659],[277,370,440],[370,494,587],
+          [330,415,494],[370,466,554],[277,370,440],[330,415,494]],
+  melVol:0.22,harmVol:0.09,bassVol:0.19,chordVol:0.07,
+  melWave:'triangle',harmWave:'sine',bassWave:'sine',
+  drums:'soft'};
+const BGM_TITLES=[BGM_TITLE,BGM_TITLE2,BGM_TITLE3,BGM_TITLE4,BGM_TITLE5,BGM_TITLE6,BGM_TITLE7,BGM_TITLE8,BGM_TITLE9,BGM_TITLE10,BGM_TITLE11];
+// Play BGMs: 20 unique tracks, tempo gradually increases as score rises.
 const BGM_PLAY1={tempo:100, // score 0-999: Dawn Patrol - C major, gentle intro
   melody:[523,0,0,659, 0,0,784,0, 0,880,0,784, 0,659,0,0,
           440,0,0,523, 0,659,0,0, 587,0,523,0, 0,0,0,0],
@@ -597,6 +942,66 @@ const BGM_PLAY15={tempo:144, // score 14000+: Absolute Zero - Am high, transcend
   melVol:0.30,harmVol:0.10,bassVol:0.30,chordVol:0.07,
   melWave:'sawtooth',harmWave:'sawtooth',bassWave:'sawtooth',
   drums:'rumble'};
+const BGM_PLAY16={tempo:146, // score 15000-15999: Neon Abyss - airy teal trance
+  melody:[740,0,880,987, 1175,0,987,880, 740,0,659,740, 880,0,987,0,
+          1175,0,1319,1175, 987,0,880,740, 659,740,880,0, 987,1175,1319,0],
+  harmony:[554,0,554,659, 0,740,0,659, 494,0,494,554, 0,659,0,554,
+           659,0,659,740, 0,880,0,740, 554,0,554,659, 0,740,0,659],
+  bass:[185,0,370,185, 220,0,440,220, 165,0,330,165, 185,0,370,185,
+        220,440,0,220, 247,494,0,247, 185,370,0,185, 220,440,0,220],
+  chords:[[370,466,554],[440,554,659],[330,415,494],[370,466,554],
+          [440,554,659],[494,622,740],[370,466,554],[440,554,659]],
+  melVol:0.24,harmVol:0.11,bassVol:0.24,chordVol:0.06,
+  melWave:'sine',harmWave:'triangle',bassWave:'sine',
+  drums:'edm'};
+const BGM_PLAY17={tempo:148, // score 16000-16999: Rose Palace - theatrical syncopation
+  melody:[698,0,784,932, 784,698,587,0, 523,587,698,784, 932,0,784,698,
+          1047,0,932,784, 698,587,523,0, 587,698,784,932, 1175,0,1047,0],
+  harmony:[523,0,523,587, 0,523,0,466, 440,0,440,523, 0,587,0,523,
+           587,0,587,698, 0,587,0,523, 466,0,466,587, 0,698,0,587],
+  bass:[175,0,349,175, 175,0,262,0, 131,0,262,131, 175,0,349,175,
+        196,0,392,196, 175,0,262,0, 147,0,294,147, 196,392,0,196],
+  chords:[[349,440,523],[294,370,466],[262,330,392],[349,440,523],
+          [392,494,587],[349,440,523],[294,370,466],[392,494,587]],
+  melVol:0.25,harmVol:0.10,bassVol:0.26,chordVol:0.07,
+  melWave:'triangle',harmWave:'sine',bassWave:'triangle',
+  drums:'pop'};
+const BGM_PLAY18={tempo:150, // score 17000-17999: Lime Storm - acidic chase
+  melody:[784,0,880,0, 988,1047,988,880, 784,0,880,988, 1175,0,988,0,
+          1319,0,1175,1047, 988,880,784,0, 880,988,1047,1175, 1319,1175,1047,0],
+  harmony:[587,0,587,698, 0,784,0,698, 523,0,523,659, 0,698,0,659,
+           659,0,659,784, 0,880,0,784, 587,0,587,698, 0,784,0,698],
+  bass:[196,0,392,196, 196,392,0,196, 165,0,330,165, 196,0,392,196,
+        220,0,440,220, 196,392,0,196, 175,0,349,175, 220,440,0,220],
+  chords:[[392,494,587],[392,523,659],[330,415,523],[392,494,587],
+          [440,554,659],[392,494,587],[349,440,523],[440,554,659]],
+  melVol:0.27,harmVol:0.10,bassVol:0.28,chordVol:0.06,
+  melWave:'square',harmWave:'triangle',bassWave:'sawtooth',
+  drums:'turbo'};
+const BGM_PLAY19={tempo:152, // score 18000-18999: Sapphire Noir - cold mechanical run
+  melody:[659,0,740,659, 587,0,659,784, 880,784,659,0, 587,0,523,0,
+          659,0,740,880, 988,880,740,659, 587,659,784,0, 880,988,1047,0],
+  harmony:[494,0,494,587, 0,659,0,587, 440,0,440,523, 0,587,0,523,
+           523,0,523,659, 0,740,0,659, 494,0,494,587, 0,659,0,587],
+  bass:[165,0,330,165, 147,0,294,147, 131,0,262,131, 147,0,294,147,
+        165,330,0,165, 185,370,0,185, 165,0,330,165, 196,392,0,196],
+  chords:[[330,392,494],[294,349,440],[262,330,392],[294,349,440],
+          [330,415,523],[370,466,587],[330,392,494],[392,494,622]],
+  melVol:0.26,harmVol:0.11,bassVol:0.27,chordVol:0.07,
+  melWave:'triangle',harmWave:'triangle',bassWave:'sine',
+  drums:'drive'};
+const BGM_PLAY20={tempo:156, // score 19000+: Spectrum Break - bright final sprint
+  melody:[1047,1175,1319,1568, 1760,1568,1319,1175, 1047,1175,1319,1568, 1760,0,1568,0,
+          1319,1568,1760,2093, 1760,1568,1319,1175, 1047,1319,1568,1760, 2093,1760,1568,0],
+  harmony:[784,0,784,988, 0,1047,0,988, 659,0,659,880, 0,988,0,880,
+           880,0,880,1047, 0,1175,0,1047, 784,0,784,988, 0,1319,0,1047],
+  bass:[262,0,523,262, 220,0,440,220, 196,0,392,196, 220,0,440,220,
+        262,523,0,262, 247,494,0,247, 220,440,0,220, 262,523,0,262],
+  chords:[[523,659,784],[440,554,659],[392,494,587],[440,554,659],
+          [523,659,784],[494,622,740],[440,554,659],[523,659,880]],
+  melVol:0.30,harmVol:0.11,bassVol:0.30,chordVol:0.07,
+  melWave:'square',harmWave:'sine',bassWave:'sawtooth',
+  drums:'edm'};
 // Boss: Nightmare Awakens - Cm with tritones, ominous chromatic horror
 const BGM_BOSS={tempo:105,
   melody:[131,0,0,156, 0,175,0,0, 131,0,156,0, 185,0,0,0,
@@ -755,16 +1160,16 @@ function playFeverBGM(){
   feverTimer=setTimeout(playFeverBGM,80);
 }
 
-// Score-based play BGM selection (10 tiers, every 1000 score)
+// Score-based play BGM selection (20 tiers, every 1000 score)
 // bgmTierOffset: on coin continue, set to current tier so BGM restarts from play1
 let bgmTierOffset=0;
 function getPlayBGM(){
-  const tier=Math.min(Math.max(Math.floor(score/1000)-bgmTierOffset,0),14);
+  const tier=Math.min(Math.max(Math.floor(score/1000)-bgmTierOffset,0),19);
   return[BGM_PLAY1,BGM_PLAY2,BGM_PLAY3,BGM_PLAY4,BGM_PLAY5,BGM_PLAY6,BGM_PLAY7,BGM_PLAY8,BGM_PLAY9,BGM_PLAY10,
-         BGM_PLAY11,BGM_PLAY12,BGM_PLAY13,BGM_PLAY14,BGM_PLAY15][tier];
+         BGM_PLAY11,BGM_PLAY12,BGM_PLAY13,BGM_PLAY14,BGM_PLAY15,BGM_PLAY16,BGM_PLAY17,BGM_PLAY18,BGM_PLAY19,BGM_PLAY20][tier];
 }
 function getPlayBGMType(){
-  const tier=Math.min(Math.max(Math.floor(score/1000)-bgmTierOffset,0),14);
+  const tier=Math.min(Math.max(Math.floor(score/1000)-bgmTierOffset,0),19);
   return'play'+(tier+1);
 }
 
@@ -788,8 +1193,9 @@ function switchBGM(type){
   // Fever uses old-style simple oscillator
   if(type==='fever'){feverBI=0;feverStarted=false;playFeverBGM();return;}
   const BGM_MAP={title0:BGM_TITLES[0],title1:BGM_TITLES[1],title2:BGM_TITLES[2],title3:BGM_TITLES[3],title4:BGM_TITLES[4],title5:BGM_TITLES[5],
+    title6:BGM_TITLES[6],title7:BGM_TITLES[7],title8:BGM_TITLES[8],title9:BGM_TITLES[9],title10:BGM_TITLES[10],
     play1:BGM_PLAY1,play2:BGM_PLAY2,play3:BGM_PLAY3,play4:BGM_PLAY4,play5:BGM_PLAY5,play6:BGM_PLAY6,play7:BGM_PLAY7,play8:BGM_PLAY8,play9:BGM_PLAY9,play10:BGM_PLAY10,
-    play11:BGM_PLAY11,play12:BGM_PLAY12,play13:BGM_PLAY13,play14:BGM_PLAY14,play15:BGM_PLAY15,
+    play11:BGM_PLAY11,play12:BGM_PLAY12,play13:BGM_PLAY13,play14:BGM_PLAY14,play15:BGM_PLAY15,play16:BGM_PLAY16,play17:BGM_PLAY17,play18:BGM_PLAY18,play19:BGM_PLAY19,play20:BGM_PLAY20,
     stage1:BGM_STAGE1,stage2:BGM_STAGE2,stage3:BGM_STAGE3,
     boss:BGM_BOSS,dead:BGM_DEAD,challenge:BGM_CHALLENGE,collapse:BGM_COLLAPSE,pause:BGM_PAUSE};
   const def=BGM_MAP[type]||BGM_PLAY1;
@@ -1262,11 +1668,16 @@ function sfxBossRoar(bossType){
     }
   }catch(e){}
 }
+let _hapticLastStyle='',_hapticLastAt=0;
 function vibrate(ms){
   try{
     if(window.ReactNativeWebView){
       // String = named haptic style sent directly to native for rich feedback
       if(typeof ms==='string'){
+        const now=Date.now();
+        const minGap=ms==='coin'?45:(ms==='jump'||ms==='flip'?28:18);
+        if(ms===_hapticLastStyle&&now-_hapticLastAt<minGap)return;
+        _hapticLastStyle=ms;_hapticLastAt=now;
         window.ReactNativeWebView.postMessage(JSON.stringify({type:'haptic',style:ms}));
       } else {
         // Legacy numeric/array: keep sending via navigator for backward compat
@@ -1402,6 +1813,54 @@ function sfxChestOpen(){
       o.frequency.setValueAtTime(f,t+0.5+i*0.1);
       g.gain.setValueAtTime(0.1,t+0.5+i*0.1);g.gain.exponentialRampToValueAtTime(0.001,t+0.5+i*0.1+0.5);
       o.start(t+0.5+i*0.1);o.stop(t+0.5+i*0.1+0.55);
+    });
+  }catch(e){}
+}
+
+function sfxChestNormal(){
+  if(!audioCtx)return;try{
+    const t=audioCtx.currentTime;
+    [784,988,1175].forEach((f,i)=>{
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='sine';
+      o.frequency.setValueAtTime(f,t+i*0.055);
+      g.gain.setValueAtTime(0.075,t+i*0.055);
+      g.gain.exponentialRampToValueAtTime(0.001,t+i*0.055+0.28);
+      o.start(t+i*0.055);o.stop(t+i*0.055+0.32);
+    });
+    const shimmer=audioCtx.createOscillator(),sg=audioCtx.createGain();
+    shimmer.connect(sg);sg.connect(sfxGain);shimmer.type='triangle';
+    shimmer.frequency.setValueAtTime(1568,t+0.16);
+    shimmer.frequency.exponentialRampToValueAtTime(2093,t+0.35);
+    sg.gain.setValueAtTime(0.035,t+0.16);
+    sg.gain.exponentialRampToValueAtTime(0.001,t+0.42);
+    shimmer.start(t+0.16);shimmer.stop(t+0.46);
+  }catch(e){}
+}
+
+function sfxRare(){
+  if(!audioCtx)return;try{
+    const t=audioCtx.currentTime;
+    const hit=audioCtx.createOscillator(),hg=audioCtx.createGain();
+    hit.connect(hg);hg.connect(sfxGain);hit.type='triangle';
+    hit.frequency.setValueAtTime(180,t);hit.frequency.exponentialRampToValueAtTime(80,t+0.18);
+    hg.gain.setValueAtTime(0.16,t);hg.gain.exponentialRampToValueAtTime(0.001,t+0.24);
+    hit.start(t);hit.stop(t+0.28);
+    [392,523,659,988,1319].forEach((f,i)=>{
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type=i<2?'triangle':'sine';
+      o.frequency.setValueAtTime(f,t+0.08+i*0.075);
+      g.gain.setValueAtTime(0.11,t+0.08+i*0.075);
+      g.gain.exponentialRampToValueAtTime(0.001,t+0.08+i*0.075+0.42);
+      o.start(t+0.08+i*0.075);o.stop(t+0.08+i*0.075+0.48);
+    });
+    [1480,1760].forEach((f,i)=>{
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(sfxGain);o.type='sine';
+      o.frequency.setValueAtTime(f,t+0.45+i*0.04);
+      g.gain.setValueAtTime(0.055,t+0.45+i*0.04);
+      g.gain.exponentialRampToValueAtTime(0.001,t+0.95+i*0.04);
+      o.start(t+0.45+i*0.04);o.stop(t+1.0+i*0.04);
     });
   }catch(e){}
 }
@@ -2044,21 +2503,33 @@ const COIN_SW_R=12,COIN_SW_COL='#4488ff';
 const SHOP_ITEMS={
   skins:[
     {id:'skin_red',name:'\u30ec\u30c3\u30c9',col:'#ff4444',col2:'#cc2222',price:3000,desc:'\u60c5\u71b1\u306e\u8d64'},
-    {id:'skin_gold',name:'\u30b4\u30fc\u30eb\u30c9',col:'#ffd700',col2:'#cc9900',price:10000,desc:'\u8f1d\u304f\u9ec4\u91d1'},
+    {id:'skin_gold',name:'\u30b4\u30fc\u30eb\u30c9',col:'#ffd700',col2:'#cc9900',price:10000,desc:'\u8f1d\u304f\u9ec4\u91d1',rarity:'rare'},
     {id:'skin_pink',name:'\u30d4\u30f3\u30af',col:'#ff69b4',col2:'#cc4488',price:5000,desc:'\u304b\u308f\u3044\u3044\u30d4\u30f3\u30af'},
     {id:'skin_emerald',name:'\u30a8\u30e1\u30e9\u30eb\u30c9',col:'#50c878',col2:'#2a9d5c',price:6000,desc:'\u5b9d\u77f3\u306e\u7dd1'},
     {id:'skin_ice',name:'\u30a2\u30a4\u30b9',col:'#88ddff',col2:'#55aadd',price:4000,desc:'\u6c37\u306e\u30d6\u30eb\u30fc'},
     {id:'skin_shadow',name:'\u30b7\u30e3\u30c9\u30a6',col:'#2a2a3e',col2:'#111122',price:16000,desc:'\u6f06\u9ed2\u306e\u95c7'},
     {id:'skin_sunset',name:'\u30b5\u30f3\u30bb\u30c3\u30c8',col:'#ff6b35',col2:'#cc4411',price:8000,desc:'\u5915\u713c\u3051\u306e\u30aa\u30ec\u30f3\u30b8'},
     {id:'skin_galaxy',name:'\u30ae\u30e3\u30e9\u30af\u30b7\u30fc',col:'#7b2fbe',col2:'#4a1a7a',price:20000,desc:'\u5b87\u5b99\u306e\u7d2b',rarity:'rare'},
-    {id:'skin_chrome',name:'\u30af\u30ed\u30e0',col:'#c0c0c0',col2:'#888888',price:12000,desc:'\u30e1\u30bf\u30ea\u30c3\u30af\u30b7\u30eb\u30d0\u30fc'},
+    {id:'skin_chrome',name:'\u30af\u30ed\u30e0',col:'#c0c0c0',col2:'#888888',price:12000,desc:'\u30e1\u30bf\u30ea\u30c3\u30af\u30b7\u30eb\u30d0\u30fc',rarity:'rare'},
     {id:'skin_rainbow',name:'\u30ec\u30a4\u30f3\u30dc\u30fc',col:'rainbow',col2:'rainbow',price:30000,desc:'\u8679\u8272\u306b\u5149\u308b\uff01',rarity:'super_rare'},
     {id:'skin_plasma',name:'\u30d7\u30e9\u30ba\u30de',col:'#ff00ff',col2:'#aa00aa',price:24000,desc:'\u30d7\u30e9\u30ba\u30de\u30a8\u30cd\u30eb\u30ae\u30fc',rarity:'rare'},
     {id:'skin_void',name:'\u30f4\u30a9\u30a4\u30c9',col:'#0a0a1a',col2:'#000005',price:40000,desc:'\u865a\u7121\u306e\u6f06\u9ed2',rarity:'rare'},
     {id:'skin_skeleton',name:'\u30b9\u30b1\u30eb\u30c8\u30f3',col:'skeleton',col2:'skeleton',price:50000,desc:'\u900f\u304d\u901a\u308b\u5e7b\u5f71',rarity:'super_rare'},
-    {id:'skin_aurora',name:'\u30aa\u30fc\u30ed\u30e9',col:'aurora',col2:'aurora',price:28000,desc:'\u6975\u5149\u304c\u63fa\u3089\u3081\u304f',rarity:'rare',gachaOnly:true,newItem:true},
+    {id:'skin_aurora',name:'\u30aa\u30fc\u30ed\u30e9',col:'aurora',col2:'aurora',price:42000,desc:'\u6975\u5149\u304c\u63fa\u3089\u3081\u304f',rarity:'super_rare',gachaOnly:true,newItem:true},
     {id:'skin_inferno',name:'\u30a4\u30f3\u30d5\u30a7\u30eb\u30ce',col:'#ff2200',col2:'#880000',price:26000,desc:'\u707c\u71b1\u306e\u696d\u706b',rarity:'rare',gachaOnly:true,newItem:true},
     {id:'skin_hologram',name:'\u30db\u30ed\u30b0\u30e9\u30e0',col:'hologram',col2:'hologram',price:60000,desc:'\u6b21\u5143\u3092\u8d85\u3048\u308b\u5149\u4f53',rarity:'super_rare',gachaOnly:true,newItem:true},
+    {id:'skin_midnight',name:'\u30df\u30c3\u30c9\u30ca\u30a4\u30c8',col:'#101827',col2:'#38bdf8',price:14000,desc:'\u591c\u7a7a\u3068\u9752\u3044\u5149',rarity:'rare',newItem:true},
+    {id:'skin_lime',name:'\u30e9\u30a4\u30e0',col:'#a3e635',col2:'#3f6212',price:7000,desc:'\u9bae\u3084\u304b\u306a\u30e9\u30a4\u30e0',newItem:true},
+    {id:'skin_candy',name:'\u30ad\u30e3\u30f3\u30c7\u30a3',col:'#fb7185',col2:'#67e8f9',price:9000,desc:'\u7518\u3044\u30c4\u30fc\u30c8\u30fc\u30f3',newItem:true},
+    {id:'skin_lava_lamp',name:'\u30e9\u30d0\u30e9\u30f3\u30d7',col:'#f97316',col2:'#7c2d12',price:18000,desc:'\u3068\u308d\u3051\u308b\u71b1\u5149',rarity:'rare',newItem:true},
+    {id:'skin_deep_sea',name:'\u30c7\u30a3\u30fc\u30d7\u30b7\u30fc',col:'#0f766e',col2:'#042f2e',price:11000,desc:'\u6df1\u6d77\u306e\u7dd1\u9752',newItem:true},
+    {id:'skin_mono',name:'\u30e2\u30ce\u30af\u30ed',col:'#f8fafc',col2:'#0f172a',price:13000,desc:'\u767d\u9ed2\u306e\u30b3\u30f3\u30c8\u30e9\u30b9\u30c8',rarity:'rare',newItem:true},
+    {id:'skin_royal',name:'\u30ed\u30a4\u30e4\u30eb',col:'#4c1d95',col2:'#facc15',price:22000,desc:'\u738b\u51a0\u306e\u7d2b\u3068\u91d1',rarity:'rare',newItem:true},
+    {id:'skin_pearl',name:'\u30d1\u30fc\u30eb',col:'#fff7ed',col2:'#f9a8d4',price:26000,desc:'\u771f\u73e0\u306e\u3084\u308f\u3089\u304b\u3044\u5149',rarity:'rare',newItem:true},
+    {id:'skin_nebula',name:'\u30cd\u30d3\u30e5\u30e9',col:'#312e81',col2:'#ec4899',price:36000,desc:'\u661f\u96f2\u306e\u6df7\u3056\u308b\u5149',rarity:'super_rare',gachaOnly:true,newItem:true},
+    {id:'skin_quantum',name:'\u30af\u30a9\u30f3\u30bf\u30e0',col:'#22d3ee',col2:'#a855f7',price:52000,desc:'\u91cf\u5b50\u306e\u3086\u3089\u304e',rarity:'super_rare',gachaOnly:true,newItem:true},
+    {id:'skin_obsidian_gold',name:'\u9ed2\u91d1',col:'#080808',col2:'#fbbf24',price:56000,desc:'\u9ed2\u66dc\u77f3\u3068\u91d1\u306e\u8f1d\u304d',rarity:'super_rare',gachaOnly:true,newItem:true},
+    {id:'skin_crystal',name:'\u30af\u30ea\u30b9\u30bf\u30eb',col:'#bfdbfe',col2:'#7dd3fc',price:48000,desc:'\u900f\u660e\u611f\u306e\u3042\u308b\u7d50\u6676',rarity:'super_rare',gachaOnly:true,newItem:true},
   ],
   eyes:[
     {id:'eye_smile',name:'\u30b9\u30de\u30a4\u30eb\u30a2\u30a4',type:'smile',price:3000,desc:'\u306b\u3063\u3053\u308a\u7b11\u9854'},
@@ -2071,12 +2542,22 @@ const SHOP_ITEMS={
     {id:'eye_cyber',name:'\u30b5\u30a4\u30d0\u30fc\u30a2\u30a4',type:'cyber',price:12000,desc:'\u96fb\u5b50\u306e\u77b3'},
     {id:'eye_diamond',name:'\u30c0\u30a4\u30a2\u30a2\u30a4',type:'diamond',price:16000,desc:'\u30c0\u30a4\u30e4\u306e\u8f1d\u304d',rarity:'rare'},
     {id:'eye_void',name:'\u30f4\u30a9\u30a4\u30c9\u30a2\u30a4',type:'void',price:24000,desc:'\u865a\u7121\u306e\u6f06\u9ed2',rarity:'rare'},
-    {id:'eye_galaxy',name:'\u30ae\u30e3\u30e9\u30af\u30b7\u30fc\u30a2\u30a4',type:'galaxy',price:30000,desc:'\u661f\u96f2\u306e\u77b3',rarity:'rare'},
+    {id:'eye_galaxy',name:'\u30ae\u30e3\u30e9\u30af\u30b7\u30fc\u30a2\u30a4',type:'galaxy',price:42000,desc:'\u661f\u96f2\u306e\u77b3',rarity:'super_rare'},
     {id:'eye_glitch',name:'\u30b0\u30ea\u30c3\u30c1\u30a2\u30a4',type:'glitch',price:36000,desc:'\u30d0\u30b0\u3063\u305f\u77b3',rarity:'rare'},
-    {id:'eye_blink',name:'\u30d6\u30ea\u30f3\u30af\u30a2\u30a4',type:'blink',price:50000,desc:'\u77ac\u304d\u3059\u308b\u751f\u304d\u305f\u77b3',rarity:'super_rare',newItem:true},
+    {id:'eye_blink',name:'\u30d6\u30ea\u30f3\u30af\u30a2\u30a4',type:'blink',price:18000,desc:'\u77ac\u304d\u3059\u308b\u751f\u304d\u305f\u77b3',rarity:'rare',newItem:true},
     {id:'eye_pulse',name:'\u30d1\u30eb\u30b9\u30a2\u30a4',type:'pulse',price:22000,desc:'\u8108\u6253\u3064\u3088\u3046\u306b\u5149\u308b\u77b3',rarity:'rare',gachaOnly:true,newItem:true},
     {id:'eye_cross',name:'\u30af\u30ed\u30b9\u30a2\u30a4',type:'cross',price:20000,desc:'\u5341\u5b57\u306b\u5149\u308b\u795e\u79d8\u306e\u77b3',rarity:'rare',gachaOnly:true,newItem:true},
     {id:'eye_hypno',name:'\u30d2\u30d7\u30ce\u30a2\u30a4',type:'hypno',price:55000,desc:'\u5e7b\u60d1\u306e\u6e26\u5dfb\u304d\u30a2\u30cb\u30e1\u77b3',rarity:'super_rare',gachaOnly:true,newItem:true},
+    {id:'eye_sleepy',name:'\u30b9\u30ea\u30fc\u30d4\u30fc\u30a2\u30a4',type:'sleepy',price:5000,desc:'\u306d\u3080\u305d\u3046\u306a\u534a\u76ee',newItem:true},
+    {id:'eye_coin',name:'\u30b3\u30a4\u30f3\u30a2\u30a4',type:'coin',price:9000,desc:'\u30b3\u30a4\u30f3\u307f\u305f\u3044\u306a\u77b3',newItem:true},
+    {id:'eye_moon',name:'\u30e0\u30fc\u30f3\u30a2\u30a4',type:'moon',price:11000,desc:'\u4e09\u65e5\u6708\u306e\u77b3',newItem:true},
+    {id:'eye_target',name:'\u30bf\u30fc\u30b2\u30c3\u30c8\u30a2\u30a4',type:'target',price:14000,desc:'\u72d9\u3044\u3092\u5b9a\u3081\u308b\u77b3',rarity:'rare',newItem:true},
+    {id:'eye_prism',name:'\u30d7\u30ea\u30ba\u30e0\u30a2\u30a4',type:'prism',price:26000,desc:'\u5149\u3092\u5206\u3051\u308b\u4e09\u89d2\u306e\u77b3',rarity:'rare',newItem:true},
+    {id:'eye_laser',name:'\u30ec\u30fc\u30b6\u30fc\u30a2\u30a4',type:'laser',price:28000,desc:'\u6a2a\u4e00\u7dda\u306b\u8f1d\u304f\u77b3',rarity:'rare',newItem:true},
+    {id:'eye_tears',name:'\u30c6\u30a3\u30a2\u30fc\u30a2\u30a4',type:'tears',price:15000,desc:'\u6d99\u306e\u5149\u304c\u843d\u3061\u308b\u77b3',rarity:'rare',newItem:true},
+    {id:'eye_crown',name:'\u30af\u30e9\u30a6\u30f3\u30a2\u30a4',type:'crown',price:44000,desc:'\u738b\u51a0\u3092\u5bbf\u3059\u77b3',rarity:'super_rare',gachaOnly:true,newItem:true},
+    {id:'eye_eclipse',name:'\u30a8\u30af\u30ea\u30d7\u30b9\u30a2\u30a4',type:'eclipse',price:50000,desc:'\u65e5\u98df\u306e\u5149\u8f2a',rarity:'super_rare',gachaOnly:true,newItem:true},
+    {id:'eye_constellation',name:'\u661f\u5ea7\u30a2\u30a4',type:'constellation',price:54000,desc:'\u661f\u3092\u7e4b\u3050\u77b3',rarity:'super_rare',gachaOnly:true,newItem:true},
   ],
   effects:[
     {id:'fx_sparkle',name:'\u30ad\u30e9\u30ad\u30e9',type:'sparkle',price:8000,desc:'\u5149\u306e\u7c92\u5b50\u304c\u821e\u3046'},
@@ -2085,7 +2566,7 @@ const SHOP_ITEMS={
     {id:'fx_electric',name:'\u96fb\u6483',type:'electric',price:18000,desc:'\u96fb\u6c17\u304c\u8d70\u308b'},
     {id:'fx_hearts',name:'\u30cf\u30fc\u30c8',type:'hearts',price:6000,desc:'\u30cf\u30fc\u30c8\u304c\u6d6e\u304b\u3076'},
     {id:'fx_shadow',name:'\u30c0\u30fc\u30af\u30aa\u30fc\u30e9',type:'shadow',price:20000,desc:'\u95c7\u306e\u30aa\u30fc\u30e9',rarity:'rare'},
-    {id:'fx_rainbow',name:'\u30ec\u30a4\u30f3\u30dc\u30fc\u30aa\u30fc\u30e9',type:'rainbow',price:30000,desc:'\u8679\u8272\u306b\u5149\u308b\u30aa\u30fc\u30e9',rarity:'rare'},
+    {id:'fx_rainbow',name:'\u30ec\u30a4\u30f3\u30dc\u30fc\u30aa\u30fc\u30e9',type:'rainbow',price:46000,desc:'\u8679\u8272\u306b\u5149\u308b\u30aa\u30fc\u30e9',rarity:'super_rare'},
     {id:'fx_sakura',name:'\u685c\u5439\u96ea',type:'sakura',price:10000,desc:'\u685c\u306e\u82b1\u3073\u3089\u304c\u821e\u3046'},
     {id:'fx_star_trail',name:'\u661f\u306e\u8ecc\u8de1',type:'star_trail',price:24000,desc:'\u661f\u304c\u6d41\u308c\u308b\u8ecc\u8de1',rarity:'rare'},
     {id:'fx_plasma_trail',name:'\u30d7\u30e9\u30ba\u30de\u30c8\u30ec\u30a4\u30eb',type:'plasma_trail',price:32000,desc:'\u30d7\u30e9\u30ba\u30de\u306e\u8ecc\u8de1',rarity:'rare'},
@@ -2094,6 +2575,16 @@ const SHOP_ITEMS={
     {id:'fx_phoenix',name:'\u30d5\u30a7\u30cb\u30c3\u30af\u30b9',type:'phoenix',price:28000,desc:'\u4e0d\u6b7b\u9ce5\u306e\u7fbd\u304c\u821e\u3046',rarity:'rare',gachaOnly:true,newItem:true},
     {id:'fx_glitch_trail',name:'\u30b0\u30ea\u30c3\u30c1\u30c8\u30ec\u30a4\u30eb',type:'glitch_trail',price:26000,desc:'\u30ce\u30a4\u30ba\u304c\u8d70\u308b\u8ecc\u8de1',rarity:'rare',gachaOnly:true,newItem:true},
     {id:'fx_supernova',name:'\u30b9\u30fc\u30d1\u30fc\u30ce\u30f4\u30a1',type:'supernova',price:65000,desc:'\u8d85\u65b0\u661f\u7206\u767a\u306e\u30aa\u30fc\u30e9',rarity:'super_rare',gachaOnly:true,newItem:true},
+    {id:'fx_bubbles',name:'\u30d0\u30d6\u30eb',type:'bubbles',price:7000,desc:'\u6ce1\u304c\u3075\u308f\u3075\u308f\u6d6e\u304b\u3076',newItem:true},
+    {id:'fx_confetti',name:'\u30b3\u30f3\u30d5\u30a7\u30c3\u30c6\u30a3',type:'confetti',price:12000,desc:'\u5c0f\u3055\u306a\u7d19\u5439\u96ea',newItem:true},
+    {id:'fx_music',name:'\u30df\u30e5\u30fc\u30b8\u30c3\u30af',type:'music',price:13000,desc:'\u97f3\u7b26\u304c\u30ea\u30ba\u30e0\u306b\u821e\u3046',newItem:true},
+    {id:'fx_pixel',name:'\u30d4\u30af\u30bb\u30eb',type:'pixel',price:16000,desc:'\u30c9\u30c3\u30c8\u304c\u5f3e\u3051\u308b',rarity:'rare',newItem:true},
+    {id:'fx_snowflake',name:'\u30b9\u30ce\u30fc\u30d5\u30ec\u30fc\u30af',type:'snowflake',price:18000,desc:'\u96ea\u306e\u7d50\u6676\u304c\u56de\u308b',rarity:'rare',newItem:true},
+    {id:'fx_meteor',name:'\u30e1\u30c6\u30aa',type:'meteor',price:30000,desc:'\u5c0f\u3055\u306a\u6d41\u661f\u304c\u843d\u3061\u308b',rarity:'rare',newItem:true},
+    {id:'fx_rune',name:'\u30eb\u30fc\u30f3',type:'rune',price:34000,desc:'\u9b54\u6cd5\u9663\u306e\u5149',rarity:'rare',newItem:true},
+    {id:'fx_comet_crown',name:'\u30b3\u30e1\u30c3\u30c8\u30af\u30e9\u30a6\u30f3',type:'comet_crown',price:52000,desc:'\u982d\u4e0a\u3092\u5de1\u308b\u5f57\u661f\u306e\u51a0',rarity:'super_rare',gachaOnly:true,newItem:true},
+    {id:'fx_matrix',name:'\u30de\u30c8\u30ea\u30af\u30b9',type:'matrix',price:56000,desc:'\u7dd1\u306e\u30b3\u30fc\u30c9\u304c\u6d41\u308c\u308b',rarity:'super_rare',gachaOnly:true,newItem:true},
+    {id:'fx_timewarp',name:'\u30bf\u30a4\u30e0\u30ef\u30fc\u30d7',type:'timewarp',price:62000,desc:'\u6642\u8a08\u306e\u8f2a\u304c\u6b6a\u3080',rarity:'super_rare',gachaOnly:true,newItem:true},
   ]
 };
 // Shop state
@@ -2150,3 +2641,7 @@ function getEquippedEyesData(){if(!equippedEyes)return null;if(_eqEyesId===equip
 function getEquippedEffectData(){if(!equippedEffect)return null;if(_eqFxId===equippedEffect)return _eqFxCache;_eqFxId=equippedEffect;for(let i=0;i<SHOP_ITEMS.effects.length;i++){if(SHOP_ITEMS.effects[i].id===equippedEffect){_eqFxCache=SHOP_ITEMS.effects[i];return _eqFxCache;}}_eqFxCache=null;return null;}
 // Sort shop items: cheap→expensive (normal), then rare by price, then super_rare at bottom
 function shopSorted(arr,includeGacha){const rVal=r=>r==='super_rare'?2:r==='rare'?1:0;const filtered=includeGacha?arr.slice():arr.filter(it=>!it.gachaOnly);return filtered.sort((a,b)=>{const ra=rVal(a.rarity),rb=rVal(b.rarity);if(ra!==rb)return ra-rb;return(a.price||0)-(b.price||0);});}
+function cosmeticListForTab(tab){
+  const allItems=tab===0?SHOP_ITEMS.skins:tab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
+  return[{id:'',name:t('none'),desc:t('default')}].concat(shopSorted(allItems,true));
+}

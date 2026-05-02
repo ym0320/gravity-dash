@@ -33,7 +33,10 @@ function loop(ts){
   lastTime=ts;
   let ticks=0;
   while(_tickAcc>=16.67&&ticks<maxTicks){
-    try{update();}catch(e){console.error('loop error:',e);}
+    try{
+      const _u0=performance.now();update();const _ud=performance.now()-_u0;
+      if(_ud>8)console.warn('[SPIKE] update '+_ud.toFixed(1)+'ms state='+state+' score='+score+' bgm='+bgmCurrent+' en='+(enemies&&enemies.length)+' bu='+(bullets&&bullets.length)+' pa='+(parts&&parts.length)+' co='+(coins&&coins.length)+' boss='+!!(bossPhase&&bossPhase.active));
+    }catch(e){console.error('loop error:',e);}
     _tickAcc-=16.67;
     ticks++;
   }
@@ -41,7 +44,12 @@ function loop(ts){
   // Cap leftover time to 1 frame instead of discarding — prevents stutter from lost time
   if(_tickAcc>16.67)_tickAcc=16.67;
   // Skip first draws after background return (GPU context warmup)
-  if(_skipDraw>0){_skipDraw--;} else {try{draw();}catch(e){console.error('draw error:',e);}}
+  if(_skipDraw>0){_skipDraw--;} else {
+    try{
+      const _d0=performance.now();draw();const _dd=performance.now()-_d0;
+      if(_dd>8)console.warn('[SPIKE] draw '+_dd.toFixed(1)+'ms state='+state+' en='+(enemies&&enemies.length)+' pa='+(parts&&parts.length)+' bgm='+bgmCurrent);
+    }catch(e){console.error('draw error:',e);}
+  }
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
