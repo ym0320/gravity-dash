@@ -3247,7 +3247,7 @@ function drawTitle(){
   // Settings panel overlay
   if(settingsOpen){
     ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,W,H);
-    const pw=Math.min(280,W-30),ph=582,px=W/2-pw/2,py=H/2-ph/2;
+    const pw=Math.min(320,W-24),ph=484,px=W/2-pw/2,py=H/2-ph/2;
     const panGr=ctx.createLinearGradient(px,py,px,py+ph);
     panGr.addColorStop(0,'rgba(15,15,40,0.97)');panGr.addColorStop(1,'rgba(8,8,25,0.97)');
     ctx.fillStyle=panGr;rr(px,py,pw,ph,14);ctx.fill();
@@ -3281,12 +3281,26 @@ function drawTitle(){
     ctx.fillStyle='#ff8600';ctx.beginPath();ctx.arc(knobX2,barY2+barH/2,5,0,TAU);ctx.fill();
     ctx.fillStyle='#fff6';ctx.font='10px monospace';ctx.textAlign='right';
     ctx.fillText(Math.round(sfxVol*100)+'%',slX+slW,slY2);
-    // Language selector
-    const langY=slY2+30;
-    ctx.fillStyle='#fff8';ctx.font='11px monospace';ctx.textAlign='left';
-    ctx.fillText(t('language'),slX,langY);
+    // Shared toggle button constants (vibration + language)
     const langBtnW=48,langBtnH=22,langBtnGap=6;
     const langBtnX=slX+54;
+    // Vibration toggle
+    const vibY=slY2+32;
+    ctx.fillStyle='#fff8';ctx.font='11px monospace';ctx.textAlign='left';
+    ctx.fillText(t('vibration'),slX,vibY);
+    const vbOffX=langBtnX+langBtnW+langBtnGap;
+    ctx.fillStyle=hapticEnabled?'#00e5ff22':'#ffffff08';rr(langBtnX,vibY-14,langBtnW,langBtnH,4);ctx.fill();
+    ctx.strokeStyle=hapticEnabled?'#00e5ff':'#ffffff22';ctx.lineWidth=1;rr(langBtnX,vibY-14,langBtnW,langBtnH,4);ctx.stroke();
+    ctx.fillStyle=hapticEnabled?'#00e5ff':'#fff6';ctx.font='bold 10px monospace';ctx.textAlign='center';
+    ctx.fillText(t('vibeOn'),langBtnX+langBtnW/2,vibY);
+    ctx.fillStyle=!hapticEnabled?'#00e5ff22':'#ffffff08';rr(vbOffX,vibY-14,langBtnW,langBtnH,4);ctx.fill();
+    ctx.strokeStyle=!hapticEnabled?'#00e5ff':'#ffffff22';ctx.lineWidth=1;rr(vbOffX,vibY-14,langBtnW,langBtnH,4);ctx.stroke();
+    ctx.fillStyle=!hapticEnabled?'#00e5ff':'#fff6';ctx.font='bold 10px monospace';ctx.textAlign='center';
+    ctx.fillText(t('vibeOff'),vbOffX+langBtnW/2,vibY);
+    // Language selector
+    const langY=vibY+34;
+    ctx.fillStyle='#fff8';ctx.font='11px monospace';ctx.textAlign='left';
+    ctx.fillText(t('language'),slX,langY);
     // Japanese button
     ctx.fillStyle=gameLang==='ja'?'#00e5ff22':'#ffffff08';
     rr(langBtnX,langY-14,langBtnW,langBtnH,4);ctx.fill();
@@ -3401,8 +3415,8 @@ function drawTitle(){
     ctx.fillText(t('deleteAccount'),W/2,deleteAccBtnY+18);
     // Close button
     const closeY=py+ph-42;
-    ctx.fillStyle='#00e5ff22';rr(W/2-60,closeY,120,32,8);ctx.fill();
-    ctx.strokeStyle='#00e5ff';ctx.lineWidth=1;rr(W/2-60,closeY,120,32,8);ctx.stroke();
+    ctx.fillStyle='#00e5ff22';rr(px+20,closeY,pw-40,32,8);ctx.fill();
+    ctx.strokeStyle='#00e5ff';ctx.lineWidth=1;rr(px+20,closeY,pw-40,32,8);ctx.stroke();
     ctx.fillStyle='#00e5ff';ctx.font='bold 13px monospace';ctx.textAlign='center';
     ctx.fillText(t('close'),W/2,closeY+22);
     // Confirm modal overlay

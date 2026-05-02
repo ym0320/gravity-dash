@@ -442,14 +442,15 @@ function handleHelpTouch(tx,ty){
 
 // Settings panel input helpers (must match drawTitle layout)
 function settingsLayout(){
-  const pw=Math.min(280,W-30),ph=582,px=W/2-pw/2,py=H/2-ph/2;
+  const pw=Math.min(320,W-24),ph=484,px=W/2-pw/2,py=H/2-ph/2;
   const slW=pw-50,slX=px+25,barX=slX+42,barW=slW-42;
   const slY1=py+52,slY2=slY1+44;
   const barH=10;
-  const langY=slY2+30;
   const langBtnW=48,langBtnH=22,langBtnGap=6;
   const langBtnX=slX+54;
   const engBtnX=langBtnX+langBtnW+langBtnGap;
+  const vibY=slY2+32;
+  const langY=vibY+34;
   const nameY=langY+24;
   const tutBtnY=nameY+22;
   const resetBtnY=tutBtnY+38;
@@ -459,7 +460,7 @@ function settingsLayout(){
   const linkBW=(pw-48)/2;
   const logoutBtnY=methodY+8+linkBtnOffset;
   const deleteAccBtnY=logoutBtnY+56;
-  return{px,py,pw,ph,slX,barX,barW,barY1:slY1-8,barY2:slY2-8,barH,langY,langBtnX,langBtnW,langBtnH,engBtnX,nameY,tutBtnY,resetBtnY,linkY,linkBW,logoutBtnY,deleteAccBtnY,closeY:py+ph-42};
+  return{px,py,pw,ph,slX,barX,barW,barY1:slY1-8,barY2:slY2-8,barH,vibY,langY,langBtnX,langBtnW,langBtnH,engBtnX,nameY,tutBtnY,resetBtnY,linkY,linkBW,logoutBtnY,deleteAccBtnY,closeY:py+ph-42};
 }
 function hitSettingsGear(tx,ty){return hitRect(tx,ty,W-44,safeTop+6,36,36);}
 function hitHelpBtn(tx,ty){return hitRect(tx,ty,W-44,safeTop+44,36,36);}
@@ -536,7 +537,12 @@ function handleSettingsTouch(tx,ty){
   if(confirmModal){return handleConfirmModalTouch(tx,ty);}
   const s=settingsLayout();
   // Close button
-  if(tx>=W/2-60&&tx<=W/2+60&&ty>=s.closeY&&ty<=s.closeY+32){sfx('click');settingsOpen=false;resetConfirmStep=0;nameEditMode=false;logoutConfirm=false;confirmModal=null;return true;}
+  if(tx>=s.px+20&&tx<=s.px+s.pw-20&&ty>=s.closeY&&ty<=s.closeY+32){sfx('click');settingsOpen=false;resetConfirmStep=0;nameEditMode=false;logoutConfirm=false;confirmModal=null;return true;}
+  // Vibration toggle
+  if(ty>=s.vibY-14&&ty<=s.vibY+8){
+    if(tx>=s.langBtnX&&tx<=s.langBtnX+s.langBtnW){setHapticEnabled(true);sfx('click');return true;}
+    if(tx>=s.langBtnX+s.langBtnW+6&&tx<=s.langBtnX+s.langBtnW*2+6){setHapticEnabled(false);sfx('click');return true;}
+  }
   // Language buttons
   if(ty>=s.langY-14&&ty<=s.langY-14+s.langBtnH){
     if(tx>=s.langBtnX&&tx<=s.langBtnX+s.langBtnW){setLang('ja');sfx('click');return true;}

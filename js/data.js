@@ -439,6 +439,7 @@ let audioCtx=null,bgmGain=null,sfxGain=null,bgmCurrent='',bgmTimer=null;
 function stopBGM(){bgmCurrent='';if(bgmTimer){clearTimeout(bgmTimer);bgmTimer=null;}if(feverTimer){clearTimeout(feverTimer);feverTimer=null;}if(bgmGain&&audioCtx&&audioCtx.state==='running'){bgmGain.gain.cancelScheduledValues(audioCtx.currentTime);bgmGain.gain.setValueAtTime(bgmGain.gain.value,audioCtx.currentTime);bgmGain.gain.linearRampToValueAtTime(0,audioCtx.currentTime+0.08);}}
 let bgmVol=Math.max(0,Math.min(1,parseFloat(localStorage.getItem('gd5bgmVol')||'0.7')||0.7));
 let sfxVol=Math.max(0,Math.min(1,parseFloat(localStorage.getItem('gd5sfxVol')||'0.7')||0.7));
+let hapticEnabled=localStorage.getItem('gd5haptic')!=='0';
 let settingsOpen=false;
 let resetConfirmStep=0; // 0=none, 1=first confirm, 2=second confirm
 let nameEditMode=false; // true when editing username in settings
@@ -559,6 +560,7 @@ function setBgmVol(v){
   }
 }
 function setSfxVol(v){sfxVol=v;localStorage.setItem('gd5sfxVol',v.toString());if(sfxGain)sfxGain.gain.value=v;}
+function setHapticEnabled(v){hapticEnabled=v;localStorage.setItem('gd5haptic',v?'1':'0');}
 
 // Helper: create oscillator routed through bgmGain (auto-disconnect on end to prevent leak)
 function bgmOsc(type,freq,t,dur,vol){
@@ -1673,6 +1675,7 @@ let _hapticLastStyle='',_hapticLastAt=0;
 let _hapticGlobalLastAt=0;
 function vibrate(ms){
   try{
+    if(!hapticEnabled)return;
     if(window.ReactNativeWebView){
       if(typeof ms==='string'){
         const now=Date.now();
