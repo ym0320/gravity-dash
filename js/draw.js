@@ -1910,6 +1910,35 @@ function drawCharacter(x,y,charIdx,r,rot,alpha,face,dmgLevel,showCosmetics){
     ctx.globalAlpha=alpha;
   }
 
+  // Damage overlays — drawn BEFORE face so eyes always appear on top
+  if(dmgLevel>=1){
+    // Danger pulse outline (pulsing red ring around body)
+    const dp=0.25+Math.sin(frame*0.18)*0.15;
+    ctx.strokeStyle=`rgba(255,40,40,${dp})`;ctx.lineWidth=r*0.28;
+    ctx.beginPath();ctx.arc(0,0,r*1.08,0,TAU);ctx.stroke();
+    // Scratches — positioned LEFT side and LOWER RIGHT to avoid eye area (eye is at ~r*0.2, -r*0.15)
+    ctx.strokeStyle='rgba(60,20,0,0.7)';ctx.lineWidth=1.5;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(-r*0.7,-r*0.2);ctx.lineTo(-r*0.2,r*0.35);ctx.stroke(); // left diagonal
+    ctx.beginPath();ctx.moveTo(r*0.15,r*0.15);ctx.lineTo(r*0.55,r*0.55);ctx.stroke();  // lower-right, below eye
+    ctx.fillStyle='rgba(40,20,10,0.35)';
+    ctx.beginPath();ctx.arc(-r*0.38,r*0.38,r*0.2,0,TAU);ctx.fill(); // lower-left soot
+  }
+  if(dmgLevel>=2){
+    ctx.strokeStyle='rgba(80,10,0,0.75)';ctx.lineWidth=2;
+    // Crack runs down LEFT half — eye is on RIGHT, so no overlap
+    ctx.beginPath();ctx.moveTo(-r*0.35,-r*0.85);ctx.lineTo(-r*0.2,-r*0.35);
+    ctx.lineTo(-r*0.4,-r*0.15);ctx.lineTo(-r*0.2,r*0.25);
+    ctx.lineTo(-r*0.3,r*0.5);ctx.stroke();
+    ctx.fillStyle='rgba(40,20,10,0.45)';
+    ctx.beginPath();ctx.arc(r*0.3,r*0.32,r*0.2,0,TAU);ctx.fill();  // lower-right soot
+    ctx.beginPath();ctx.arc(-r*0.55,-r*0.25,r*0.15,0,TAU);ctx.fill(); // upper-left soot
+    // Bandage on left side
+    ctx.strokeStyle='rgba(255,255,220,0.7)';ctx.lineWidth=r*0.15;
+    ctx.beginPath();ctx.moveTo(-r*0.75,r*0.05);ctx.lineTo(-r*0.3,r*0.05);ctx.stroke();
+    ctx.strokeStyle='rgba(200,50,50,0.5)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(-r*0.62,r*0.0);ctx.lineTo(-r*0.62,r*0.1);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(-r*0.42,r*0.0);ctx.lineTo(-r*0.42,r*0.1);ctx.stroke();
+  }
   // Face
   const eY=face==='dead'?0:-r*0.15;
   const eyeData=showCosmetics?getEquippedEyesData():null;
@@ -2153,35 +2182,6 @@ function drawCharacter(x,y,charIdx,r,rot,alpha,face,dmgLevel,showCosmetics){
       ctx.lineTo(r*0.05,eY+r*0.3);ctx.lineTo(r*0.2,eY+r*0.45);ctx.lineTo(r*0.35,eY+r*0.3);
       ctx.stroke();
     }
-  }
-
-  // Damage overlays (scratches, cracks, soot)
-  if(dmgLevel>=1){
-    ctx.strokeStyle='rgba(60,20,0,0.5)';ctx.lineWidth=1.5;ctx.lineCap='round';
-    // Scratch 1
-    ctx.beginPath();ctx.moveTo(-r*0.6,-r*0.3);ctx.lineTo(-r*0.1,r*0.2);ctx.stroke();
-    // Scratch 2
-    ctx.beginPath();ctx.moveTo(r*0.2,-r*0.5);ctx.lineTo(r*0.5,r*0.1);ctx.stroke();
-    // Soot marks
-    ctx.fillStyle='rgba(40,20,10,0.2)';
-    ctx.beginPath();ctx.arc(-r*0.3,r*0.3,r*0.2,0,TAU);ctx.fill();
-  }
-  if(dmgLevel>=2){
-    ctx.strokeStyle='rgba(80,10,0,0.6)';ctx.lineWidth=2;
-    // Big crack
-    ctx.beginPath();ctx.moveTo(-r*0.2,-r*0.8);ctx.lineTo(-r*0.05,-r*0.3);
-    ctx.lineTo(r*0.2,-r*0.45);ctx.lineTo(r*0.1,0);
-    ctx.lineTo(r*0.35,r*0.2);ctx.stroke();
-    // More soot
-    ctx.fillStyle='rgba(40,20,10,0.3)';
-    ctx.beginPath();ctx.arc(r*0.4,-r*0.2,r*0.25,0,TAU);ctx.fill();
-    ctx.beginPath();ctx.arc(-r*0.5,r*0.1,r*0.18,0,TAU);ctx.fill();
-    // Bandage
-    ctx.strokeStyle='rgba(255,255,220,0.6)';ctx.lineWidth=r*0.15;
-    ctx.beginPath();ctx.moveTo(-r*0.7,r*0.05);ctx.lineTo(-r*0.3,r*0.05);ctx.stroke();
-    ctx.strokeStyle='rgba(200,50,50,0.4)';ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(-r*0.6,r*0.0);ctx.lineTo(-r*0.6,r*0.1);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(-r*0.4,r*0.0);ctx.lineTo(-r*0.4,r*0.1);ctx.stroke();
   }
 
   ctx.restore();
