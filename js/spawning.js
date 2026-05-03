@@ -109,10 +109,10 @@ function trySpawnItem(){
       const ceilH=cp?cp.h:GROUND_H;
       iy=ceilH+55+packRng()*25;
     }
-    // Pick random item: 0=invincible, 1=magnet, 2=bomb, 3=heart
+    // Pick random item: 1=magnet, 2=bomb, 3=heart. Invincible item is retired.
     let it;
     if(hp<maxHp()&&packRng()<0.3){it=3;} // higher chance for heart when damaged
-    else{const r=packRng();if(r<0.01){it=0;}else if(r<0.02){it=2;}else if(r<0.03){it=1;}else{itemCD=60+Math.floor(packRng()*30);return;}}
+    else{const r=packRng();if(r<0.015){it=2;}else if(r<0.03){it=1;}else{itemCD=60+Math.floor(packRng()*30);return;}}
     items.push({x:ix,y:iy,t:it,sz:14,p:packRng()*6.28,col:false,onCeil:!onFloor});
   } else {
     itemCD=20+Math.floor(packRng()*15);
@@ -191,6 +191,7 @@ function trySpawnEnemy(){
       if(score>=600&&bossPhase.bossCount>=3&&tr<0.10) eType=3;
       else if(score>=400&&bossPhase.bossCount>=2&&tr<0.15) eType=8;
       else if(score>=250&&bossPhase.bossCount>=1&&tr<0.18) eType=6;
+      else if(score>=10000&&tr<0.23) eType=14; // leaper: late-game rare jumper
       else if(score>=160&&tr<0.12) eType=5;
       else if(score>=140&&tr<0.15) eType=4;
       else if(score>=120&&tr<0.22) eType=2;
@@ -248,6 +249,16 @@ function trySpawnEnemy(){
       enemies.push({x:ex,y:gd8===1?surfY-sz:surfY+sz,vy:0,gDir:gd8,walkSpd:0.2+packRng()*0.3,sz:sz,alive:true,fr:packRng()*100,type:8,shootT:999,
         patrolDir:1,patrolOriginX:ex,patrolRange:25+packRng()*35,
         splitDone:false});
+    } else if(eType===14){
+      // Leaper: cute round jumper that leaps at player
+      const onCeil14=packRng()<0.4;
+      const gd14=onCeil14?-1:1;
+      const surfY14=gd14===1?H-plat.h:ceilSurfaceY(ex);
+      const sz14=12;
+      enemies.push({x:ex,y:gd14===1?surfY14-sz14:surfY14+sz14,vy:0,gDir:gd14,
+        walkSpd:0.4+packRng()*0.5,sz:sz14,alive:true,fr:packRng()*100,type:14,shootT:999,
+        patrolDir:1,patrolOriginX:ex,patrolRange:30+packRng()*40,
+        _state:'patrol',_noticeT:0,_jVx:0,_landT:0,_hopCD:undefined});
     } else {
       const onCeil=packRng()<0.4;
       const gd=onCeil?-1:1;
@@ -368,11 +379,11 @@ function trySpawnFallingMtn(){
   if(packRng()<chance){
     const isFloor=packRng()<0.5;
     const platArr=isFloor?platforms:ceilPlats;
-    // Early-stage fix: allow spawning in the visible area if no falling mtn exists yet
-    const isFallingStageType=isPackMode&&currentPackStage&&(currentPackStage.stageType==='moving'||currentPackStage.stageType==='normal');
-    const earlyStage=(isFallingStageType||isGimmickFalling)&&fallingMtns.length===0&&rawDist<600;
-    const gapMinX=earlyStage?(player.x+60):W;
-    const gapMaxX=earlyStage?(W+400):(W+300);
+    // Early-stage fix: allow the first falling floor to be selected from gaps that are
+    // already partly visible, so it doesn't pop in only after the terrain has scrolled.
+    const earlyStage=(boostStage||isPackMode||isGimmickFalling)&&fallingMtns.length<2&&rawDist<900;
+    const gapMinX=earlyStage?(player.x+20):W-20;
+    const gapMaxX=earlyStage?(W+340):(W+300);
     // Look for gaps between platforms in the upcoming area
     let gapX=-1,gapW=0;
     for(let i=0;i<platArr.length-1;i++){
@@ -380,7 +391,7 @@ function trySpawnFallingMtn(){
       const gStart=p1.x+p1.w;
       const gEnd=p2.x;
       const gap=gEnd-gStart;
-      if(gap>=50&&gStart>gapMinX&&gStart<gapMaxX){
+      if(gap>=50&&gEnd>gapMinX&&gStart<gapMaxX){
         gapX=gStart;gapW=gap;break;
       }
     }

@@ -102,7 +102,9 @@ function spawnBossEnemies(){
       quakeStunDuration:50+Math.min(effectiveBc-1,8)*6,
       quakeDuration:25+Math.min(effectiveBc-1,6)*2,
       quakeT:0,
-      feintEnabled:false,feintCount:0,feintsDone:0,feintCooldown:0,
+      feintEnabled:effectiveBc>=3,
+      feintProb:Math.min(0.80,0.35+Math.max(0,effectiveBc-3)*0.08),
+      feintCount:0,feintsDone:0,feintCooldown:0,
       swordSwingT:0,
       swordDuration:25+Math.min(effectiveBc-1,8)*2,
       swordReach:gsz*(1.2+Math.min(effectiveBc-1,8)*0.05),
@@ -126,9 +128,10 @@ function spawnBossEnemies(){
     };
   }
   function addDodgeQueue(delayOffset){
-    const dodgeCount=isDual?10:5; // dual=10体, 通常=5体
-    const baseSpd=1.5+Math.min(bc-1,12)*0.2; // lv1=1.5, lv2=1.7, lv3=1.9... (上昇率を抑制)
-    const baseInterval=Math.max(35,80-Math.min(bc-1,11)*5); // lv1=80, lv2=75, lv3=70...
+    const dodgeCount=isDual?20:10; // dual=20体, 通常=10体
+    const dodgeLevel=effectiveBc;
+    const baseSpd=1.5+Math.min(dodgeLevel-1,12)*0.2; // same staged strength parameter as other bosses
+    const baseInterval=Math.max(35,80-Math.min(dodgeLevel-1,11)*5); // lv1=80, lv2=75, lv3=70...
     let lastFloor=Math.random()<0.5; // first one random, then strictly alternate
     for(let i=0;i<dodgeCount;i++){
       // All dodges in the same wave have identical speed
@@ -240,13 +243,13 @@ function updateBossPhase(){
     const rewardEnd=isChallengeMode?90:180;
     if(bossPhase.rewardT>=rewardEnd){
       bossPhase.active=false;bossPhase.reward=false;
-      if(!isChallengeMode&&itemEff.invincible<=0)switchBGM('play');
+      syncGameplayBGM(true);
     }
     return;
   }
   const floorY=H-GROUND_H;
   const ceilY=GROUND_H;
-  const pr=PLAYER_R*ct().sizeMul;
+  const pr=playerRadius();
   // Spawn dodge enemies (allow multiple per frame for tight intervals)
   while(bossPhase.dodgeIdx<bossPhase.dodgeQueue.length){
     const next=bossPhase.dodgeQueue[bossPhase.dodgeIdx];
@@ -281,7 +284,7 @@ function updateBossPhase(){
       const dodgePr=Math.max(pr,PLAYER_R);
       const dx=player.x-en.x,dy=player.y-en.y;
       if(dx*dx+dy*dy<(dodgePr+en.sz*BOSS_HITBOX_SCALE)*(dodgePr+en.sz*BOSS_HITBOX_SCALE)){
-        if(itemEff.invincible>0){
+        if(playerDamageImmune()){
           en.alive=false;bossPhase.dodgeKills++;
           emitParts(en.x,en.y,15,'#ff00ff',4,3);sfx('stomp');shakeI=4;
         } else {
@@ -348,7 +351,7 @@ function updateBossPhase(){
       const pL=player.x-pr,pR=player.x+pr;
       const pT=player.y-pr,pB=player.y+pr;
       if(pR>bL&&pL<bR&&pB>minY&&pT<maxY){
-        if(itemEff.invincible>0){
+        if(playerDamageImmune()){
           b.hp--;b.hurtFlash=20;b.invT=60;b.state='invincible';b.timer=0;
           shakeI=8;sfx('bossHit');
           emitParts(b.x,b.y,15,'#ff00ff',4,3);
@@ -361,7 +364,7 @@ function updateBossPhase(){
             b.hp--;b.hurtFlash=20;
             b.state='invincible';b.invT=60;b.timer=0;
             player.vy=b.gDir===1?-JUMP_POWER*0.8:JUMP_POWER*0.8;player.grounded=false;
-            flipCount=0;player.canFlip=true;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
+            flipCount=0;player.canFlip=true;djumpUsed=false;if(typeof refreshAirActionState==='function')refreshAirActionState(true);else if(ct().hasDjump)djumpAvailable=true;
             shakeI=12;sfx('bossHit');sfx('gstompHeavy');vibrate('stomp_heavy');
             addPop(b.x,b.y-b.sz*b.gDir-10,'HP '+b.hp+'/'+b.maxHp,'#ff3860');
             emitParts(b.x,b.y-b.sz*b.gDir,12,'#ff3860',5,3);
@@ -446,18 +449,28 @@ function updateBossPhase(){
       }
       if(g.timer>=g._jumpPrepTarget){
         g._jumpPrepTarget=0;
-        // Always real big jump! Optionally flip to other surface
-        const willFlip=g.flipEnabled&&Math.random()<0.45;
-        g._jumpFlip=willFlip;
-        g.state='bigJump';g.timer=0;
-        // Phase 1 (bc=1): always same big jump; Phase 2+: random jump size
-        const jumpScale=bc===1?1.0:(0.4+Math.random()*0.6);
-        const jumpPow=(g.bigJumpBase+Math.random()*g.bigJumpVariance)*jumpScale;
-        g.jumpVy=-jumpPow*g.gDir; // always jump away from current surface
-        g.jumpCount++;
-        sfx('guardianJump');shakeI=5;vibrate(10);
-        const dustY=g.gDir===1?floorY2:ceilY2;
-        emitParts(g.x,dustY,8,'#8a7060',4,2);
+        // Feint before real jump (bc>=3): jump toward other surface at high power,
+        // feintJump state has ceiling/floor catch so guardian can't actually reach it
+        if(g.feintEnabled&&!g.feintsDone&&Math.random()<(g.feintProb||0.35)){
+          const feintPow=(g.bigJumpBase+Math.random()*g.bigJumpVariance)*(0.70+Math.random()*0.20);
+          g.jumpVy=-feintPow*g.gDir;
+          g.state='feintJump';g.timer=0;g.feintsDone=1;
+          sfx('guardianJump');shakeI=4;vibrate(10);
+          const dustY2=g.gDir===1?floorY2:ceilY2;
+          emitParts(g.x,dustY2,6,'#8a7060',3,1);
+        } else {
+          // Real big jump
+          const willFlip=g.flipEnabled&&Math.random()<0.45;
+          g._jumpFlip=willFlip;
+          g.state='bigJump';g.timer=0;
+          const jumpScale=bc===1?1.0:(0.4+Math.random()*0.6);
+          const jumpPow=(g.bigJumpBase+Math.random()*g.bigJumpVariance)*jumpScale;
+          g.jumpVy=-jumpPow*g.gDir;
+          g.jumpCount++;
+          sfx('guardianJump');shakeI=5;vibrate(10);
+          const dustY=g.gDir===1?floorY2:ceilY2;
+          emitParts(g.x,dustY,8,'#8a7060',4,2);
+        }
       }
     } else if(g.state==='feintJump'){
       // Small jump - lands on same surface without earthquake
@@ -547,7 +560,9 @@ function updateBossPhase(){
       // Charge to player's X position (VULNERABLE to stomping!)
       const targetX=g._chargeTargetX||player.x;
       const dx=targetX-g.x;
-      g.x+=Math.sign(dx)*g.chargeSpd;
+      // Irregular speed: pulses fast/slow to make timing harder
+      const speedMod=0.80+Math.sin(g.timer*0.28)*0.42+Math.sin(g.timer*0.73)*0.18;
+      g.x+=Math.sign(dx)*g.chargeSpd*speedMod;
       g.fr+=0.15;
       snapToSurface();
       // Trail particles
@@ -616,7 +631,7 @@ function updateBossPhase(){
       // Use larger hitbox during charge for easier stomping, smaller otherwise
       const hitScale=(g.state==='charge')?0.85:BOSS_HITBOX_SCALE*0.8;
       if(d<pr+g.sz*hitScale){
-        if(itemEff.invincible>0){
+        if(playerDamageImmune()){
           g.hp--;g.hurtFlash=20;g.invT=60;g.state='invincible';g.timer=0;
           shakeI=8;sfx('bossHit');
           emitParts(g.x,g.y,15,'#ff00ff',4,3);
@@ -632,7 +647,7 @@ function updateBossPhase(){
             g.hp--;g.hurtFlash=20;g.invT=g.stunDuration+60;
             g.state='stunned';g.stunT=g.stunDuration;g.timer=0;g.jumpVy=0;
             player.vy=g.gDir===1?-JUMP_POWER*0.8:JUMP_POWER*0.8;player.grounded=false;
-            flipCount=0;player.canFlip=true;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
+            flipCount=0;player.canFlip=true;djumpUsed=false;if(typeof refreshAirActionState==='function')refreshAirActionState(true);else if(ct().hasDjump)djumpAvailable=true;
             // Clear stun on successful stomp
             player._quakeStunned=false;player._quakeStunT=0;
             shakeI=12;sfx('bossHit');sfx('gstompHeavy');vibrate('stomp_heavy');
@@ -784,7 +799,7 @@ function updateBossPhase(){
       const dx=player.x-w.x,dy=player.y-w.y;
       const d=Math.sqrt(dx*dx+dy*dy);
       if(d<pr+w.sz*BOSS_HITBOX_SCALE){
-        if(itemEff.invincible>0){
+        if(playerDamageImmune()){
           w.hp--;w.hurtFlash=20;
           shakeI=8;sfx('bossHit');emitParts(w.x,w.y,15,'#ff00ff',4,3);
           if(w.hp<=0){bossWizardDefeat(w);}
@@ -800,7 +815,7 @@ function updateBossPhase(){
           if(stomped){
             w.hp--;w.hurtFlash=20;
             player.vy=-JUMP_POWER*0.8*player.gDir;player.grounded=false;
-            flipCount=0;player.canFlip=true;djumpUsed=false;if(ct().hasDjump)djumpAvailable=true;
+            flipCount=0;player.canFlip=true;djumpUsed=false;if(typeof refreshAirActionState==='function')refreshAirActionState(true);else if(ct().hasDjump)djumpAvailable=true;
             shakeI=12;sfx('gstomp');vibrate('stomp_heavy');
             addPop(w.x,w.y-20,t('popDefeat'),'#ffd700');
             emitParts(w.x,w.y,12,'#aa44ff',5,3);
@@ -850,8 +865,10 @@ function updateBossPhase(){
     } else {
       addPop(W/2,H*0.3,'BOSS DEFEATED!','#ffd700');
     }
-    // No-damage bonus: earn stockable invincibility (not in challenge mode)
-    if(bossPhase.noDamage&&!isChallengeMode){invCount++;addPop(W/2,H*0.55,t('popInvPlus1'),'#ff00ff');}
+    const specialBonus=SPECIAL_KILL_GAIN*(bossPhase.noDamage?4:2);
+    if(addSpecialGaugeReward(specialBonus)){
+      addPop(W/2,H*0.55,'SPECIAL +'+Math.round(specialBonus)+'%','#22d3ee');
+    }
     if(hp<maxHp()){hp++;addPop(player.x,player.y-40,'HP +1','#ff3860');}
     const bonus=30+bossPhase.total*5;
     walletCoins+=bonus;localStorage.setItem('gd5wallet',walletCoins.toString());

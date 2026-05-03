@@ -1407,6 +1407,7 @@ function drawEnemy(en){
   else if(en.type===7)drawBird(en);
   else if(en.type===8)drawSplitter(en);
   else if(en.type===9)drawMiniSlime(en);
+  else if(en.type===14)drawLeaper(en);
   else{
     // Walker (type 0) - mushroom/goomba with speed tier skin
     const s=en.sz,flip=en.gDir;
@@ -1733,6 +1734,57 @@ function drawMiniSlime(en){
   ctx.beginPath();ctx.arc(s*0.25,-s*0.18,s*0.09,0,TAU);ctx.fill();
   ctx.restore();
   _drawEnemyEliteAccent(en,s,_esmTier>=2?'#ff8a8a':'#22d3ee');
+}
+function drawLeaper(en){
+  const s=en.sz,flip=en.gDir;
+  const state=en._state||'patrol';
+  const isNotice=state==='notice';
+  const isJump=state==='jumping';
+  // Squash/stretch: crouch before jump, stretch in air
+  const scX=isNotice?0.78:isJump?0.65:1.0;
+  const scY=isNotice?1.25:isJump?1.45:1.0;
+  ctx.save();ctx.translate(en.x,en.y);
+  if(flip===-1)ctx.scale(1,-1);
+  ctx.scale(scX,scY);
+  // Body: soft round green
+  ctx.fillStyle=_esmTier>=2?'#22aa22':_esmTier>=1?'#44bb22':'#55cc33';
+  ctx.beginPath();ctx.ellipse(0,-s*0.08,s*0.78,s*0.72,0,0,TAU);ctx.fill();
+  ctx.fillStyle=_esmTier>=2?'#55cc44':_esmTier>=1?'#77dd44':'#88ee55';
+  ctx.beginPath();ctx.ellipse(s*0.06,-s*0.14,s*0.48,s*0.44,0,0,TAU);ctx.fill();
+  // Shine
+  ctx.fillStyle='rgba(255,255,255,0.22)';ctx.beginPath();ctx.ellipse(-s*0.18,-s*0.36,s*0.22,s*0.13,-0.4,0,TAU);ctx.fill();
+  // Big cute eyes
+  ctx.fillStyle='#fff';
+  ctx.beginPath();ctx.arc(-s*0.24,-s*0.20,s*0.22,0,TAU);ctx.fill();
+  ctx.beginPath();ctx.arc(s*0.24,-s*0.20,s*0.22,0,TAU);ctx.fill();
+  // Pupils: wide when noticing
+  const pupR=isNotice?s*0.16:s*0.11;
+  const pupCol=_esmTier>=2?'#3b0000':_esmTier>=1?'#1a2800':'#1a3300';
+  ctx.fillStyle=pupCol;
+  ctx.beginPath();ctx.arc(-s*0.22,-s*0.22,pupR,0,TAU);ctx.fill();
+  ctx.beginPath();ctx.arc(s*0.26,-s*0.22,pupR,0,TAU);ctx.fill();
+  ctx.fillStyle='#fff';
+  ctx.beginPath();ctx.arc(-s*0.17,-s*0.27,s*0.05,0,TAU);ctx.fill();
+  ctx.beginPath();ctx.arc(s*0.30,-s*0.27,s*0.05,0,TAU);ctx.fill();
+  // Rosy blush marks (cute!)
+  ctx.fillStyle='rgba(255,110,110,0.28)';
+  ctx.beginPath();ctx.ellipse(-s*0.48,-s*0.08,s*0.15,s*0.09,0,0,TAU);ctx.fill();
+  ctx.beginPath();ctx.ellipse(s*0.48,-s*0.08,s*0.15,s*0.09,0,0,TAU);ctx.fill();
+  // Stubby feet
+  const legStep=state==='patrol'?Math.sin(en.fr*2.5)*s*0.14:0;
+  ctx.fillStyle=_esmTier>=2?'#117711':'#44aa22';
+  ctx.beginPath();ctx.ellipse(-s*0.28+legStep,s*0.56,s*0.22,s*0.14,0,0,TAU);ctx.fill();
+  ctx.beginPath();ctx.ellipse(s*0.28-legStep,s*0.56,s*0.22,s*0.14,0,0,TAU);ctx.fill();
+  // Notice "!" bubble
+  if(isNotice){
+    const ba=0.7+Math.sin(en.fr*0.55)*0.3;
+    ctx.globalAlpha=ba;
+    ctx.fillStyle='#ff6600';ctx.font='bold '+(s*1.3)+'px monospace';ctx.textAlign='center';
+    ctx.fillText('!',0,-s*1.7);
+    ctx.globalAlpha=1;
+  }
+  ctx.restore();
+  _drawEnemyEliteAccent(en,s,_esmTier>=2?'#ff8a8a':'#66dd22');
 }
 function drawBullet(b){
   ctx.save();ctx.translate(b.x,b.y);

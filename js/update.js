@@ -1256,15 +1256,24 @@ function update(dt){
     } else if(en.type===0&&en.patrolDir!==undefined){
       // Walker with left-right patrol
       en.x+=en.patrolDir*en.walkSpd*esm;
-      if(!en.boss) en.patrolOriginX-=speed; // keep origin scrolling with terrain (not for boss)
+      if(!en.boss) en.patrolOriginX-=speed;
       if(en.x>en.patrolOriginX+en.patrolRange) en.patrolDir=-1;
       if(en.x<en.patrolOriginX-en.patrolRange) en.patrolDir=1;
-      // Edge detection with cooldown to prevent jitter on narrow platforms
+      // score>=20000: periodic small hops
+      if(score>=20000){
+        if(en._hopCD===undefined)en._hopCD=50+Math.floor(Math.random()*70);
+        en._hopCD--;
+        if(en._hopCD<=0&&Math.abs(en.vy)<0.1){
+          en._hopCD=70+Math.floor(Math.random()*80);
+          en.vy=en.gDir===1?-4:4;
+        }
+      }
       if(en._edgeCD>0){en._edgeCD--;}
       if(en.gDir===1){
         const sy=floorSupportY(en.x);
         const aheadSy=floorSupportY(en.x+en.patrolDir*(en.sz+4));
-        if(sy<H+100){
+        // Only snap when landing (vy>=0 moving into ground)
+        if(sy<H+100&&en.y+en.sz>=sy&&en.vy>=0){
           en.y=sy-en.sz;en.vy=0;
           if(!en._edgeCD&&(aheadSy>H+100||aheadSy>sy+5)){en.patrolDir*=-1;en._edgeCD=15;en.patrolOriginX=en.x;}
         }
@@ -1272,7 +1281,7 @@ function update(dt){
       }else{
         const sy=ceilSupportY(en.x);
         const aheadSy=ceilSupportY(en.x+en.patrolDir*(en.sz+4));
-        if(sy>-100){
+        if(sy>-100&&en.y-en.sz<=sy&&en.vy<=0){
           en.y=sy+en.sz;en.vy=0;
           if(!en._edgeCD&&(aheadSy<-100||aheadSy<sy-5)){en.patrolDir*=-1;en._edgeCD=15;en.patrolOriginX=en.x;}
         }
@@ -1386,13 +1395,24 @@ function update(dt){
         const sdist=Math.sqrt(sdx*sdx+sdy*sdy);
         if(sdist<180){
           en.splitDone=true;en.alive=false;
-          for(let si=0;si<2;si++){
-            const sdir=si===0?-1:1;
-            enemies.push({x:en.x+sdir*10,y:en.y,vy:en.gDir===1?-4:4,gDir:en.gDir,
-              walkSpd:sdir*(1.5+Math.random()*1.0),sz:9,alive:true,fr:Math.random()*100,type:9,shootT:999,
+          const splitCount=score>=20000?3:2;
+          for(let si=0;si<splitCount;si++){
+            let svx,svy;
+            if(splitCount===2){
+              svx=(si===0?-1:1)*(1.5+Math.random()*1.0);
+              svy=en.gDir===1?-4:4;
+            } else {
+              // 3-way: left-fast / center-straight / right-varied
+              const vxTable=[-(2.2+Math.random()*0.8),(Math.random()-0.5)*0.6,(1.6+Math.random()*1.0)];
+              const vyTable=[en.gDir===1?-3.8:3.8, en.gDir===1?-5.5:5.5, en.gDir===1?-3.2:3.2];
+              svx=vxTable[si]; svy=vyTable[si];
+            }
+            const sdir=si===0?-1:si===1?0:1;
+            enemies.push({x:en.x+sdir*10,y:en.y,vy:svy,gDir:en.gDir,
+              walkSpd:svx,sz:splitCount===3?8:9,alive:true,fr:Math.random()*100,type:9,shootT:999,
               bounceVy:en.gDir===1?-3.5:3.5,patrolOriginX:en.x+sdir*10,lifeT:180+Math.floor(Math.random()*60)});
           }
-          sfx('shoot');emitParts(en.x,en.y,10,'#88cc44',4,3);
+          sfx('shoot');emitParts(en.x,en.y,12,'#88cc44',4,3);
           addPop(en.x,en.y-en.sz*en.gDir-10,t('popSplit'),'#88cc44');
         }
       }
@@ -1415,6 +1435,60 @@ function update(dt){
         }
       }
       // expired: no ground collision → falls off screen
+    } else if(en.type===14){
+      // Leaper: cute round creature that notices and leaps at player
+      en.patrolOriginX-=speed;
+      en._state=en._state||'patrol';
+      if(en._state==='patrol'){
+        en.x+=en.patrolDir*en.walkSpd*esm;
+        if(en.x>en.patrolOriginX+en.patrolRange)en.patrolDir=-1;
+        if(en.x<en.patrolOriginX-en.patrolRange)en.patrolDir=1;
+        if(en.gDir===1){const sy=floorSupportY(en.x);if(sy<H+100){en.y=sy-en.sz;en.vy=0;}else{en.vy=(en.vy||0)+GRAVITY;en.y+=en.vy;}}
+        else{const sy=ceilSupportY(en.x);if(sy>-100){en.y=sy+en.sz;en.vy=0;}else{en.vy=(en.vy||0)-GRAVITY;en.y+=en.vy;}}
+        const ndx=player.x-en.x,ndy=player.y-en.y,nd2=ndx*ndx+ndy*ndy;
+        if(nd2<220*220&&Math.abs(ndy)<H*0.4){
+          en._state='notice';en._noticeT=50;
+        }
+      } else if(en._state==='notice'){
+        // Crouch telegraph
+        if(en.gDir===1){const sy=floorSupportY(en.x);if(sy<H+100)en.y=sy-en.sz*0.65;}
+        else{const sy=ceilSupportY(en.x);if(sy>-100)en.y=sy+en.sz*0.65;}
+        en._noticeT--;
+        if(en._noticeT<=0){
+          en._state='jumping';
+          const fdx=player.x-en.x;
+          en._jVx=fdx/28+speed; // compensate for scroll
+          en.vy=en.gDir===1?-10:10;
+          if(en.gDir===1){const sy=floorSupportY(en.x);if(sy<H+100)en.y=sy-en.sz;}
+          else{const sy=ceilSupportY(en.x);if(sy>-100)en.y=sy+en.sz;}
+          sfx('gstomp');shakeI=Math.max(shakeI,3);
+        }
+      } else if(en._state==='jumping'){
+        en.vy+=GRAVITY*en.gDir;
+        en.y+=en.vy;
+        en.x+=en._jVx||0;
+        if(en.gDir===1){
+          const sy=floorSupportY(en.x);
+          if(en.vy>0&&en.y+en.sz>=sy&&sy<H+100){
+            en.y=sy-en.sz;en.vy=0;en._jVx=0;
+            en._state='landed';en._landT=55;
+            shakeI=Math.max(shakeI,4);emitParts(en.x,sy,6,'#88dd44',3,2);
+          }
+        } else {
+          const sy=ceilSupportY(en.x);
+          if(en.vy<0&&en.y-en.sz<=sy&&sy>-100){
+            en.y=sy+en.sz;en.vy=0;en._jVx=0;
+            en._state='landed';en._landT=55;
+            shakeI=Math.max(shakeI,4);emitParts(en.x,sy,6,'#88dd44',3,2);
+          }
+        }
+        if(en.x<-80||en.x>W+80||en.y>H+80||en.y<-80)en.alive=false;
+      } else if(en._state==='landed'){
+        if(en.gDir===1){const sy=floorSupportY(en.x);if(sy<H+100){en.y=sy-en.sz;en.vy=0;}}
+        else{const sy=ceilSupportY(en.x);if(sy>-100){en.y=sy+en.sz;en.vy=0;}}
+        en._landT--;
+        if(en._landT<=0){en._state='patrol';}
+      }
     } else {
       // Default movement (type 1 cannon and legacy)
       // Cannon moves but can't climb steps (falls off edges naturally)
