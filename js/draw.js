@@ -3066,28 +3066,11 @@ function drawDemo(){
     ctx.fillStyle='#ffd700';ctx.beginPath();ctx.arc(c.x,c.y,c.sz*sc,0,TAU);ctx.fill();
     ctx.fillStyle='#fff4';ctx.beginPath();ctx.arc(c.x-1,c.y-1,c.sz*0.4,0,TAU);ctx.fill();
   }
-  // Enemies
+  // Enemies — use actual in-game drawEnemy for authentic appearance
+  _esmTier=0; // demo always shows base tier appearance
   for(let i=0;i<d.enemies.length;i++){const e=d.enemies[i];
     if(!e.alive||e.x<-20||e.x>W+20)continue;
-    ctx.fillStyle=th.obs;
-    if(e.type===0||e.type===1){
-      // Ground walker/cannon: square
-      ctx.fillRect(e.x-e.sz,e.y-e.sz,e.sz*2,e.sz*2);
-      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(e.x+e.sz*0.2,e.y-e.sz*0.2,e.sz*0.3,0,TAU);ctx.fill();
-    } else if(e.type===2){
-      // Flyer: diamond
-      ctx.beginPath();ctx.moveTo(e.x,e.y-e.sz*1.2);ctx.lineTo(e.x+e.sz,e.y);
-      ctx.lineTo(e.x,e.y+e.sz*0.6);ctx.lineTo(e.x-e.sz,e.y);ctx.closePath();ctx.fill();
-    } else if(e.type===3){
-      // Bomber: circle
-      ctx.beginPath();ctx.arc(e.x,e.y,e.sz,0,TAU);ctx.fill();
-      ctx.fillStyle='#333';ctx.beginPath();ctx.arc(e.x,e.y,e.sz*0.5,0,TAU);ctx.fill();
-    } else {
-      // Vertical/phantom: triangle
-      ctx.beginPath();ctx.moveTo(e.x,e.y-e.sz*1.1);
-      ctx.lineTo(e.x+e.sz,e.y+e.sz*0.5);ctx.lineTo(e.x-e.sz,e.y+e.sz*0.5);
-      ctx.closePath();ctx.fill();
-    }
+    drawEnemy(e);
   }
   // Kill particles
   for(let i=0;i<d.killParts.length;i++){const p=d.killParts[i];
@@ -3104,7 +3087,7 @@ function drawDemo(){
   }
   ctx.globalAlpha=0.55;
   // Player
-  const dRot=ch.shape==='ghost'?0:d.rot;
+  const dRot=d.rot;
   const dFxData=getEquippedEffectData();
   if(dFxData)drawPlayerEffect(d.px,d.py,pr,dFxData.type,0.55);
   drawCharacter(d.px,d.py,d.charIdx,pr,dRot,0.85,d.face,0);
@@ -4095,7 +4078,12 @@ function drawPause(){
   ctx.strokeStyle='#ff3860';ctx.lineWidth=2;rr(W/2-80,quitY,160,44,10);ctx.stroke();
   ctx.fillStyle='#ff3860';ctx.font='bold 18px monospace';
   ctx.fillText(isChallengeMode?t('retire'):t('toTitle'),W/2,quitY+28);
-  // PC keyboard hint (disabled for now – mobile only)
+  // Settings button (small, below quit)
+  const pSetY=quitY+54;
+  ctx.fillStyle='#ffffff10';rr(W/2-60,pSetY,120,32,8);ctx.fill();
+  ctx.strokeStyle='#fff4';ctx.lineWidth=1;rr(W/2-60,pSetY,120,32,8);ctx.stroke();
+  ctx.fillStyle='#fff8';ctx.font='13px monospace';
+  ctx.fillText('⚙ '+t('settings'),W/2,pSetY+22);
 }
 
 // ===== INVENTORY MODAL (title screen) =====

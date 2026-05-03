@@ -119,7 +119,7 @@ const CHARS=[
   {name:'\u30BF\u30A4\u30E4',shape:'tire',col:'#555555',col2:'#333333',eye:'#fff',pupil:'#111',
    trait:'\u8D70\u884C\u578B',desc:'\u6BB5\u5DEE\u4E57\u8D8A+\u5C0F\u6E9D\u901A\u904E',jumpMul:0.95,speedMul:1.12,sizeMul:1,gravMul:1,coinMul:1,coinMag:0,maxFlip:2,startShield:false,fastKill:false,price:80},
   {name:'\u30B4\u30FC\u30B9\u30C8',shape:'ghost',col:'#a855f7',col2:'#8b3fe0',eye:'#fff',pupil:'#1a0a30',
-   trait:'\u56DE\u907F\u578B',desc:'\u900F\u660E\u5316\u56DE\u907F+\u30B7\u30FC\u30EB\u30C9',jumpMul:1,speedMul:1,sizeMul:1,gravMul:1,coinMul:1,coinMag:0,maxFlip:2,startShield:true,fastKill:false,price:120},
+   trait:'\u56DE\u907F\u578B',desc:'\u900F\u660E\u5316\u56DE\u907F+\u30B7\u30FC\u30EB\u30C9',jumpMul:1,speedMul:1,sizeMul:0.88,gravMul:1,coinMul:1,coinMag:0,maxFlip:2,startShield:true,fastKill:false,price:120},
   {name:'\u30CB\u30F3\u30B8\u30E3',shape:'ninja',col:'#34d399',col2:'#20b878',eye:'#ff4444',pupil:'#000',
    trait:'\u6A5F\u52D5\u578B',desc:'\u30B8\u30E3\u30F3\u30D7\u529B\u2191+3\u56DE\u53CD\u8EE2',jumpMul:1.08,speedMul:1.05,sizeMul:1,gravMul:1,coinMul:1,coinMag:0,maxFlip:3,startShield:false,fastKill:false,price:150},
   {name:'\u30B9\u30C8\u30FC\u30F3',shape:'stone',col:'#8B8B8B',col2:'#6B6B6B',eye:'#fff',pupil:'#333',
@@ -141,8 +141,8 @@ const SPECIAL_KILL_GAIN=2.5;
 const SPECIAL_STOMP_GAIN=4;
 const SPECIAL_GHOST_MAGNET_RADIUS=90;
 const SPECIAL_GHOST_MAGNET_STRENGTH=0.08;
-const GHOST_PASSIVE_COIN_RADIUS=60; // 1/3 of magnet item (180), coins only
-const GHOST_PASSIVE_COIN_STRENGTH=0.05;
+const GHOST_PASSIVE_COIN_RADIUS=80; // slightly wider passive pull
+const GHOST_PASSIVE_COIN_STRENGTH=0.07;
 const SPECIAL_TIRE_MAGNET_RADIUS=270;
 const SPECIAL_TIRE_MAGNET_STRENGTH=0.07;
 const GHOST_PHASE_DURATION=120;
@@ -2442,9 +2442,9 @@ function updateDemo(){
   // Enemy ground position + stomp check
   d.enemies.forEach(e=>{
     if(!e.alive)return;
-    e.bob+=0.05;
+    e.bob+=0.05;e.fr=(e.fr||0)+0.12; // animation frame for drawEnemy
     // Place on ground
-    if(e.type===2||e.type===4){
+    if(e.type===2||e.type===4||e.type===7){
       // Flyer/vertical: float
       e.y=H*0.35+Math.sin(e.bob)*40;e.gDir=1;
     } else {
@@ -2468,8 +2468,12 @@ function updateDemo(){
   // Replenish
   d.enemies=d.enemies.filter(e=>e.x>-60);
   while(d.enemies.length<4){
-    d.enemies.push({x:W+40+Math.random()*200,y:0,type:Math.floor(Math.random()*6),
-      sz:10+Math.random()*5,alive:true,gDir:1,bob:Math.random()*6.28});
+    const _dTypes=[0,1,2,6,7,8,14];
+    const _dType=_dTypes[Math.floor(Math.random()*_dTypes.length)];
+    d.enemies.push({x:W+40+Math.random()*200,y:0,sz:11+Math.random()*4,
+      alive:true,gDir:1,bob:Math.random()*6.28,
+      type:_dType,fr:Math.random()*100,shootT:999,
+      patrolDir:1,dashState:'patrol',flyPhase:Math.random()*6.28,warnT:0,_state:'patrol'});
   }
   d.coins=d.coins.filter(c=>c.x>-30);
   while(d.coins.length<5){

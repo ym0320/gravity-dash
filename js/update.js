@@ -838,6 +838,9 @@ function update(dt){
     for(let _ei=0;_ei<enemies.length;_ei++){
       const _en=enemies[_ei];
       if(!_en.alive||_en.bossType||_en.boss)continue;
+      // Skip airborne enemy types (flyer, vertical mover, phantom, bird)
+      if(_en.type===2||_en.type===4||_en.type===5||_en.type===7)continue;
+      if(_en.type===14&&_en._state==='jumping')continue; // leaper mid-jump
       // Give points IMMEDIATELY at enemy's current position
       const _bon=cubeSpecialKillBonus(Math.floor(10+Math.min(score*0.1,30)));
       dist+=_bon;addSpecialGauge(SPECIAL_KILL_GAIN);
