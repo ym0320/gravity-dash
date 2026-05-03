@@ -131,6 +131,7 @@ function drawCharStatBars(ch,cx,startY,totalW){
   if(ch.shape==='tire')specials.push(t('abilityStomp'));
   if(ch.shape==='ghost')specials.push(t('abilityShield'));
   if(ch.shape==='ghost')specials.push(t('abilityGhost'));
+  if(ch.shape==='ghost')specials.push(t('abilityPassiveCoin'));
   if(ch.maxFlip>=3)specials.push(t('abilityFlip').replace('{0}',ch.maxFlip));
   if(ch.hpBonus)specials.push(t('abilityHp').replace('{0}',ch.hpBonus));
   if(specials.length===0)specials.push(t('balancedDesc'));
@@ -3874,25 +3875,30 @@ function drawTraitDemo(ch,idx,cx,cy,t){
       const ra=t*0.15;
       for(let ri=0;ri<3;ri++){const a2=ra+ri*2.09;ctx.beginPath();ctx.moveTo(tx2+Math.cos(a2)*3,stairY+Math.sin(a2)*3);ctx.lineTo(tx2+Math.cos(a2)*5.5,stairY+Math.sin(a2)*5.5);ctx.stroke();}
       break;
-    case'ghost':
-      // Size comparison ring
-      ctx.globalAlpha=0.15+Math.sin(t*0.08)*0.1;
+    case'ghost':{
+      // Passive coin magnet ring (dashed, subtle)
+      ctx.globalAlpha=0.18+Math.sin(t*0.05)*0.08;
       ctx.strokeStyle=ch.col;ctx.lineWidth=1;ctx.setLineDash([3,3]);
-      ctx.beginPath();ctx.arc(cx,cy,PLAYER_R*1.0,0,TAU);ctx.stroke();
+      ctx.beginPath();ctx.arc(cx,cy,GHOST_PASSIVE_COIN_RADIUS*0.38,0,TAU);ctx.stroke();
       ctx.setLineDash([]);ctx.globalAlpha=1;
-      // Transparency phase demo - flickering ghost silhouette
-      const ghostPhase=Math.floor(t*0.015)%3===0;
-      if(ghostPhase){
-        ctx.globalAlpha=0.15+Math.sin(t*0.3)*0.05;
-        ctx.fillStyle=ch.col;ctx.beginPath();ctx.arc(cx+25,cy-5,8,0,TAU);ctx.fill();
-        ctx.globalAlpha=1;
-        // Shimmer particles
-        ctx.fillStyle='#a855f744';
-        for(let i=0;i<3;i++){
-          ctx.beginPath();ctx.arc(cx+25+(Math.random()-0.5)*12,cy-5+(Math.random()-0.5)*12,1.5,0,TAU);ctx.fill();
-        }
+      // Coins orbiting toward ghost (passive absorption demo)
+      for(let i=0;i<4;i++){
+        const ca=t*0.04+i*1.57;
+        const dist=28+Math.sin(t*0.06+i)*6;
+        const cx2=cx+Math.cos(ca)*dist,cy2=cy+Math.sin(ca)*dist*0.55;
+        const cAlpha=0.55+Math.sin(t*0.08+i)*0.2;
+        ctx.globalAlpha=cAlpha;
+        ctx.fillStyle='#ffd700';ctx.beginPath();ctx.arc(cx2,cy2,3.5,0,TAU);ctx.fill();
+        ctx.fillStyle='#fff5';ctx.beginPath();ctx.arc(cx2-0.8,cy2-0.8,1,0,TAU);ctx.fill();
       }
-      break;
+      ctx.globalAlpha=1;
+      // Transparency flicker
+      if(Math.floor(t*0.015)%3===0){
+        ctx.globalAlpha=0.12+Math.sin(t*0.3)*0.05;
+        ctx.fillStyle=ch.col;ctx.beginPath();ctx.arc(cx+22,cy-4,7,0,TAU);ctx.fill();
+        ctx.globalAlpha=1;
+      }
+      break;}
     case'ninja':
       // Speed lines + flip arrows
       ctx.strokeStyle=ch.col+'44';ctx.lineWidth=1.5;
@@ -5176,8 +5182,7 @@ function drawChallengeResult(e){
 function drawChallTransition(){
   const ct_=challTransition;
   const t=ct_.timer;
-  const dpr=Math.min(window.devicePixelRatio||1,2);
-  ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.save();ctx.setTransform(_appDpr,0,0,_appDpr,0,0);
 
   // Fade: 0-25 fade in, 25-85 solid black, 85-120 fade out
   let blackA;

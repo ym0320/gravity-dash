@@ -1394,7 +1394,8 @@ function update(dt){
         en.x+=tdx*SPECIAL_TIRE_MAGNET_STRENGTH;
         en.y+=tdy*SPECIAL_TIRE_MAGNET_STRENGTH;
         const killR=pr+en.sz+10;
-        if(td2<killR*killR){
+        // Kill if in contact range OR enemy drifted behind player (prevents orbit alongside)
+        if(td2<killR*killR||en.x<player.x){
           const bon=cubeSpecialKillBonus(Math.floor(10+Math.min(score*0.1,20)));
           rewardEnemySpecialKill(en,'#f59e0b',bon);
           continue;

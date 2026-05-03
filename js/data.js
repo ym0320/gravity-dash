@@ -141,6 +141,8 @@ const SPECIAL_KILL_GAIN=2.5;
 const SPECIAL_STOMP_GAIN=4;
 const SPECIAL_GHOST_MAGNET_RADIUS=90;
 const SPECIAL_GHOST_MAGNET_STRENGTH=0.08;
+const GHOST_PASSIVE_COIN_RADIUS=60; // 1/3 of magnet item (180), coins only
+const GHOST_PASSIVE_COIN_STRENGTH=0.05;
 const SPECIAL_TIRE_MAGNET_RADIUS=270;
 const SPECIAL_TIRE_MAGNET_STRENGTH=0.07;
 const GHOST_PHASE_DURATION=120;
@@ -243,12 +245,14 @@ function playerCoinMagnetRadius(){
   if(isSpecialActive('tire'))return SPECIAL_TIRE_MAGNET_RADIUS;
   if(itemEff.magnet>0)return 180;
   if(isSpecialActive('ghost'))return SPECIAL_GHOST_MAGNET_RADIUS;
+  if(ct().shape==='ghost')return GHOST_PASSIVE_COIN_RADIUS; // passive: coins only
   return ct().coinMag||0;
 }
 function playerCoinMagnetStrength(){
   if(isSpecialActive('tire'))return SPECIAL_TIRE_MAGNET_STRENGTH;
   if(itemEff.magnet>0)return 0.12;
   if(isSpecialActive('ghost'))return SPECIAL_GHOST_MAGNET_STRENGTH;
+  if(ct().shape==='ghost')return GHOST_PASSIVE_COIN_STRENGTH; // passive
   return ct().coinMag>0?0.06:0;
 }
 function playerItemMagnetRadius(){
