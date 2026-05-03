@@ -759,6 +759,7 @@ function update(dt){
   }
   player.y+=player.vy;
 
+  const _wasGrounded=player.grounded; // for bounce wave landing detection
   // Ground collision
   player.grounded=false;
   const isTire=ct().shape==='tire'||isSpecialActive('tire');
@@ -824,6 +825,17 @@ function update(dt){
   }
   // Reset air combo when grounded
   if(player.grounded){airCombo=0;stompCombo=0;}
+  // Bounce special: landing wave — knock all enemies sideways with boing SE
+  if(!_wasGrounded&&player.grounded&&isSpecialActive('bounce')){
+    sfx('bounce');vibrate('stomp');shakeI=Math.max(shakeI,8);
+    emitParts(player.x,player.y,22,'#ff9988',5,4);
+    for(let _ei=0;_ei<enemies.length;_ei++){
+      const _en=enemies[_ei];
+      if(!_en.alive||_en.bossType||_en.boss)continue;
+      _en._bounceKnock=Math.random()<0.5?-1:1;
+      _en.vy=-(3+Math.random()*3);
+    }
+  }
 
   // Spike gimmick update & collision (proximity-triggered: activates when player approaches)
   for(let i=0;i<spikes.length;i++){const sp=spikes[i];
@@ -1158,7 +1170,8 @@ function update(dt){
         const tierGain=1+(Math.max(1,cTier.mul)-1)*SPECIAL_COIN_TIER_FACTOR;
         addSpecialGauge(SPECIAL_COIN_GAIN*tierGain+Math.min(combo,8)*SPECIAL_COMBO_GAIN);
         if(combo>maxCombo)maxCombo=combo;
-        const bon=Math.ceil((3+Math.min(combo-1,8))*ct().coinMul*cTier.mul*cubeSpecialCoinMul());
+        const airMul=(ct().shape==='ball'&&!player.grounded)?1.2:1;
+        const bon=Math.ceil((3+Math.min(combo-1,8))*ct().coinMul*cTier.mul*cubeSpecialCoinMul()*airMul);
         dist+=bon;sfx(combo>1?'combo':'coin');
         addPop(c.x,c.y-14,'+'+bon,cTier.col);vibrate('coin');
         if(combo>1)addPop(c.x,c.y-34,combo+'x','#ff6b35');
@@ -1211,6 +1224,18 @@ function update(dt){
   const esm=enemySpeedMul(); // enemy speed multiplier (1.0 to 2.0)
   for(let i=0;i<enemies.length;i++){const en=enemies[i];
     if(!en.alive)continue;
+    // Bounce wave knock: fly sideways then off screen
+    if(en._bounceKnock){
+      en.x+=en._bounceKnock*(speed*2.5+6);
+      en.vy=(en.vy||0)+0.6;
+      en.y+=en.vy;
+      if(en.x<-100||en.x>W+100||en.y>H+100||en.y<-100){
+        en.alive=false;
+        addSpecialGauge(SPECIAL_KILL_GAIN*0.5);
+        dist+=Math.floor(5+Math.min(score*0.05,15));
+      }
+      continue;
+    }
     en._prevY=en.y;
     // Boss enemies with custom movement: handled by updateBossPhase
     if(en.bossType)continue;

@@ -127,6 +127,7 @@ function drawCharStatBars(ch,cx,startY,totalW){
   }
   const specials=[];
   if(ch.hasDjump)specials.push(t('abilityDjump'));
+  if(ch.shape==='ball')specials.push(t('abilityAirCoin'));
   if(ch.shape==='tire')specials.push(t('abilityStep'));
   if(ch.shape==='tire')specials.push(t('abilityStomp'));
   if(ch.shape==='ghost')specials.push(t('abilityShield'));
