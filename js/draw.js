@@ -4262,7 +4262,7 @@ function drawChestOpen(){
     else if(item&&item.tab===1)equippedEyes=item.id;
     else if(item&&item.tab===2)equippedEffect=item.id;
     if(item&&item.tab===2)drawPlayerEffect(px,py,pr,item.type,drawA,1);
-    drawCharacter(px,py,0,pr,0,drawA,'happy',0,true); // char 0 = default cube
+    drawCharacter(px,py,selChar,pr,0,drawA,'happy',0,true); // user's selected char, no other cosmetics
     equippedSkin=prevSkin;equippedEyes=prevEyes;equippedEffect=prevEffect;
   }
   ctx.save();
@@ -4634,7 +4634,7 @@ function drawChestOpen(){
       const bounce=Math.sin(cot*0.06)*3;
       ctx.save();
       _shadow(25,`hsl(${hue},90%,60%)`);
-      drawCharacter(cx,charY+bounce,rw.charIdx,charR,0,1,'happy',0);
+      drawCharacter(cx,charY+bounce,rw.charIdx,charR,0,1,'happy',0,false);
       ctx.shadowBlur=0;ctx.restore();
       // Rainbow "SUPER RARE" text
       const tHue=(cot*5)%360;
@@ -4938,7 +4938,7 @@ function drawChestOpen(){
           ctx.fillStyle='#fff4';ctx.font='8px monospace';
           ctx.fillText(t('coins'),ccx2,cardY2+52);
         } else if(rw2.type==='char'){
-          drawCharacter(ccx2,cardY2+24,rw2.charIdx,10,0,1,'happy',0);
+          drawCharacter(ccx2,cardY2+24,rw2.charIdx,10,0,1,'happy',0,false);
           const cname=CHARS[rw2.charIdx]?tCharName(rw2.charIdx):'???';
           const sname=cname.length>4?cname.substring(0,4)+'..':cname;
           ctx.fillStyle='#fff';ctx.font='8px monospace';

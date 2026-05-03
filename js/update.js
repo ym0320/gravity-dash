@@ -1224,15 +1224,17 @@ function update(dt){
   const esm=enemySpeedMul(); // enemy speed multiplier (1.0 to 2.0)
   for(let i=0;i<enemies.length;i++){const en=enemies[i];
     if(!en.alive)continue;
-    // Bounce wave knock: fly sideways then off screen
+    // Bounce wave knock: small lateral push then fall into pit nearby
     if(en._bounceKnock){
-      en.x+=en._bounceKnock*(speed*2.5+6);
-      en.vy=(en.vy||0)+0.6;
+      en.x+=en._bounceKnock*(1.5+Math.random()*2); // small drift, stay nearby
+      en.vy=(en.vy||0)+(en.gDir===1?0.5:-0.5); // pull toward pit
       en.y+=en.vy;
-      if(en.x<-100||en.x>W+100||en.y>H+100||en.y<-100){
+      if(en.x<-60||en.x>W+60||en.y>H+60||en.y<-60){
         en.alive=false;
-        addSpecialGauge(SPECIAL_KILL_GAIN*0.5);
-        dist+=Math.floor(5+Math.min(score*0.05,15));
+        const bon=cubeSpecialKillBonus(Math.floor(10+Math.min(score*0.1,30)));
+        dist+=bon;addSpecialGauge(SPECIAL_KILL_GAIN);
+        addPop(Math.min(Math.max(en.x,20),W-20),Math.min(Math.max(en.y,30),H-50),'+'+bon,'#ff9988');
+        sfxEnemyDeath(en.type);
       }
       continue;
     }
