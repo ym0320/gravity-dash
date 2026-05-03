@@ -1141,9 +1141,13 @@ function update(dt){
       if(magR>0&&magStr>0){
         const dx=player.x-c.x,dy=player.y-c.y,d2=dx*dx+dy*dy;
         if(d2<magR*magR){
-          c.x+=dx*magStr;c.y+=dy*magStr;
-          // If coin drifted behind player after scroll+magnet, snap to player to ensure collection
-          if(c.x<player.x){c.x=player.x;c.y=player.y;}
+          if(c.x<player.x){
+            // Behind player: boost x pull to overcome scroll speed, y stays normal
+            c.x+=Math.sign(dx)*Math.max(Math.abs(dx)*magStr,speed*3);
+          } else {
+            c.x+=dx*magStr;
+          }
+          c.y+=dy*magStr;
         }
         if(itemEff.magnet>0)cd*=1.8;
       }
@@ -1182,9 +1186,12 @@ function update(dt){
       if(magR>0&&magStr>0){
         const mdx=player.x-it.x,mdy=player.y-it.y,md2=mdx*mdx+mdy*mdy;
         if(md2<magR*magR){
-          it.x+=mdx*magStr;it.y+=mdy*magStr;
-          // If item drifted behind player, snap to player to ensure collection
-          if(it.x<player.x){it.x=player.x;it.y=player.y;}
+          if(it.x<player.x){
+            it.x+=Math.sign(mdx)*Math.max(Math.abs(mdx)*magStr,speed*3);
+          } else {
+            it.x+=mdx*magStr;
+          }
+          it.y+=mdy*magStr;
         }
       }
       const dx=player.x-it.x,dy=player.y-it.y;
@@ -1401,11 +1408,17 @@ function update(dt){
       const tdx=player.x-en.x,tdy=player.y-en.y,td2=tdx*tdx+tdy*tdy;
       const tMagR=SPECIAL_TIRE_MAGNET_RADIUS;
       if(td2<tMagR*tMagR){
-        en.x+=tdx*SPECIAL_TIRE_MAGNET_STRENGTH;
+        if(en.x<player.x){
+          // Behind player: boost x pull to overcome scroll, y stays normal
+          en.x+=Math.sign(tdx)*Math.max(Math.abs(tdx)*SPECIAL_TIRE_MAGNET_STRENGTH,speed*4);
+        } else {
+          en.x+=tdx*SPECIAL_TIRE_MAGNET_STRENGTH;
+        }
         en.y+=tdy*SPECIAL_TIRE_MAGNET_STRENGTH;
+        // Kill check uses updated position (after movement)
+        const ntdx=player.x-en.x,ntdy=player.y-en.y;
         const killR=pr+en.sz+10;
-        // Kill if in contact range OR enemy drifted behind player (prevents orbit alongside)
-        if(td2<killR*killR||en.x<player.x){
+        if(ntdx*ntdx+ntdy*ntdy<killR*killR){
           const bon=cubeSpecialKillBonus(Math.floor(10+Math.min(score*0.1,20)));
           rewardEnemySpecialKill(en,'#f59e0b',bon);
           continue;
