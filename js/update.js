@@ -321,6 +321,7 @@ function update(dt){
     ghostPhaseT++;
     if(ghostInvis&&ghostPhaseT>=GHOST_PHASE_DURATION){
       ghostInvis=false;ghostPhaseT=0;
+      hurtT=Math.max(hurtT,45); // brief invincibility on reappear: prevents instant damage if overlapping enemy
       emitParts(player.x,player.y,6,ghostCol,2,1);
     } else if(!ghostInvis&&ghostPhaseT>=GHOST_PHASE_DURATION){
       ghostInvis=true;ghostPhaseT=0;
