@@ -1317,7 +1317,7 @@ function draw(){
     drawChallTransition();
   }
   if(state===ST.DEAD){drawDead();if(deadChestOpen&&chestOpen.phase!=='none')drawChestOpen();}
-  if(state===ST.PAUSE)drawPause();
+  if(state===ST.PAUSE){drawPause();if(settingsOpen)drawTitle();}
   if(state===ST.STAGE_CLEAR)drawStageClear();
   if(window._fpsShow)drawFpsOverlay();
 }
