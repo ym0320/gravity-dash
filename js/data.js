@@ -2498,15 +2498,15 @@ function enemySpeedMul(){
 }
 const BOSS_HITBOX_SCALE=0.65;
 let fallingMtns=[],fallingMtnCD=0;
-// Coin tiers: color and multiplier change based on score
+// Coin tiers: smooth warm progression yellow → amber → orange → deep orange → red-orange → red → dark red
 const COIN_TIERS=[
   {min:0,    col:'#ffd700',glow:'#ffd70055',sparkCol:'#ffd700',mul:1,   name:'gold'},
-  {min:5000, col:'#ff8c00',glow:'#ff8c0055',sparkCol:'#ff8c00',mul:1.5, name:'orange'},
-  {min:10000,col:'#ff69b4',glow:'#ff69b455',sparkCol:'#ff69b4',mul:2,   name:'pink'},
-  {min:15000,col:'#ff2020',glow:'#ff202055',sparkCol:'#ff2020',mul:2.5, name:'red'},
-  {min:20000,col:'#c084fc',glow:'#c084fc55',sparkCol:'#c084fc',mul:3,   name:'purple'},
-  {min:25000,col:'#00cfff',glow:'#00cfff55',sparkCol:'#00cfff',mul:4,   name:'cyan'},
-  {min:30000,col:'#fff176',glow:'#fff17655',sparkCol:'#fff176',mul:5,   name:'stellar'}
+  {min:5000, col:'#ffb300',glow:'#ffb30055',sparkCol:'#ffb300',mul:1.5, name:'amber'},
+  {min:10000,col:'#ff8000',glow:'#ff800055',sparkCol:'#ff8000',mul:2,   name:'orange'},
+  {min:15000,col:'#ff4500',glow:'#ff450055',sparkCol:'#ff4500',mul:2.5, name:'deeporange'},
+  {min:20000,col:'#ff2000',glow:'#ff200055',sparkCol:'#ff2000',mul:3,   name:'redorange'},
+  {min:25000,col:'#cc0000',glow:'#cc000055',sparkCol:'#cc0000',mul:4,   name:'red'},
+  {min:30000,col:'#7a0000',glow:'#7a000066',sparkCol:'#aa2200',mul:5,   name:'darkred'}
 ];
 let _coinTierCache=null,_coinTierScore=-1;
 function getCoinTier(){if(score===_coinTierScore&&_coinTierCache)return _coinTierCache;_coinTierScore=score;for(let i=COIN_TIERS.length-1;i>=0;i--)if(score>=COIN_TIERS[i].min){_coinTierCache=COIN_TIERS[i];return _coinTierCache;}_coinTierCache=COIN_TIERS[0];return _coinTierCache;}
