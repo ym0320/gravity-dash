@@ -2778,7 +2778,10 @@ function drawSpecialParade(){
       ctx.translate(kx,ky);
       ctx.rotate(tilt);
       if(flip===-1)ctx.scale(1,-1);
-      ctx.globalAlpha=0.92;
+      // Fade near player to avoid obscuring them
+      const _fdx=kx-player.x,_fdy=ky-player.y;
+      const _fd=Math.sqrt(_fdx*_fdx+_fdy*_fdy);
+      ctx.globalAlpha=_fd<90?Math.max(0.07,0.92*(_fd/90)):0.92;
       drawCharacter(0,0,charIdx,ksz,0,1,'happy',0,false);
       ctx.restore();
     }
@@ -2813,11 +2816,18 @@ function drawUI(){
     ctx.restore();ctx.globalAlpha=1;
   }
 
-  // Pause button (top right, matching hitPauseBtn area)
+  // Top-right button: pause bars during play, gear icon during pause
   const pauseX=W-54,pauseY=safeTop+12,pauseBW=48,pauseBH=40;
   ctx.fillStyle='#ffffff1a';rr(pauseX,pauseY,pauseBW,pauseBH,8);ctx.fill();
-  ctx.strokeStyle='#ffffff18';ctx.lineWidth=1;rr(pauseX,pauseY,pauseBW,pauseBH,8);ctx.stroke();
-  ctx.fillStyle='#fffa';ctx.fillRect(pauseX+14,pauseY+8,6,24);ctx.fillRect(pauseX+28,pauseY+8,6,24);
+  if(state===ST.PAUSE){
+    // Settings gear (tapping opens settings without unpausing)
+    ctx.strokeStyle='#ffffff55';ctx.lineWidth=1;rr(pauseX,pauseY,pauseBW,pauseBH,8);ctx.stroke();
+    ctx.fillStyle='#fff9';ctx.font='22px monospace';ctx.textAlign='center';
+    ctx.fillText('⚙️',pauseX+pauseBW/2,pauseY+pauseBH*0.7);
+  } else {
+    ctx.strokeStyle='#ffffff18';ctx.lineWidth=1;rr(pauseX,pauseY,pauseBW,pauseBH,8);ctx.stroke();
+    ctx.fillStyle='#fffa';ctx.fillRect(pauseX+14,pauseY+8,6,24);ctx.fillRect(pauseX+28,pauseY+8,6,24);
+  }
 
   // === BOTTOM AREA (above action panel) ===
   const panelTop=H-PANEL_H-Math.min(safeBot,10);
@@ -4078,12 +4088,6 @@ function drawPause(){
   ctx.strokeStyle='#ff3860';ctx.lineWidth=2;rr(W/2-80,quitY,160,44,10);ctx.stroke();
   ctx.fillStyle='#ff3860';ctx.font='bold 18px monospace';
   ctx.fillText(isChallengeMode?t('retire'):t('toTitle'),W/2,quitY+28);
-  // Settings button (small, below quit)
-  const pSetY=quitY+54;
-  ctx.fillStyle='#ffffff10';rr(W/2-60,pSetY,120,32,8);ctx.fill();
-  ctx.strokeStyle='#fff4';ctx.lineWidth=1;rr(W/2-60,pSetY,120,32,8);ctx.stroke();
-  ctx.fillStyle='#fff8';ctx.font='13px monospace';
-  ctx.fillText('⚙ '+t('settings'),W/2,pSetY+22);
 }
 
 // ===== INVENTORY MODAL (title screen) =====

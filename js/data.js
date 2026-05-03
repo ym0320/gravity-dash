@@ -2416,10 +2416,11 @@ function updateDemo(){
   d.jumpCD--;
   if(d.grounded&&d.jumpCD<=0){
     let doJump=false;
+    // Aggressively target enemies: wide range, prioritize ground enemies
     for(const e of d.enemies){
-      if(e.alive&&e.x>d.px-10&&e.x<d.px+140){doJump=true;break;}
+      if(e.alive&&e.x>d.px-25&&e.x<d.px+240&&e.type!==2&&e.type!==7){doJump=true;break;}
     }
-    if(!doJump&&Math.random()<0.025)doJump=true;
+    if(!doJump&&Math.random()<0.01)doJump=true;
     // Jump over gaps
     if(!doJump){
       let hasFloor=false;
@@ -2442,15 +2443,26 @@ function updateDemo(){
   // Enemy ground position + stomp check
   d.enemies.forEach(e=>{
     if(!e.alive)return;
-    e.bob+=0.05;e.fr=(e.fr||0)+0.12; // animation frame for drawEnemy
-    // Place on ground
+    e.bob+=0.05;e.fr=(e.fr||0)+0.12;
     if(e.type===2||e.type===4||e.type===7){
-      // Flyer/vertical: float
-      e.y=H*0.35+Math.sin(e.bob)*40;e.gDir=1;
+      // Flyer/bird: animated float
+      e.flyPhase=(e.flyPhase||0)+(e.type===7?0.07:0.04);
+      const _baseY=e.type===7?Math.max(H*0.22,Math.min(H*0.55,d.py+(d.gDir===1?-55:55))):H*0.38;
+      e.y=_baseY+Math.sin(e.flyPhase)*32;e.gDir=1;
     } else {
       for(const p of d.plats){
         if(e.x>=p.x&&e.x<=p.x+p.w){e.y=H-p.h-e.sz;e.gDir=1;break;}
       }
+      // Patrol movement
+      e._pat=(e._pat||0)+0.022;
+      if(e.type!==1)e.x+=Math.cos(e._pat)*0.75;
+      e.patrolDir=Math.cos(e._pat)>0?1:-1;
+      // Cannon: cycle shootT for aiming animation
+      if(e.type===1){e.shootT=Math.max(0,(e.shootT||80)-1);if(e.shootT<=0)e.shootT=60+Math.floor(Math.random()*50);}
+      // Dasher: warn state when player is near
+      if(e.type===6){const _dw=Math.abs(d.px-e.x);e.dashState=_dw<180?'warn':'patrol';e.warnT=_dw<180?Math.min(40,(e.warnT||0)+3):0;}
+      // Leaper: notice state when player is near
+      if(e.type===14){const _dl=Math.hypot(d.px-e.x,d.py-e.y);e._state=_dl<180?'notice':'patrol';e._noticeT=10;}
     }
     // Stomp check
     const dx=d.px-e.x,dy=d.py-e.y,dsq=dx*dx+dy*dy,dist=Math.sqrt(dsq);
@@ -2467,7 +2479,7 @@ function updateDemo(){
   if(d.comboT<=0&&d.face==='happy')d.face='normal';
   // Replenish
   d.enemies=d.enemies.filter(e=>e.x>-60);
-  while(d.enemies.length<4){
+  while(d.enemies.length<3){
     const _dTypes=[0,1,2,6,7,8,14];
     const _dType=_dTypes[Math.floor(Math.random()*_dTypes.length)];
     d.enemies.push({x:W+40+Math.random()*200,y:0,sz:11+Math.random()*4,

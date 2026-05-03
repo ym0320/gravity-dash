@@ -80,6 +80,7 @@ function hitRestartBtn(px,py){const l=pauseBtnLayout();return px>=W/2-80&&px<=W/
 function hitPauseStageSelBtn(px,py){const l=pauseBtnLayout();return l.hasStageSel&&px>=W/2-80&&px<=W/2+80&&py>=l.stageSelY&&py<=l.stageSelY+44;}
 function hitQuitBtn(px,py){const l=pauseBtnLayout();return px>=W/2-80&&px<=W/2+80&&py>=l.quitY&&py<=l.quitY+44;}
 function hitPauseSettingsBtn(px,py){const l=pauseBtnLayout();const psy=l.quitY+54;return px>=W/2-60&&px<=W/2+60&&py>=psy&&py<=psy+32;}
+function hitPauseTopGear(px,py){return px>=W-54&&px<=W-6&&py>=safeTop+12&&py<=safeTop+52;}
 // Game over screen buttons (must match drawDead layout exactly)
 function deadBtnLayout(){
   const btnW2=Math.min(220,W-40),btnH2=38,btnX2=W/2-btnW2/2;
@@ -941,6 +942,7 @@ canvas.addEventListener('touchstart',e=>{
     if(hitRestartBtn(p.x,p.y)){_pauseSavedBGM='';restartFromPause();return;}
     if(hitPauseStageSelBtn(p.x,p.y)){sfx('cancel');_pauseSavedBGM='';state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;stageSelGuardT=30;switchBGM('title');return;}
     if(hitQuitBtn(p.x,p.y)){_pauseSavedBGM='';if(isChallengeMode){challengeRetired=true;sfx('cancel');player.alive=false;state=ST.DEAD;deadT=0;switchBGM('dead');return;}sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
+    if(hitPauseTopGear(p.x,p.y)){sfx('click');settingsOpen=true;return;}
     if(hitPauseSettingsBtn(p.x,p.y)){sfx('click');settingsOpen=true;return;}
     return;
   }
@@ -1179,6 +1181,7 @@ canvas.addEventListener('mousedown',e=>{
     if(hitRestartBtn(p.x,p.y)){_pauseSavedBGM='';restartFromPause();return;}
     if(hitPauseStageSelBtn(p.x,p.y)){sfx('cancel');_pauseSavedBGM='';state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;stageSelGuardT=30;switchBGM('title');return;}
     if(hitQuitBtn(p.x,p.y)){_pauseSavedBGM='';if(isChallengeMode){challengeRetired=true;sfx('cancel');player.alive=false;state=ST.DEAD;deadT=0;switchBGM('dead');return;}sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
+    if(hitPauseTopGear(p.x,p.y)){sfx('click');settingsOpen=true;return;}
     if(hitPauseSettingsBtn(p.x,p.y)){sfx('click');settingsOpen=true;return;}
     return;
   }
