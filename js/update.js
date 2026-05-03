@@ -1139,7 +1139,12 @@ function update(dt){
       const magStr=playerCoinMagnetStrength();
       if(magR>0&&magStr>0){
         const dx=player.x-c.x,dy=player.y-c.y,d2=dx*dx+dy*dy;
-        if(d2<magR*magR){c.x+=dx*magStr;c.y+=dy*magStr;}if(itemEff.magnet>0)cd*=1.8;
+        if(d2<magR*magR){
+          c.x+=dx*magStr;c.y+=dy*magStr;
+          // If coin drifted behind player after scroll+magnet, snap to player to ensure collection
+          if(c.x<player.x){c.x=player.x;c.y=player.y;}
+        }
+        if(itemEff.magnet>0)cd*=1.8;
       }
       const dx=player.x-c.x,dy=player.y-c.y;
       if(dx*dx+dy*dy<cd*cd){
@@ -1175,7 +1180,11 @@ function update(dt){
       const magStr=playerItemMagnetStrength();
       if(magR>0&&magStr>0){
         const mdx=player.x-it.x,mdy=player.y-it.y,md2=mdx*mdx+mdy*mdy;
-        if(md2<magR*magR){it.x+=mdx*magStr;it.y+=mdy*magStr;}
+        if(md2<magR*magR){
+          it.x+=mdx*magStr;it.y+=mdy*magStr;
+          // If item drifted behind player, snap to player to ensure collection
+          if(it.x<player.x){it.x=player.x;it.y=player.y;}
+        }
       }
       const dx=player.x-it.x,dy=player.y-it.y;
       if(dx*dx+dy*dy<(pr+it.sz)*(pr+it.sz)){
