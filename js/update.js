@@ -825,15 +825,25 @@ function update(dt){
   }
   // Reset air combo when grounded
   if(player.grounded){airCombo=0;stompCombo=0;}
-  // Bounce special: landing wave — knock all enemies sideways with boing SE
-  if(!_wasGrounded&&player.grounded&&isSpecialActive('bounce')){
-    sfx('bounce');vibrate('stomp');shakeI=Math.max(shakeI,8);
-    emitParts(player.x,player.y,22,'#ff9988',5,4);
+  // Stone special: landing shockwave — knock all enemies sideways, points shown immediately
+  if(!_wasGrounded&&player.grounded&&isSpecialActive('stone')){
+    sfx('gstompHeavy');vibrate('stomp_heavy');shakeI=Math.max(shakeI,14);
+    emitParts(player.x,player.y,28,'#a09070',6,5);
+    // Dust rings on both surfaces
+    for(let _s=-1;_s<=1;_s+=2){for(let _k=0;_k<5;_k++){
+      parts.push({x:player.x+_s*(20+_k*30),y:player.gDir===1?H-GROUND_H:GROUND_H,
+        vx:_s*(1.5+Math.random()),vy:player.gDir===1?-2-Math.random()*2:2+Math.random()*2,
+        life:18,ml:18,sz:Math.random()*5+2,col:'#a09070'});
+    }}
     for(let _ei=0;_ei<enemies.length;_ei++){
       const _en=enemies[_ei];
       if(!_en.alive||_en.bossType||_en.boss)continue;
+      // Give points IMMEDIATELY at enemy's current position
+      const _bon=cubeSpecialKillBonus(Math.floor(10+Math.min(score*0.1,30)));
+      dist+=_bon;addSpecialGauge(SPECIAL_KILL_GAIN);
+      addPop(_en.x,_en.y-_en.sz*_en.gDir,'+'+_bon,'#c0b080');
       _en._bounceKnock=Math.random()<0.5?-1:1;
-      _en.vy=-(3+Math.random()*3);
+      _en.vy=-( 3+Math.random()*3)*_en.gDir; // launch away from surface
     }
   }
 
@@ -1230,11 +1240,7 @@ function update(dt){
       en.vy=(en.vy||0)+(en.gDir===1?0.5:-0.5); // pull toward pit
       en.y+=en.vy;
       if(en.x<-60||en.x>W+60||en.y>H+60||en.y<-60){
-        en.alive=false;
-        const bon=cubeSpecialKillBonus(Math.floor(10+Math.min(score*0.1,30)));
-        dist+=bon;addSpecialGauge(SPECIAL_KILL_GAIN);
-        addPop(Math.min(Math.max(en.x,20),W-20),Math.min(Math.max(en.y,30),H-50),'+'+bon,'#ff9988');
-        sfxEnemyDeath(en.type);
+        en.alive=false; // points already given at wave trigger
       }
       continue;
     }
@@ -1546,6 +1552,16 @@ function update(dt){
     const dx=player.x-en.x,dy=player.y-en.y;
     const enR=pr+en.sz;
     if(dx*dx+dy*dy<enR*enR){
+      // Pinball: ball special kills from any contact direction
+      if(isSpecialActive('bounce')&&!en.bossType){
+        const bon=cubeSpecialKillBonus(Math.floor(15+Math.min(score*0.1,25)));
+        rewardEnemySpecialKill(en,'#ff6b6b',bon);
+        // Small elastic bounce off enemy
+        player.vy=-player.vy*0.55;
+        if(Math.abs(player.vy)<1.5)player.vy=-2*player.gDir;
+        player.grounded=false;
+        continue;
+      }
       // Invincible: destroy enemy on contact
       if(playerDamageImmune()){
         const bon=cubeSpecialKillBonus(Math.floor(10+Math.min(score*0.1,20)));
