@@ -4198,19 +4198,19 @@ function drawChestOpen(){
   const rw=chestOpen.reward;
   const isChar=rw&&rw.type==='char';
   const isCosmetic=rw&&rw.type==='cosmetic';
-  function withChestPreviewCosmetic(item,drawFn){
+  // isNew: true=new item, false=already owned, undefined=unknown (no badge)
+  function drawChestPreviewCharacter(px,py,pr,item,alpha,isNew){
+    const a=alpha===undefined?1:alpha;
+    const drawA=isNew===false?a*0.42:a; // dim owned items
     const prevSkin=equippedSkin,prevEyes=equippedEyes,prevEffect=equippedEffect;
+    // Clear other cosmetics — show only the revealed item on default cube char
+    equippedSkin='';equippedEyes='';equippedEffect='';
     if(item&&item.tab===0)equippedSkin=item.id;
     else if(item&&item.tab===1)equippedEyes=item.id;
     else if(item&&item.tab===2)equippedEffect=item.id;
-    drawFn();
+    if(item&&item.tab===2)drawPlayerEffect(px,py,pr,item.type,drawA,1);
+    drawCharacter(px,py,0,pr,0,drawA,'happy',0,true); // char 0 = default cube
     equippedSkin=prevSkin;equippedEyes=prevEyes;equippedEffect=prevEffect;
-  }
-  function drawChestPreviewCharacter(px,py,pr,item,alpha){
-    withChestPreviewCosmetic(item,()=>{
-      if(item&&item.tab===2)drawPlayerEffect(px,py,pr,item.type,alpha===undefined?1:alpha,1);
-      drawCharacter(px,py,selChar,pr,0,alpha===undefined?1:alpha,'happy',0,true);
-    });
   }
   ctx.save();
 
@@ -4471,7 +4471,7 @@ function drawChestOpen(){
         _shadow(20,isRareItem?`hsl(${hue},90%,60%)`:'#00aaff');
       }
       // Draw cosmetic preview
-      drawChestPreviewCharacter(0,0,ri.tab===2?20:24,ri,1);
+      drawChestPreviewCharacter(0,0,ri.tab===2?20:24,ri,1,rw.isNew);
       ctx.shadowBlur=0;
       ctx.restore();
       if(revealT>0.5){
@@ -4492,14 +4492,16 @@ function drawChestOpen(){
             _shadow(12,`hsl(${tHue},100%,50%)`);
             ctx.fillText('\u2605 SECRET ITEM! \u2605',cx,itemY-36);
           } else {
-            ctx.fillStyle='#00e5ff';ctx.font='bold 14px monospace';ctx.textAlign='center';
-            _shadow(8,'#00e5ff');
-            ctx.fillText('\u2606 NEW ITEM! \u2606',cx,itemY-36);
+            ctx.fillStyle='#34d399';ctx.font='bold 15px monospace';ctx.textAlign='center';
+            _shadow(10,'#34d399');
+            ctx.fillText('\u2728 NEW! \u2728',cx,itemY-36);
           }
         } else {
-          ctx.fillStyle='#ffaa00';ctx.font='bold 14px monospace';ctx.textAlign='center';
-          _shadow(8,'#ffaa00');
-          ctx.fillText(t('alreadyOwned300'),cx,itemY-36);
+          // Already owned: prominent grey stamp
+          ctx.fillStyle='rgba(0,0,0,0.55)';rr(cx-72,itemY-50,144,24,6);ctx.fill();
+          ctx.strokeStyle='#666';ctx.lineWidth=1;rr(cx-72,itemY-50,144,24,6);ctx.stroke();
+          ctx.fillStyle='#999';ctx.font='bold 12px monospace';ctx.textAlign='center';
+          ctx.fillText('\ud83d\udd12 '+t('alreadyOwned300'),cx,itemY-33);
         }
         ctx.shadowBlur=0;
         const catLabel=ri.tab===0?t('categorySkin'):ri.tab===1?t('categoryEyes'):t('categoryEffect');
@@ -4616,7 +4618,7 @@ function drawChestOpen(){
       const bounce=Math.sin(cot*0.06)*3;
       ctx.save();ctx.translate(cx,cy-30+bounce);
       _shadow(isSR?30:isRareDone?24:15,isSR?`hsl(${hue},100%,60%)`:isRareDone?'#a855f7':'#7dd3fc');
-      drawChestPreviewCharacter(0,0,ri.tab===2?18:22,ri,1);
+      drawChestPreviewCharacter(0,0,ri.tab===2?18:22,ri,1,rw.isNew);
       ctx.shadowBlur=0;ctx.restore();
       if(isSR){
         const tHue=(cot*5)%360;const pulse=1+Math.sin(cot*0.15)*0.08;
@@ -4629,9 +4631,12 @@ function drawChestOpen(){
         const tHue=(cot*5)%360;
         ctx.fillStyle=`hsl(${tHue},100%,65%)`;ctx.font='bold 14px monospace';ctx.textAlign='center';
         ctx.fillText('\u2605 SECRET ITEM! \u2605',cx,cy-70);
+      } else if(rw.isNew){
+        ctx.fillStyle='#34d399';ctx.font='bold 15px monospace';ctx.textAlign='center';
+        _shadow(10,'#34d399');ctx.fillText('\u2728 NEW! \u2728',cx,cy-70);ctx.shadowBlur=0;
       } else {
-        ctx.fillStyle='#00e5ff';ctx.font='bold 14px monospace';ctx.textAlign='center';
-        ctx.fillText('\u2606 NEW ITEM! \u2606',cx,cy-70);
+        ctx.fillStyle='#888';ctx.font='bold 13px monospace';ctx.textAlign='center';
+        ctx.fillText('\ud83d\udd12 OWNED',cx,cy-70);
       }
       const catLabel2=ri.tab===0?t('categorySkin'):ri.tab===1?t('categoryEyes'):t('categoryEffect');
       ctx.fillStyle=ri.tab===0?'#88ccff':ri.tab===1?'#ffcc44':'#44ffaa';ctx.font='bold 11px monospace';ctx.textAlign='center';
@@ -4641,11 +4646,15 @@ function drawChestOpen(){
       ctx.fillStyle='#fff8';ctx.font='11px monospace';
       ctx.fillText(tCosDesc(ri.id),cx,cy+32);
       if(rw.isNew){
+        ctx.fillStyle='rgba(52,211,153,0.18)';rr(cx-80,cy+42,160,26,6);ctx.fill();
+        ctx.strokeStyle='#34d399';ctx.lineWidth=1;rr(cx-80,cy+42,160,26,6);ctx.stroke();
         ctx.fillStyle='#34d399';ctx.font='bold 13px monospace';
-        ctx.fillText(t('newGet'),cx,cy+52);
+        ctx.fillText(t('newGet'),cx,cy+60);
       } else {
-        ctx.fillStyle='#ffaa00';ctx.font='12px monospace';
-        ctx.fillText(t('alreadyOwned300'),cx,cy+52);
+        ctx.fillStyle='rgba(0,0,0,0.45)';rr(cx-80,cy+42,160,26,6);ctx.fill();
+        ctx.strokeStyle='#555';ctx.lineWidth=1;rr(cx-80,cy+42,160,26,6);ctx.stroke();
+        ctx.fillStyle='#888';ctx.font='bold 12px monospace';
+        ctx.fillText('\ud83d\udcb0 '+t('alreadyOwned300'),cx,cy+60);
       }
       const sparkRate=isSR?3:isRareDone?4:8;
       if(cot%sparkRate===0){const a=Math.random()*TAU,r=30+Math.random()*40;const sHue=isRareDone?260+Math.floor(Math.random()*70):Math.floor(Math.random()*360);
@@ -4895,7 +4904,7 @@ function drawChestOpen(){
           }
           // Actual cosmetic preview
           const pvY=cardY2+(rar?26:20);
-          drawChestPreviewCharacter(ccx2,pvY,tab2===2?8:10,rw2.item,1);
+          drawChestPreviewCharacter(ccx2,pvY,tab2===2?8:10,rw2.item,1,rw2.isNew);
           // Category label
           const catL=tab2===0?'SKIN':tab2===1?'EYE':'FX';
           const catC=tab2===0?'#88ccff':tab2===1?'#ffcc44':'#44ffaa';
@@ -4906,7 +4915,7 @@ function drawChestOpen(){
           const siname=iname.length>5?iname.substring(0,5)+'..':iname;
           ctx.fillStyle='#fff';ctx.font='8px monospace';ctx.textAlign='center';
           ctx.fillText(siname,ccx2,cardY2+(rar?54:48));
-          ctx.fillStyle=rw2.isNew?'#34d399':'#ffaa00';ctx.font='bold 9px monospace';
+          ctx.fillStyle=rw2.isNew?'#34d399':'#777';ctx.font='bold 9px monospace';
           ctx.fillText(rw2.isNew?(rar==='super_rare'?'S.RARE!':'NEW!'):'+300',ccx2,cardY2+(rar?66:60));
         }
         ctx.globalAlpha=1;
