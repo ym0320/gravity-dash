@@ -3129,20 +3129,14 @@ function drawSpecialParade(){
   ctx.restore();
 }
 function drawUI(){
-  // === TOP-LEFT: score HUD above HP ===
   const hudTop=safeTop+4;
-  if(!isPackMode&&!isChallengeMode){
-    ctx.textAlign='left';
-    ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';
-    ctx.fillText('\u25CF '+totalCoins,10,hudTop+7);
-    ctx.fillStyle='#9fb4c8';ctx.font='11px monospace';
-    ctx.fillText(t('speedLabel')+' '+(speed/SPEED_INIT).toFixed(1),10,hudTop+18);
-  } else if(isChallengeMode){
+  if(isChallengeMode){
     ctx.fillStyle='#ffd700';ctx.font='bold 13px monospace';ctx.textAlign='left';
     ctx.fillText(t('challengeLabel'),10,hudTop+10);
   }
 
-  const hpY=hudTop+42;
+  // HP hearts at top-left
+  const hpY=hudTop+18;
   drawSpecialHpHearts(24,hpY,28,34,false);
 
   // Combo display (center area)
@@ -3306,15 +3300,27 @@ function drawActionPanel(){
   if(isChallengeMode){
     // Challenge mode: show consecutive kill count
     ctx.fillStyle='#ffd700';ctx.font='bold 24px monospace';ctx.textAlign='left';
-    ctx.fillText(t('killCountDisplay')+' '+challengeKills,12,py+31);
+    ctx.fillText(t('killCountDisplay')+' '+challengeKills,40,py+31);
     ctx.fillStyle='#fff5';ctx.font='bold 11px monospace';
-    ctx.fillText('WAVE '+(challTransition.waveNum||challengeKills+1),12,py+46);
+    ctx.fillText('WAVE '+(challTransition.waveNum||challengeKills+1),40,py+46);
   } else if(!isPackMode){
     // Endless mode only: show score and hi-score
     ctx.fillStyle='#fff';ctx.font='bold 24px monospace';ctx.textAlign='left';
-    ctx.fillText(score,12,py+31);
+    ctx.fillText(score,40,py+31);
     ctx.fillStyle='#ffd70088';ctx.font='bold 11px monospace';
-    ctx.fillText('HI: '+highScore,12,py+46);
+    ctx.fillText('HI: '+highScore,40,py+46);
+  }
+
+  // Coin and speed display: right of bomb button
+  if(!isPackMode&&!isChallengeMode){
+    const b2=itemBtnLayout();
+    const coinDispX=b2.bombX+b2.sz+10;
+    const midY=py+PANEL_H/2;
+    ctx.textAlign='left';
+    ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';
+    ctx.fillText('● '+totalCoins,coinDispX,midY-4);
+    ctx.fillStyle='#9fb4c8';ctx.font='10px monospace';
+    ctx.fillText(t('speedLabel')+' '+(speed/SPEED_INIT).toFixed(1),coinDispX,midY+10);
   }
 
   ctx.textAlign='left';
@@ -4023,7 +4029,7 @@ function drawTitle(){
         ctx.fillText(String(rank),rx+(rank<10?4:0),ry+22);
       }
       // Character icon with per-player cosmetics
-      const cix=mX+42,ciy=ry+16;
+      const cix=mX+50,ciy=ry+16;
       const _rkSkin=equippedSkin,_rkEyes=equippedEyes,_rkFx=equippedEffect,_rkPet=equippedPet,_rkAcc=equippedAccessory;
       equippedSkin=entry.eqSkin||'';equippedEyes=entry.eqEyes||'';equippedEffect=entry.eqFx||'';equippedPet=entry.eqPet||'';equippedAccessory=entry.eqAcc||'';
       const rkFxData=getEquippedEffectData();
@@ -4033,25 +4039,30 @@ function drawTitle(){
         drawPlayerEffect(cix,ciy+2,10,rkFxData.type,0.85,0);
         ctx.restore();
       }
-      drawEquippedPetAt(cix-12,ciy+4,6,0.95,'preview',1);
+      drawEquippedPetAt(cix-14,ciy+4,6,0.95,'preview',1);
       drawCharacter(cix,ciy,entry.charIdx,9,0,1,'normal',0,true);
       equippedSkin=_rkSkin;equippedEyes=_rkEyes;equippedEffect=_rkFx;equippedPet=_rkPet;equippedAccessory=_rkAcc;
       // Name
-      const nameX=mX+58;
-      if(entry.isPlayer){ctx.fillStyle='#00e5ff';ctx.font='bold 12px monospace';}
-      else if(rank===1){ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';}
-      else if(rank===2){ctx.fillStyle='#e0e0e0';ctx.font='bold 12px monospace';}
-      else if(rank===3){ctx.fillStyle='#dda060';ctx.font='bold 12px monospace';}
-      else{ctx.fillStyle='#ccca';ctx.font='11px monospace';}
-      ctx.textAlign='left';
+      const nameX=mX+66;
+      const nameFont=entry.isPlayer?'bold 12px monospace':rank<=3?'bold 12px monospace':'11px monospace';
+      if(entry.isPlayer)ctx.fillStyle='#00e5ff';
+      else if(rank===1)ctx.fillStyle='#ffd700';
+      else if(rank===2)ctx.fillStyle='#e0e0e0';
+      else if(rank===3)ctx.fillStyle='#dda060';
+      else ctx.fillStyle='#ccca';
+      ctx.font=nameFont;ctx.textAlign='left';
       const scX=mX+mW-14;
-      const nameLabel=entry.name+(entry.isPlayer?' \u25C0':'');
-      ctx.fillText(nameLabel,nameX,ry+22);
+      ctx.fillText(entry.name,nameX,ry+22);
+      const nameW=_cMT(entry.name,nameFont);
+      let markerX=nameX+nameW+4;
       if(entry.titleId){
-        const badgeFont=entry.isPlayer||rank<=3?'bold 12px monospace':'11px monospace';
-        const nameW=_cMT(nameLabel,badgeFont);
         const badgeCx=Math.min(scX-52,nameX+nameW+42);
-        drawTitleBadge(badgeCx,ry+16,entry.titleId,{scale:0.72,fontPx:9});
+        const rkBd=drawTitleBadge(badgeCx,ry+16,entry.titleId,{scale:0.72,fontPx:9});
+        if(rkBd)markerX=rkBd.x+rkBd.w+4;
+      }
+      if(entry.isPlayer){
+        ctx.fillStyle='#00e5ff';ctx.font='bold 11px monospace';ctx.textAlign='left';
+        ctx.fillText('\u25C0',markerX,ry+22);
       }
       // Value (right-aligned): score for endless, kills for challenge
       if(entry.isPlayer){ctx.fillStyle='#00e5ff';ctx.font='bold 13px monospace';}
@@ -4190,14 +4201,18 @@ function drawTitleMenu(){
     ctx.fillStyle=rowBg;rr(rowX,rowY,rowW,rowH,10);ctx.fill();
     ctx.strokeStyle=equippedTitle?pal.rim:(unlockedTitle?'rgba(255,255,255,0.12)':'rgba(148,163,184,0.16)');
     ctx.lineWidth=equippedTitle?1.5:1;rr(rowX,rowY,rowW,rowH,10);ctx.stroke();
-    drawTitleBadge(mX+76,cy+31,def,{label:unlockedTitle?tTitleName(def):t('titleLockedName'),locked:!unlockedTitle,scale:0.9,fontPx:9});
+    const bd=drawTitleBadge(mX+72,cy+34,def,{label:unlockedTitle?tTitleName(def):t('titleLockedName'),locked:!unlockedTitle,scale:0.88,fontPx:9});
     const status=equippedTitle?t('titleEquippedState'):(unlockedTitle?t('titleUnlockedState'):t('titleLockedState'));
-    ctx.fillStyle=equippedTitle?pal.rim:(unlockedTitle?'#ffffff99':'#94a3b8');
-    ctx.font='bold 9px monospace';ctx.textAlign='right';
-    ctx.fillText(status,mX+mW-18,cy+18);
-    const lines=_wrapTextLines(getTitleConditionText(def),gameLang==='ja'?18:26).slice(0,2);
+    const statusColor=equippedTitle?pal.rim:(unlockedTitle?'#ffffff99':'#94a3b8');
+    const descX=bd?Math.max(mX+130,bd.x+bd.w+8):mX+130;
+    const statusX=mX+mW-18;
+    ctx.fillStyle=statusColor;ctx.font='bold 9px monospace';ctx.textAlign='right';
+    ctx.fillText(status,statusX,cy+16);
+    const availW=statusX-descX-4;
+    const wrapCh=Math.max(8,Math.floor(availW/(gameLang==='ja'?9.5:6)));
+    const lines=_wrapTextLines(getTitleConditionText(def),wrapCh).slice(0,2);
     ctx.fillStyle='#fff8';ctx.font='10px monospace';ctx.textAlign='left';
-    for(let li=0;li<lines.length;li++)ctx.fillText(lines[li],mX+128,cy+24+li*14);
+    for(let li=0;li<lines.length;li++)ctx.fillText(lines[li],descX,cy+26+li*14);
     cy+=eh;
   }
   ctx.restore();
@@ -4209,6 +4224,34 @@ function drawTitleMenu(){
     ctx.fillStyle='#ffffff22';rr(mX+mW-6,thumbY,4,thumbH,2);ctx.fill();
   }
   _drawCloseBtn(lay.footerY);
+
+  // Title equip confirmation modal
+  if(titleConfirmPending){
+    const {def,nextId}=titleConfirmPending;
+    const cW=220,cH=120,cX=W/2-cW/2,cY=H/2-cH/2;
+    ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(0,0,W,H);
+    const cgr=ctx.createLinearGradient(cX,cY,cX,cY+cH);
+    cgr.addColorStop(0,'#1a2236');cgr.addColorStop(1,'#0e1222');
+    ctx.fillStyle=cgr;rr(cX,cY,cW,cH,14);ctx.fill();
+    ctx.strokeStyle='rgba(125,211,252,0.5)';ctx.lineWidth=1.5;rr(cX,cY,cW,cH,14);ctx.stroke();
+    const msgKey=nextId?'titleEquipConfirm':'titleUnequipConfirm';
+    ctx.fillStyle='#fff';ctx.font='bold 12px monospace';ctx.textAlign='center';
+    ctx.fillText(t(msgKey),W/2,cY+28);
+    if(def){drawTitleBadge(W/2,cY+60,def,{scale:1,fontPx:10});}
+    const btnY=cY+cH-36,btnW=(cW-36)/2;
+    // Yes button
+    const yesX=cX+12;
+    ctx.fillStyle='rgba(125,211,252,0.18)';rr(yesX,btnY,btnW,28,8);ctx.fill();
+    ctx.strokeStyle='rgba(125,211,252,0.7)';ctx.lineWidth=1;rr(yesX,btnY,btnW,28,8);ctx.stroke();
+    ctx.fillStyle='#7dd3fc';ctx.font='bold 12px monospace';ctx.textAlign='center';
+    ctx.fillText(t('titleConfirmYes'),yesX+btnW/2,btnY+19);
+    // No button
+    const noX=cX+12+btnW+12;
+    ctx.fillStyle='rgba(255,255,255,0.08)';rr(noX,btnY,btnW,28,8);ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.25)';ctx.lineWidth=1;rr(noX,btnY,btnW,28,8);ctx.stroke();
+    ctx.fillStyle='#94a3b8';ctx.font='bold 12px monospace';ctx.textAlign='center';
+    ctx.fillText(t('titleConfirmNo'),noX+btnW/2,btnY+19);
+  }
 }
 
 function drawCharModal(){
@@ -4616,14 +4659,18 @@ function drawChestOpen(){
     const a=alpha===undefined?1:alpha;
     const drawA=isNew===false?a*0.42:a; // dim owned items
     const prevSkin=equippedSkin,prevEyes=equippedEyes,prevEffect=equippedEffect;
-    // Clear other cosmetics — show only the revealed item on default cube char
-    equippedSkin='';equippedEyes='';equippedEffect='';
+    const prevPet=equippedPet,prevAcc=equippedAccessory;
+    equippedSkin='';equippedEyes='';equippedEffect='';equippedPet='';equippedAccessory='';
     if(item&&item.tab===0)equippedSkin=item.id;
     else if(item&&item.tab===1)equippedEyes=item.id;
     else if(item&&item.tab===2)equippedEffect=item.id;
+    else if(item&&item.tab===3)equippedPet=item.id;
+    else if(item&&item.tab===4)equippedAccessory=item.id;
     if(item&&item.tab===2)drawPlayerEffect(px,py,pr,item.type,drawA,1);
-    drawCharacter(px,py,selChar,pr,0,drawA,'happy',0,true); // user's selected char, no other cosmetics
+    drawCharacter(px,py,selChar,pr,0,drawA,'happy',0,true);
+    if(item&&item.tab===3)drawEquippedPetAt(px+pr*1.4,py-pr*0.6,0.55,drawA,'idle',1);
     equippedSkin=prevSkin;equippedEyes=prevEyes;equippedEffect=prevEffect;
+    equippedPet=prevPet;equippedAccessory=prevAcc;
   }
   ctx.save();
 
@@ -4917,8 +4964,8 @@ function drawChestOpen(){
           ctx.fillText('\ud83d\udd12 '+t('alreadyOwned300'),cx,itemY-33);
         }
         ctx.shadowBlur=0;
-        const catLabel=ri.tab===0?t('categorySkin'):ri.tab===1?t('categoryEyes'):t('categoryEffect');
-        ctx.fillStyle=ri.tab===0?'#88ccff':ri.tab===1?'#ffcc44':'#44ffaa';ctx.font='bold 11px monospace';
+        const catLabel=ri.tab===0?t('categorySkin'):ri.tab===1?t('categoryEyes'):ri.tab===2?t('categoryEffect'):ri.tab===3?t('categoryPet'):t('categoryAccessory');
+        ctx.fillStyle=ri.tab===0?'#88ccff':ri.tab===1?'#ffcc44':ri.tab===2?'#44ffaa':ri.tab===3?'#34d399':'#fb923c';ctx.font='bold 11px monospace';
         ctx.fillText(catLabel,cx,itemY+32);
         ctx.fillStyle=isSuperRareItem?'#ffd700':'#fff';ctx.font='bold 16px monospace';
         ctx.fillText(tCosName(ri.id),cx,itemY+50);
@@ -5051,8 +5098,8 @@ function drawChestOpen(){
         ctx.fillStyle='#888';ctx.font='bold 13px monospace';ctx.textAlign='center';
         ctx.fillText('\ud83d\udd12 OWNED',cx,cy-70);
       }
-      const catLabel2=ri.tab===0?t('categorySkin'):ri.tab===1?t('categoryEyes'):t('categoryEffect');
-      ctx.fillStyle=ri.tab===0?'#88ccff':ri.tab===1?'#ffcc44':'#44ffaa';ctx.font='bold 11px monospace';ctx.textAlign='center';
+      const catLabel2=ri.tab===0?t('categorySkin'):ri.tab===1?t('categoryEyes'):ri.tab===2?t('categoryEffect'):ri.tab===3?t('categoryPet'):t('categoryAccessory');
+      ctx.fillStyle=ri.tab===0?'#88ccff':ri.tab===1?'#ffcc44':ri.tab===2?'#44ffaa':ri.tab===3?'#34d399':'#fb923c';ctx.font='bold 11px monospace';ctx.textAlign='center';
       ctx.fillText(catLabel2,cx,cy-4);
       ctx.fillStyle=isSR?'#ffd700':'#fff';ctx.font='bold 16px monospace';ctx.textAlign='center';
       ctx.fillText(tCosName(ri.id),cx,cy+14);
@@ -5319,8 +5366,8 @@ function drawChestOpen(){
           const pvY=cardY2+(rar?26:20);
           drawChestPreviewCharacter(ccx2,pvY,tab2===2?8:10,rw2.item,1,rw2.isNew);
           // Category label
-          const catL=tab2===0?'SKIN':tab2===1?'EYE':'FX';
-          const catC=tab2===0?'#88ccff':tab2===1?'#ffcc44':'#44ffaa';
+          const catL=tab2===0?'SKIN':tab2===1?'EYE':tab2===2?'FX':tab2===3?'PET':'ACC';
+          const catC=tab2===0?'#88ccff':tab2===1?'#ffcc44':tab2===2?'#44ffaa':tab2===3?'#34d399':'#fb923c';
           ctx.fillStyle=catC;ctx.font='bold 7px monospace';ctx.textAlign='center';
           ctx.fillText(catL,ccx2,cardY2+(rar?44:38));
           // Item name

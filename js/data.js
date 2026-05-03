@@ -45,7 +45,7 @@ const SPEED_MAX=5.0;
 const HP_MAX=3;
 const HURT_INVINCIBLE=90; // frames of invincibility after taking damage
 const BOSS_INTERVAL=600; // rawDist interval between boss battles
-const GAME_VERSION='2.22.189';
+const GAME_VERSION='2.22.190';
 
 // ===== THEMES =====
 const THEMES=[
@@ -343,6 +343,7 @@ function activateSpecialSkill(source,forced){
     ghostInvis=true;
     ghostPhaseT=0;
   }
+  if(typeof triggerPetReaction==='function')triggerPetReaction('special',Math.min(120,specialState.t));
   refreshAirActionState(true);
   if(state===ST.PLAY)syncGameplayBGM(true);
   return true;
@@ -518,8 +519,8 @@ function rebuildRankingData(){
   const data=[];
   if(typeof highScore!=='undefined'&&highScore>0){
     const pName=(typeof playerName!=='undefined'&&playerName)||t('youDefault');
-    const rc=rankChar>=0?rankChar:selChar||0;
-    data.push({name:pName,charIdx:rc,score:highScore,eqSkin:rankSkin||'',eqEyes:rankEyes||'',eqFx:rankFx||'',isPlayer:true});
+    const live=currentRankingAppearance();
+    data.push({name:pName,charIdx:live.charIdx,score:highScore,eqSkin:live.eqSkin,eqEyes:live.eqEyes,eqFx:live.eqFx,eqPet:live.eqPet,eqAcc:live.eqAcc,titleId:live.titleId,isPlayer:true});
   }
   if(_DEBUG_SAMPLE_RANKING)for(let i=0;i<_SAMPLE_BASE.length;i++)data.push({name:_sampleName(i),charIdx:_SAMPLE_BASE[i].charIdx,score:_SAMPLE_BASE[i].score,eqSkin:_SAMPLE_BASE[i].eqSkin,eqEyes:_SAMPLE_BASE[i].eqEyes,eqFx:_SAMPLE_BASE[i].eqFx,isPlayer:false});
   data.sort((a,b)=>b.score-a.score);
@@ -530,8 +531,8 @@ function rebuildChallengeRankingData(){
   const data=[];
   if(typeof challengeBestKills!=='undefined'&&challengeBestKills>0){
     const pName=(typeof playerName!=='undefined'&&playerName)||t('youDefault');
-    const rc=challRankChar>=0?challRankChar:selChar||0;
-    data.push({name:pName,charIdx:rc,kills:challengeBestKills,eqSkin:challRankSkin||'',eqEyes:challRankEyes||'',eqFx:challRankFx||'',isPlayer:true});
+    const live=currentRankingAppearance();
+    data.push({name:pName,charIdx:live.charIdx,kills:challengeBestKills,eqSkin:live.eqSkin,eqEyes:live.eqEyes,eqFx:live.eqFx,eqPet:live.eqPet,eqAcc:live.eqAcc,titleId:live.titleId,isPlayer:true});
   }
   if(_DEBUG_SAMPLE_RANKING)for(let i=0;i<_SAMPLE_BASE.length;i++)data.push({name:_sampleName(i),charIdx:_SAMPLE_BASE[i].charIdx,kills:_SAMPLE_BASE[i].kills,eqSkin:_SAMPLE_BASE[i].eqSkin,eqEyes:_SAMPLE_BASE[i].eqEyes,eqFx:_SAMPLE_BASE[i].eqFx,isPlayer:false});
   data.sort((a,b)=>b.kills-a.kills);
@@ -2199,6 +2200,8 @@ let challRankChar=Math.max(-1,Math.min(5,parseInt(localStorage.getItem('gd5chall
 let challRankSkin=_sanitizeLsCosmId(localStorage.getItem('gd5challRankSkin')||'');
 let challRankEyes=_sanitizeLsCosmId(localStorage.getItem('gd5challRankEyes')||'');
 let challRankFx=_sanitizeLsCosmId(localStorage.getItem('gd5challRankFx')||'');
+let challRankPet=_sanitizeLsCosmId(localStorage.getItem('gd5challRankPet')||'');
+let challRankAcc=_sanitizeLsCosmId(localStorage.getItem('gd5challRankAcc')||'');
 // Challenge boss queue (pre-generated wave order)
 let challBossQueue=[]; // [{type,type2,strength,isDual}]
 let challQueueIdx=0; // current position in queue
@@ -2278,6 +2281,8 @@ let rankChar=Math.max(-1,Math.min(5,parseInt(localStorage.getItem('gd5rankChar')
 let rankSkin=_sanitizeLsCosmId(localStorage.getItem('gd5rankSkin')||'');
 let rankEyes=_sanitizeLsCosmId(localStorage.getItem('gd5rankEyes')||'');
 let rankFx=_sanitizeLsCosmId(localStorage.getItem('gd5rankFx')||'');
+let rankPet=_sanitizeLsCosmId(localStorage.getItem('gd5rankPet')||'');
+let rankAcc=_sanitizeLsCosmId(localStorage.getItem('gd5rankAcc')||'');
 let newHi=false,speed=SPEED_INIT,frame=0,deadT=0,titleT=0;
 let combo=0,comboT=0,comboDsp=0,comboDspT=0;
 let airCombo=0; // aerial enemy kill combo (resets on grounded)
@@ -2296,6 +2301,7 @@ let hp=HP_MAX,hurtT=0; // hit points and hurt invincibility timer
 let itemEff={invincible:0,magnet:0,slowmo:0};
 let djumpAvailable=false; // double jump (Bounce trait or item)
 let djumpUsed=false; // track if the double jump was used
+let magnetCount=0; // manual magnet charges available in the current endless run
 let bombCount=0; // bombs in inventory
 let bombFlashT=0; // bomb explosion flash timer
 let magmaHurtT=0; // magma damage red flash timer
@@ -2615,20 +2621,173 @@ const SHOP_ITEMS={
     {id:'fx_comet_crown',name:'\u30b3\u30e1\u30c3\u30c8\u30af\u30e9\u30a6\u30f3',type:'comet_crown',price:52000,desc:'\u982d\u4e0a\u3092\u5de1\u308b\u5f57\u661f\u306e\u51a0',rarity:'super_rare',gachaOnly:true,newItem:true},
     {id:'fx_matrix',name:'\u30de\u30c8\u30ea\u30af\u30b9',type:'matrix',price:56000,desc:'\u7dd1\u306e\u30b3\u30fc\u30c9\u304c\u6d41\u308c\u308b',rarity:'super_rare',gachaOnly:true,newItem:true},
     {id:'fx_timewarp',name:'\u30bf\u30a4\u30e0\u30ef\u30fc\u30d7',type:'timewarp',price:62000,desc:'\u6642\u8a08\u306e\u8f2a\u304c\u6b6a\u3080',rarity:'super_rare',gachaOnly:true,newItem:true},
-  ]
+  ],
+  pets:[
+    {id:'pet_comet',type:'comet',price:50000,desc:'\u30ad\u30e9\u30ea\u3068\u5f8c\u308d\u3092\u98db\u3076\u661f\u5c18\u306e\u76f8\u68d2'},
+    {id:'pet_puff',type:'puff',price:50000,desc:'\u3077\u304b\u3077\u304b\u8ffd\u3044\u304b\u3051\u308b\u5c0f\u3055\u306a\u304a\u3070\u3051'},
+    {id:'pet_drone',type:'drone',price:50000,desc:'\u30d6\u30fc\u30b9\u30c8\u5674\u5c04\u3067\u8ffd\u5f93\u3059\u308b\u30df\u30cb\u30c9\u30ed\u30fc\u30f3'},
+  ],
+  accessories:[
+    {id:'acc_halo',type:'halo',price:50000,desc:'\u5149\u306e\u7c92\u304c\u821e\u3046\u5929\u4f7f\u306e\u8f2a'},
+    {id:'acc_crown',type:'crown',price:60000,desc:'\u91d1\u8272\u306e\u706b\u82b1\u3092\u6563\u3089\u3059\u738b\u51a0'},
+    {id:'acc_starpin',type:'ribbon',price:55000,desc:'\u3075\u308f\u308a\u3068\u3072\u3089\u3081\u304f\u30c9\u30ec\u30b9\u30ea\u30dc\u30f3'},
+  ],
+  items:[
+    {id:'item_magnet',type:'magnet',price:1000,desc:'\u624b\u52d5\u767a\u52d5\u3067\u30b3\u30a4\u30f3\u3092\u5f37\u529b\u5438\u53ce',stackMax:99},
+    {id:'item_bomb',type:'bomb',price:500,desc:'\u624b\u52d5\u767a\u52d5\u3067\u753b\u9762\u5185\u306e\u5371\u967a\u3092\u5439\u304d\u98db\u3070\u3059',stackMax:99},
+  ],
 };
+const SHOP_TAB_DEFS=[
+  {key:'skins',labelKey:'skinTab',color:'#ff69b4',isCosmetic:true,equipSlot:'skin'},
+  {key:'eyes',labelKey:'eyeTab',color:'#00e5ff',isCosmetic:true,equipSlot:'eyes'},
+  {key:'effects',labelKey:'effectTab',color:'#ffd700',isCosmetic:true,equipSlot:'effect'},
+  {key:'pets',labelKey:'petTab',color:'#34d399',isCosmetic:true,equipSlot:'pet'},
+  {key:'accessories',labelKey:'accessoryTab',color:'#fb923c',isCosmetic:true,equipSlot:'accessory'},
+  {key:'items',labelKey:'itemTab',color:'#60a5fa',isCosmetic:false,equipSlot:''},
+];
+const COSMETIC_TAB_DEFS=SHOP_TAB_DEFS.filter(def=>def.isCosmetic);
+function shopTabDef(tab){return SHOP_TAB_DEFS[Math.max(0,Math.min(SHOP_TAB_DEFS.length-1,tab))];}
+function cosmeticTabDef(tab){return COSMETIC_TAB_DEFS[Math.max(0,Math.min(COSMETIC_TAB_DEFS.length-1,tab))];}
+function shopItemsForTab(tab){const def=shopTabDef(tab);return SHOP_ITEMS[def.key]||[];}
+function cosmeticItemsForTab(tab){const def=cosmeticTabDef(tab);return SHOP_ITEMS[def.key]||[];}
+const TITLE_GROUP_ORDER=['plays','coins','score','challenge','chests','collection','characters'];
+const TITLE_GROUP_LABEL_KEYS={plays:'titleCategoryPlays',coins:'titleCategoryCoins',score:'titleCategoryScore',challenge:'titleCategoryChallenge',chests:'titleCategoryChests',collection:'titleCategoryCollection',characters:'titleCategoryCharacters'};
+const TITLE_DEFS=[
+  {id:'plays_100',group:'plays',kind:'plays',value:100,nameJa:'ファーストフリップ',nameEn:'First Flip'},
+  {id:'plays_500',group:'plays',kind:'plays',value:500,nameJa:'常連グライダー',nameEn:'Regular Glider'},
+  {id:'plays_1000',group:'plays',kind:'plays',value:1000,nameJa:'重力ランナー',nameEn:'Gravity Runner'},
+  {id:'plays_5000',group:'plays',kind:'plays',value:5000,nameJa:'無重力ジャンキー',nameEn:'Zero-G Junkie'},
+  {id:'plays_10000',group:'plays',kind:'plays',value:10000,nameJa:'次元住民',nameEn:'Dimension Dweller'},
+  {id:'coins_10000',group:'coins',kind:'coins',value:10000,nameJa:'小金の星',nameEn:'Gold Spark'},
+  {id:'coins_50000',group:'coins',kind:'coins',value:50000,nameJa:'ゴールドラッシュ',nameEn:'Gold Rush'},
+  {id:'coins_100000',group:'coins',kind:'coins',value:100000,nameJa:'財宝ハンター',nameEn:'Treasure Hunter'},
+  {id:'coins_500000',group:'coins',kind:'coins',value:500000,nameJa:'ミダスタッチ',nameEn:'Midas Touch'},
+  {id:'coins_1000000',group:'coins',kind:'coins',value:1000000,nameJa:'ミリオンノヴァ',nameEn:'Million Nova'},
+  {id:'score_10000',group:'score',kind:'score',value:10000,nameJa:'一万光年',nameEn:'Ten-K Lightyear'},
+  {id:'score_20000',group:'score',kind:'score',value:20000,nameJa:'成層圏ダッシャー',nameEn:'Stratos Dasher'},
+  {id:'score_30000',group:'score',kind:'score',value:30000,nameJa:'天井知らず',nameEn:'Skybreaker'},
+  {id:'score_40000',group:'score',kind:'score',value:40000,nameJa:'限界突破線',nameEn:'Limit Breaker'},
+  {id:'score_50000',group:'score',kind:'score',value:50000,nameJa:'重力神話',nameEn:'Gravity Myth'},
+  {id:'challenge_5',group:'challenge',kind:'challenge',value:5,nameJa:'試練の火花',nameEn:'Spark of Trials'},
+  {id:'challenge_10',group:'challenge',kind:'challenge',value:10,nameJa:'連戦の牙',nameEn:'Fang of Trials'},
+  {id:'challenge_15',group:'challenge',kind:'challenge',value:15,nameJa:'修羅テンポ',nameEn:'Warpath Tempo'},
+  {id:'challenge_30',group:'challenge',kind:'challenge',value:30,nameJa:'殲滅オペラ',nameEn:'Annihilation Opera'},
+  {id:'chests_100',group:'chests',kind:'chests',value:100,nameJa:'宝箱ソムリエ',nameEn:'Chest Sommelier'},
+  {id:'chests_500',group:'chests',kind:'chests',value:500,nameJa:'秘宝コレクター',nameEn:'Relic Collector'},
+  {id:'chests_1000',group:'chests',kind:'chests',value:1000,nameJa:'遺宝考古学者',nameEn:'Treasure Archaeologist'},
+  {id:'collect_eyes',group:'collection',kind:'collection',collection:'eyes',nameJa:'千のまなざし',nameEn:'Thousand Gazes'},
+  {id:'collect_skins',group:'collection',kind:'collection',collection:'skins',nameJa:'クローゼット覇者',nameEn:'Closet Conqueror'},
+  {id:'collect_effects',group:'collection',kind:'collection',collection:'effects',nameJa:'演出支配者',nameEn:'Effect Emperor'},
+  {id:'collect_pets',group:'collection',kind:'collection',collection:'pets',nameJa:'相棒マスター',nameEn:'Companion Master'},
+  {id:'collect_accessories',group:'collection',kind:'collection',collection:'accessories',nameJa:'飾り職人',nameEn:'Adornment Artisan'},
+  {id:'collect_all',group:'collection',kind:'collection_all',nameJa:'銀河スタイリスト',nameEn:'Galaxy Stylist'},
+  {id:'chars_all',group:'characters',kind:'characters_all',nameJa:'フルキャスト',nameEn:'Full Cast'},
+];
+function _sanitizeTitleId(v){if(!v||typeof v!=='string')return'';return v.replace(/[^a-z0-9_]/gi,'').substring(0,32);}
+function getTitleDef(id){const safe=_sanitizeTitleId(id);for(let i=0;i<TITLE_DEFS.length;i++)if(TITLE_DEFS[i].id===safe)return TITLE_DEFS[i];return null;}
+function tTitleName(id){const def=typeof id==='string'?getTitleDef(id):id;if(!def)return'';return gameLang==='ja'?def.nameJa:def.nameEn;}
+function getTitleCollectionLabel(category){
+  if(gameLang==='ja'){
+    if(category==='eyes')return'目';
+    if(category==='skins')return'スキン';
+    if(category==='effects')return'エフェクト';
+    if(category==='pets')return'ペット';
+    if(category==='accessories')return'アクセサリー';
+    return'コレクション';
+  }
+  if(category==='eyes')return'Eyes';
+  if(category==='skins')return'Skins';
+  if(category==='effects')return'Effects';
+  if(category==='pets')return'Pets';
+  if(category==='accessories')return'Accessories';
+  return'Collection';
+}
+function getTitleConditionText(title){
+  const def=typeof title==='string'?getTitleDef(title):title;
+  if(!def)return'';
+  switch(def.kind){
+    case'plays':return gameLang==='ja'?('プレイ回数 '+def.value.toLocaleString()+'回'):('Play '+def.value.toLocaleString()+' times');
+    case'coins':return gameLang==='ja'?('コイン獲得累計 '+def.value.toLocaleString()):('Earn '+def.value.toLocaleString()+' coins total');
+    case'score':return gameLang==='ja'?('最高スコア '+def.value.toLocaleString()):('Reach score '+def.value.toLocaleString());
+    case'challenge':return gameLang==='ja'?('チャレンジ最高スコア '+def.value.toLocaleString()):('Reach Challenge score '+def.value.toLocaleString());
+    case'chests':return gameLang==='ja'?('宝箱を '+def.value.toLocaleString()+'個開封'):('Open '+def.value.toLocaleString()+' chests');
+    case'collection':return gameLang==='ja'?(getTitleCollectionLabel(def.collection)+'をすべて獲得'):('Collect every '+getTitleCollectionLabel(def.collection));
+    case'collection_all':return gameLang==='ja'?'すべての着せ替えアイテムを獲得':'Collect every cosmetic item';
+    case'characters_all':return gameLang==='ja'?'全キャラクターを解放':'Unlock every character';
+  }
+  return'';
+}
+function hasCollectedAllCategory(category){
+  const items=SHOP_ITEMS[category]||[];
+  if(items.length===0)return false;
+  for(let i=0;i<items.length;i++)if(!ownsItem(items[i].id))return false;
+  return true;
+}
+function isTitleUnlocked(title){
+  const def=typeof title==='string'?getTitleDef(title):title;
+  if(!def)return false;
+  switch(def.kind){
+    case'plays':return (played||0)>=def.value;
+    case'coins':return (lifetimeCoinsEarned||0)>=def.value;
+    case'score':return (highScore||0)>=def.value;
+    case'challenge':return (challengeBestKills||0)>=def.value;
+    case'chests':return (totalChestsOpened||0)>=def.value;
+    case'collection':return hasCollectedAllCategory(def.collection);
+    case'collection_all':return hasCollectedAllCategory('skins')&&hasCollectedAllCategory('eyes')&&hasCollectedAllCategory('effects')&&hasCollectedAllCategory('pets')&&hasCollectedAllCategory('accessories');
+    case'characters_all':return unlockedChars&&unlockedChars.length>=CHARS.length;
+  }
+  return false;
+}
+function getUnlockedTitleDefs(){const arr=[];for(let i=0;i<TITLE_DEFS.length;i++)if(isTitleUnlocked(TITLE_DEFS[i]))arr.push(TITLE_DEFS[i]);return arr;}
+function getTitleMenuEntries(){
+  const entries=[];
+  for(let gi=0;gi<TITLE_GROUP_ORDER.length;gi++){
+    const group=TITLE_GROUP_ORDER[gi];
+    entries.push({type:'header',group,label:t(TITLE_GROUP_LABEL_KEYS[group])});
+    for(let i=0;i<TITLE_DEFS.length;i++)if(TITLE_DEFS[i].group===group)entries.push({type:'title',def:TITLE_DEFS[i]});
+  }
+  return entries;
+}
+function titleMenuEntryHeight(entry){return entry.type==='header'?24:60;}
+function titleMenuLayout(){
+  const mW=Math.min(336,W-16),topPad=safeTop+8;
+  const mH=H-topPad-10,mX=(W-mW)/2,mY=topPad;
+  const hdrH=108,listY=mY+hdrH,listH=mH-hdrH-48;
+  return{mW,mH,mX,mY,hdrH,listY,listH,footerY:mY+mH-40};
+}
+function titleMenuContentHeight(entries){let h=0;for(let i=0;i<entries.length;i++)h+=titleMenuEntryHeight(entries[i]);return h;}
 // Shop state
 let shopOpen=false;
-let shopTab=0; // 0=skins, 1=eyes, 2=effects
+let shopTab=0; // 0=skins, 1=eyes, 2=effects, 3=pets, 4=accessories, 5=items
 let shopScroll=0;
 // Owned items & equipped cosmetics (saved to localStorage)
 let ownedItems=(function(){try{const a=JSON.parse(localStorage.getItem('gd5owned')||'[]');if(!Array.isArray(a))return[];return a.filter(v=>typeof v==='string').map(_sanitizeLsCosmId).filter(v=>v.length>0);}catch(e){return[];}})();
 let equippedSkin=_sanitizeLsCosmId(localStorage.getItem('gd5eqSkin')||'');
 let equippedEyes=_sanitizeLsCosmId(localStorage.getItem('gd5eqEyes')||'');
 let equippedEffect=_sanitizeLsCosmId(localStorage.getItem('gd5eqFx')||'');
+let equippedPet=_sanitizeLsCosmId(localStorage.getItem('gd5eqPet')||'');
+let equippedAccessory=_sanitizeLsCosmId(localStorage.getItem('gd5eqAcc')||'');
+let lifetimeCoinsEarned=Math.max(Math.max(0,parseInt(localStorage.getItem('gd5coinTotal')||'0')||0),walletCoins||0);
+localStorage.setItem('gd5coinTotal',lifetimeCoinsEarned.toString());
+let equippedTitleId=_sanitizeTitleId(localStorage.getItem('gd5titleId')||'');
 let cosmeticMenuOpen=false; // cosmetic equip menu
-let cosmeticTab=0; // 0=skins, 1=eyes, 2=effects
+let cosmeticTab=0; // 0=skins, 1=eyes, 2=effects, 3=pets, 4=accessories
 let cosmeticScroll=0;
+let titleMenuOpen=false;
+let titleMenuScroll=0;
+let titlePendingTap=null;
+let titleConfirmPending=null; // {def, nextId} - pending title equip confirmation
+let itemStocks=(function(){
+  try{
+    const raw=JSON.parse(localStorage.getItem('gd5itemStocks')||'{}')||{};
+    return{
+      item_magnet:Math.max(0,Math.min(99,parseInt(raw.item_magnet||'0')||0)),
+      item_bomb:Math.max(0,Math.min(99,parseInt(raw.item_bomb||'0')||0)),
+    };
+  }catch(e){
+    return{item_magnet:0,item_bomb:0};
+  }
+})();
 // --- Notification badges ---
 let notifNewCosmetic=localStorage.getItem('gd5notifCosm')==='1'; // new cosmetic obtained
 let newCosmeticIds=new Set(JSON.parse(localStorage.getItem('gd5newCosm')||'[]')); // individual new cosmetic IDs
@@ -2644,6 +2803,47 @@ let cosmeticConfirm=null; // {item, tab} when equip confirm dialog shown
 let shopPendingTap=null; // {idx} set on touchstart, confirmed on touchend
 let cosmeticPendingTap=null; // {idx} set on touchstart, confirmed on touchend
 function ownsItem(id){return ownedItems.includes(id);}
+function addLifetimeCoins(amount){
+  const gain=Math.max(0,Math.floor(amount||0));
+  if(gain<=0)return lifetimeCoinsEarned||0;
+  lifetimeCoinsEarned=(lifetimeCoinsEarned||0)+gain;
+  localStorage.setItem('gd5coinTotal',lifetimeCoinsEarned.toString());
+  return lifetimeCoinsEarned;
+}
+function getEquippedTitleDef(){return equippedTitleId?getTitleDef(equippedTitleId):null;}
+function ensureEquippedTitleValid(){
+  if(equippedTitleId&&!isTitleUnlocked(equippedTitleId)){
+    equippedTitleId='';
+    localStorage.setItem('gd5titleId','');
+  }
+  return equippedTitleId;
+}
+function setEquippedTitle(id){
+  const safe=_sanitizeTitleId(id);
+  if(safe&&!isTitleUnlocked(safe))return false;
+  equippedTitleId=safe;
+  localStorage.setItem('gd5titleId',equippedTitleId);
+  rebuildRankingData();
+  rebuildChallengeRankingData();
+  if(typeof fbSaveUserData==='function')fbSaveUserData();
+  return true;
+}
+ensureEquippedTitleValid();
+function saveItemStocks(){localStorage.setItem('gd5itemStocks',JSON.stringify(itemStocks));if(typeof fbSaveUserData==='function')fbSaveUserData();}
+function itemStock(id){return Math.max(0,Math.min(99,parseInt(itemStocks[id]||'0')||0));}
+function setItemStock(id,count){itemStocks[id]=Math.max(0,Math.min(99,count|0));saveItemStocks();}
+function addItemStock(id,delta){setItemStock(id,itemStock(id)+(delta|0));}
+function isConsumableItem(item){return !!item&&item.type&&(item.id==='item_magnet'||item.id==='item_bomb');}
+function consumeStoredRunItem(id){
+  const stock=itemStock(id);
+  if(stock>0){setItemStock(id,stock-1);return true;}
+  return false;
+}
+function prepareConsumableLoadout(){
+  const endlessMode=gameMode==='endless'&&!isPackMode&&!isChallengeMode;
+  magnetCount=endlessMode?Math.min(3,itemStock('item_magnet')):0;
+  bombCount=endlessMode?Math.min(3,itemStock('item_bomb')):0;
+}
 function buyItem(id,price){
   if(ownsItem(id)||walletCoins<price)return false;
   walletCoins-=price;localStorage.setItem('gd5wallet',walletCoins.toString());
@@ -2654,24 +2854,271 @@ function buyItem(id,price){
   if(typeof fbSaveUserData==='function')fbSaveUserData();
   return true;
 }
-function captureRankCosmetics(){
-  rankChar=selChar||0;rankSkin=equippedSkin||'';rankEyes=equippedEyes||'';rankFx=equippedEffect||'';
+function buyConsumable(item){
+  if(!item||walletCoins<(item.price||0))return false;
+  const cur=itemStock(item.id),max=item.stackMax||99;
+  if(cur>=max)return false;
+  walletCoins-=item.price||0;
+  localStorage.setItem('gd5wallet',walletCoins.toString());
+  setItemStock(item.id,cur+1);
+  return true;
+}
+function maxPurchasableConsumable(item){
+  if(!item||!isConsumableItem(item))return 0;
+  const max=item.stackMax||99;
+  const remaining=Math.max(0,max-itemStock(item.id));
+  const affordable=item.price>0?Math.floor(walletCoins/item.price):remaining;
+  return Math.max(0,Math.min(remaining,affordable));
+}
+function buyConsumableQuantity(item,qty){
+  const maxQty=maxPurchasableConsumable(item);
+  const count=Math.max(0,Math.min(maxQty,qty|0));
+  if(count<=0)return 0;
+  walletCoins-=count*(item.price||0);
+  localStorage.setItem('gd5wallet',walletCoins.toString());
+  setItemStock(item.id,itemStock(item.id)+count);
+  return count;
+}
+function currentRankingAppearance(){
+  return{
+    charIdx:selChar||0,
+    eqSkin:equippedSkin||'',
+    eqEyes:equippedEyes||'',
+    eqFx:equippedEffect||'',
+    eqPet:equippedPet||'',
+    eqAcc:equippedAccessory||'',
+    titleId:equippedTitleId||'',
+  };
+}
+function syncLiveRankingAppearanceLocally(){
+  const live=currentRankingAppearance();
+  rankChar=live.charIdx;rankSkin=live.eqSkin;rankEyes=live.eqEyes;rankFx=live.eqFx;rankPet=live.eqPet;rankAcc=live.eqAcc;
+  challRankChar=live.charIdx;challRankSkin=live.eqSkin;challRankEyes=live.eqEyes;challRankFx=live.eqFx;challRankPet=live.eqPet;challRankAcc=live.eqAcc;
   localStorage.setItem('gd5rankChar',rankChar.toString());localStorage.setItem('gd5rankSkin',rankSkin);
   localStorage.setItem('gd5rankEyes',rankEyes);localStorage.setItem('gd5rankFx',rankFx);
+  localStorage.setItem('gd5rankPet',rankPet);localStorage.setItem('gd5rankAcc',rankAcc);
+  localStorage.setItem('gd5challRankChar',challRankChar.toString());localStorage.setItem('gd5challRankSkin',challRankSkin);
+  localStorage.setItem('gd5challRankEyes',challRankEyes);localStorage.setItem('gd5challRankFx',challRankFx);
+  localStorage.setItem('gd5challRankPet',challRankPet);localStorage.setItem('gd5challRankAcc',challRankAcc);
+  return live;
 }
-function equipSkin(id){equippedSkin=id;localStorage.setItem('gd5eqSkin',id);if(typeof fbSaveUserData==='function')fbSaveUserData();}
-function equipEyes(id){equippedEyes=id;localStorage.setItem('gd5eqEyes',id);if(typeof fbSaveUserData==='function')fbSaveUserData();}
-function equipEffect(id){equippedEffect=id;localStorage.setItem('gd5eqFx',id);if(typeof fbSaveUserData==='function')fbSaveUserData();}
-function unequipSkin(){equippedSkin='';localStorage.setItem('gd5eqSkin','');if(typeof fbSaveUserData==='function')fbSaveUserData();}
-function unequipEyes(){equippedEyes='';localStorage.setItem('gd5eqEyes','');if(typeof fbSaveUserData==='function')fbSaveUserData();}
-function unequipEffect(){equippedEffect='';localStorage.setItem('gd5eqFx','');if(typeof fbSaveUserData==='function')fbSaveUserData();}
-let _eqSkinCache=null,_eqSkinId='',_eqEyesCache=null,_eqEyesId='',_eqFxCache=null,_eqFxId='';
+function captureRankCosmetics(){
+  return syncLiveRankingAppearanceLocally();
+}
+function equipSkin(id){equippedSkin=id;localStorage.setItem('gd5eqSkin',id);syncLiveRankingAppearanceLocally();if(typeof fbSaveUserData==='function')fbSaveUserData();}
+function equipEyes(id){equippedEyes=id;localStorage.setItem('gd5eqEyes',id);syncLiveRankingAppearanceLocally();if(typeof fbSaveUserData==='function')fbSaveUserData();}
+function equipEffect(id){equippedEffect=id;localStorage.setItem('gd5eqFx',id);syncLiveRankingAppearanceLocally();if(typeof fbSaveUserData==='function')fbSaveUserData();}
+function equipPet(id){equippedPet=id;localStorage.setItem('gd5eqPet',id);petState.ready=false;syncLiveRankingAppearanceLocally();if(typeof fbSaveUserData==='function')fbSaveUserData();}
+function equipAccessory(id){equippedAccessory=id;localStorage.setItem('gd5eqAcc',id);syncLiveRankingAppearanceLocally();if(typeof fbSaveUserData==='function')fbSaveUserData();}
+function unequipSkin(){equippedSkin='';localStorage.setItem('gd5eqSkin','');syncLiveRankingAppearanceLocally();if(typeof fbSaveUserData==='function')fbSaveUserData();}
+function unequipEyes(){equippedEyes='';localStorage.setItem('gd5eqEyes','');syncLiveRankingAppearanceLocally();if(typeof fbSaveUserData==='function')fbSaveUserData();}
+function unequipEffect(){equippedEffect='';localStorage.setItem('gd5eqFx','');syncLiveRankingAppearanceLocally();if(typeof fbSaveUserData==='function')fbSaveUserData();}
+function unequipPet(){equippedPet='';localStorage.setItem('gd5eqPet','');petState.ready=false;syncLiveRankingAppearanceLocally();if(typeof fbSaveUserData==='function')fbSaveUserData();}
+function unequipAccessory(){equippedAccessory='';localStorage.setItem('gd5eqAcc','');syncLiveRankingAppearanceLocally();if(typeof fbSaveUserData==='function')fbSaveUserData();}
+let _eqSkinCache=null,_eqSkinId='',_eqEyesCache=null,_eqEyesId='',_eqFxCache=null,_eqFxId='',_eqPetCache=null,_eqPetId='',_eqAccCache=null,_eqAccId='';
 function getEquippedSkinData(){if(!equippedSkin)return null;if(_eqSkinId===equippedSkin)return _eqSkinCache;_eqSkinId=equippedSkin;for(let i=0;i<SHOP_ITEMS.skins.length;i++){if(SHOP_ITEMS.skins[i].id===equippedSkin){_eqSkinCache=SHOP_ITEMS.skins[i];return _eqSkinCache;}}_eqSkinCache=null;return null;}
 function getEquippedEyesData(){if(!equippedEyes)return null;if(_eqEyesId===equippedEyes)return _eqEyesCache;_eqEyesId=equippedEyes;for(let i=0;i<SHOP_ITEMS.eyes.length;i++){if(SHOP_ITEMS.eyes[i].id===equippedEyes){_eqEyesCache=SHOP_ITEMS.eyes[i];return _eqEyesCache;}}_eqEyesCache=null;return null;}
 function getEquippedEffectData(){if(!equippedEffect)return null;if(_eqFxId===equippedEffect)return _eqFxCache;_eqFxId=equippedEffect;for(let i=0;i<SHOP_ITEMS.effects.length;i++){if(SHOP_ITEMS.effects[i].id===equippedEffect){_eqFxCache=SHOP_ITEMS.effects[i];return _eqFxCache;}}_eqFxCache=null;return null;}
+function getEquippedPetData(){if(!equippedPet)return null;if(_eqPetId===equippedPet)return _eqPetCache;_eqPetId=equippedPet;for(let i=0;i<SHOP_ITEMS.pets.length;i++){if(SHOP_ITEMS.pets[i].id===equippedPet){_eqPetCache=SHOP_ITEMS.pets[i];return _eqPetCache;}}_eqPetCache=null;return null;}
+function getEquippedAccessoryData(){if(!equippedAccessory)return null;if(_eqAccId===equippedAccessory)return _eqAccCache;_eqAccId=equippedAccessory;for(let i=0;i<SHOP_ITEMS.accessories.length;i++){if(SHOP_ITEMS.accessories[i].id===equippedAccessory){_eqAccCache=SHOP_ITEMS.accessories[i];return _eqAccCache;}}_eqAccCache=null;return null;}
+function equippedIdForSlot(slot){
+  switch(slot){
+    case'skin':return equippedSkin;
+    case'eyes':return equippedEyes;
+    case'effect':return equippedEffect;
+    case'pet':return equippedPet;
+    case'accessory':return equippedAccessory;
+    default:return'';
+  }
+}
+function equipItemForSlot(slot,id){
+  switch(slot){
+    case'skin':return id?equipSkin(id):unequipSkin();
+    case'eyes':return id?equipEyes(id):unequipEyes();
+    case'effect':return id?equipEffect(id):unequipEffect();
+    case'pet':return id?equipPet(id):unequipPet();
+    case'accessory':return id?equipAccessory(id):unequipAccessory();
+  }
+}
 // Sort shop items: cheap→expensive (normal), then rare by price, then super_rare at bottom
 function shopSorted(arr,includeGacha){const rVal=r=>r==='super_rare'?2:r==='rare'?1:0;const filtered=includeGacha?arr.slice():arr.filter(it=>!it.gachaOnly);return filtered.sort((a,b)=>{const ra=rVal(a.rarity),rb=rVal(b.rarity);if(ra!==rb)return ra-rb;return(a.price||0)-(b.price||0);});}
 function cosmeticListForTab(tab){
-  const allItems=tab===0?SHOP_ITEMS.skins:tab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects;
+  const allItems=cosmeticItemsForTab(tab);
   return[{id:'',name:t('none'),desc:t('default')}].concat(shopSorted(allItems,true));
+}
+function shopModalLayout(){
+  const mW=Math.min(320,W-16),mH=Math.min(500,H-30);
+  const mX=(W-mW)/2,mY=(H-mH)/2;
+  const cols=3,tabH=26,rowGap=8,tabW=(mW-20)/cols,tabY=mY+56;
+  const rows=Math.ceil(SHOP_TAB_DEFS.length/cols);
+  const listY=tabY+rows*(tabH+rowGap)+4;
+  const listH=mH-(listY-mY)-50;
+  return{mW,mH,mX,mY,cols,tabH,rowGap,tabW,tabY,rows,listY,listH,rowH:54};
+}
+function shopTabRect(tab){
+  const l=shopModalLayout(),col=tab%l.cols,row=Math.floor(tab/l.cols);
+  return{x:l.mX+10+col*l.tabW,y:l.tabY+row*(l.tabH+l.rowGap),w:l.tabW-4,h:l.tabH};
+}
+function cosmeticModalLayout(){
+  const mW=Math.min(320,W-16),mH=Math.min(500,H-30);
+  const mX=(W-mW)/2,mY=(H-mH)/2;
+  const cols=3,tabH=26,rowGap=12,tabW=(mW-20)/cols,tabY=mY+116;
+  const rows=Math.ceil(COSMETIC_TAB_DEFS.length/cols);
+  const listY=tabY+rows*(tabH+rowGap)+14;
+  const listH=mH-(listY-mY)-50;
+  return{mW,mH,mX,mY,cols,tabH,rowGap,tabW,tabY,rows,listY,listH,rowH:48};
+}
+function cosmeticTabRect(tab){
+  const l=cosmeticModalLayout(),col=tab%l.cols,row=Math.floor(tab/l.cols);
+  return{x:l.mX+10+col*l.tabW,y:l.tabY+row*(l.tabH+l.rowGap),w:l.tabW-4,h:l.tabH};
+}
+function shopConfirmLayout(item){
+  const isBulk=isConsumableItem(item);
+  const dlgW=Math.min(isBulk?286:270,W-24),dlgH=isBulk?304:260;
+  const dlgX=W/2-dlgW/2,dlgY=H/2-dlgH/2;
+  const btnW=100,btnH=36;
+  const layout={
+    dlgW,dlgH,dlgX,dlgY,
+    buyBtn:{x:W/2-btnW-6,y:dlgY+dlgH-52,w:btnW,h:btnH},
+    cancelBtn:{x:W/2+6,y:dlgY+dlgH-52,w:btnW,h:btnH},
+  };
+  if(isBulk){
+    const ctrlY=dlgY+132;
+    layout.minusBtn={x:dlgX+24,y:ctrlY,w:56,h:32};
+    layout.qtyBox={x:W/2-40,y:ctrlY-1,w:80,h:34};
+    layout.plusBtn={x:dlgX+dlgW-24-56,y:ctrlY,w:56,h:32};
+    layout.plusTenBtn={x:W/2-82,y:ctrlY+42,w:76,h:30};
+    layout.maxBtn={x:W/2+6,y:ctrlY+42,w:76,h:30};
+    layout.qtyCenterX=W/2;
+    layout.qtyY=ctrlY+22;
+    layout.priceY=ctrlY+92;
+    layout.balanceY=ctrlY+112;
+  }
+  return layout;
+}
+function titleModeLayout(){
+  const endlessW=Math.min(250,W-36),endlessH=46;
+  const lowerGap=12,lowerW=Math.min(150,(W-36-lowerGap)/2),lowerH=38;
+  const topY=H*0.79;
+  const lowerY=topY+endlessH+8;
+  const lowerX=W/2-(lowerW*2+lowerGap)/2;
+  return{
+    endless:{x:W/2-endlessW/2,y:topY,w:endlessW,h:endlessH},
+    challenge:{x:lowerX,y:lowerY,w:lowerW,h:lowerH},
+    stage:{x:lowerX+lowerW+lowerGap,y:lowerY,w:lowerW,h:lowerH},
+  };
+}
+let petState={x:0,y:0,vx:0,vy:0,mode:'idle',t:0,phase:0,ready:false};
+function resetPetState(){petState={x:0,y:0,vx:0,vy:0,mode:'idle',t:0,phase:0,ready:false};}
+function triggerPetReaction(mode,duration){
+  if(!getEquippedPetData())return;
+  petState.mode=mode||'idle';
+  petState.t=Math.max(0,duration|0);
+  petState.phase=0;
+}
+function updatePetCompanion(){
+  const pet=getEquippedPetData();
+  if(!pet||!player){petState.ready=false;return;}
+  if(state!==ST.PLAY&&state!==ST.COUNTDOWN&&state!==ST.DEAD&&state!==ST.PAUSE){petState.ready=false;return;}
+  const pr=Math.max(10,playerRadius());
+  const petType=pet.type||'comet';
+  petState.phase+=0.12;
+  if(petState.t>0)petState.t--;
+  if(petState.t<=0&&petState.mode!=='idle')petState.mode='idle';
+  const gd=player.gDir===-1?-1:1;
+  let ox=-pr*1.9-12;
+  let oy=gd===1?-pr*0.18:pr*0.18;
+  let sway=0;
+  let hover=0;
+  let followAccel=0.12;
+  let followDamp=0.76;
+  if(petType==='puff'){
+    hover=Math.sin(frame*0.06+petState.phase*0.4)*7;
+    oy+=gd===1?-pr*0.12:pr*0.12;
+    followAccel=0.1;
+    followDamp=0.8;
+  } else if(petType==='drone'){
+    sway=Math.sin(frame*0.1+petState.phase*0.9)*11;
+    hover=Math.sin(frame*0.04+petState.phase*0.25)*2;
+    oy+=gd===1?-pr*0.06:pr*0.06;
+    followAccel=0.14;
+    followDamp=0.72;
+  }
+  if(state===ST.COUNTDOWN||petState.mode==='countdown'){
+    ox=petType==='drone'?-pr*1.55:-pr*1.35;
+    oy=-gd*pr*1.05;
+    if(petType==='puff'){
+      hover=-Math.abs(Math.sin(frame*0.12))*12;
+    } else if(petType==='drone'){
+      sway=Math.sin(frame*0.2)*14;
+      hover=Math.cos(frame*0.08)*3;
+    } else {
+      hover=-Math.abs(Math.sin(frame*0.14))*8;
+    }
+  } else if(petState.mode==='hurt'){
+    ox=-pr*2.4-10;
+    if(petType==='puff'){
+      hover=Math.sin(frame*0.18)*10;
+    } else if(petType==='drone'){
+      sway=Math.sin(frame*0.28)*12;
+      hover=Math.cos(frame*0.16)*4;
+    } else {
+      hover=Math.cos(frame*0.22)*7;
+    }
+  } else if(petState.mode==='special'){
+    if(petType==='puff'){
+      ox=-pr*0.8;
+      oy=-gd*(pr*1.05);
+      hover=Math.sin(frame*0.12)*12;
+    } else if(petType==='drone'){
+      ox=-pr*0.9;
+      oy=-gd*(pr*0.85);
+      sway=Math.sin(frame*0.22)*16;
+      hover=Math.cos(frame*0.08)*3;
+    } else {
+      ox=-pr*0.9;
+      oy=-gd*(pr*0.95);
+      hover=Math.cos(frame*0.14)*4;
+    }
+  } else if(petState.mode==='gameover'){
+    ox=-pr*0.9;
+    oy=-gd*(pr*1.2);
+    if(petType==='puff'){
+      hover=Math.sin(frame*0.08)*8;
+    } else if(petType==='drone'){
+      sway=Math.sin(frame*0.12)*10;
+    } else {
+      hover=Math.sin(frame*0.06)*3;
+    }
+  } else if(petState.mode==='magnet'){
+    ox=-pr*1.25;
+    if(petType==='puff'){
+      hover=Math.sin(frame*0.1)*9;
+    } else if(petType==='drone'){
+      sway=Math.sin(frame*0.2)*13;
+      hover=Math.cos(frame*0.06)*2;
+    } else {
+      hover=Math.sin(frame*0.12)*4;
+    }
+  } else if(petState.mode==='bomb'){
+    ox=-pr*2.35;
+    if(petType==='puff'){
+      hover=Math.sin(frame*0.16)*7;
+    } else if(petType==='drone'){
+      sway=Math.sin(frame*0.22)*15;
+      hover=Math.cos(frame*0.12)*3;
+    } else {
+      hover=Math.cos(frame*0.16)*4;
+    }
+  }
+  const targetX=player.x+ox+sway;
+  const targetY=player.y+oy+hover;
+  if(!petState.ready){
+    petState.x=targetX;petState.y=targetY;petState.vx=0;petState.vy=0;petState.ready=true;return;
+  }
+  petState.vx+=(targetX-petState.x)*followAccel;
+  petState.vy+=(targetY-petState.y)*followAccel;
+  petState.vx*=followDamp;petState.vy*=followDamp;
+  petState.x+=petState.vx;
+  petState.y+=petState.vy;
 }

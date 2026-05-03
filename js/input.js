@@ -18,10 +18,13 @@ function canvasXY(cx,cy){
 
 // Pause button hit test (moved lower, larger area for reliability)
 function hitPauseBtn(px,py){return hitRect(px,py,W-58,safeTop+8,54,44);}
-function itemBtnLayout(){const btnSz=44,btnGap=12,totalW=btnSz*2+btnGap,sx=W/2-totalW/2,by=H-PANEL_H-Math.min(safeBot,10)+6;return{invX:sx,bombX:sx+btnSz+btnGap,y:by,sz:btnSz};}
-function hitInvBtn(px,py){const b=itemBtnLayout();return px>=b.invX&&px<=b.invX+b.sz&&py>=b.y&&py<=b.y+b.sz;}
+function itemBtnLayout(){
+  const btnSz=44,btnGap=16,totalW=btnSz*3+btnGap*2,sx=W/2-totalW/2,by=H-PANEL_H-Math.min(safeBot,10)+6;
+  return{magnetX:sx,specialX:sx+btnSz+btnGap,bombX:sx+(btnSz+btnGap)*2,y:by,sz:btnSz};
+}
+function hitInvBtn(px,py){const b=itemBtnLayout();return px>=b.magnetX&&px<=b.magnetX+b.sz&&py>=b.y&&py<=b.y+b.sz;}
 function hitBombBtn(px,py){const b=itemBtnLayout();return px>=b.bombX&&px<=b.bombX+b.sz&&py>=b.y&&py<=b.y+b.sz;}
-function specialBtnLayout(){const b=itemBtnLayout(),sz=40,pad=(b.sz-sz)/2,x=b.invX+pad,y=b.y+pad;return{x,y,sz,cx:x+sz/2,cy:y+sz/2,r:sz/2};}
+function specialBtnLayout(){const b=itemBtnLayout(),sz=40,pad=(b.sz-sz)/2,x=b.specialX+pad,y=b.y+pad;return{x,y,sz,cx:x+sz/2,cy:y+sz/2,r:sz/2};}
 function hitSpecialBtn(px,py){
   if(!isSpecialModeEnabled())return false;
   const b=specialBtnLayout(),dx=px-b.cx,dy=py-b.cy;
@@ -53,6 +56,11 @@ function handleSpecialActivationInput(){
   }
   sfx('cancel');
   return true;
+}
+function beginGameplayCountdown(){
+  state=ST.COUNTDOWN;
+  countdownT=COUNTDOWN_FRAMES;
+  if(typeof triggerPetReaction==='function')triggerPetReaction('countdown',COUNTDOWN_FRAMES);
 }
 function triggerAirJump(unlimited){
   const jp=JUMP_POWER*ct().jumpMul*0.85;
@@ -137,7 +145,7 @@ function hitChestCloseBtn(px,py){
 function applyChestRewardNow(reward){
   if(!reward)return;
   if(reward.type==='coin'){
-    walletCoins+=reward.amount;localStorage.setItem('gd5wallet',walletCoins.toString());
+    walletCoins+=reward.amount;localStorage.setItem('gd5wallet',walletCoins.toString());addLifetimeCoins(reward.amount);
     return;
   }
   if(reward.type==='char'){
@@ -145,12 +153,12 @@ function applyChestRewardNow(reward){
       unlockCharFromChest(reward.charIdx);
     } else {
       reward.bonusCoins=500;
-      walletCoins+=500;localStorage.setItem('gd5wallet',walletCoins.toString());
+      walletCoins+=500;localStorage.setItem('gd5wallet',walletCoins.toString());addLifetimeCoins(500);
     }
     return;
   }
   if(reward.type==='cosmetic'&&!reward.isNew){
-    walletCoins+=300;localStorage.setItem('gd5wallet',walletCoins.toString());
+    walletCoins+=300;localStorage.setItem('gd5wallet',walletCoins.toString());addLifetimeCoins(300);
   }
 }
 function clearChestOpenState(){
@@ -221,15 +229,15 @@ function handleInventoryChestTap(tapX,tapY){
         chestBatchResults.push(rw);
         // Apply rewards immediately
         if(rw.type==='coin'){
-          walletCoins+=rw.amount;localStorage.setItem('gd5wallet',walletCoins.toString());
+          walletCoins+=rw.amount;localStorage.setItem('gd5wallet',walletCoins.toString());addLifetimeCoins(rw.amount);
         }
         if(rw.type==='char'){
           if(rw.isNew){unlockCharFromChest(rw.charIdx);}
-          else{rw.bonusCoins=500;walletCoins+=500;localStorage.setItem('gd5wallet',walletCoins.toString());}
+          else{rw.bonusCoins=500;walletCoins+=500;localStorage.setItem('gd5wallet',walletCoins.toString());addLifetimeCoins(500);}
         }
         if(rw.type==='cosmetic'){
           if(rw.item&&rw.item.rarity==='super_rare'&&rw.isNew){/* already granted in startInventoryChestOpen */}
-          if(!rw.isNew){walletCoins+=300;localStorage.setItem('gd5wallet',walletCoins.toString());}
+          if(!rw.isNew){walletCoins+=300;localStorage.setItem('gd5wallet',walletCoins.toString());addLifetimeCoins(300);}
         }
         totalChestsOpened++;
       }
@@ -307,11 +315,29 @@ function handleInventoryChestTap(tapX,tapY){
 }
 function startInventoryChestOpen(){
   // Gacha probabilities:
-  // Super Rare: 2%, Character: 15%, Secret (rare): 10%, Normal: 15%,
-  // 1000 coins: 5%, 200 coins: 13%, 100 coins: 20%, 60 coins: 20%
+  // Pet: 0.2%, Accessory: 0.2%, Super Rare: 2%, Character: 15%, Secret (rare): 10%, Normal: 15%,
+  // 1000 coins: 5%, 200 coins: 13%, 100 coins: 20%, 60 coins: ~20%
   const roll=Math.random();
   let reward;
-  if(roll<0.02){
+  if(roll<0.002){
+    // Pet (0.2%)
+    const allPets=SHOP_ITEMS.pets.map(it=>({...it,tab:3}));
+    if(allPets.length>0){
+      const ri=allPets[Math.floor(Math.random()*allPets.length)];
+      const isNew=!ownsItem(ri.id);
+      if(isNew){ownedItems.push(ri.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));notifNewCosmetic=true;localStorage.setItem('gd5notifCosm','1');newCosmeticIds.add(ri.id);localStorage.setItem('gd5newCosm',JSON.stringify([...newCosmeticIds]));}
+      reward={type:'cosmetic',item:ri,isNew:isNew,bonusCoins:isNew?0:300};
+    } else {reward={type:'coin',amount:1000};}
+  } else if(roll<0.004){
+    // Accessory (0.2%)
+    const allAcc=SHOP_ITEMS.accessories.map(it=>({...it,tab:4}));
+    if(allAcc.length>0){
+      const ri=allAcc[Math.floor(Math.random()*allAcc.length)];
+      const isNew=!ownsItem(ri.id);
+      if(isNew){ownedItems.push(ri.id);localStorage.setItem('gd5owned',JSON.stringify(ownedItems));notifNewCosmetic=true;localStorage.setItem('gd5notifCosm','1');newCosmeticIds.add(ri.id);localStorage.setItem('gd5newCosm',JSON.stringify([...newCosmeticIds]));}
+      reward={type:'cosmetic',item:ri,isNew:isNew,bonusCoins:isNew?0:300};
+    } else {reward={type:'coin',amount:1000};}
+  } else if(roll<0.024){
     // Super Rare cosmetic (2%)
     const allSR=[];
     SHOP_ITEMS.skins.forEach(it=>{if(it.rarity==='super_rare')allSR.push({...it,tab:0});});
@@ -325,7 +351,7 @@ function startInventoryChestOpen(){
     } else {
       reward={type:'coin',amount:1000};
     }
-  } else if(roll<0.17){
+  } else if(roll<0.174){
     // Character (15%) - exclude default cube (index 0), prefer unowned chars
     const charPool=[];
     for(let ci=1;ci<CHARS.length;ci++){
@@ -336,7 +362,7 @@ function startInventoryChestOpen(){
     }
     const ci=charPool[Math.floor(Math.random()*charPool.length)];
     reward={type:'char',charIdx:ci,isNew:!isCharUnlocked(ci),bonusCoins:0};
-  } else if(roll<0.27){
+  } else if(roll<0.274){
     // Secret (rare) cosmetic item (10%) - duplicates allowed
     const allRare=[];
     SHOP_ITEMS.skins.forEach(it=>{if(it.rarity==='rare')allRare.push({...it,tab:0});});
@@ -350,7 +376,7 @@ function startInventoryChestOpen(){
     } else {
       reward={type:'coin',amount:1000};
     }
-  } else if(roll<0.42){
+  } else if(roll<0.424){
     // Normal cosmetic item (15%) - duplicates allowed
     const allNormal=[];
     SHOP_ITEMS.skins.forEach(it=>{if(!it.rarity)allNormal.push({...it,tab:0});});
@@ -364,9 +390,9 @@ function startInventoryChestOpen(){
     } else {
       reward={type:'coin',amount:200};
     }
-  } else if(roll<0.47){reward={type:'coin',amount:1000};}
-  else if(roll<0.60){reward={type:'coin',amount:200};}
-  else if(roll<0.80){reward={type:'coin',amount:100};}
+  } else if(roll<0.474){reward={type:'coin',amount:1000};}
+  else if(roll<0.604){reward={type:'coin',amount:200};}
+  else if(roll<0.804){reward={type:'coin',amount:100};}
   else{reward={type:'coin',amount:60};}
   chestOpen.phase='waiting';chestOpen.t=0;
   chestOpen.charIdx=reward.type==='char'?reward.charIdx:-1;
@@ -390,7 +416,7 @@ function continueFromDeath(){
   // Clear hazards
   enemies=[];bullets=[];spikes=[];items=[];floatPlats=[];movingHills=[];gravZones=[];icicles=[];
   bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:(Math.floor(rawDist/BOSS_INTERVAL)+1)*BOSS_INTERVAL,lastBossScore:score,lastBossRawDist:rawDist,bossCount:bossPhase.bossCount||0,bossType:'',noDamage:true};
-  itemEff={invincible:0,magnet:0,slowmo:0};bombCount=0;bombFlashT=0;invCount=0;
+  itemEff={invincible:0,magnet:0,slowmo:0};magnetCount=0;bombCount=0;bombFlashT=0;invCount=0;
   djumpAvailable=!!ct().hasDjump;djumpUsed=false;ghostPhaseT=0;ghostInvis=false;
   player._quakeStunned=false;player._quakeStunT=0;
   deadT=0;newHi=false;combo=0;comboT=0;comboDsp=0;comboDspT=0;airCombo=0;stompCombo=0;
@@ -398,7 +424,7 @@ function continueFromDeath(){
   coinCD=0;itemCD=0;enemyCD=0;birdCD=0;spikeCD=0;hillCD=0;floatCD=0;gravZoneCD=0;icicleCD=0;
   flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
   bossChests=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null,rewardGranted:false,_lastRevealIdx:-1};
-  state=ST.COUNTDOWN;countdownT=COUNTDOWN_FRAMES;
+  beginGameplayCountdown();
   curTheme=0;prevTheme=0;themeLerp=1; // reset theme to initial color
   bgmTierOffset=Math.floor(score/1000); // BGM restarts from play1, progresses every 1000 score
   _pauseSavedBGM=''; // clear any stale pause state
@@ -410,7 +436,7 @@ function startPackStageFromDead(){
   const sid=currentPackStage?currentPackStage.id:'';
   const hasCp=checkpointReached||stageCheckpoints[sid];
   resetPackStage(currentPackIdx,currentPackStageIdx,hasCp);
-  state=ST.COUNTDOWN;countdownT=COUNTDOWN_FRAMES;
+  beginGameplayCountdown();
   stopBGM(); // stop dead BGM, force restart when countdown ends
   sfx('countdown');
 }
@@ -790,13 +816,13 @@ function restartFromPause(){
     const sid2=currentPackStage?currentPackStage.id:'';
     const hasCp2=checkpointReached||stageCheckpoints[sid2];
     resetPackStage(currentPackIdx,currentPackStageIdx,hasCp2);
-    state=ST.COUNTDOWN;countdownT=COUNTDOWN_FRAMES;
+    beginGameplayCountdown();
     stopBGM(); // stop current BGM, force restart when countdown ends
     sfx('countdown');
   } else {
     bossRetry=null;isRetryGame=false;
     reset();
-    state=ST.COUNTDOWN;countdownT=COUNTDOWN_FRAMES;
+    beginGameplayCountdown();
     stopBGM(); // force restart when countdown ends
     sfx('countdown');
   }
@@ -811,7 +837,7 @@ function startChallenge(){
   bossRetry=null;isRetryGame=false;
   reset();
   hp=maxHp(); // full HP
-  state=ST.COUNTDOWN;countdownT=COUNTDOWN_FRAMES;
+  beginGameplayCountdown();
   titleTouchPos=null;
   sfx('countdown');
 }
@@ -835,7 +861,7 @@ function startCountdown(mode){
   } else {
     isRetryGame=false;
   }
-  state=ST.COUNTDOWN;countdownT=COUNTDOWN_FRAMES; // 3 seconds at 60fps
+  beginGameplayCountdown(); // 3 seconds at 60fps
   titleTouchPos=null; // clear stale touch pos
   sfx('countdown');
 }
@@ -902,6 +928,7 @@ function _checkSecretStageUnlockFromEvent(e){
   if(typeof stageResetConfirm!=='undefined')stageResetConfirm=false;
   rankingOpen=false;settingsOpen=false;inventoryOpen=false;shopOpen=false;
   if(typeof cosmeticMenuOpen!=='undefined')cosmeticMenuOpen=false;
+  if(typeof titleMenuOpen!=='undefined'){titleMenuOpen=false;titleConfirmPending=null;}
   helpOpen=false;
   if(typeof updateInfoOpen!=='undefined')updateInfoOpen=false;
   isPackMode=false;state=ST.STAGE_SEL;stageSelScroll=0;stageSelGuardT=20;
@@ -924,6 +951,7 @@ canvas.addEventListener('touchstart',e=>{
   if(helpOpen){handleHelpTouch(p.x,p.y);return;}
   // Ranking modal intercepts all input when open
   if(rankingOpen){handleRankingTouch(p.x,p.y);return;}
+  if(titleMenuOpen){handleTitleMenuTouch(p.x,p.y);return;}
   // Settings panel intercepts all input when open
   if(settingsOpen){handleSettingsTouch(p.x,p.y);return;}
   if(state===ST.COUNTDOWN)return; // block input during countdown
@@ -931,8 +959,8 @@ canvas.addEventListener('touchstart',e=>{
   if(state===ST.LOGIN){handleLoginTouch(p.x,p.y);return;}
   // Tutorial
   if(state===ST.TUTORIAL){handleTutorialTouch(p.x,p.y);return;}
-  if(state===ST.TITLE&&!charModal.show&&hitSettingsGear(p.x,p.y)){sfx('click');settingsOpen=true;return;}
-  if(state===ST.TITLE&&!charModal.show&&hitHelpBtn(p.x,p.y)){sfx('select');helpOpen=true;return;}
+  if(state===ST.TITLE&&!charModal.show&&hitSettingsGear(p.x,p.y)){sfx('click');vibrate(5);settingsOpen=true;return;}
+  if(state===ST.TITLE&&!charModal.show&&hitHelpBtn(p.x,p.y)){sfx('select');vibrate(5);helpOpen=true;return;}
   if(state===ST.STAGE_SEL){stageSelTouchY=t.clientY;stageSelDragging=false;return;}
   if(state===ST.STAGE_CLEAR&&stageClearT>60){
     sfx('click');state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;
@@ -946,8 +974,8 @@ canvas.addEventListener('touchstart',e=>{
     if(hitPauseSettingsBtn(p.x,p.y)){sfx('click');settingsOpen=true;return;}
     return;
   }
-  if(state===ST.PLAY&&!isPackMode&&!isSpecialModeEnabled()&&hitInvBtn(p.x,p.y)){useInvincible();touchBtnUsed=true;return;}
-  if(state===ST.PLAY&&!isPackMode&&hitBombBtn(p.x,p.y)){useBomb();touchBtnUsed=true;return;}
+  if(state===ST.PLAY&&!isPackMode&&!isChallengeMode&&hitInvBtn(p.x,p.y)){useInvincible();touchBtnUsed=true;return;}
+  if(state===ST.PLAY&&!isPackMode&&!isChallengeMode&&hitBombBtn(p.x,p.y)){useBomb();touchBtnUsed=true;return;}
   if(state===ST.PLAY&&hitSpecialBtn(p.x,p.y)){touchBtnUsed=handleSpecialActivationInput();return;}
   if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');enterPause();touchBtnUsed=true;return;}
   if(state===ST.TITLE){
@@ -955,6 +983,7 @@ canvas.addEventListener('touchstart',e=>{
     if(shopOpen){handleShopTouch(p.x,p.y);titleTouchPos=null;return;}
     // Cosmetic menu intercepts all input when open
     if(cosmeticMenuOpen){handleCosmeticTouch(p.x,p.y);titleTouchPos=null;return;}
+    if(titleMenuOpen){handleTitleMenuTouch(p.x,p.y);titleTouchPos=null;return;}
     // Inventory modal intercepts all input when open
     if(inventoryOpen){if(handleInventoryModalTouch(p.x,p.y)){titleTouchPos=null;return;}return;}
     if(charModal.show){sfx('cancel');charModal.show=false;titleTouchPos=null;return;}
@@ -992,13 +1021,23 @@ canvas.addEventListener('touchmove',e=>{
     rankingScrollTarget=Math.max(0,Math.min(maxScroll,rankingScrollTarget-dy2*2.5));
     return;
   }
+  if(titleMenuOpen){
+    const dy2=t.clientY-touchStartY;touchStartY=t.clientY;
+    const lay=titleMenuLayout();
+    const maxS=Math.max(0,titleMenuContentHeight(getTitleMenuEntries())-lay.listH);
+    titleMenuScroll=Math.max(0,Math.min(maxS,titleMenuScroll-dy2*2));
+    if(Math.abs(t.clientY-touchOriginY)>18)touchMoved=true;
+    return;
+  }
   // Settings slider drag
   if(settingsOpen&&draggingSlider){const mp=canvasXY(t.clientX,t.clientY);updateSliderDrag(mp.x);return;}
   // Shop scroll
   if(shopOpen){
     const dy2=t.clientY-touchStartY;touchStartY=t.clientY;
-    const items=shopSorted(shopTab===0?SHOP_ITEMS.skins:shopTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects,true);
-    const mH2=Math.min(500,H-30),listH2=mH2-140,totalH2=items.length*54;
+    const lay=shopModalLayout();
+    const items=shopSorted(shopItemsForTab(shopTab),true);
+    const totalH2=items.length*lay.rowH;
+    const listH2=lay.listH;
     const maxS=Math.max(0,totalH2-listH2);
     shopScroll=Math.max(0,Math.min(maxS,shopScroll-dy2*2));
     if(Math.abs(t.clientY-touchOriginY)>18)touchMoved=true;
@@ -1008,7 +1047,9 @@ canvas.addEventListener('touchmove',e=>{
   if(cosmeticMenuOpen){
     const dy2=t.clientY-touchStartY;touchStartY=t.clientY;
     const ownedList=cosmeticListForTab(cosmeticTab);
-    const mH2=Math.min(500,H-30),listH2=mH2-184,totalH2=ownedList.length*48;
+    const lay=cosmeticModalLayout();
+    const totalH2=ownedList.length*lay.rowH;
+    const listH2=lay.listH;
     const maxS=Math.max(0,totalH2-listH2);
     cosmeticScroll=Math.max(0,Math.min(maxS,cosmeticScroll-dy2*2));
     if(Math.abs(t.clientY-touchOriginY)>18)touchMoved=true;
@@ -1060,6 +1101,11 @@ canvas.addEventListener('touchend',e=>{
   if(cosmeticMenuOpen){
     if(!touchMoved&&cosmeticPendingTap){confirmCosmeticTap();}
     else{cosmeticPendingTap=null;}
+    return;
+  }
+  if(titleMenuOpen){
+    if(!touchMoved&&titlePendingTap){confirmTitleMenuTap();}
+    else{titlePendingTap=null;}
     return;
   }
   if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}
@@ -1166,12 +1212,13 @@ canvas.addEventListener('mousedown',e=>{
   if(updateInfoOpen){handleUpdateInfoTouch(p.x,p.y);return;}
   if(helpOpen){handleHelpTouch(p.x,p.y);return;}
   if(rankingOpen){handleRankingTouch(p.x,p.y);return;}
+  if(titleMenuOpen){handleTitleMenuTouch(p.x,p.y);return;}
   if(settingsOpen){handleSettingsTouch(p.x,p.y);return;}
   if(state===ST.COUNTDOWN)return;
   if(state===ST.LOGIN){handleLoginTouch(p.x,p.y);return;}
   if(state===ST.TUTORIAL){handleTutorialTouch(p.x,p.y);return;}
-  if(state===ST.TITLE&&!charModal.show&&hitSettingsGear(p.x,p.y)){sfx('click');settingsOpen=true;return;}
-  if(state===ST.TITLE&&!charModal.show&&hitHelpBtn(p.x,p.y)){sfx('select');helpOpen=true;return;}
+  if(state===ST.TITLE&&!charModal.show&&hitSettingsGear(p.x,p.y)){sfx('click');vibrate(5);settingsOpen=true;return;}
+  if(state===ST.TITLE&&!charModal.show&&hitHelpBtn(p.x,p.y)){sfx('select');vibrate(5);helpOpen=true;return;}
   if(state===ST.STAGE_SEL){handleStageSelTouch(p.x,p.y);return;}
   if(state===ST.STAGE_CLEAR&&stageClearT>60){
     sfx('click');state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;
@@ -1185,13 +1232,14 @@ canvas.addEventListener('mousedown',e=>{
     if(hitPauseSettingsBtn(p.x,p.y)){sfx('click');settingsOpen=true;return;}
     return;
   }
-  if(state===ST.PLAY&&!isPackMode&&!isSpecialModeEnabled()&&hitInvBtn(p.x,p.y)){useInvincible();return;}
-  if(state===ST.PLAY&&!isPackMode&&hitBombBtn(p.x,p.y)){useBomb();return;}
+  if(state===ST.PLAY&&!isPackMode&&!isChallengeMode&&hitInvBtn(p.x,p.y)){useInvincible();return;}
+  if(state===ST.PLAY&&!isPackMode&&!isChallengeMode&&hitBombBtn(p.x,p.y)){useBomb();return;}
   if(state===ST.PLAY&&hitSpecialBtn(p.x,p.y)){handleSpecialActivationInput();return;}
   if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');enterPause();return;}
   if(state===ST.TITLE){
     if(shopOpen){handleShopTouch(p.x,p.y);return;}
     if(cosmeticMenuOpen){handleCosmeticTouch(p.x,p.y);return;}
+    if(titleMenuOpen){handleTitleMenuTouch(p.x,p.y);return;}
     if(inventoryOpen){handleInventoryModalTouch(p.x,p.y);return;}
     if(charModal.show){sfx('cancel');charModal.show=false;return;}
     // Long-press detection for character grid (same as touch)
@@ -1227,6 +1275,14 @@ canvas.addEventListener('mousemove',e=>{
 canvas.addEventListener('mouseup',()=>{
   if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}
   clearSettingsGearHold();
+  if(titleMenuOpen){
+    if(titlePendingTap)confirmTitleMenuTap();
+    titlePendingTap=null;
+    longPressFired=false;
+    if(draggingSlider==='sfx')sfx('coin');
+    draggingSlider=null;
+    return;
+  }
   if(state===ST.TITLE&&!longPressFired&&titleTouchPos){handleTitleTouch(titleTouchPos.x,titleTouchPos.y);titleTouchPos=null;}
   longPressFired=false;
   if(shopOpen&&shopPendingTap){confirmShopTap();}
@@ -1238,6 +1294,7 @@ document.addEventListener('keydown',e=>{
   if(updateInfoOpen){if(e.code==='Escape'){localStorage.setItem('gd5updateDismissed',UPDATE_VER);updateInfoOpen=false;updateInfoPage=0;sfx('cancel');}if(e.code==='ArrowLeft'&&updateInfoPage>0){updateInfoPage--;sfx('click');}if(e.code==='ArrowRight'&&updateInfoPage<UPDATE_HISTORY.length-1){updateInfoPage++;sfx('click');}e.preventDefault();return;}
   if(helpOpen){if(e.code==='Escape'){helpOpen=false;sfx('cancel');}e.preventDefault();return;}
   if(rankingOpen){if(e.code==='Escape'){rankingOpen=false;sfx('cancel');}e.preventDefault();return;}
+  if(titleMenuOpen){if(e.code==='Escape'){titleMenuOpen=false;titlePendingTap=null;titleConfirmPending=null;sfx('cancel');}e.preventDefault();return;}
   if(settingsOpen){if(e.code==='Escape'){if(confirmModal){confirmModal=null;sfx('cancel');}else if(nameEditMode){nameEditMode=false;}else{settingsOpen=false;logoutConfirm=false;resetConfirmStep=0;}sfx('cancel');e.preventDefault();}if(!nameEditMode){e.preventDefault();}return;}
   if(e.code==='Escape'){
     e.preventDefault();
@@ -1345,7 +1402,8 @@ document.addEventListener('keydown',e=>{
     }
   }
   if((e.code==='KeyB'||e.code==='KeyX')&&state===ST.PLAY){e.preventDefault();useBomb();}
-  if((e.code==='KeyV'||e.code==='KeyZ')&&state===ST.PLAY){e.preventDefault();if(isSpecialModeEnabled())handleSpecialActivationInput();else useInvincible();}
+  if((e.code==='KeyC'||e.code==='KeyM')&&state===ST.PLAY){e.preventDefault();useInvincible();}
+  if((e.code==='KeyV'||e.code==='KeyZ')&&state===ST.PLAY){e.preventDefault();if(isSpecialModeEnabled())handleSpecialActivationInput();}
 });
 
 function getCharGridIdx(tx,ty){
@@ -1364,22 +1422,27 @@ function getCharGridIdx(tx,ty){
 function handleTitleTouch(tx,ty){
   // Ranking button (top-left, row 1)
   if(tx>=8&&tx<=44&&ty>=safeTop+6&&ty<=safeTop+42){
-    rebuildRankingData();rebuildChallengeRankingData();if(typeof fbRefreshRankings==='function')fbRefreshRankings();rankingOpen=true;rankingTab='endless';rankingScroll=0;rankingScrollTarget=0;notifNewHighScore=false;localStorage.removeItem('gd5notifHi');sfx('select');return;
+    rebuildRankingData();rebuildChallengeRankingData();if(typeof fbRefreshRankings==='function')fbRefreshRankings();rankingOpen=true;rankingTab='endless';rankingScroll=0;rankingScrollTarget=0;notifNewHighScore=false;localStorage.removeItem('gd5notifHi');sfx('select');vibrate(5);return;
   }
   // Inventory button (top-left, row 2)
   if(tx>=8&&tx<=44&&ty>=safeTop+44&&ty<=safeTop+80){
     inventoryOpen=true;chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null,rewardGranted:false,_lastRevealIdx:-1};
-    sfx('select');return;
+    sfx('select');vibrate(5);return;
   }
   // Shop button (top-left, row 3)
   if(tx>=8&&tx<=44&&ty>=safeTop+82&&ty<=safeTop+118){
     shopOpen=true;shopTab=0;shopScroll=0;
-    sfx('select');return;
+    sfx('select');vibrate(5);return;
   }
   // Cosmetic button (top-left, row 4)
   if(tx>=8&&tx<=44&&ty>=safeTop+120&&ty<=safeTop+156){
     cosmeticMenuOpen=true;cosmeticTab=0;cosmeticScroll=0;notifNewCosmetic=false;localStorage.removeItem('gd5notifCosm');
-    sfx('select');return;
+    sfx('select');vibrate(5);return;
+  }
+  // Title button (top-left, row 5)
+  if(tx>=8&&tx<=44&&ty>=safeTop+158&&ty<=safeTop+194){
+    titleMenuOpen=true;titleMenuScroll=0;titlePendingTap=null;
+    sfx('select');vibrate(5);return;
   }
   // Character selection: 2 rows x 3 columns grid
   const cols=3,rows=2;
@@ -1395,6 +1458,8 @@ function handleTitleTouch(tx,ty){
       if(tx>=cx-5&&tx<=cx+charW+5&&ty>=cy-5&&ty<=cy+charH+5){
         if(isCharUnlocked(idx)){
           selChar=idx;localStorage.setItem('gd5char',selChar.toString());
+          if(typeof syncLiveRankingAppearanceLocally==='function')syncLiveRankingAppearanceLocally();
+          if(typeof fbSaveUserData==='function')fbSaveUserData();
           // Clear new character notification for this character
           const nci=notifNewChars.indexOf(idx);if(nci!==-1){notifNewChars.splice(nci,1);localStorage.setItem('gd5notifChars',JSON.stringify(notifNewChars));}
           sfxCharVoice(idx);vibrate(10);
@@ -1407,25 +1472,13 @@ function handleTitleTouch(tx,ty){
       }
     }
   }
-  // Mode selection buttons (2+1 layout: Endless/Stage row, Challenge below)
-  const btnW=W*0.35,btnH=38,btnGap=12;
-  const totalBtnW=btnW*2+btnGap;
-  const btnStartX=W/2-totalBtnW/2;
-  const btnY=H*0.80;
-  const ebx=btnStartX;
-  const sbx=btnStartX+btnW+btnGap;
+  const modeLay=titleModeLayout();
   // Endless mode button -> start countdown
-  if(tx>=ebx&&tx<=ebx+btnW&&ty>=btnY&&ty<=btnY+btnH){
+  if(tx>=modeLay.endless.x&&tx<=modeLay.endless.x+modeLay.endless.w&&ty>=modeLay.endless.y&&ty<=modeLay.endless.y+modeLay.endless.h){
     startCountdown('endless');return;
   }
-  // Stage mode button (disabled)
-  // if(tx>=sbx&&tx<=sbx+btnW&&ty>=btnY&&ty<=btnY+btnH){
-  //   sfx('select');vibrate(30);state=ST.STAGE_SEL;stageSelScroll=0;stageSelTarget=0;return;
-  // }
   // Challenge mode button
-  const cbtnW=W*0.45,cbtnH=34;
-  const cbx2=W/2-cbtnW/2,cbtnY2=btnY+btnH+6;
-  if(tx>=cbx2&&tx<=cbx2+cbtnW&&ty>=cbtnY2&&ty<=cbtnY2+cbtnH){
+  if(tx>=modeLay.challenge.x&&tx<=modeLay.challenge.x+modeLay.challenge.w&&ty>=modeLay.challenge.y&&ty<=modeLay.challenge.y+modeLay.challenge.h){
     sfx('select');vibrate(30);startChallenge();return;
   }
 }
@@ -1450,6 +1503,62 @@ function handleRankingTouch(tx,ty){
     rankingOpen=false;sfx('cancel');return;
   }
 }
+function confirmTitleMenuTap(){
+  if(!titlePendingTap)return;
+  const pending=titlePendingTap;
+  titlePendingTap=null;
+  if(!pending.def)return;
+  if(!isTitleUnlocked(pending.def)){
+    sfx('hurt');vibrate(10);
+    return;
+  }
+  const nextId=equippedTitleId===pending.def.id?'':pending.def.id;
+  // Show confirmation modal instead of equipping directly
+  titleConfirmPending={def:pending.def,nextId:nextId};
+  sfx('click');vibrate(5);
+}
+function handleTitleMenuTouch(tx,ty){
+  const lay=titleMenuLayout();
+  const mX=lay.mX,mY=lay.mY,mW=lay.mW,mH=lay.mH;
+  // Handle confirm modal if open
+  if(titleConfirmPending){
+    const cW=200,cH=110,cX=W/2-cW/2,cY=H/2-cH/2;
+    const yesX=cX+12,yesW=(cW-36)/2;
+    const noX=cX+12+yesW+12,noW=yesW;
+    const btnY=cY+cH-44;
+    if(tx>=yesX&&tx<=yesX+yesW&&ty>=btnY&&ty<=btnY+30){
+      const {nextId}=titleConfirmPending;
+      titleConfirmPending=null;
+      if(setEquippedTitle(nextId)){sfx(nextId?'select':'cancel');vibrate(10);}
+      return;
+    }
+    if(tx>=noX&&tx<=noX+noW&&ty>=btnY&&ty<=btnY+30){
+      titleConfirmPending=null;sfx('cancel');vibrate(5);return;
+    }
+    // tap outside confirm closes it
+    if(tx<cX||tx>cX+cW||ty<cY||ty>cY+cH){titleConfirmPending=null;sfx('cancel');}
+    return;
+  }
+  titlePendingTap=null;
+  if(tx<mX||tx>mX+mW||ty<mY||ty>mY+mH){
+    titleMenuOpen=false;titleConfirmPending=null;sfx('cancel');return;
+  }
+  const ftY=lay.footerY;
+  if(tx>=W/2-50&&tx<=W/2+50&&ty>=ftY&&ty<=ftY+30){
+    titleMenuOpen=false;titleConfirmPending=null;sfx('cancel');return;
+  }
+  if(ty<lay.listY||ty>lay.listY+lay.listH)return;
+  const entries=getTitleMenuEntries();
+  let cy=lay.listY-titleMenuScroll;
+  for(let i=0;i<entries.length;i++){
+    const entry=entries[i],eh=titleMenuEntryHeight(entry);
+    if(entry.type==='title'&&tx>=lay.mX+8&&tx<=lay.mX+lay.mW-8&&ty>=cy+2&&ty<=cy+eh-2){
+      titlePendingTap={def:entry.def};
+      return;
+    }
+    cy+=eh;
+  }
+}
 // Mouse wheel for ranking scroll & shop/cosmetic scroll
 canvas.addEventListener('wheel',e=>{
   if(rankingOpen){
@@ -1460,17 +1569,27 @@ canvas.addEventListener('wheel',e=>{
     const maxScroll=Math.max(0,totalH-listH);
     rankingScrollTarget=Math.max(0,Math.min(maxScroll,rankingScrollTarget+e.deltaY*1.5));
   }
+  if(titleMenuOpen){
+    e.preventDefault();
+    const lay=titleMenuLayout();
+    const maxS=Math.max(0,titleMenuContentHeight(getTitleMenuEntries())-lay.listH);
+    titleMenuScroll=Math.max(0,Math.min(maxS,titleMenuScroll+e.deltaY*1.5));
+  }
   if(shopOpen){
     e.preventDefault();
-    const items=shopSorted(shopTab===0?SHOP_ITEMS.skins:shopTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects,true);
-    const mH2=Math.min(500,H-30),listH2=mH2-140,totalH2=items.length*54;
+    const lay=shopModalLayout();
+    const items=shopSorted(shopItemsForTab(shopTab),true);
+    const totalH2=items.length*lay.rowH;
+    const listH2=lay.listH;
     const maxS=Math.max(0,totalH2-listH2);
     shopScroll=Math.max(0,Math.min(maxS,shopScroll+e.deltaY*1.5));
   }
   if(cosmeticMenuOpen){
     e.preventDefault();
     const ownedList=cosmeticListForTab(cosmeticTab);
-    const mH2=Math.min(500,H-30),listH2=mH2-184,totalH2=ownedList.length*48;
+    const lay=cosmeticModalLayout();
+    const totalH2=ownedList.length*lay.rowH;
+    const listH2=lay.listH;
     const maxS=Math.max(0,totalH2-listH2);
     cosmeticScroll=Math.max(0,Math.min(maxS,cosmeticScroll+e.deltaY*1.5));
   }
@@ -1485,15 +1604,14 @@ canvas.addEventListener('wheel',e=>{
 
 // ===== SHOP TOUCH HANDLING =====
 function handleShopTouch(tx,ty){
-  const mW=Math.min(320,W-16),mH=Math.min(500,H-30);
-  const mX=(W-mW)/2,mY=(H-mH)/2;
+  const {mW,mH,mX,mY,listY,listH,rowH}=shopModalLayout();
   // Purchase animation playing - tap to dismiss, then show equip prompt
   if(shopPurchaseAnim){
     if(shopPurchaseAnim.t>30){
       const anim=shopPurchaseAnim;
       shopPurchaseAnim=null;sfx('click');
       // Show equip-now prompt after animation
-      shopEquipPrompt={item:anim.item,tab:anim.tab};
+      if(shopTabDef(anim.tab).isCosmetic)shopEquipPrompt={item:anim.item,tab:anim.tab};
     }
     return;
   }
@@ -1504,10 +1622,8 @@ function handleShopTouch(tx,ty){
     const btnW2=90,btnH2=34;
     // Equip now button
     if(tx>=W/2-btnW2-6&&tx<=W/2-6&&ty>=dlgY+dlgH-48&&ty<=dlgY+dlgH-48+btnH2){
-      const it=shopEquipPrompt.item,tab=shopEquipPrompt.tab;
-      if(tab===0)equipSkin(it.id);
-      else if(tab===1)equipEyes(it.id);
-      else equipEffect(it.id);
+      const it=shopEquipPrompt.item,tab=shopEquipPrompt.tab,def=shopTabDef(tab);
+      equipItemForSlot(def.equipSlot,it.id);
       sfx('select');vibrate(10);shopEquipPrompt=null;return;
     }
     // Later button
@@ -1520,14 +1636,32 @@ function handleShopTouch(tx,ty){
   }
   // Confirm dialog active
   if(shopConfirm){
-    const dlgW=Math.min(270,W-30),dlgH=260;
-    const dlgX=W/2-dlgW/2,dlgY=H/2-dlgH/2;
-    const btnW2=100,btnH2=36;
+    const item=shopConfirm.item,tab=shopConfirm.tab;
+    const lay=shopConfirmLayout(item);
+    const dlgX=lay.dlgX,dlgY=lay.dlgY,dlgW=lay.dlgW,dlgH=lay.dlgH;
+    const qty=shopConfirm.qty||1;
+    if(isConsumableItem(item)){
+      const maxQty=maxPurchasableConsumable(item);
+      if(tx>=lay.minusBtn.x&&tx<=lay.minusBtn.x+lay.minusBtn.w&&ty>=lay.minusBtn.y&&ty<=lay.minusBtn.y+lay.minusBtn.h){
+        shopConfirm.qty=Math.max(1,qty-1);sfx('click');return;
+      }
+      if(tx>=lay.plusBtn.x&&tx<=lay.plusBtn.x+lay.plusBtn.w&&ty>=lay.plusBtn.y&&ty<=lay.plusBtn.y+lay.plusBtn.h){
+        shopConfirm.qty=Math.max(1,Math.min(maxQty,qty+1));sfx('click');return;
+      }
+      if(tx>=lay.plusTenBtn.x&&tx<=lay.plusTenBtn.x+lay.plusTenBtn.w&&ty>=lay.plusTenBtn.y&&ty<=lay.plusTenBtn.y+lay.plusTenBtn.h){
+        shopConfirm.qty=Math.max(1,Math.min(maxQty,qty+10));sfx('click');return;
+      }
+      if(tx>=lay.maxBtn.x&&tx<=lay.maxBtn.x+lay.maxBtn.w&&ty>=lay.maxBtn.y&&ty<=lay.maxBtn.y+lay.maxBtn.h){
+        shopConfirm.qty=Math.max(1,maxQty);sfx('select');return;
+      }
+    }
     // Buy button (only respond if player can afford)
-    if(tx>=W/2-btnW2-6&&tx<=W/2-6&&ty>=dlgY+dlgH-52&&ty<=dlgY+dlgH-52+btnH2){
-      const item=shopConfirm.item,tab=shopConfirm.tab;
-      if(walletCoins<item.price){sfx('cancel');return;} // can't afford - ignore tap
-      if(buyItem(item.id,item.price)){
+    if(tx>=lay.buyBtn.x&&tx<=lay.buyBtn.x+lay.buyBtn.w&&ty>=lay.buyBtn.y&&ty<=lay.buyBtn.y+lay.buyBtn.h){
+      const buyQty=isConsumableItem(item)?Math.max(1,Math.min(maxPurchasableConsumable(item),shopConfirm.qty||1)):1;
+      const canBuy=isConsumableItem(item)?buyQty>0:walletCoins>=item.price;
+      if(!canBuy){sfx('cancel');return;}
+      const bought=isConsumableItem(item)?buyConsumableQuantity(item,buyQty):((!isConsumableItem(item)&&buyItem(item.id,item.price))?1:0);
+      if(bought>0){
         // Start gacha celebration (equip prompt shown after animation)
         const parts=[];
         for(let i=0;i<20;i++){
@@ -1535,14 +1669,14 @@ function handleShopTouch(tx,ty){
             life:60+Math.random()*40,col:['#ffd700','#ff69b4','#00e5ff','#a855f7','#34d399','#ff4444'][Math.floor(Math.random()*6)],
             sz:3+Math.random()*5});
         }
-        shopPurchaseAnim={item,tab,t:0,parts};
+        shopPurchaseAnim={item,tab,t:0,parts,qty:bought};
         sfx('item');sfxFanfare();vibrate([10,5,15,5,10]);
       }
       shopConfirm=null;
       return;
     }
     // Cancel button
-    if(tx>=W/2+6&&tx<=W/2+6+btnW2&&ty>=dlgY+dlgH-52&&ty<=dlgY+dlgH-52+btnH2){
+    if(tx>=lay.cancelBtn.x&&tx<=lay.cancelBtn.x+lay.cancelBtn.w&&ty>=lay.cancelBtn.y&&ty<=lay.cancelBtn.y+lay.cancelBtn.h){
       shopConfirm=null;sfx('cancel');return;
     }
     // Tap outside dialog dismisses it
@@ -1557,18 +1691,15 @@ function handleShopTouch(tx,ty){
   // Outside modal
   if(tx<mX||tx>mX+mW||ty<mY||ty>mY+mH){shopOpen=false;sfx('cancel');return;}
   // Tabs
-  const tabW=(mW-20)/3;
-  for(let i=0;i<3;i++){
-    const tbx=mX+10+i*tabW,tby=mY+56;
-    if(tx>=tbx&&tx<=tbx+tabW-4&&ty>=tby&&ty<=tby+26){
+  for(let i=0;i<SHOP_TAB_DEFS.length;i++){
+    const tr=shopTabRect(i);
+    if(tx>=tr.x&&tx<=tr.x+tr.w&&ty>=tr.y&&ty<=tr.y+tr.h){
       shopTab=i;shopScroll=0;sfx('click');return;
     }
   }
   // Item rows - record pending tap (confirmed on touchend if no scroll)
   shopPendingTap=null;
-  const listY=mY+90,listH=mH-140;
-  const items=shopSorted(shopTab===0?SHOP_ITEMS.skins:shopTab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects,true);
-  const rowH=54;
+  const items=shopSorted(shopItemsForTab(shopTab),true);
   for(let i=0;i<items.length;i++){
     const iy=listY+i*rowH-shopScroll;
     if(iy+rowH<listY||iy>listY+listH)continue;
@@ -1582,17 +1713,20 @@ function confirmShopTap(){
   if(!shopPendingTap)return;
   const tab=shopPendingTap.tab,itemId=shopPendingTap.itemId;
   shopPendingTap=null;
-  const items=shopSorted(tab===0?SHOP_ITEMS.skins:tab===1?SHOP_ITEMS.eyes:SHOP_ITEMS.effects,true);
+  const items=shopSorted(shopItemsForTab(tab),true);
   const item=items.find(it=>it.id===itemId);
   if(!item)return;
+  const def=shopTabDef(tab);
+  if(isConsumableItem(item)){
+    shopConfirm={item,tab,qty:1};sfx('select');
+    return;
+  }
   if(ownsItem(item.id)){
-    if((tab===0&&equippedSkin===item.id)||(tab===1&&equippedEyes===item.id)||(tab===2&&equippedEffect===item.id)){
+    if(equippedIdForSlot(def.equipSlot)===item.id){
       sfx('click');
       return;
     }
-    if(tab===0)equipSkin(item.id);
-    else if(tab===1)equipEyes(item.id);
-    else equipEffect(item.id);
+    equipItemForSlot(def.equipSlot,item.id);
     sfx('select');vibrate(10);
     return;
   } else {
@@ -1602,14 +1736,13 @@ function confirmShopTap(){
       addPop(W/2,H/2,t('popGachaOnly'),item.rarity==='super_rare'?'#ffd700':'#a855f7');
       return;
     }
-    shopConfirm={item,tab};sfx('select');
+    shopConfirm={item,tab,qty:1};sfx('select');
   }
 }
 
 // ===== COSMETIC MENU TOUCH HANDLING =====
 function handleCosmeticTouch(tx,ty){
-  const mW=Math.min(320,W-16),mH=Math.min(500,H-30);
-  const mX=(W-mW)/2,mY=(H-mH)/2;
+  const {mW,mH,mX,mY,listY,listH,rowH}=cosmeticModalLayout();
   // Equip confirm dialog active
   if(cosmeticConfirm){
     const dlgW=Math.min(240,W-40),dlgH=140;
@@ -1617,12 +1750,8 @@ function handleCosmeticTouch(tx,ty){
     const btnW2=90,btnH2=34;
     // OK button
     if(tx>=W/2-btnW2-6&&tx<=W/2-6&&ty>=dlgY+dlgH-48&&ty<=dlgY+dlgH-48+btnH2){
-      const it=cosmeticConfirm.item,tab=cosmeticConfirm.tab;
-      if(it.id===''){
-        if(tab===0)unequipSkin();else if(tab===1)unequipEyes();else unequipEffect();
-      } else {
-        if(tab===0)equipSkin(it.id);else if(tab===1)equipEyes(it.id);else equipEffect(it.id);
-      }
+      const it=cosmeticConfirm.item,def=cosmeticTabDef(cosmeticConfirm.tab);
+      equipItemForSlot(def.equipSlot,it.id||'');
       sfx('select');vibrate(10);cosmeticConfirm=null;return;
     }
     // Cancel button
@@ -1638,18 +1767,15 @@ function handleCosmeticTouch(tx,ty){
   // Outside modal
   if(tx<mX||tx>mX+mW||ty<mY||ty>mY+mH){cosmeticMenuOpen=false;newCosmeticIds.clear();localStorage.removeItem('gd5newCosm');sfx('cancel');return;}
   // Tabs
-  const tabW=(mW-20)/3;
-  for(let i=0;i<3;i++){
-    const tbx=mX+10+i*tabW,tby=mY+100;
-    if(tx>=tbx&&tx<=tbx+tabW-4&&ty>=tby&&ty<=tby+26){
+  for(let i=0;i<COSMETIC_TAB_DEFS.length;i++){
+    const tr=cosmeticTabRect(i);
+    if(tx>=tr.x&&tx<=tr.x+tr.w&&ty>=tr.y&&ty<=tr.y+tr.h){
       cosmeticTab=i;cosmeticScroll=0;sfx('click');return;
     }
   }
   // Item rows - record pending tap (confirmed on touchend if no scroll)
   cosmeticPendingTap=null;
-  const listY=mY+134,listH=mH-184;
   const ownedList=cosmeticListForTab(cosmeticTab);
-  const rowH=48;
   for(let i=0;i<ownedList.length;i++){
     const iy=listY+i*rowH-cosmeticScroll;
     if(iy+rowH<listY||iy>listY+listH)continue;
@@ -1882,8 +2008,9 @@ function _showSocialNameInput(user,prevMethod){
     playerName='';highScore=0;walletCoins=0;played=0;
     totalChestsOpened=0;storedChests=0;tutorialDone=false;
     unlockedChars=[0];ownedItems=[];packProgress={};totalStars=0;
-    equippedSkin='';equippedEyes='';equippedEffect='';
-    selChar=0;rankChar=-1;rankSkin='';rankEyes='';rankFx='';
+    equippedSkin='';equippedEyes='';equippedEffect='';equippedPet='';equippedAccessory='';
+    selChar=0;rankChar=-1;rankSkin='';rankEyes='';rankFx='';rankPet='';rankAcc='';
+    itemStocks={item_magnet:0,item_bomb:0};magnetCount=0;bombCount=0;
     const ks=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gd5'))ks.push(k);}
     ks.forEach(k=>localStorage.removeItem(k));
   }
@@ -1965,7 +2092,7 @@ function startTutorial(){
   tutPhase='scroll';tutSuccessT=0;tutFlipCount=0;
   tutWarpT=0;tutWarpPhase='';tutIsIntro=false;tutFreezePlayer=false;
   screenFadeIn=30;
-  bombCount=0;invCount=0;
+  magnetCount=0;bombCount=0;invCount=0;
   buildTutorialCourse();
   player.x=W*0.25;player.gDir=1;player.vy=0;
   player.y=H-GROUND_H-PLAYER_R;player.grounded=true;
