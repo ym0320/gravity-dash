@@ -3640,6 +3640,14 @@ function drawTitle(){
   ctx.strokeStyle='#4488ff44';ctx.lineWidth=1;rr(W-44,safeTop+44,36,36,8);ctx.stroke();
   ctx.fillStyle='#4488ff';ctx.font='16px monospace';ctx.textAlign='center';
   ctx.fillText('\u2753',W-26,safeTop+67);
+  if(notifHelpNew){
+    const bp=Math.sin(titleT*2)*0.15+1;
+    ctx.save();ctx.translate(W-14,safeTop+48);ctx.scale(bp,bp);
+    ctx.fillStyle='#ff3860';ctx.beginPath();ctx.arc(0,0,8,0,TAU);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='bold 10px monospace';ctx.textAlign='center';
+    ctx.fillText('!',0,4);
+    ctx.restore();
+  }
   // Settings panel overlay
   if(settingsOpen){
     ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,W,H);

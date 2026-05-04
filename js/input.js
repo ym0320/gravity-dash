@@ -963,7 +963,7 @@ canvas.addEventListener('touchstart',e=>{
   // Tutorial
   if(state===ST.TUTORIAL){handleTutorialTouch(p.x,p.y);return;}
   if(state===ST.TITLE&&!charModal.show&&hitSettingsGear(p.x,p.y)){sfx('click');vibrate(5);settingsOpen=true;return;}
-  if(state===ST.TITLE&&!charModal.show&&hitHelpBtn(p.x,p.y)){sfx('select');vibrate(5);helpOpen=true;return;}
+  if(state===ST.TITLE&&!charModal.show&&hitHelpBtn(p.x,p.y)){sfx('select');vibrate(5);helpOpen=true;if(notifHelpNew){notifHelpNew=false;localStorage.setItem('gd5helpSeen','1');}return;}
   if(state===ST.STAGE_SEL){stageSelTouchY=t.clientY;stageSelDragging=false;return;}
   if(state===ST.STAGE_CLEAR&&stageClearT>60){
     sfx('click');state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;
@@ -1221,7 +1221,7 @@ canvas.addEventListener('mousedown',e=>{
   if(state===ST.LOGIN){handleLoginTouch(p.x,p.y);return;}
   if(state===ST.TUTORIAL){handleTutorialTouch(p.x,p.y);return;}
   if(state===ST.TITLE&&!charModal.show&&hitSettingsGear(p.x,p.y)){sfx('click');vibrate(5);settingsOpen=true;return;}
-  if(state===ST.TITLE&&!charModal.show&&hitHelpBtn(p.x,p.y)){sfx('select');vibrate(5);helpOpen=true;return;}
+  if(state===ST.TITLE&&!charModal.show&&hitHelpBtn(p.x,p.y)){sfx('select');vibrate(5);helpOpen=true;if(notifHelpNew){notifHelpNew=false;localStorage.setItem('gd5helpSeen','1');}return;}
   if(state===ST.STAGE_SEL){handleStageSelTouch(p.x,p.y);return;}
   if(state===ST.STAGE_CLEAR&&stageClearT>60){
     sfx('click');state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;

@@ -456,6 +456,7 @@ let nameEditBuf=''; // buffer for name being edited
 let logoutConfirm=false; // true when logout confirm shown
 let confirmModal=null; // {type:'reset'|'logout', step:0} - modal confirmation overlay
 let helpOpen=false; // true when help/controls overlay is shown
+let notifHelpNew=localStorage.getItem('gd5helpSeen')!=='1'; // show ! on help button until first open
 let updateInfoOpen=false; // true when update info modal is shown
 let updateInfoShown=false; // prevents auto-show more than once per session
 let updateInfoPage=0; // current page index for back number browsing
