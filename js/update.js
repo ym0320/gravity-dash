@@ -761,13 +761,14 @@ function update(dt){
     player.vy=0;
   } else {
     const grav=GRAVITY*player.gDir*ct().gravMul;
-    // Drone pet: reduce gravity when player is near void edge (1/3 gravity assist)
+    // Drone pet: reduce gravity to 1/3 when falling into a void gap
     let gravMul2=1;
     if(equippedPet==='pet_drone'&&!player.grounded){
-      const nearVoid=player.gDir===1
-        ?(player.y>H*0.68&&floorSurfaceY(player.x)>H+50)
-        :(player.y<H*0.32&&ceilSurfaceY(player.x)<-50);
-      if(nearVoid&&((player.gDir===1&&player.vy>0)||(player.gDir===-1&&player.vy<0))){
+      const falling=player.gDir===1?player.vy>0:player.vy<0;
+      const voidBelow=player.gDir===1
+        ?floorSurfaceY(player.x)>H+100
+        :ceilSurfaceY(player.x)<-100;
+      if(falling&&voidBelow){
         gravMul2=0.33;petDroneAssist=true;
       } else {petDroneAssist=false;}
     } else {petDroneAssist=false;}
