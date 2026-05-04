@@ -1444,7 +1444,22 @@ function handleTitleTouch(tx,ty){
   }
   // Title button (top-left, row 5)
   if(tx>=8&&tx<=44&&ty>=safeTop+158&&ty<=safeTop+194){
-    titleMenuOpen=true;titleMenuScroll=0;titlePendingTap=null;
+    titleMenuOpen=true;titlePendingTap=null;
+    // Auto-scroll to first newly acquired title
+    if(notifNewTitleIds&&notifNewTitleIds.length>0){
+      const entries=getTitleMenuEntries();
+      const lay=titleMenuLayout();
+      let cy=0,targetY=0;
+      for(let i=0;i<entries.length;i++){
+        if(entries[i].type==='title'&&notifNewTitleIds.indexOf(entries[i].def.id)!==-1){targetY=cy;break;}
+        cy+=titleMenuEntryHeight(entries[i]);
+      }
+      const maxS=Math.max(0,titleMenuContentHeight(entries)-lay.listH);
+      titleMenuScroll=Math.max(0,Math.min(maxS,targetY));
+      notifNewTitleIds=[];localStorage.removeItem('gd5notifTitles');localStorage.removeItem('gd5notifTitlesTime');
+    } else {
+      titleMenuScroll=0;
+    }
     sfx('select');vibrate(5);return;
   }
   // Character selection: 2 rows x 3 columns grid
@@ -1698,7 +1713,8 @@ function handleShopTouch(tx,ty){
     const tr=shopTabRect(i);
     if(tx>=tr.x&&tx<=tr.x+tr.w&&ty>=tr.y&&ty<=tr.y+tr.h){
       shopTab=i;shopScroll=0;sfx('click');
-      if((i===3||i===4)&&notifShopPetNew){notifShopPetNew=false;localStorage.setItem('gd5shopPetNew','0');}
+      if(i===3&&notifShopPetNew){notifShopPetNew=false;localStorage.setItem('gd5shopPetNew','0');}
+      if(i===4&&notifShopAccNew){notifShopAccNew=false;localStorage.setItem('gd5shopAccNew','0');}
       return;
     }
   }

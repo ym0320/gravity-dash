@@ -3594,7 +3594,7 @@ function drawTitle(){
   ctx.strokeStyle='#ff69b444';ctx.lineWidth=1;rr(8,safeTop+82,36,36,8);ctx.stroke();
   ctx.fillStyle='#ff69b4';ctx.font='16px monospace';ctx.textAlign='center';
   ctx.fillText('\uD83D\uDED2',26,safeTop+105);
-  if(notifShopPetNew){
+  if(notifShopPetNew||notifShopAccNew){
     const bp=Math.sin(titleT*3)*0.18+1;
     ctx.save();ctx.translate(38,safeTop+86);ctx.scale(bp,bp);
     ctx.fillStyle='#ff3860';rr(-10,-6,22,12,6);ctx.fill();
@@ -3612,6 +3612,15 @@ function drawTitle(){
   ctx.strokeStyle='#7dd3fc44';ctx.lineWidth=1;rr(8,safeTop+158,36,36,8);ctx.stroke();
   ctx.fillStyle='#7dd3fc';ctx.font='16px monospace';ctx.textAlign='center';
   ctx.fillText('\uD83C\uDF96',26,safeTop+181);
+  // Title NEW badge (newly acquired titles)
+  if(notifNewTitleIds&&notifNewTitleIds.length>0){
+    const bp=Math.sin(titleT*3)*0.18+1;
+    ctx.save();ctx.translate(38,safeTop+162);ctx.scale(bp,bp);
+    ctx.fillStyle='#ff3860';rr(-10,-6,22,12,6);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='bold 8px monospace';ctx.textAlign='center';
+    ctx.fillText('NEW',0,4);
+    ctx.restore();
+  }
   // Cosmetic notification badge (new cosmetic obtained)
   if(notifNewCosmetic){
     const bp=Math.sin(titleT*3)*0.18+1;
@@ -6230,8 +6239,8 @@ function drawShop(){
     ctx.strokeStyle=shopTab===i?def.color:def.color+'44';ctx.lineWidth=1;rr(tr.x,tr.y,tr.w,tr.h,6);ctx.stroke();
     ctx.fillStyle=shopTab===i?def.color:'#fff6';ctx.font=shopTab===i?'bold 10px monospace':'10px monospace';
     ctx.fillText(t(def.labelKey),tr.x+tr.w/2,tr.y+18);
-    // NEW badge on pet (3) and accessory (4) tabs
-    if(notifShopPetNew&&(i===3||i===4)){
+    // NEW badge on pet (3) and accessory (4) tabs — separate flags
+    if((i===3&&notifShopPetNew)||(i===4&&notifShopAccNew)){
       ctx.fillStyle='#ff3860';rr(tr.x+tr.w-16,tr.y-4,18,10,4);ctx.fill();
       ctx.fillStyle='#fff';ctx.font='bold 7px monospace';ctx.textAlign='center';
       ctx.fillText('NEW',tr.x+tr.w-7,tr.y+3);

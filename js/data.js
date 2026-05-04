@@ -2795,7 +2795,29 @@ let notifNewCosmetic=localStorage.getItem('gd5notifCosm')==='1'; // new cosmetic
 let newCosmeticIds=new Set(JSON.parse(localStorage.getItem('gd5newCosm')||'[]')); // individual new cosmetic IDs
 let notifNewChars=JSON.parse(localStorage.getItem('gd5notifChars')||'[]'); // newly unlocked char indices
 let notifNewHighScore=localStorage.getItem('gd5notifHi')==='1'; // new high score achieved
-let notifShopPetNew=localStorage.getItem('gd5shopPetNew')!=='0'; // pet/accessory tab is new
+// Shop NEW notifications (pet tab=3, accessory tab=4) — separate flags, auto-expire after 7 days
+const _SHOP_NEW_WEEK=7*24*60*60*1000;
+const _petAlreadyDismissed=localStorage.getItem('gd5shopPetNew')==='0';
+(function(){if(!localStorage.getItem('gd5shopPetNewTime'))localStorage.setItem('gd5shopPetNewTime',Date.now().toString());})();
+(function(){if(!localStorage.getItem('gd5shopAccNewTime'))localStorage.setItem('gd5shopAccNewTime',Date.now().toString());})();
+let notifShopPetNew=!_petAlreadyDismissed&&(Date.now()-parseInt(localStorage.getItem('gd5shopPetNewTime')||'0'))<_SHOP_NEW_WEEK;
+let notifShopAccNew=!_petAlreadyDismissed&&localStorage.getItem('gd5shopAccNew')!=='0'&&(Date.now()-parseInt(localStorage.getItem('gd5shopAccNewTime')||'0'))<_SHOP_NEW_WEEK;
+// Title NEW notifications — newly acquired title IDs, auto-expire after 7 days
+let notifNewTitleIds=(function(){try{const raw=JSON.parse(localStorage.getItem('gd5notifTitles')||'[]');if(!Array.isArray(raw))return[];const t=parseInt(localStorage.getItem('gd5notifTitlesTime')||'0')||0;if(t&&(Date.now()-t)>_SHOP_NEW_WEEK){localStorage.removeItem('gd5notifTitles');localStorage.removeItem('gd5notifTitlesTime');return[];}return raw.filter(id=>typeof id==='string');}catch(e){return[];}})();
+function checkNewTitleUnlocks(){
+  const knownRaw=JSON.parse(localStorage.getItem('gd5knownTitles')||'[]');
+  const known=new Set(Array.isArray(knownRaw)?knownRaw:[]);
+  const newlyUnlocked=[];
+  for(let i=0;i<TITLE_DEFS.length;i++){if(isTitleUnlocked(TITLE_DEFS[i])&&!known.has(TITLE_DEFS[i].id))newlyUnlocked.push(TITLE_DEFS[i].id);}
+  if(newlyUnlocked.length>0){
+    const combined=Array.from(new Set(notifNewTitleIds.concat(newlyUnlocked)));
+    notifNewTitleIds=combined;
+    localStorage.setItem('gd5notifTitles',JSON.stringify(notifNewTitleIds));
+    localStorage.setItem('gd5notifTitlesTime',Date.now().toString());
+  }
+  const allUnlocked=[];for(let i=0;i<TITLE_DEFS.length;i++)if(isTitleUnlocked(TITLE_DEFS[i]))allUnlocked.push(TITLE_DEFS[i].id);
+  localStorage.setItem('gd5knownTitles',JSON.stringify(allUnlocked));
+}
 // Shop purchase confirmation & gacha animation
 let shopConfirm=null; // {item, tab} when confirm dialog shown
 let shopPurchaseAnim=null; // {item, tab, t, parts} when purchase animation playing
@@ -2832,6 +2854,8 @@ function setEquippedTitle(id){
   return true;
 }
 ensureEquippedTitleValid();
+// Initialize known-titles set on first run (silently, no notification for pre-existing unlocks)
+(function(){if(!localStorage.getItem('gd5knownTitles')){const all=[];for(let i=0;i<TITLE_DEFS.length;i++)if(isTitleUnlocked(TITLE_DEFS[i]))all.push(TITLE_DEFS[i].id);localStorage.setItem('gd5knownTitles',JSON.stringify(all));}})();
 function saveItemStocks(){localStorage.setItem('gd5itemStocks',JSON.stringify(itemStocks));if(typeof fbSaveUserData==='function')fbSaveUserData();}
 function itemStock(id){return Math.max(0,Math.min(99,parseInt(itemStocks[id]||'0')||0));}
 function setItemStock(id,count){itemStocks[id]=Math.max(0,Math.min(99,count|0));saveItemStocks();}
