@@ -1694,7 +1694,9 @@ function handleShopTouch(tx,ty){
   for(let i=0;i<SHOP_TAB_DEFS.length;i++){
     const tr=shopTabRect(i);
     if(tx>=tr.x&&tx<=tr.x+tr.w&&ty>=tr.y&&ty<=tr.y+tr.h){
-      shopTab=i;shopScroll=0;sfx('click');return;
+      shopTab=i;shopScroll=0;sfx('click');
+      if((i===3||i===4)&&notifShopPetNew){notifShopPetNew=false;localStorage.setItem('gd5shopPetNew','0');}
+      return;
     }
   }
   // Item rows - record pending tap (confirmed on touchend if no scroll)

@@ -2627,7 +2627,7 @@ const SHOP_ITEMS={
   pets:[
     {id:'pet_comet',type:'comet',price:50000,desc:'\u30ad\u30e9\u30ea\u3068\u5f8c\u308d\u3092\u98db\u3076\u661f\u5c18\u306e\u76f8\u68d2',ability:'\u2b50 \u30b3\u30a4\u30f3\u3092\u5f31\u304f\u5f15\u304d\u5bc4\u305b\u308b\uff08\u5e38\u6642\uff09'},
     {id:'pet_puff',type:'puff',price:50000,desc:'\u3077\u304b\u3077\u304b\u8ffd\u3044\u304b\u3051\u308b\u5c0f\u3055\u306a\u304a\u3070\u3051',ability:'\u2728 \u5b9a\u671f\u7684\u306b\u900f\u660e\u5316\u3057\u6575\u306e\u653b\u6483\u3092\u56de\u907f'},
-    {id:'pet_drone',type:'drone',price:60000,desc:'\u30d6\u30fc\u30b9\u30c8\u5674\u5c04\u3067\u8ffd\u5f93\u3059\u308b\u30df\u30cb\u30c9\u30ed\u30fc\u30f3',ability:'\ud83d\ude80 \u843d\u4e0b\u30ae\u30ea\u30ae\u30ea\u3067\u91cd\u529b\u30921/3\u306b\u8efd\u6e1b'},
+    {id:'pet_drone',type:'drone',price:60000,desc:'\u30d6\u30fc\u30b9\u30c8\u5674\u5c04\u3067\u8ffd\u5f93\u3059\u308b\u30df\u30cb\u30c9\u30ed\u30fc\u30f3',ability:'\ud83d\ude81 \u843d\u3061\u305d\u3046\u306a\u6642\u306b\u52a9\u3051\u3066\u304f\u308c\u308b\u304b\u3082\u2026'},
   ],
   accessories:[
     {id:'acc_halo',type:'halo',price:25000,desc:'\u5149\u306e\u7c92\u304c\u821e\u3046\u5929\u4f7f\u306e\u8f2a'},
@@ -2795,6 +2795,7 @@ let notifNewCosmetic=localStorage.getItem('gd5notifCosm')==='1'; // new cosmetic
 let newCosmeticIds=new Set(JSON.parse(localStorage.getItem('gd5newCosm')||'[]')); // individual new cosmetic IDs
 let notifNewChars=JSON.parse(localStorage.getItem('gd5notifChars')||'[]'); // newly unlocked char indices
 let notifNewHighScore=localStorage.getItem('gd5notifHi')==='1'; // new high score achieved
+let notifShopPetNew=localStorage.getItem('gd5shopPetNew')!=='0'; // pet/accessory tab is new
 // Shop purchase confirmation & gacha animation
 let shopConfirm=null; // {item, tab} when confirm dialog shown
 let shopPurchaseAnim=null; // {item, tab, t, parts} when purchase animation playing
@@ -3014,7 +3015,10 @@ let petState={x:0,y:0,vx:0,vy:0,mode:'idle',t:0,phase:0,ready:false};
 let petPuffPhaseT=0;      // puff invis cycle timer (0-299)
 let petPuffInvis=false;   // true while puff is in transparent phase
 let petDroneAssist=false; // true while drone is actively reducing gravity
-function resetPetState(){petState={x:0,y:0,vx:0,vy:0,mode:'idle',t:0,phase:0,ready:false};petPuffPhaseT=0;petPuffInvis=false;petDroneAssist=false;}
+let petDroneCharges=3;    // uses remaining before drone breaks
+let petDroneBroken=false; // true once charges exhausted (drone gone for session)
+let _prevDroneAssist=false; // tracks previous frame assist state for edge detection
+function resetPetState(){petState={x:0,y:0,vx:0,vy:0,mode:'idle',t:0,phase:0,ready:false};petPuffPhaseT=0;petPuffInvis=false;petDroneAssist=false;petDroneCharges=3;petDroneBroken=false;_prevDroneAssist=false;}
 function triggerPetReaction(mode,duration){
   if(!getEquippedPetData())return;
   petState.mode=mode||'idle';
@@ -3025,6 +3029,7 @@ function updatePetCompanion(){
   const pet=getEquippedPetData();
   if(!pet||!player){petState.ready=false;return;}
   if(state!==ST.PLAY&&state!==ST.COUNTDOWN&&state!==ST.DEAD&&state!==ST.PAUSE){petState.ready=false;return;}
+  if(petDroneBroken&&pet.type==='drone'){petState.ready=false;return;}
   const pr=Math.max(10,playerRadius());
   const petType=pet.type||'comet';
   petState.phase+=0.12;
@@ -3134,6 +3139,13 @@ function updatePetCompanion(){
     oy=gd*(-pr*1.6-8); // directly above player (against gravity)
     hover=-Math.abs(Math.sin(frame*0.35))*4; // strain upward
     sway=Math.sin(frame*0.28)*8; // wobble from effort
+  } else if(petState.mode==='drone_broken'){
+    // Drone spins and falls away as it breaks
+    const bp=petState.t/80; // 1→0 as animation plays
+    ox=(-pr*1.9-12)+(1-bp)*Math.sin(frame*0.8)*40;
+    oy=(gd===1?-pr*0.18:pr*0.18)+(1-bp)*gd*(-pr*3);
+    sway=Math.sin(frame*0.6)*18*(1-bp*0.3);
+    hover=-(1-bp)*30*gd; // falls away
   }
   // Puff: periodic invisibility cycle (20% invis, 80% visible = 60 invis / 240 visible per 300 frame cycle)
   if(petType==='puff'&&state===ST.PLAY){
@@ -3143,9 +3155,22 @@ function updatePetCompanion(){
     // Trigger puff nudge motion when invis activates or ends
     if(!wasInvis&&petPuffInvis)triggerPetReaction('puff_touch',18);
   } else {petPuffInvis=false;}
-  // Drone: trigger lift motion when gravity assist is active
-  if(petType==='drone'&&petDroneAssist&&petState.mode!=='drone_lift'){
-    triggerPetReaction('drone_lift',30);
+  // Drone: detect new activation (false→true edge), consume charge
+  if(petType==='drone'){
+    if(petDroneAssist&&!_prevDroneAssist&&!petDroneBroken){
+      petDroneCharges--;
+      if(petDroneCharges<=0){
+        petDroneCharges=0;
+        triggerPetReaction('drone_broken',80);
+        // After animation, mark as broken
+        setTimeout(()=>{petDroneBroken=true;},80*(1000/60));
+      } else if(petState.mode!=='drone_lift'){
+        triggerPetReaction('drone_lift',35);
+      }
+    } else if(petDroneAssist&&!petDroneBroken&&petState.mode!=='drone_lift'&&petState.mode!=='drone_broken'){
+      triggerPetReaction('drone_lift',35);
+    }
+    _prevDroneAssist=petDroneAssist;
   }
   const targetX=player.x+ox+sway;
   const targetY=player.y+oy+hover;

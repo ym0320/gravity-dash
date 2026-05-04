@@ -2469,7 +2469,17 @@ function drawPlayer(){
   }
   // All characters rotate with gravity; face direction corrected inside drawCharacter
   const charRot=player.rot;
-  drawEquippedPetAt(petState.ready?petState.x:player.x-pr*2.05,petState.ready?petState.y:player.y,pr*0.68,ghostA,petState.mode||'idle',player.gDir);
+  if(!petDroneBroken){
+    const petAlpha=petState.mode==='drone_broken'?Math.max(0,petState.t/80)*ghostA:ghostA;
+    const petRot=petState.mode==='drone_broken'?(1-petState.t/80)*Math.PI*4:0;
+    if(petState.mode==='drone_broken'&&petRot!==0){
+      ctx.save();ctx.translate(petState.x,petState.y);ctx.rotate(petRot);
+      drawEquippedPetAt(0,0,pr*0.68,petAlpha,petState.mode,player.gDir);
+      ctx.restore();
+    } else {
+      drawEquippedPetAt(petState.ready?petState.x:player.x-pr*2.05,petState.ready?petState.y:player.y,pr*0.68,petAlpha,petState.mode||'idle',player.gDir);
+    }
+  }
   // Draw equipped effect behind character
   const fxData=getEquippedEffectData();
   if(fxData)drawPlayerEffect(player.x,player.y,pr,fxData.type,ghostA,player.gDir);
@@ -3584,6 +3594,14 @@ function drawTitle(){
   ctx.strokeStyle='#ff69b444';ctx.lineWidth=1;rr(8,safeTop+82,36,36,8);ctx.stroke();
   ctx.fillStyle='#ff69b4';ctx.font='16px monospace';ctx.textAlign='center';
   ctx.fillText('\uD83D\uDED2',26,safeTop+105);
+  if(notifShopPetNew){
+    const bp=Math.sin(titleT*3)*0.18+1;
+    ctx.save();ctx.translate(38,safeTop+86);ctx.scale(bp,bp);
+    ctx.fillStyle='#ff3860';rr(-10,-6,22,12,6);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='bold 8px monospace';ctx.textAlign='center';
+    ctx.fillText('NEW',0,4);
+    ctx.restore();
+  }
   // Dress-up button (top left, row 4)
   ctx.fillStyle='#ffffff14';rr(8,safeTop+120,36,36,8);ctx.fill();
   ctx.strokeStyle='#a855f744';ctx.lineWidth=1;rr(8,safeTop+120,36,36,8);ctx.stroke();
@@ -6212,6 +6230,12 @@ function drawShop(){
     ctx.strokeStyle=shopTab===i?def.color:def.color+'44';ctx.lineWidth=1;rr(tr.x,tr.y,tr.w,tr.h,6);ctx.stroke();
     ctx.fillStyle=shopTab===i?def.color:'#fff6';ctx.font=shopTab===i?'bold 10px monospace':'10px monospace';
     ctx.fillText(t(def.labelKey),tr.x+tr.w/2,tr.y+18);
+    // NEW badge on pet (3) and accessory (4) tabs
+    if(notifShopPetNew&&(i===3||i===4)){
+      ctx.fillStyle='#ff3860';rr(tr.x+tr.w-16,tr.y-4,18,10,4);ctx.fill();
+      ctx.fillStyle='#fff';ctx.font='bold 7px monospace';ctx.textAlign='center';
+      ctx.fillText('NEW',tr.x+tr.w-7,tr.y+3);
+    }
   }
   // Items list
   const items=shopSorted(shopItemsForTab(shopTab),true);

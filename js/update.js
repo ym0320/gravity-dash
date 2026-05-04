@@ -763,13 +763,15 @@ function update(dt){
     const grav=GRAVITY*player.gDir*ct().gravMul;
     // Drone pet: reduce gravity to 1/3 when falling into a void gap
     let gravMul2=1;
-    if(equippedPet==='pet_drone'&&!player.grounded){
+    if(equippedPet==='pet_drone'&&!player.grounded&&!petDroneBroken){
       const falling=player.gDir===1?player.vy>0:player.vy<0;
-      const voidBelow=player.gDir===1
-        ?floorSurfaceY(player.x)>H+100
-        :ceilSurfaceY(player.x)<-100;
-      if(falling&&voidBelow){
-        gravMul2=0.33;petDroneAssist=true;
+      const pr2=playerRadius();
+      // ギリギリ判定: 下80%以下 かつ 足元が奈落
+      const nearEdge=player.gDir===1
+        ?(player.y>H*0.78&&floorSurfaceY(player.x)>H+100)
+        :(player.y<H*0.22&&ceilSurfaceY(player.x)<-100);
+      if(falling&&nearEdge){
+        gravMul2=0.67;petDroneAssist=true;
       } else {petDroneAssist=false;}
     } else {petDroneAssist=false;}
     player.vy+=grav*gravMul2;
