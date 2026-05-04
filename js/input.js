@@ -459,13 +459,38 @@ function handleUpdateInfoTouch(tx,ty){
   if(tx<ux||tx>ux+uw||ty<uy||ty>uy+uh){sfx('cancel');localStorage.setItem('gd5updateDismissed',UPDATE_VER);updateInfoOpen=false;updateInfoPage=0;return;}
 }
 // Help overlay touch handler
+function helpLayout(){
+  const hw=Math.min(320,W-16),hh=Math.min(H-safeTop-12,560);
+  const hx=W/2-hw/2,hy=safeTop+6;
+  const tabY=hy+34,tabH=26,tabW=Math.floor((hw-16)/3);
+  const cY=tabY+tabH+4,cH=hh-(tabY-hy)-tabH-4-44;
+  return{hw,hh,hx,hy,tabY,tabH,tabW,cY,cH};
+}
 function handleHelpTouch(tx,ty){
-  const hw=Math.min(300,W-20),hh=420,hx=W/2-hw/2,hy=H/2-hh/2;
-  // Close button
-  const hCloseY=hy+hh-42;
-  if(tx>=W/2-50&&tx<=W/2+50&&ty>=hCloseY&&ty<=hCloseY+32){sfx('click');helpOpen=false;return;}
-  // Tap anywhere outside the modal closes it
+  const L=helpLayout();
+  const{hw,hh,hx,hy,tabY,tabH,tabW,cY,cH}=L;
+  // Outside modal
   if(tx<hx||tx>hx+hw||ty<hy||ty>hy+hh){sfx('cancel');helpOpen=false;return;}
+  // Close button
+  const hCloseY=hy+hh-38;
+  if(tx>=W/2-50&&tx<=W/2+50&&ty>=hCloseY&&ty<=hCloseY+30){sfx('click');helpOpen=false;return;}
+  // Tabs
+  if(ty>=tabY&&ty<=tabY+tabH){
+    for(let i=0;i<3;i++){
+      const tx2=hx+8+i*tabW;
+      if(tx>=tx2&&tx<=tx2+tabW-2){helpTab=i;helpScroll=0;sfx('click');return;}
+    }
+  }
+  // Tutorial button (tips tab, at approx position) — handled by content scan
+  if(helpTab===2&&ty>=cY){
+    // Estimate tutorial button Y based on tips content height
+    const tipCount=6;const tipH=tipCount*17+20; // approx tips section height
+    const secH=20+4; // section header
+    const tutBtnTop=cY-helpScroll+secH+tipH+12;
+    if(ty>=tutBtnTop&&ty<=tutBtnTop+30){
+      sfx('select');helpOpen=false;startTutorial();return;
+    }
+  }
 }
 
 // Settings panel input helpers (must match drawTitle layout)
@@ -1032,6 +1057,13 @@ canvas.addEventListener('touchmove',e=>{
     if(Math.abs(t.clientY-touchOriginY)>18)touchMoved=true;
     return;
   }
+  if(helpOpen){
+    const dy2=t.clientY-touchStartY;touchStartY=t.clientY;
+    const L=helpLayout();
+    helpScroll=Math.max(0,helpScroll-dy2*2);
+    if(Math.abs(t.clientY-touchOriginY)>18)touchMoved=true;
+    return;
+  }
   // Settings slider drag
   if(settingsOpen&&draggingSlider){const mp=canvasXY(t.clientX,t.clientY);updateSliderDrag(mp.x);return;}
   // Shop scroll
@@ -1593,6 +1625,7 @@ canvas.addEventListener('wheel',e=>{
     const maxS=Math.max(0,titleMenuContentHeight(getTitleMenuEntries())-lay.listH);
     titleMenuScroll=Math.max(0,Math.min(maxS,titleMenuScroll+e.deltaY*1.5));
   }
+  if(helpOpen){e.preventDefault();helpScroll=Math.max(0,helpScroll+e.deltaY*1.5);}
   if(shopOpen){
     e.preventDefault();
     const lay=shopModalLayout();
