@@ -771,7 +771,7 @@ function update(dt){
         ?(player.y>H*0.78&&floorSurfaceY(player.x)>H+100)
         :(player.y<H*0.22&&ceilSurfaceY(player.x)<-100);
       if(falling&&nearEdge){
-        gravMul2=0.67;petDroneAssist=true;
+        gravMul2=0.33;petDroneAssist=true;
       } else {petDroneAssist=false;}
     } else {petDroneAssist=false;}
     player.vy+=grav*gravMul2;

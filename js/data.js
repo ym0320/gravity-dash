@@ -3015,7 +3015,7 @@ let petState={x:0,y:0,vx:0,vy:0,mode:'idle',t:0,phase:0,ready:false};
 let petPuffPhaseT=0;      // puff invis cycle timer (0-299)
 let petPuffInvis=false;   // true while puff is in transparent phase
 let petDroneAssist=false; // true while drone is actively reducing gravity
-let petDroneCharges=3;    // uses remaining before drone breaks
+let petDroneCharges=5;    // uses remaining before drone breaks
 let petDroneBroken=false; // true once charges exhausted (drone gone for session)
 let _prevDroneAssist=false; // tracks previous frame assist state for edge detection
 function resetPetState(){petState={x:0,y:0,vx:0,vy:0,mode:'idle',t:0,phase:0,ready:false};petPuffPhaseT=0;petPuffInvis=false;petDroneAssist=false;petDroneCharges=3;petDroneBroken=false;_prevDroneAssist=false;}
