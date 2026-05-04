@@ -734,8 +734,11 @@ function resumeFromPauseMenu(){state=ST.PLAY;if(_pauseSavedBGM){switchBGM(_pause
 // Stop BGM timers when hidden to prevent audio burst on return
 let bgmBeforePause='';
 let _resumeBgmHooked=false;
+let _restoreBgmT=0;
 function restoreVisibleBGM(){
   if(document.hidden)return;
+  // Debounce: ignore duplicate calls within 200ms
+  const now=Date.now();if(now-_restoreBgmT<200)return;_restoreBgmT=now;
   initAudio();
   const target=bgmBeforePause||_pauseSavedBGM||bgmCurrent||(state===ST.TITLE||state===ST.LOGIN?'title':(isChallengeMode?'challenge':'play'));
   const _restart=()=>{
@@ -784,8 +787,8 @@ document.addEventListener('visibilitychange',()=>{
     restoreVisibleBGM();
   }
 });
-window.addEventListener('focus',restoreVisibleBGM);
-window.addEventListener('pageshow',restoreVisibleBGM);
+window.addEventListener('focus',()=>{lastTime=0;_tickAcc=0;_skipDraw=2;_recoveryFrames=5;restoreVisibleBGM();});
+window.addEventListener('pageshow',()=>{lastTime=0;_tickAcc=0;_skipDraw=2;_recoveryFrames=5;restoreVisibleBGM();});
 // Try auto-init audio on page load (works if browser allows or user previously interacted)
 (function autoInitBGM(){
   try{
