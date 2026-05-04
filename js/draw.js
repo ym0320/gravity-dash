@@ -4083,8 +4083,25 @@ function drawTitle(){
       else ctx.fillStyle='#ccca';
       ctx.font=nameFont;ctx.textAlign='left';
       const scX=mX+mW-14;
-      ctx.fillText(entry.name,nameX,ry+22);
-      const nameW=_cMT(entry.name,nameFont);
+      // Compute max name width — reserve space for badge (if any) + score
+      const SCORE_RES=55;
+      let nameMaxW=scX-SCORE_RES-nameX;
+      if(entry.titleId){
+        const _bFont='bold 7px monospace';
+        const _bLbl=tTitleName(entry.titleId);
+        const _bTW=_bLbl?_cMT(_bLbl,_bFont):0;
+        const _bW=Math.max(40,_bTW+38);
+        nameMaxW=Math.max(28,scX-SCORE_RES-nameX-_bW-6);
+      }
+      // Truncate name with ellipsis if too long
+      let displayName=entry.name;
+      if(_cMT(entry.name,nameFont)>nameMaxW){
+        let s=entry.name;
+        while(s.length>1&&_cMT(s+'…',nameFont)>nameMaxW)s=s.slice(0,-1);
+        displayName=s+'…';
+      }
+      ctx.fillText(displayName,nameX,ry+22);
+      const nameW=_cMT(displayName,nameFont);
       let markerX=nameX+nameW+4;
       if(entry.titleId){
         const badgeCx=Math.min(scX-52,nameX+nameW+42);
