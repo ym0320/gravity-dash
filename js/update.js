@@ -92,19 +92,19 @@ function updateChestOpenStateMachine(){
     chestOpen.phase='reveal';chestOpen.t=0;
     playChestRevealFeedback(chestOpen.reward);
     if(chestOpen.reward&&chestOpen.reward.type==='coin'){
-      walletCoins+=chestOpen.reward.amount;localStorage.setItem('gd5wallet',walletCoins.toString());
+      walletCoins+=chestOpen.reward.amount;localStorage.setItem('gd5wallet',walletCoins.toString());addLifetimeCoins(chestOpen.reward.amount);
     }
     if(chestOpen.reward&&chestOpen.reward.type==='char'){
       if(chestOpen.reward.isNew){
         unlockCharFromChest(chestOpen.reward.charIdx);
       } else {
         chestOpen.reward.bonusCoins=500;
-        walletCoins+=500;localStorage.setItem('gd5wallet',walletCoins.toString());
+        walletCoins+=500;localStorage.setItem('gd5wallet',walletCoins.toString());addLifetimeCoins(500);
       }
     }
     if(chestOpen.reward&&chestOpen.reward.type==='cosmetic'){
       if(!chestOpen.reward.isNew){
-        walletCoins+=300;localStorage.setItem('gd5wallet',walletCoins.toString());
+        walletCoins+=300;localStorage.setItem('gd5wallet',walletCoins.toString());addLifetimeCoins(300);
       }
     }
     chestOpen.rewardGranted=true;
@@ -127,6 +127,12 @@ function update(dt){
   if(bombFlashT>0)bombFlashT--;
   if(newHiEffT>0)newHiEffT--;
   fip(pops,p=>{p.y-=1.2;p.life--;return p.life>0;});
+  if(typeof updatePetCompanion==='function')updatePetCompanion();
+  // Comet pet: trigger orbit sparkle when coins are nearby (passive pull active)
+  if(state===ST.PLAY&&equippedPet==='pet_comet'&&frame%20===0){
+    const r=playerCoinMagnetRadius();
+    if(r>0){for(let _ci=0;_ci<coins.length;_ci++){const _c=coins[_ci];const _dx=_c.x-player.x,_dy=_c.y-player.y;if(_dx*_dx+_dy*_dy<r*r){if(typeof triggerPetReaction==='function')triggerPetReaction('comet_spark',15);break;}}}
+  }
 
   if(state===ST.PAUSE)return; // freeze everything while paused
   if(state!==ST.PLAY&&specialState.active)endSpecialSkill(true);
@@ -449,7 +455,7 @@ function update(dt){
         localStorage.setItem('gd5checkpoints',JSON.stringify(stageCheckpoints));
         totalStars=getTotalStars();
         const reward=10+starsThisRun*5+(gotNewStars>0?10:0);
-        walletCoins+=reward;localStorage.setItem('gd5wallet',walletCoins.toString());
+        walletCoins+=reward;localStorage.setItem('gd5wallet',walletCoins.toString());addLifetimeCoins(reward);
         fbSaveUserData();
         switchBGM('title');
         for(let i=0;i<50&&parts.length<MAX_PARTS;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*4,vy:1+Math.random()*4,life:80+Math.random()*40,ml:120,sz:Math.random()*6+2,col:['#ffd700','#00e5ff','#ff3860','#34d399','#a855f7'][i%5]});
@@ -472,7 +478,7 @@ function update(dt){
       localStorage.setItem('gd5checkpoints',JSON.stringify(stageCheckpoints));
       totalStars=getTotalStars();
       const reward=10+starsThisRun*5+(gotNewStars>0?10:0);
-      walletCoins+=reward;localStorage.setItem('gd5wallet',walletCoins.toString());
+      walletCoins+=reward;localStorage.setItem('gd5wallet',walletCoins.toString());addLifetimeCoins(reward);
       fbSaveUserData();
       switchBGM('title');
       for(let i=0;i<30&&parts.length<MAX_PARTS;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*3,vy:1+Math.random()*3,life:60+Math.random()*40,ml:100,sz:Math.random()*5+2,col:['#ffd700','#00e5ff','#ff3860','#34d399','#a855f7'][i%5]});
@@ -713,7 +719,8 @@ function update(dt){
 
     let lastF=platforms[platforms.length-1];
     let lastC=ceilPlats[ceilPlats.length-1];
-    while(lastF.x+lastF.w<W+300){
+    const platLookAhead=W+Math.max(400,Math.ceil(speed*90));
+    while(lastF.x+lastF.w<platLookAhead){
       const forceFloorGap=flipZone.active&&flipZone.type===0&&flipZone.len>0;
       generatePlatform(platforms,false,forceFloorGap);
       if(forceFloorGap){flipZone.len--;if(flipZone.len<=0){flipZone.active=false;flipZone.cd=120+Math.floor(Math.random()*100);}}
@@ -721,7 +728,7 @@ function update(dt){
       if(abyssPhase.active){abyssPhase.len--;if(abyssPhase.len<=0){abyssPhase.active=false;abyssPhase.cd=600+Math.floor(Math.random()*400);}}
       lastF=platforms[platforms.length-1];
     }
-    while(lastC.x+lastC.w<W+300){
+    while(lastC.x+lastC.w<platLookAhead){
       const forceCeilGap=flipZone.active&&flipZone.type===1&&flipZone.len>0;
       generatePlatform(ceilPlats,true,forceCeilGap);
       if(forceCeilGap){flipZone.len--;if(flipZone.len<=0){flipZone.active=false;flipZone.cd=120+Math.floor(Math.random()*100);}}
@@ -754,7 +761,17 @@ function update(dt){
     player.vy=0;
   } else {
     const grav=GRAVITY*player.gDir*ct().gravMul;
-    player.vy+=grav;
+    // Drone pet: reduce gravity when player is near void edge (1/3 gravity assist)
+    let gravMul2=1;
+    if(equippedPet==='pet_drone'&&!player.grounded){
+      const nearVoid=player.gDir===1
+        ?(player.y>H*0.68&&floorSurfaceY(player.x)>H+50)
+        :(player.y<H*0.32&&ceilSurfaceY(player.x)<-50);
+      if(nearVoid&&((player.gDir===1&&player.vy>0)||(player.gDir===-1&&player.vy<0))){
+        gravMul2=0.33;petDroneAssist=true;
+      } else {petDroneAssist=false;}
+    } else {petDroneAssist=false;}
+    player.vy+=grav*gravMul2;
     player.vy=Math.max(-14,Math.min(14,player.vy));
   }
   player.y+=player.vy;

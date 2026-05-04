@@ -4,23 +4,37 @@
 // isWall: if true, ghost transparency does NOT block damage (terrain/wall hit)
 function hurt(isWall){
   if(hurtT>0)return; // still invincible from previous hit
-  if(itemEff.invincible>0){shakeI=4;emitParts(player.x,player.y,8,'#ff00ff',3,2);return;}
+  if(playerDamageImmune()){shakeI=4;emitParts(player.x,player.y,8,'#ff00ff',3,2);return;}
   // Ghost character: transparent phase evades enemy attacks only, not walls/terrain
-  if(ghostInvis&&!isWall){emitParts(player.x,player.y,6,'#a855f7',2,1);return;}
+  if((ghostInvis||specialGhostActive())&&!isWall){emitParts(player.x,player.y,6,'#a855f7',2,1);return;}
+  // Puff pet: transparent phase evades enemy attacks
+  if(petPuffInvis&&!isWall){emitParts(player.x,player.y,5,'#88ddff',2,1);return;}
   if(bossPhase.active)bossPhase.noDamage=false;
   hp--;
-  if(hp<=0){die();return;}
+  if(isSpecialActive('stone')&&specialState.bonusHpCurrent>0)specialState.bonusHpCurrent--;
+  if(hp<=0){
+    hp=1;
+    if(specialState.gauge>=SPECIAL_GAUGE_MAX&&canActivateSpecial(true)&&tryActivateSpecialSkill('death-save',true)){
+      hurtT=Math.max(hurtT,HURT_INVINCIBLE);
+      shakeI=12;sfx('item');vibrate('milestone');
+      addPop(player.x,player.y-34,t('specialActivate'),'#22d3ee');
+      return;
+    }
+    hp=0;die();return;
+  }
   // Survive with damage
   hurtT=HURT_INVINCIBLE;
   shakeI=10;sfx('hurt');vibrate('hurt');
+  if(typeof triggerPetReaction==='function')triggerPetReaction('hurt',42);
   player.face='hurt';setTimeout(()=>{if(player.alive)player.face='normal';},400);
   emitParts(player.x,player.y,12,tc('obs'),4,3);
   addPop(player.x,player.y-25,'HP -1','#ff3860');
 }
-// die(): instant death (void fall = lose all HP, even when invincible)
+// die(): instant death
 function die(){
   hp=0;
   player.alive=false;state=ST.DEAD;deadT=0;shakeI=14;switchBGM('dead');
+  if(typeof triggerPetReaction==='function')triggerPetReaction('gameover',150);
   player.face='dead';sfx('death');vibrate('death');
   bossRetry=null; // clear boss retry on death
   bossPhase.active=false;bossPhase.prepare=0; // stop boss alert overlay on death screen
@@ -50,23 +64,18 @@ function die(){
       if(challengeKills>challengeBestKills){
         challengeBestKills=challengeKills;
         localStorage.setItem('gd5challBest',challengeBestKills.toString());
-        // Capture cosmetics at time of best
-        challRankChar=selChar||0;
-        challRankSkin=equippedSkin||'';challRankEyes=equippedEyes||'';challRankFx=equippedEffect||'';
-        localStorage.setItem('gd5challRankChar',challRankChar.toString());
-        localStorage.setItem('gd5challRankSkin',challRankSkin);
-        localStorage.setItem('gd5challRankEyes',challRankEyes);
-        localStorage.setItem('gd5challRankFx',challRankFx);
+        if(typeof syncLiveRankingAppearanceLocally==='function')syncLiveRankingAppearanceLocally();
       }
       fbSaveUserData();
     } else {
       if(score>highScore){highScore=score;newHi=true;localStorage.setItem('gd5hi',highScore.toString());captureRankCosmetics();notifNewHighScore=true;localStorage.setItem('gd5notifHi','1');}
       played++;localStorage.setItem('gd5plays',played.toString());
-      walletCoins+=totalCoins;localStorage.setItem('gd5wallet',walletCoins.toString());
+      walletCoins+=totalCoins;localStorage.setItem('gd5wallet',walletCoins.toString());addLifetimeCoins(totalCoins);
       fbSaveUserData();
     }
   }
   for(let i=0;i<35&&parts.length<MAX_PARTS;i++){const a=(6.28/35)*i,s=2+Math.random()*6;parts.push({x:player.x,y:player.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:35+Math.random()*25,ml:60,sz:Math.random()*6+2,col:i%3===0?CHARS[selChar].col:i%3===1?tc('obs'):'#fff'});}
+  if(typeof resetSpecialState==='function')resetSpecialState();
 }
 
 const MILE_MSGS=['Nice!','Great!','Awesome!','Fantastic!','Incredible!','Unstoppable!','Legendary!','GODLIKE!','BEYOND!','INFINITE!'];
@@ -96,7 +105,10 @@ let newHiEffT=0; // new highscore effect timer
 function useBomb(){
   if(bombCount<=0||(state!==ST.PLAY&&state!==ST.TUTORIAL))return;
   if(bossPhase.active){sfx('hurt');vibrate(10);addPop(player.x,player.y-30,t('popBossNoItem'),'#ff4444');return;}
-  bombCount--;sfx('bomb');vibrate('bomb');shakeI=15;bombFlashT=20;
+  bombCount--;
+  if(state===ST.PLAY)consumeStoredRunItem('item_bomb');
+  if(typeof triggerPetReaction==='function')triggerPetReaction('bomb',54);
+  sfx('bomb');vibrate('bomb');shakeI=15;bombFlashT=20;
   // Kill all on-screen enemies
   let kills=0;
   enemies.forEach(en=>{
@@ -117,19 +129,19 @@ function useBomb(){
   for(let i=0;i<30&&parts.length<MAX_PARTS;i++){const a=(6.28/30)*i;parts.push({x:player.x+Math.cos(a)*40,y:player.y+Math.sin(a)*40,vx:Math.cos(a)*5,vy:Math.sin(a)*5,life:30,ml:30,sz:4+Math.random()*3,col:['#ff4400','#ff6600','#ffaa00'][i%3]});}
 }
 function useInvincible(){
-  if(invCount<=0||(state!==ST.PLAY&&state!==ST.TUTORIAL))return;
-  if(bossPhase.active){sfx('hurt');vibrate(10);addPop(player.x,player.y-30,t('popBossNoItem'),'#ff4444');return;}
-  invCount--;sfx('item');vibrate('item');
-  itemEff.invincible=state===ST.TUTORIAL?180:600;
-  if(state===ST.PLAY)switchBGM('fever');
-  emitParts(player.x,player.y,15,'#ff00ff',4,3);
-  addPop(player.x,player.y-30,t('popInvActivate'),'#ff00ff');
+  if(magnetCount<=0||state!==ST.PLAY||isPackMode||isChallengeMode)return;
+  magnetCount--;
+  consumeStoredRunItem('item_magnet');
+  itemEff.magnet=ITEM_MAGNET_DURATION;
+  if(typeof triggerPetReaction==='function')triggerPetReaction('magnet',ITEM_MAGNET_DURATION);
+  sfx('item');vibrate('item');
+  addPop(player.x,player.y-25,t('popMagnetActivate'),'#f59e0b');
 }
 function applyItem(type){
   vibrate('item');
   switch(type){
-    case 0:sfx('item');invCount++;emitParts(player.x,player.y,8,'#ff00ff',3,2);break; // stockable invincible
-    case 1:sfx('item');itemEff.magnet=600;break; // 10 seconds coin magnet
+    case 0:sfx('coin');addPop(player.x,player.y-25,'SPECIAL +','#22d3ee');addSpecialGaugeReward(SPECIAL_ITEM_GAIN);break; // retired invincible fallback
+    case 1:sfx('item');itemEff.magnet=ITEM_MAGNET_DURATION;break; // 10 seconds coin magnet
     case 2:sfx('item');bombCount++;break; // bomb: store for manual use
     case 3: // Heart: recover 1 HP
       if(hp<maxHp()){hp++;sfx('heal');addPop(player.x,player.y-25,'HP +1','#ff3860');emitParts(player.x,player.y,10,'#ff3860',3,2);}

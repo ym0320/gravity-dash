@@ -383,7 +383,7 @@ function trySpawnFallingMtn(){
     // already partly visible, so it doesn't pop in only after the terrain has scrolled.
     const earlyStage=(boostStage||isPackMode||isGimmickFalling)&&fallingMtns.length<2&&rawDist<900;
     const gapMinX=earlyStage?(player.x+20):W-20;
-    const gapMaxX=earlyStage?(W+340):(W+300);
+    const gapMaxX=earlyStage?(W+Math.max(340,Math.ceil(speed*90))):(W+Math.max(300,Math.ceil(speed*90)));
     // Look for gaps between platforms in the upcoming area
     let gapX=-1,gapW=0;
     for(let i=0;i<platArr.length-1;i++){
@@ -461,7 +461,7 @@ function trySpawnMovingHill(){
     // When few hills exist and we're still early, allow spawning in the visible area too.
     const earlyStage=(isGravityStage||isMovingStage||isGimmickMoving)&&movingHills.length<2&&rawDist<600;
     const gapMinX=earlyStage?(player.x+40):(W-200);
-    const gapMaxX=earlyStage?(W+300):(W+200);
+    const gapMaxX=earlyStage?(W+Math.max(300,Math.ceil(speed*90))):(W+Math.max(200,Math.ceil(speed*90)));
     // Find a gap (abyss) in platforms to place the moving hill over
     let gapX=-1,gapW=0;
     for(let i=0;i<platArr.length-1;i++){

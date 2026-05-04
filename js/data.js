@@ -246,6 +246,7 @@ function playerCoinMagnetRadius(){
   if(itemEff.magnet>0)return 180;
   if(isSpecialActive('ghost'))return SPECIAL_GHOST_MAGNET_RADIUS;
   if(ct().shape==='ghost')return GHOST_PASSIVE_COIN_RADIUS; // passive: coins only
+  if(equippedPet==='pet_comet')return 50; // comet pet: gentle coin pull
   return ct().coinMag||0;
 }
 function playerCoinMagnetStrength(){
@@ -253,6 +254,7 @@ function playerCoinMagnetStrength(){
   if(itemEff.magnet>0)return 0.12;
   if(isSpecialActive('ghost'))return SPECIAL_GHOST_MAGNET_STRENGTH;
   if(ct().shape==='ghost')return GHOST_PASSIVE_COIN_STRENGTH; // passive
+  if(equippedPet==='pet_comet')return 0.03; // 1/4 of magnet strength
   return ct().coinMag>0?0.06:0;
 }
 function playerItemMagnetRadius(){
@@ -2623,14 +2625,14 @@ const SHOP_ITEMS={
     {id:'fx_timewarp',name:'\u30bf\u30a4\u30e0\u30ef\u30fc\u30d7',type:'timewarp',price:62000,desc:'\u6642\u8a08\u306e\u8f2a\u304c\u6b6a\u3080',rarity:'super_rare',gachaOnly:true,newItem:true},
   ],
   pets:[
-    {id:'pet_comet',type:'comet',price:50000,desc:'\u30ad\u30e9\u30ea\u3068\u5f8c\u308d\u3092\u98db\u3076\u661f\u5c18\u306e\u76f8\u68d2'},
-    {id:'pet_puff',type:'puff',price:50000,desc:'\u3077\u304b\u3077\u304b\u8ffd\u3044\u304b\u3051\u308b\u5c0f\u3055\u306a\u304a\u3070\u3051'},
-    {id:'pet_drone',type:'drone',price:50000,desc:'\u30d6\u30fc\u30b9\u30c8\u5674\u5c04\u3067\u8ffd\u5f93\u3059\u308b\u30df\u30cb\u30c9\u30ed\u30fc\u30f3'},
+    {id:'pet_comet',type:'comet',price:50000,desc:'\u30ad\u30e9\u30ea\u3068\u5f8c\u308d\u3092\u98db\u3076\u661f\u5c18\u306e\u76f8\u68d2',ability:'\u2b50 \u30b3\u30a4\u30f3\u3092\u5f31\u304f\u5f15\u304d\u5bc4\u305b\u308b\uff08\u5e38\u6642\uff09'},
+    {id:'pet_puff',type:'puff',price:50000,desc:'\u3077\u304b\u3077\u304b\u8ffd\u3044\u304b\u3051\u308b\u5c0f\u3055\u306a\u304a\u3070\u3051',ability:'\u2728 \u5b9a\u671f\u7684\u306b\u900f\u660e\u5316\u3057\u6575\u306e\u653b\u6483\u3092\u56de\u907f'},
+    {id:'pet_drone',type:'drone',price:60000,desc:'\u30d6\u30fc\u30b9\u30c8\u5674\u5c04\u3067\u8ffd\u5f93\u3059\u308b\u30df\u30cb\u30c9\u30ed\u30fc\u30f3',ability:'\ud83d\ude80 \u843d\u4e0b\u30ae\u30ea\u30ae\u30ea\u3067\u91cd\u529b\u30921/3\u306b\u8efd\u6e1b'},
   ],
   accessories:[
-    {id:'acc_halo',type:'halo',price:50000,desc:'\u5149\u306e\u7c92\u304c\u821e\u3046\u5929\u4f7f\u306e\u8f2a'},
-    {id:'acc_crown',type:'crown',price:60000,desc:'\u91d1\u8272\u306e\u706b\u82b1\u3092\u6563\u3089\u3059\u738b\u51a0'},
-    {id:'acc_starpin',type:'ribbon',price:55000,desc:'\u3075\u308f\u308a\u3068\u3072\u3089\u3081\u304f\u30c9\u30ec\u30b9\u30ea\u30dc\u30f3'},
+    {id:'acc_halo',type:'halo',price:25000,desc:'\u5149\u306e\u7c92\u304c\u821e\u3046\u5929\u4f7f\u306e\u8f2a'},
+    {id:'acc_crown',type:'crown',price:30000,desc:'\u91d1\u8272\u306e\u706b\u82b1\u3092\u6563\u3089\u3059\u738b\u51a0'},
+    {id:'acc_starpin',type:'ribbon',price:27500,desc:'\u3075\u308f\u308a\u3068\u3072\u3089\u3081\u304f\u30c9\u30ec\u30b9\u30ea\u30dc\u30f3'},
   ],
   items:[
     {id:'item_magnet',type:'magnet',price:1000,desc:'\u624b\u52d5\u767a\u52d5\u3067\u30b3\u30a4\u30f3\u3092\u5f37\u529b\u5438\u53ce',stackMax:99},
@@ -3009,7 +3011,10 @@ function titleModeLayout(){
   };
 }
 let petState={x:0,y:0,vx:0,vy:0,mode:'idle',t:0,phase:0,ready:false};
-function resetPetState(){petState={x:0,y:0,vx:0,vy:0,mode:'idle',t:0,phase:0,ready:false};}
+let petPuffPhaseT=0;      // puff invis cycle timer (0-299)
+let petPuffInvis=false;   // true while puff is in transparent phase
+let petDroneAssist=false; // true while drone is actively reducing gravity
+function resetPetState(){petState={x:0,y:0,vx:0,vy:0,mode:'idle',t:0,phase:0,ready:false};petPuffPhaseT=0;petPuffInvis=false;petDroneAssist=false;}
 function triggerPetReaction(mode,duration){
   if(!getEquippedPetData())return;
   petState.mode=mode||'idle';
@@ -3110,6 +3115,37 @@ function updatePetCompanion(){
     } else {
       hover=Math.cos(frame*0.16)*4;
     }
+  } else if(petState.mode==='comet_spark'){
+    // Comet orbits player briefly when pulling coins
+    const orbitT=petState.t/15;
+    const orbitAngle=orbitT*Math.PI*2-Math.PI*0.25;
+    ox=(Math.cos(orbitAngle)*pr*2.1)-pr*1.9-12;
+    oy=Math.sin(orbitAngle)*pr*1.2+(gd===1?-pr*0.18:pr*0.18);
+    hover=0;
+  } else if(petState.mode==='puff_touch'){
+    // Puff touches player briefly when invis activates
+    const prog=petState.t/18;
+    ox=(-pr*1.9-12)*(1-prog*0.7); // move closer
+    oy=(gd===1?-pr*0.18:pr*0.18)+(gd===1?-pr*0.25:pr*0.25)*(1-prog);
+    hover=Math.sin(Math.PI*(1-prog))*6;
+  } else if(petState.mode==='drone_lift'){
+    // Drone moves above player and strains upward to lift
+    ox=-pr*0.05+Math.sin(frame*0.3)*3;
+    oy=gd*(-pr*1.6-8); // directly above player (against gravity)
+    hover=-Math.abs(Math.sin(frame*0.35))*4; // strain upward
+    sway=Math.sin(frame*0.28)*8; // wobble from effort
+  }
+  // Puff: periodic invisibility cycle (20% invis, 80% visible = 60 invis / 240 visible per 300 frame cycle)
+  if(petType==='puff'&&state===ST.PLAY){
+    petPuffPhaseT=(petPuffPhaseT+1)%300;
+    const wasInvis=petPuffInvis;
+    petPuffInvis=petPuffPhaseT<60;
+    // Trigger puff nudge motion when invis activates or ends
+    if(!wasInvis&&petPuffInvis)triggerPetReaction('puff_touch',18);
+  } else {petPuffInvis=false;}
+  // Drone: trigger lift motion when gravity assist is active
+  if(petType==='drone'&&petDroneAssist&&petState.mode!=='drone_lift'){
+    triggerPetReaction('drone_lift',30);
   }
   const targetX=player.x+ox+sway;
   const targetY=player.y+oy+hover;

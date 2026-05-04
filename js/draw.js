@@ -2415,6 +2415,10 @@ function drawPlayer(){
   if(ghostInvis){
     ghostA*=0.15+Math.sin(frame*0.3)*0.05; // very transparent + shimmer
   }
+  // Puff pet invis phase - slight transparency with pulse
+  if(petPuffInvis){
+    ghostA*=0.28+Math.sin(frame*0.4)*0.06;
+  }
   const dmgLv=isPackMode?0:(maxHp()-hp); // stage mode: always look undamaged
 
   // Invincible ring (rainbow pulsing)
@@ -6272,9 +6276,19 @@ function drawShop(){
       ctx.fillStyle='#a855f7';ctx.font='bold 7px monospace';
       ctx.fillText('\u25C6 RARE',mX+56,iy+26);
     }
-    ctx.fillStyle='#fff6';ctx.font='9px monospace';
+    const isPetRow=def.key==='pets';
     const rowDesc=def.key==='items'?(item.id==='item_magnet'?t('itemDescMagnet'):t('itemDescBomb')):tCosDesc(item.id);
-    ctx.fillText(rowDesc,mX+56,iy+38,mW-162);
+    if(isPetRow){
+      // Ability text (from i18n desc - now ability-focused)
+      ctx.fillStyle='#6ee7b7';ctx.font='bold 8px monospace';
+      ctx.fillText('⚡ '+rowDesc,mX+56,iy+30,mW-162);
+      // Flavor text from item.ability or item.desc field
+      ctx.fillStyle='#fff4';ctx.font='8px monospace';
+      ctx.fillText(item.desc||'',mX+56,iy+44,mW-162);
+    } else {
+      ctx.fillStyle='#fff6';ctx.font='9px monospace';
+      ctx.fillText(rowDesc,mX+56,iy+38,mW-162);
+    }
     // Price / owned / equipped
     ctx.textAlign='right';
     if(equipped){
@@ -6542,8 +6556,16 @@ function drawCosmeticMenu(){
       ctx.fillStyle=owned?'#a855f7':'#a855f788';ctx.font='bold 7px monospace';
       ctx.fillText('\u25C6 RARE',mX+56,iy+28);
     }
-    ctx.fillStyle='#fff5';ctx.font='9px monospace';
-    ctx.fillText(owned?(tCosDesc(item.id)||''):'???',mX+56,iy+38);
+    const isCosmeticPet=def.key==='pets';
+    if(isCosmeticPet&&owned){
+      ctx.fillStyle='#6ee7b7';ctx.font='bold 8px monospace';
+      ctx.fillText('⚡ '+tCosDesc(item.id),mX+56,iy+30,mW-130);
+      ctx.fillStyle='#fff4';ctx.font='8px monospace';
+      ctx.fillText(item.desc||'',mX+56,iy+42,mW-130);
+    } else {
+      ctx.fillStyle='#fff5';ctx.font='9px monospace';
+      ctx.fillText(owned?(tCosDesc(item.id)||''):'???',mX+56,iy+38);
+    }
     // Status
     ctx.textAlign='right';
     if(equipped){ctx.fillStyle='#ffd700';ctx.font='bold 10px monospace';ctx.fillText(t('equipped'),mX+mW-16,iy+22);}
