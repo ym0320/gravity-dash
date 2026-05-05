@@ -1053,6 +1053,8 @@ canvas.addEventListener('touchstart',e=>{
   if(state===ST.PLAY&&hitSpecialBtn(p.x,p.y)){touchBtnUsed=handleSpecialActivationInput();return;}
   if(state===ST.PLAY&&hitPauseBtn(p.x,p.y)){sfx('pause');enterPause();touchBtnUsed=true;return;}
   if(state===ST.TITLE){
+    // Resume dialog: blocks ALL other title interactions
+    if(resumeDialogMode){handleResumeDialogTouch(p.x,p.y);titleTouchPos=null;return;}
     // Shop modal intercepts all input when open
     if(shopOpen){handleShopTouch(p.x,p.y);titleTouchPos=null;return;}
     // Cosmetic menu intercepts all input when open
@@ -1190,6 +1192,7 @@ canvas.addEventListener('touchend',e=>{
     return;
   }
   if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}
+  if(state===ST.TITLE&&resumeDialogMode){titleTouchPos=null;return;} // block when resume dialog open
   if(state===ST.TITLE&&!longPressFired&&titleTouchPos){handleTitleTouch(titleTouchPos.x,titleTouchPos.y);titleTouchPos=null;return;}
   // Tutorial swipe & tap
   if(state===ST.TUTORIAL){

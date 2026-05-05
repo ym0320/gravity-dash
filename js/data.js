@@ -2853,8 +2853,11 @@ function saveGameState(){
     magnetCount,bombCount,
     itemEff:{invincible:itemEff.invincible||0,magnet:itemEff.magnet||0,slowmo:itemEff.slowmo||0},
     specialGauge:specialState?Math.floor(specialState.gauge):0,
-    player_gDir:player.gDir,
-    bossCount:bossPhase?bossPhase.bossCount:0};
+    player_gDir:player.gDir,player_y:player.y,player_x:player.x,
+    bossCount:bossPhase?bossPhase.bossCount:0,
+    // Save terrain so it's the same on resume
+    platforms:platforms?platforms.map(p=>({x:Math.round(p.x),w:Math.round(p.w),h:p.h})):[],
+    ceilPlats:ceilPlats?ceilPlats.map(p=>({x:Math.round(p.x),w:Math.round(p.w),h:p.h})):[]};
   if(isChallengeMode){
     d.challengeKills=challengeKills||0;d.challengePhase=challengePhase||0;
     d.challBossQueue=(challBossQueue||[]).slice();
@@ -2879,7 +2882,12 @@ function restoreGameFromSave(d){
     reset();
   }
   score=d.score||0;rawDist=d.rawDist||0;dist=d.dist||0;
-  speed=Math.max(SPEED_INIT,Math.min(SPEED_MAX,d.speed||SPEED_INIT));
+  // Recompute speed from rawDist so it exactly matches the formula used during play
+  if(d.mode==='challenge'){
+    speed=SPEED_INIT*(ct?ct().speedMul||1:1);
+  } else {
+    speed=Math.min(SPEED_MAX,(SPEED_INIT+rawDist*SPEED_INC))*(ct?ct().speedMul||1:1);
+  }
   frame=d.frame||0;
   if(d.mode!=='challenge')hp=Math.max(1,Math.min(d.hp||HP_MAX,maxHp()));
   totalCoins=d.totalCoins||0;
@@ -2887,7 +2895,14 @@ function restoreGameFromSave(d){
   bombCount=Math.max(0,d.bombCount||0);
   if(d.itemEff){itemEff.invincible=Math.max(0,d.itemEff.invincible||0);itemEff.magnet=Math.max(0,d.itemEff.magnet||0);itemEff.slowmo=Math.max(0,d.itemEff.slowmo||0);}
   if(specialState&&d.specialGauge)specialState.gauge=Math.min(SPECIAL_GAUGE_MAX,d.specialGauge);
-  if(player&&d.player_gDir)player.gDir=d.player_gDir===-1?-1:1;
+  if(player){
+    if(d.player_gDir)player.gDir=d.player_gDir===-1?-1:1;
+    if(d.player_y!=null)player.y=d.player_y;
+    if(d.player_x!=null)player.x=d.player_x;
+  }
+  // Restore terrain so it matches what was saved
+  if(d.platforms&&d.platforms.length>0)platforms=d.platforms;
+  if(d.ceilPlats&&d.ceilPlats.length>0)ceilPlats=d.ceilPlats;
   lastMile=Math.floor(score/1000)*1000;
   if(bossPhase){bossPhase.bossCount=d.bossCount||0;bossPhase.nextAt=(d.rawDist||0)+BOSS_INTERVAL;}
   const ti=THEMES?Math.min(Math.floor(score/1000),THEMES.length-1):0;
