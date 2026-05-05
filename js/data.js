@@ -2834,6 +2834,65 @@ let cosmeticConfirm=null; // {item, tab} when equip confirm dialog shown
 // Pending item tap (deferred to touchend to avoid scroll-tap conflict)
 let shopPendingTap=null; // {idx} set on touchstart, confirmed on touchend
 let cosmeticPendingTap=null; // {idx} set on touchstart, confirmed on touchend
+// ===== MID-GAME SAVE / RESUME =====
+const SAVE_KEY_ENDLESS='gd5saveEndless';
+const SAVE_KEY_CHALLENGE='gd5saveChallenge';
+let resumeDialogMode=null; // 'endless'|'challenge'|null — which mode's resume dialog is open
+function _getSaveKey(mode){return mode==='challenge'?SAVE_KEY_CHALLENGE:SAVE_KEY_ENDLESS;}
+function hasSaveData(mode){try{const r=localStorage.getItem(_getSaveKey(mode));if(!r)return false;const d=JSON.parse(r);return!!(d&&d.v===1&&d.mode===mode);}catch(e){return false;}}
+function loadSaveData(mode){try{const r=localStorage.getItem(_getSaveKey(mode));if(!r)return null;const d=JSON.parse(r);return(d&&d.v===1&&d.mode===mode)?d:null;}catch(e){return null;}}
+function clearSaveData(mode){localStorage.removeItem(_getSaveKey(mode));}
+function saveGameState(){
+  if(!player||!player.alive)return;
+  if(isPackMode)return;
+  if(state!==ST.PLAY&&state!==ST.PAUSE)return;
+  const mode=isChallengeMode?'challenge':'endless';
+  if(!isChallengeMode&&gameMode!=='endless')return;
+  const d={v:1,mode,ts:Date.now(),
+    score,rawDist,dist,speed,frame,hp,totalCoins,
+    magnetCount,bombCount,
+    itemEff:{invincible:itemEff.invincible||0,magnet:itemEff.magnet||0,slowmo:itemEff.slowmo||0},
+    specialGauge:specialState?Math.floor(specialState.gauge):0,
+    player_gDir:player.gDir,
+    bossCount:bossPhase?bossPhase.bossCount:0};
+  if(isChallengeMode){
+    d.challengeKills=challengeKills||0;d.challengePhase=challengePhase||0;
+    d.challBossQueue=(challBossQueue||[]).slice();
+    d.challQueueIdx=challQueueIdx||0;d.challengeNextBossT=challengeNextBossT||0;
+  }
+  try{localStorage.setItem(_getSaveKey(mode),JSON.stringify(d));}catch(e){}
+}
+function restoreGameFromSave(d){
+  if(!d)return;
+  if(d.mode==='challenge'){
+    gameMode='challenge';isChallengeMode=true;isPackMode=false;
+    challengeKills=d.challengeKills||0;challengePhase=d.challengePhase||0;
+    challengeRetired=false;challengeNextBossT=d.challengeNextBossT||0;
+    challBossQueue=d.challBossQueue&&d.challBossQueue.length?d.challBossQueue:generateChallBossQueue();
+    challQueueIdx=d.challQueueIdx||0;
+    if(typeof challTransition!=='undefined')challTransition={active:false,timer:0,waveNum:0};
+    bossRetry=null;isRetryGame=false;
+    reset();hp=Math.max(1,Math.min(d.hp||HP_MAX,maxHp()));
+  } else {
+    gameMode='endless';isChallengeMode=false;isPackMode=false;
+    bossRetry=null;isRetryGame=false;
+    reset();
+  }
+  score=d.score||0;rawDist=d.rawDist||0;dist=d.dist||0;
+  speed=Math.max(SPEED_INIT,Math.min(SPEED_MAX,d.speed||SPEED_INIT));
+  frame=d.frame||0;
+  if(d.mode!=='challenge')hp=Math.max(1,Math.min(d.hp||HP_MAX,maxHp()));
+  totalCoins=d.totalCoins||0;
+  magnetCount=Math.max(0,d.magnetCount||0);
+  bombCount=Math.max(0,d.bombCount||0);
+  if(d.itemEff){itemEff.invincible=Math.max(0,d.itemEff.invincible||0);itemEff.magnet=Math.max(0,d.itemEff.magnet||0);itemEff.slowmo=Math.max(0,d.itemEff.slowmo||0);}
+  if(specialState&&d.specialGauge)specialState.gauge=Math.min(SPECIAL_GAUGE_MAX,d.specialGauge);
+  if(player&&d.player_gDir)player.gDir=d.player_gDir===-1?-1:1;
+  lastMile=Math.floor(score/1000)*1000;
+  if(bossPhase){bossPhase.bossCount=d.bossCount||0;bossPhase.nextAt=(d.rawDist||0)+BOSS_INTERVAL;}
+  const ti=THEMES?Math.min(Math.floor(score/1000),THEMES.length-1):0;
+  if(ti>0){curTheme=ti;prevTheme=ti;themeLerp=1;}
+}
 function ownsItem(id){return ownedItems.includes(id);}
 function addLifetimeCoins(amount){
   const gain=Math.max(0,Math.floor(amount||0));

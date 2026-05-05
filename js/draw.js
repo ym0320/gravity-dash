@@ -4077,6 +4077,57 @@ function drawTitle(){
     ctx.fillText(t('close'),W/2,uCloseY+22);
   }
 
+  // Resume dialog (mid-game save found)
+  if(resumeDialogMode){
+    const sd=loadSaveData(resumeDialogMode);
+    if(sd){
+      const isJa=gameLang==='ja';
+      const modeCol=resumeDialogMode==='challenge'?'#ff6080':'#00e5ff';
+      const modeLabel=resumeDialogMode==='challenge'?(isJa?'チャレンジ':'Challenge'):(isJa?'エンドレス':'Endless');
+      // Time ago
+      const ago=Date.now()-sd.ts;
+      let agoStr;
+      if(ago<60000)agoStr=isJa?'たった今':'just now';
+      else if(ago<3600000)agoStr=(isJa?Math.floor(ago/60000)+'分前':Math.floor(ago/60000)+'min ago');
+      else agoStr=(isJa?Math.floor(ago/3600000)+'時間前':Math.floor(ago/3600000)+'hr ago');
+      const dw=Math.min(290,W-32),dh=162,dx=W/2-dw/2,dy=H/2-dh/2-20;
+      ctx.fillStyle='rgba(0,0,0,0.72)';ctx.fillRect(0,0,W,H);
+      const dGr=ctx.createLinearGradient(dx,dy,dx,dy+dh);
+      dGr.addColorStop(0,'rgba(12,14,36,0.99)');dGr.addColorStop(1,'rgba(6,8,20,0.99)');
+      ctx.fillStyle=dGr;rr(dx,dy,dw,dh,14);ctx.fill();
+      ctx.strokeStyle=modeCol+'66';ctx.lineWidth=1.5;rr(dx,dy,dw,dh,14);ctx.stroke();
+      // Header
+      ctx.fillStyle=modeCol;ctx.font='bold 13px monospace';ctx.textAlign='center';
+      ctx.fillText((isJa?'中断データがあります':'Saved progress found'),W/2,dy+22);
+      // Mode + time
+      ctx.fillStyle='#fff6';ctx.font='10px monospace';
+      ctx.fillText(modeLabel+'  |  '+agoStr,W/2,dy+38);
+      // Stats
+      const statY=dy+56;
+      ctx.fillStyle='#ffe';ctx.font='bold 12px monospace';
+      if(resumeDialogMode==='challenge'){
+        ctx.fillText((isJa?'倒した数: ':'Kills: ')+sd.challengeKills,W/2,statY);
+      } else {
+        ctx.fillText((isJa?'スコア: ':'Score: ')+sd.score,W/2,statY);
+      }
+      ctx.fillStyle='#ff6b6b';ctx.font='11px monospace';
+      const hpMax=HP_MAX+(ct?ct().hpBonus||0:0);
+      ctx.fillText('HP: '+sd.hp+'/'+hpMax+'  '+(isJa?'速度: ':'Speed: ')+sd.speed.toFixed(1),W/2,statY+16);
+      // Buttons
+      const bw=(dw-36)/2,bh=34,bgy=dy+dh-46;
+      // はじめから (left)
+      ctx.fillStyle='#ffffff0e';rr(dx+10,bgy,bw,bh,8);ctx.fill();
+      ctx.strokeStyle='#ffffff33';ctx.lineWidth=1;rr(dx+10,bgy,bw,bh,8);ctx.stroke();
+      ctx.fillStyle='#fffd';ctx.font='bold 11px monospace';ctx.textAlign='center';
+      ctx.fillText(isJa?'はじめから':'Start Fresh',dx+10+bw/2,bgy+22);
+      // 続きから (right, highlighted)
+      ctx.fillStyle=modeCol+'44';rr(dx+dw-10-bw,bgy,bw,bh,8);ctx.fill();
+      ctx.strokeStyle=modeCol;ctx.lineWidth=1.5;rr(dx+dw-10-bw,bgy,bw,bh,8);ctx.stroke();
+      ctx.fillStyle=modeCol;ctx.font='bold 11px monospace';
+      ctx.fillText(isJa?'続きから':'Continue',dx+dw-10-bw/2,bgy+22);
+    }
+  }
+
   // Ranking modal overlay
   if(rankingOpen){
     rankingScroll+=(rankingScrollTarget-rankingScroll)*0.15;

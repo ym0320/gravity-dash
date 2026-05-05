@@ -799,6 +799,8 @@ document.addEventListener('visibilitychange',()=>{
       if(!_pauseSavedBGM)_pauseSavedBGM=bgmCurrent; // save original BGM (not 'pause')
       state=ST.PAUSE;
     }
+    // Auto-save on background
+    if((state===ST.PLAY||state===ST.PAUSE)&&!isPackMode)saveGameState();
     // Stop BGM to prevent sound pile-up
     bgmBeforePause=_pauseSavedBGM||bgmCurrent;
     if(bgmTimer){clearTimeout(bgmTimer);bgmTimer=null;}
@@ -854,6 +856,43 @@ function restartFromPause(){
   }
 }
 
+// Start or resume a saved game
+function startResumedGame(mode){
+  const d=loadSaveData(mode);
+  if(!d){
+    if(mode==='challenge'){sfx('select');vibrate(30);startChallenge();}
+    else startCountdown('endless');
+    return;
+  }
+  clearSaveData(mode);
+  restoreGameFromSave(d);
+  beginGameplayCountdown();
+  titleTouchPos=null;
+  sfx('countdown');
+}
+function handleResumeDialogTouch(tx,ty){
+  if(!resumeDialogMode)return;
+  const sd=loadSaveData(resumeDialogMode);
+  if(!sd){resumeDialogMode=null;return;}
+  const dw=Math.min(290,W-32),dh=162,dx=W/2-dw/2,dy=H/2-dh/2-20;
+  const bw=(dw-36)/2,bh=34,bgy=dy+dh-46;
+  // "はじめから" button (left)
+  if(tx>=dx+10&&tx<=dx+10+bw&&ty>=bgy&&ty<=bgy+bh){
+    clearSaveData(resumeDialogMode);
+    const m=resumeDialogMode;resumeDialogMode=null;
+    if(m==='challenge'){sfx('select');vibrate(30);startChallenge();}
+    else startCountdown('endless');
+    return;
+  }
+  // "続きから" button (right)
+  if(tx>=dx+dw-10-bw&&tx<=dx+dw-10&&ty>=bgy&&ty<=bgy+bh){
+    const m=resumeDialogMode;resumeDialogMode=null;
+    startResumedGame(m);
+    return;
+  }
+  // Outside modal
+  if(tx<dx||tx>dx+dw||ty<dy||ty>dy+dh){resumeDialogMode=null;sfx('cancel');}
+}
 // Start challenge mode (boss rush)
 function startChallenge(){
   gameMode='challenge';isChallengeMode=true;isPackMode=false;
@@ -1520,13 +1559,17 @@ function handleTitleTouch(tx,ty){
       }
     }
   }
+  // Resume dialog: handle first if open
+  if(resumeDialogMode){handleResumeDialogTouch(tx,ty);return;}
   const modeLay=titleModeLayout();
-  // Endless mode button -> start countdown
+  // Endless mode button -> show resume dialog or start
   if(tx>=modeLay.endless.x&&tx<=modeLay.endless.x+modeLay.endless.w&&ty>=modeLay.endless.y&&ty<=modeLay.endless.y+modeLay.endless.h){
+    if(hasSaveData('endless')){resumeDialogMode='endless';sfx('click');vibrate(5);return;}
     startCountdown('endless');return;
   }
-  // Challenge mode button
+  // Challenge mode button -> show resume dialog or start
   if(tx>=modeLay.challenge.x&&tx<=modeLay.challenge.x+modeLay.challenge.w&&ty>=modeLay.challenge.y&&ty<=modeLay.challenge.y+modeLay.challenge.h){
+    if(hasSaveData('challenge')){resumeDialogMode='challenge';sfx('click');vibrate(5);return;}
     sfx('select');vibrate(30);startChallenge();return;
   }
 }

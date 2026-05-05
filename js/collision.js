@@ -38,6 +38,8 @@ function hurt(isWall){
 // die(): instant death
 function die(){
   hp=0;
+  // Clear mid-game save on death (no longer resumable)
+  if(!isPackMode)clearSaveData(isChallengeMode?'challenge':'endless');
   player.alive=false;state=ST.DEAD;deadT=0;shakeI=14;switchBGM('dead');
   if(typeof triggerPetReaction==='function')triggerPetReaction('gameover',150);
   player.face='dead';sfx('death');vibrate('death');
