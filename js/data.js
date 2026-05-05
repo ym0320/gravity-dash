@@ -281,10 +281,12 @@ function syncGameplayBGM(force){
   if(force||bgmCurrent!==target)switchBGM(target);
   return target;
 }
+let _rescueSavedGDir=null; // set in hurt() before forced special, cleared after
 function rescuePlayerFromForcedSpecial(){
   if(!player)return;
   const pr=playerRadius();
-  const dir=player.gDir===-1?-1:1;
+  // Use gDir captured at time of hit (avoids gravity-zone race conditions)
+  const dir=(_rescueSavedGDir!==null?_rescueSavedGDir:player.gDir)===-1?-1:1;
   const scanXs=[player.x,player.x-24,player.x+24,player.x-48,player.x+48,player.x-84,player.x+84];
   let surf=dir===1?H+200:-200;
   let found=false;

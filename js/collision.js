@@ -14,11 +14,16 @@ function hurt(isWall){
   if(isSpecialActive('stone')&&specialState.bonusHpCurrent>0)specialState.bonusHpCurrent--;
   if(hp<=0){
     hp=1;
-    if(specialState.gauge>=SPECIAL_GAUGE_MAX&&canActivateSpecial(true)&&tryActivateSpecialSkill('death-save',true)){
-      hurtT=Math.max(hurtT,HURT_INVINCIBLE);
-      shakeI=12;sfx('item');vibrate('milestone');
-      addPop(player.x,player.y-34,t('specialActivate'),'#22d3ee');
-      return;
+    if(specialState.gauge>=SPECIAL_GAUGE_MAX&&canActivateSpecial(true)){
+      _rescueSavedGDir=player.gDir; // capture gDir before any state change
+      if(tryActivateSpecialSkill('death-save',true)){
+        hurtT=Math.max(hurtT,HURT_INVINCIBLE);
+        shakeI=12;sfx('item');vibrate('milestone');
+        addPop(player.x,player.y-34,t('specialActivate'),'#22d3ee');
+        _rescueSavedGDir=null;
+        return;
+      }
+      _rescueSavedGDir=null;
     }
     hp=0;die();return;
   }
@@ -132,6 +137,7 @@ function useBomb(){
 }
 function useInvincible(){
   if(magnetCount<=0||state!==ST.PLAY||isPackMode||isChallengeMode)return;
+  if(itemEff.magnet>0)return; // locked while current magnet is still active
   magnetCount--;
   consumeStoredRunItem('item_magnet');
   itemEff.magnet=ITEM_MAGNET_DURATION;

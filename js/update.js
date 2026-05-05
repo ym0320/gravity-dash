@@ -402,7 +402,13 @@ function update(dt){
   // Platform scrolling
   for(let i=0;i<platforms.length;i++)platforms[i].x-=speed;
   for(let i=0;i<ceilPlats.length;i++)ceilPlats[i].x-=speed;
-  for(let i=0;i<floatPlats.length;i++)floatPlats[i].x-=speed;
+  for(let i=0;i<floatPlats.length;i++){
+    const _fp=floatPlats[i];_fp.x-=speed;
+    if(_fp._bobPhase!==undefined){
+      _fp._bobPhase+=_fp._bobSpd;
+      _fp.y=_fp._baseY+Math.sin(_fp._bobPhase)*_fp._bobAmp;
+    }
+  }
   for(let i=0;i<spikes.length;i++)spikes[i].x-=speed;
   for(let i=0;i<movingHills.length;i++){const h=movingHills[i];h.x-=speed;h.phase+=h.spd;}
   for(let i=0;i<gravZones.length;i++)gravZones[i].x-=speed;

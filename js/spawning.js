@@ -188,10 +188,10 @@ function trySpawnEnemy(){
       } // end walkerOnly else
     } else {
       // Endless mode: score-based enemy types
-      if(score>=600&&bossPhase.bossCount>=3&&tr<0.10) eType=3;
-      else if(score>=400&&bossPhase.bossCount>=2&&tr<0.15) eType=8;
+      if(score>=600&&bossPhase.bossCount>=3&&tr<0.07) eType=3;
+      else if(score>=400&&bossPhase.bossCount>=2&&tr<0.13) eType=8;
       else if(score>=250&&bossPhase.bossCount>=1&&tr<0.18) eType=6;
-      else if(score>=10000&&tr<0.23) eType=14; // leaper: late-game rare jumper
+      else if(score>=5000&&tr<0.30) eType=14; // leaper: appears from score 5000
       else if(score>=160&&tr<0.12) eType=5;
       else if(score>=140&&tr<0.15) eType=4;
       else if(score>=120&&tr<0.22) eType=2;
@@ -300,7 +300,12 @@ function trySpawnFloatPlat(){
     // Max jump height ≈ JUMP_POWER^2 / (2*GRAVITY) ≈ 145px
     const maxJumpH=JUMP_POWER*JUMP_POWER/(2*GRAVITY)*0.75; // ~109px (comfortable reach)
     const fy=floorY-maxJumpH*(0.5+packRng()*0.5); // 50-100% of comfortable jump height
-    floatPlats.push({x:fx,y:fy,w:fw,th:10});
+    const isBobbing=!isPackMode&&score>=15000;
+    floatPlats.push({x:fx,y:fy,w:fw,th:10,
+      _baseY:isBobbing?fy:undefined,
+      _bobPhase:isBobbing?packRng()*6.28:undefined,
+      _bobAmp:isBobbing?(18+packRng()*14):undefined,
+      _bobSpd:isBobbing?(0.012+packRng()*0.008):undefined});
     // Sometimes spawn an item or coins on the floating platform (not in stage mode, mutually exclusive)
     if(!isPackMode){
       const fpRoll=packRng();
