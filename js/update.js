@@ -1494,8 +1494,8 @@ function update(dt){
         if(en._noticeT<=0){
           en._state='jumping';
           const fdx=player.x-en.x;
-          en._jVx=fdx/20+speed; // compensate for scroll
-          en.vy=en.gDir===1?-13:13;
+          en._jVx=fdx/28+speed; // compensate for scroll
+          en.vy=en.gDir===1?-10:10;
           if(en.gDir===1){const sy=floorSupportY(en.x);if(sy<H+100)en.y=sy-en.sz;}
           else{const sy=ceilSupportY(en.x);if(sy>-100)en.y=sy+en.sz;}
           sfx('gstomp');shakeI=Math.max(shakeI,3);

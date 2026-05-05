@@ -390,14 +390,14 @@ function trySpawnFallingMtn(){
     const gapMinX=earlyStage?(player.x+20):W-20;
     const gapMaxX=earlyStage?(W+Math.max(340,Math.ceil(speed*90))):(W+Math.max(300,Math.ceil(speed*90)));
     // Look for gaps between platforms in the upcoming area
-    let gapX=-1,gapW=0;
+    let gapX=-1,gapW=0,gapPlatH=GROUND_H;
     for(let i=0;i<platArr.length-1;i++){
       const p1=platArr[i],p2=platArr[i+1];
       const gStart=p1.x+p1.w;
       const gEnd=p2.x;
       const gap=gEnd-gStart;
       if(gap>=50&&gEnd>gapMinX&&gStart<gapMaxX){
-        gapX=gStart;gapW=gap;break;
+        gapX=gStart;gapW=gap;gapPlatH=Math.round((p1.h+p2.h)/2);break;
       }
     }
     if(gapX<0){fallingMtnCD=30+Math.floor(packRng()*20);return;}
@@ -411,7 +411,7 @@ function trySpawnFallingMtn(){
     if(isGimmickFalling2){terrainGimmickPhase.len--;if(terrainGimmickPhase.len<=0){terrainGimmickPhase.active=false;terrainGimmickPhase.cd=800+Math.floor(packRng()*400);}}
     const fw=Math.min(gapW*0.85,140+packRng()*180); // wide: 140-320px (2-5x original)
     const fx=gapX+(gapW-fw)/2; // center in gap
-    const fh=GROUND_H+10+packRng()*20;
+    const fh=gapPlatH; // match surrounding platform height exactly
     fallingMtns.push({x:fx,w:fw,baseH:fh,curH:fh,vy:0,state:'idle',shakeT:0,shakeAmt:0,triggerDist:80,isFloor:isFloor,alpha:1});
   } else {
     fallingMtnCD=30+Math.floor(packRng()*20);
@@ -468,14 +468,14 @@ function trySpawnMovingHill(){
     const gapMinX=earlyStage?(player.x+40):(W-200);
     const gapMaxX=earlyStage?(W+Math.max(300,Math.ceil(speed*90))):(W+Math.max(200,Math.ceil(speed*90)));
     // Find a gap (abyss) in platforms to place the moving hill over
-    let gapX=-1,gapW=0;
+    let gapX=-1,gapW=0,gapPlatH2=GROUND_H;
     for(let i=0;i<platArr.length-1;i++){
       const p1=platArr[i],p2=platArr[i+1];
       const gStart=p1.x+p1.w;
       const gEnd=p2.x;
       const gap=gEnd-gStart;
       if(gap>=50&&gStart>gapMinX&&gStart<gapMaxX){
-        gapX=gStart;gapW=gap;break;
+        gapX=gStart;gapW=gap;gapPlatH2=Math.round((p1.h+p2.h)/2);break;
       }
     }
     if(gapX<0){hillCD=30+Math.floor(packRng()*15);return;}
@@ -493,7 +493,7 @@ function trySpawnMovingHill(){
     // gravity stage は CD を長めにして連続スポーンを抑制
     hillCD=isGravityStage?(200+Math.floor(packRng()*120)):(isGimmickMoving2?(40+Math.floor(packRng()*30)):(120+Math.floor(packRng()*80)));
     if(isGimmickMoving2){terrainGimmickPhase.len--;if(terrainGimmickPhase.len<=0){terrainGimmickPhase.active=false;terrainGimmickPhase.cd=800+Math.floor(packRng()*400);}}
-    const baseH=GROUND_H;
+    const baseH=gapPlatH2; // match surrounding platform height exactly
     const ampH=40+packRng()*50;
     movingHills.push({x:hx,w:hw,baseH:baseH,ampH:ampH,phase:packRng()*6.28,spd:0.02+packRng()*0.015,isFloor:isFloor});
   } else {
