@@ -3132,10 +3132,13 @@ function drawSpecialParade(){
       ctx.translate(kx,ky);
       ctx.rotate(tilt);
       if(flip===-1)ctx.scale(1,-1);
-      // Fade near player to avoid obscuring them
+      // Fade near player: row-level (vertical proximity) + character-level (radial)
+      const _rowDist=Math.abs(player.y-baseY);
+      const _rowFade=_rowDist<100?Math.max(0,_rowDist/100):1;
       const _fdx=kx-player.x,_fdy=ky-player.y;
       const _fd=Math.sqrt(_fdx*_fdx+_fdy*_fdy);
-      ctx.globalAlpha=_fd<90?Math.max(0.07,0.92*(_fd/90)):0.92;
+      const _charFade=_fd<140?Math.max(0,_fd/140):1;
+      ctx.globalAlpha=Math.min(_rowFade,_charFade)*0.92;
       drawCharacter(0,0,charIdx,ksz,0,1,'happy',0,false);
       ctx.restore();
     }

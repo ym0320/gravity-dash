@@ -1484,7 +1484,7 @@ function update(dt){
         else{const sy=ceilSupportY(en.x);if(sy>-100){en.y=sy+en.sz;en.vy=0;}else{en.vy=(en.vy||0)-GRAVITY;en.y+=en.vy;}}
         const ndx=player.x-en.x,ndy=player.y-en.y,nd2=ndx*ndx+ndy*ndy;
         if(nd2<220*220&&Math.abs(ndy)<H*0.4){
-          en._state='notice';en._noticeT=50;
+          en._state='notice';en._noticeT=35;
         }
       } else if(en._state==='notice'){
         // Crouch telegraph
@@ -1494,8 +1494,8 @@ function update(dt){
         if(en._noticeT<=0){
           en._state='jumping';
           const fdx=player.x-en.x;
-          en._jVx=fdx/28+speed; // compensate for scroll
-          en.vy=en.gDir===1?-10:10;
+          en._jVx=fdx/20+speed; // compensate for scroll
+          en.vy=en.gDir===1?-13:13;
           if(en.gDir===1){const sy=floorSupportY(en.x);if(sy<H+100)en.y=sy-en.sz;}
           else{const sy=ceilSupportY(en.x);if(sy>-100)en.y=sy+en.sz;}
           sfx('gstomp');shakeI=Math.max(shakeI,3);

@@ -305,7 +305,7 @@ function trySpawnFloatPlat(){
       _baseY:isBobbing?fy:undefined,
       _bobPhase:isBobbing?packRng()*6.28:undefined,
       _bobAmp:isBobbing?(18+packRng()*14):undefined,
-      _bobSpd:isBobbing?(0.012+packRng()*0.008):undefined});
+      _bobSpd:isBobbing?(0.028+packRng()*0.016):undefined});
     // Sometimes spawn an item or coins on the floating platform (not in stage mode, mutually exclusive)
     if(!isPackMode){
       const fpRoll=packRng();
