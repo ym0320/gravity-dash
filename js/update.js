@@ -119,8 +119,6 @@ function updateChestOpenStateMachine(){
 }
 function update(dt){
   frame++;
-  // Auto-save every 300 frames (~5s) during endless/challenge
-  if(state===ST.PLAY&&!isPackMode&&frame%300===1&&(isChallengeMode||gameMode==='endless'))saveGameState();
   if(themeLerp<1)themeLerp=Math.min(1,themeLerp+0.015);
   if(shakeI>0){shakeX=(Math.random()-0.5)*shakeI;shakeY=(Math.random()-0.5)*shakeI;shakeI*=0.88;if(shakeI<0.3){shakeI=0;shakeX=0;shakeY=0;}}
   // combo only resets when a coin is missed (goes off-screen)

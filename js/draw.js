@@ -4672,15 +4672,9 @@ function drawPause(){
   } else {
     ctx.fillText(t('scoreLabel')+': '+score,W/2,H*0.33);
   }
-  // HP in pause
   drawSpecialHpHearts(W/2,H*0.37,16,26,true);
-  // Button layout: pack mode has 4 buttons, others have 3
-  const hasStageSelBtn=isPackMode&&!isChallengeMode;
-  const bBase=hasStageSelBtn?0.40:0.42;
-  const bStep=hasStageSelBtn?0.10:0.11;
-  const resumeY=H*bBase, restartY=H*(bBase+bStep);
-  const stageSelY=hasStageSelBtn?H*(bBase+bStep*2):0;
-  const quitY=H*(bBase+bStep*(hasStageSelBtn?3:2));
+  const lay=pauseBtnLayout();
+  const{resumeY,restartY,stageSelY,saveQuitY,quitY,hasStageSel,hasSave}=lay;
   // Resume button
   ctx.fillStyle='#00e5ff33';rr(W/2-80,resumeY,160,44,10);ctx.fill();
   ctx.strokeStyle='#00e5ff';ctx.lineWidth=2;rr(W/2-80,resumeY,160,44,10);ctx.stroke();
@@ -4690,12 +4684,19 @@ function drawPause(){
   ctx.strokeStyle='#ffa500';ctx.lineWidth=2;rr(W/2-80,restartY,160,44,10);ctx.stroke();
   ctx.fillStyle='#ffa500';ctx.font='bold 18px monospace';ctx.fillText(t('restart'),W/2,restartY+28);
   // Stage select button (pack mode only)
-  if(hasStageSelBtn){
+  if(hasStageSel){
     ctx.fillStyle='#34d39933';rr(W/2-80,stageSelY,160,44,10);ctx.fill();
     ctx.strokeStyle='#34d399';ctx.lineWidth=2;rr(W/2-80,stageSelY,160,44,10);ctx.stroke();
     ctx.fillStyle='#34d399';ctx.font='bold 18px monospace';ctx.fillText(t('stageSelect'),W/2,stageSelY+28);
   }
-  // Quit button (retire in challenge mode)
+  // Save & Quit button (endless/challenge only)
+  if(hasSave){
+    ctx.fillStyle='#22d3ee33';rr(W/2-80,saveQuitY,160,44,10);ctx.fill();
+    ctx.strokeStyle='#22d3ee';ctx.lineWidth=2;rr(W/2-80,saveQuitY,160,44,10);ctx.stroke();
+    ctx.fillStyle='#22d3ee';ctx.font='bold 16px monospace';
+    ctx.fillText(gameLang==='ja'?'保存して中断':'Save & Quit',W/2,saveQuitY+28);
+  }
+  // Quit button (retire in challenge / to title in endless)
   ctx.fillStyle='#ff386033';rr(W/2-80,quitY,160,44,10);ctx.fill();
   ctx.strokeStyle='#ff3860';ctx.lineWidth=2;rr(W/2-80,quitY,160,44,10);ctx.stroke();
   ctx.fillStyle='#ff3860';ctx.font='bold 18px monospace';

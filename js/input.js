@@ -79,13 +79,23 @@ function triggerAirJump(unlimited){
 }
 function pauseBtnLayout(){
   const hasSSel=isPackMode&&!isChallengeMode;
-  const bBase=hasSSel?0.40:0.42;
-  const bStep=hasSSel?0.10:0.11;
-  return{resumeY:H*bBase,restartY:H*(bBase+bStep),stageSelY:hasSSel?H*(bBase+bStep*2):0,quitY:H*(bBase+bStep*(hasSSel?3:2)),hasStageSel:hasSSel};
+  const hasSave=!isPackMode&&(isChallengeMode||gameMode==='endless');
+  const slots=hasSSel?4:(hasSave?4:3);
+  const bBase=slots>=4?0.38:0.42;
+  const bStep=slots>=4?0.10:0.11;
+  return{
+    resumeY:H*bBase,
+    restartY:H*(bBase+bStep),
+    stageSelY:hasSSel?H*(bBase+bStep*2):0,
+    saveQuitY:hasSave?H*(bBase+bStep*2):0,
+    quitY:H*(bBase+bStep*(slots-1)),
+    hasStageSel:hasSSel,hasSave
+  };
 }
 function hitResumeBtn(px,py){const l=pauseBtnLayout();return px>=W/2-80&&px<=W/2+80&&py>=l.resumeY&&py<=l.resumeY+44;}
 function hitRestartBtn(px,py){const l=pauseBtnLayout();return px>=W/2-80&&px<=W/2+80&&py>=l.restartY&&py<=l.restartY+44;}
 function hitPauseStageSelBtn(px,py){const l=pauseBtnLayout();return l.hasStageSel&&px>=W/2-80&&px<=W/2+80&&py>=l.stageSelY&&py<=l.stageSelY+44;}
+function hitSaveQuitBtn(px,py){const l=pauseBtnLayout();return l.hasSave&&px>=W/2-80&&px<=W/2+80&&py>=l.saveQuitY&&py<=l.saveQuitY+44;}
 function hitQuitBtn(px,py){const l=pauseBtnLayout();return px>=W/2-80&&px<=W/2+80&&py>=l.quitY&&py<=l.quitY+44;}
 function hitPauseSettingsBtn(px,py){const l=pauseBtnLayout();const psy=l.quitY+54;return px>=W/2-60&&px<=W/2+60&&py>=psy&&py<=psy+32;}
 function hitPauseTopGear(px,py){return px>=W-54&&px<=W-6&&py>=safeTop+12&&py<=safeTop+52;}
@@ -799,8 +809,6 @@ document.addEventListener('visibilitychange',()=>{
       if(!_pauseSavedBGM)_pauseSavedBGM=bgmCurrent; // save original BGM (not 'pause')
       state=ST.PAUSE;
     }
-    // Auto-save on background
-    if((state===ST.PLAY||state===ST.PAUSE)&&!isPackMode)saveGameState();
     // Stop BGM to prevent sound pile-up
     bgmBeforePause=_pauseSavedBGM||bgmCurrent;
     if(bgmTimer){clearTimeout(bgmTimer);bgmTimer=null;}
@@ -1034,6 +1042,7 @@ canvas.addEventListener('touchstart',e=>{
     if(hitResumeBtn(p.x,p.y)){sfx('select');resumeFromPauseMenu();return;}
     if(hitRestartBtn(p.x,p.y)){_pauseSavedBGM='';restartFromPause();return;}
     if(hitPauseStageSelBtn(p.x,p.y)){sfx('cancel');_pauseSavedBGM='';state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;stageSelGuardT=30;switchBGM('title');return;}
+    if(hitSaveQuitBtn(p.x,p.y)){saveGameState();_pauseSavedBGM='';sfx('select');state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     if(hitQuitBtn(p.x,p.y)){_pauseSavedBGM='';if(isChallengeMode){challengeRetired=true;sfx('cancel');player.alive=false;state=ST.DEAD;deadT=0;switchBGM('dead');return;}sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     if(hitPauseTopGear(p.x,p.y)){sfx('click');settingsOpen=true;return;}
     if(hitPauseSettingsBtn(p.x,p.y)){sfx('click');settingsOpen=true;return;}
@@ -1299,6 +1308,7 @@ canvas.addEventListener('mousedown',e=>{
     if(hitResumeBtn(p.x,p.y)){sfx('select');resumeFromPauseMenu();return;}
     if(hitRestartBtn(p.x,p.y)){_pauseSavedBGM='';restartFromPause();return;}
     if(hitPauseStageSelBtn(p.x,p.y)){sfx('cancel');_pauseSavedBGM='';state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;stageSelGuardT=30;switchBGM('title');return;}
+    if(hitSaveQuitBtn(p.x,p.y)){saveGameState();_pauseSavedBGM='';sfx('select');state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     if(hitQuitBtn(p.x,p.y)){_pauseSavedBGM='';if(isChallengeMode){challengeRetired=true;sfx('cancel');player.alive=false;state=ST.DEAD;deadT=0;switchBGM('dead');return;}sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     if(hitPauseTopGear(p.x,p.y)){sfx('click');settingsOpen=true;return;}
     if(hitPauseSettingsBtn(p.x,p.y)){sfx('click');settingsOpen=true;return;}
