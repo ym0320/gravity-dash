@@ -956,26 +956,6 @@ function handleInventoryModalTouch(px, py){
   handleInventoryChestTap(px,py);
   return true;
 }
-// FPS overlay toggle: 3 quick taps on the overlay itself (when visible) or top-left 80x80 (when hidden)
-let _fpsTapCount=0,_fpsLastTap=0;
-function _checkFpsToggle(px,py){
-  // When overlay is visible: tap on the overlay box to toggle off (180x50 at 6,safeTop+6)
-  // When hidden: 80x80 top-left corner to toggle on
-  const inHotspot=window._fpsShow
-    ? (px>=0&&px<=180&&py>=safeTop&&py<=safeTop+56)
-    : (px<=80&&py<=safeTop+80);
-  if(!inHotspot)return;
-  const now=Date.now();
-  if(now-_fpsLastTap>700)_fpsTapCount=0;
-  _fpsTapCount++;_fpsLastTap=now;
-  const needed=window._fpsShow?3:5;
-  if(_fpsTapCount>=needed){
-    window._fpsShow=!window._fpsShow;
-    try{localStorage.setItem('gd5fps',window._fpsShow?'1':'0');}catch(e){}
-    _fpsTapCount=0;
-  }
-}
-try{if(localStorage.getItem('gd5fps')==='1')window._fpsShow=true;}catch(e){}
 
 // Secret combo settling flag: ignore all STAGE_SEL touch processing until the
 // user's unlock fingers are fully released (prevents stray taps/scrolls)
@@ -1014,7 +994,6 @@ canvas.addEventListener('touchstart',e=>{
   e.preventDefault();initAudio();
   const t=e.touches[0];
   const p=canvasXY(t.clientX,t.clientY);
-  _checkFpsToggle(p.x,p.y);
   // Secret combo: detect ranking+settings simultaneous multi-touch
   if(_checkSecretStageUnlockFromEvent(e))return;
   touchStartY=t.clientY;touchStartX=t.clientX;touchOriginY=t.clientY;touchStartT=Date.now();touchMoved=false;touchBtnUsed=false;
@@ -1043,7 +1022,7 @@ canvas.addEventListener('touchstart',e=>{
     if(hitRestartBtn(p.x,p.y)){_pauseSavedBGM='';restartFromPause();return;}
     if(hitPauseStageSelBtn(p.x,p.y)){sfx('cancel');_pauseSavedBGM='';state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;stageSelGuardT=30;switchBGM('title');return;}
     if(hitSaveQuitBtn(p.x,p.y)){saveGameState();_pauseSavedBGM='';sfx('select');state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
-    if(hitQuitBtn(p.x,p.y)){_pauseSavedBGM='';if(isChallengeMode){challengeRetired=true;sfx('cancel');player.alive=false;state=ST.DEAD;deadT=0;switchBGM('dead');return;}sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
+    if(hitQuitBtn(p.x,p.y)){_pauseSavedBGM='';if(isChallengeMode){challengeRetired=true;sfx('cancel');player.alive=false;state=ST.DEAD;deadT=0;switchBGM('dead');return;}sfx('cancel');if(bossPhase.active&&!isRetryGame&&!_gameWasResumed){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     if(hitPauseTopGear(p.x,p.y)){sfx('click');settingsOpen=true;return;}
     if(hitPauseSettingsBtn(p.x,p.y)){sfx('click');settingsOpen=true;return;}
     return;
@@ -1312,7 +1291,7 @@ canvas.addEventListener('mousedown',e=>{
     if(hitRestartBtn(p.x,p.y)){_pauseSavedBGM='';restartFromPause();return;}
     if(hitPauseStageSelBtn(p.x,p.y)){sfx('cancel');_pauseSavedBGM='';state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;stageSelGuardT=30;switchBGM('title');return;}
     if(hitSaveQuitBtn(p.x,p.y)){saveGameState();_pauseSavedBGM='';sfx('select');state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
-    if(hitQuitBtn(p.x,p.y)){_pauseSavedBGM='';if(isChallengeMode){challengeRetired=true;sfx('cancel');player.alive=false;state=ST.DEAD;deadT=0;switchBGM('dead');return;}sfx('cancel');if(bossPhase.active&&!isRetryGame){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
+    if(hitQuitBtn(p.x,p.y)){_pauseSavedBGM='';if(isChallengeMode){challengeRetired=true;sfx('cancel');player.alive=false;state=ST.DEAD;deadT=0;switchBGM('dead');return;}sfx('cancel');if(bossPhase.active&&!isRetryGame&&!_gameWasResumed){bossRetry={score:bossPhase.lastBossScore,bossCount:bossPhase.bossCount-1,rawDist:bossPhase.lastBossRawDist||0};}state=ST.TITLE;isPackMode=false;switchBGM('title');return;}
     if(hitPauseTopGear(p.x,p.y)){sfx('click');settingsOpen=true;return;}
     if(hitPauseSettingsBtn(p.x,p.y)){sfx('click');settingsOpen=true;return;}
     return;

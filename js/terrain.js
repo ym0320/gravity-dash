@@ -15,6 +15,8 @@ function generatePlatform(arr,isCeil,forceGap){
   const last=arr.length>0?arr[arr.length-1]:null;
   const lastH=last?last.h:GROUND_H;
   const lastRight=last?last.x+last.w:0;
+  const minH=(isCeil?82:65)+safeBot;
+  const clampH=(nextH,maxRatio)=>Math.max(minH,Math.min(H*maxRatio,nextH));
   // Boss phase or challenge mode: flat terrain (no gaps)
   if(bossPhase.active||bossPhase.prepare>0||isChallengeMode){
     arr.push({x:lastRight,w:150+Math.random()*100,h:GROUND_H});
@@ -51,7 +53,7 @@ function generatePlatform(arr,isCeil,forceGap){
     if(Math.random()<stepC){
       const maxDh=Math.min(8,2+score*0.15);
       const dh=(Math.random()<0.5?1:-1)*(2+Math.random()*maxDh);
-      h=Math.max(65+safeBot,Math.min(H*0.3,h+dh));
+      h=clampH(h+dh,isCeil?0.34:0.3);
     }
   } else if(score<100){
     // Gentle steps
@@ -59,7 +61,7 @@ function generatePlatform(arr,isCeil,forceGap){
     if(Math.random()<stepC){
       const maxDh=Math.min(18,5+(score-40)*0.2);
       const dh=(Math.random()<0.5?1:-1)*(3+Math.random()*maxDh);
-      h=Math.max(65+safeBot,Math.min(H*0.33,h+dh));
+      h=clampH(h+dh,isCeil?0.37:0.33);
     }
   } else if(score<200){
     // Moderate steps
@@ -67,7 +69,7 @@ function generatePlatform(arr,isCeil,forceGap){
     if(Math.random()<stepC){
       const maxDh=Math.min(30,8+(score-100)*0.15);
       const dh=(Math.random()<0.5?1:-1)*(4+Math.random()*maxDh);
-      h=Math.max(65+safeBot,Math.min(H*0.35,h+dh));
+      h=clampH(h+dh,isCeil?0.39:0.35);
     }
   } else {
     // Full difficulty
@@ -75,7 +77,7 @@ function generatePlatform(arr,isCeil,forceGap){
     if(Math.random()<stepC){
       const maxDh=Math.min(45,12+score*0.1);
       const dh=(Math.random()<0.5?1:-1)*(5+Math.random()*maxDh);
-      h=Math.max(65+safeBot,Math.min(H*0.38,h+dh));
+      h=clampH(h+dh,isCeil?0.42:0.38);
     }
   }
   // Width: wider early, very gradually narrower
@@ -140,8 +142,42 @@ function ceilSurfaceY(px){
   }
   return -200; // void
 }
+function floorSupportY(px){
+  let surf=floorSurfaceY(px);
+  for(let i=0;i<movingHills.length;i++){
+    const mh=movingHills[i];
+    if(!mh.isFloor||px<mh.x||px>mh.x+mh.w)continue;
+    const dynY=H-(mh.baseH+Math.sin(mh.phase)*mh.ampH);
+    if(dynY<surf)surf=dynY;
+  }
+  for(let i=0;i<fallingMtns.length;i++){
+    const fm=fallingMtns[i];
+    if(!fm.isFloor||fm.state==='gone'||px<fm.x||px>fm.x+fm.w)continue;
+    const dynY=H-Math.max(0,fm.curH);
+    if(dynY<surf)surf=dynY;
+  }
+  return surf;
+}
+function ceilSupportY(px){
+  let surf=ceilSurfaceY(px);
+  for(let i=0;i<movingHills.length;i++){
+    const mh=movingHills[i];
+    if(mh.isFloor||px<mh.x||px>mh.x+mh.w)continue;
+    const dynY=mh.baseH+Math.sin(mh.phase)*mh.ampH;
+    if(dynY>surf)surf=dynY;
+  }
+  for(let i=0;i<fallingMtns.length;i++){
+    const fm=fallingMtns[i];
+    if(fm.isFloor||fm.state==='gone'||px<fm.x||px>fm.x+fm.w)continue;
+    const dynY=Math.max(0,fm.curH);
+    if(dynY>surf)surf=dynY;
+  }
+  return surf;
+}
 
 function reset(){
+  if(typeof resetSpecialState==='function')resetSpecialState();
+  if(typeof resetPetState==='function')resetPetState();
   player.x=W*0.2;player.gDir=1;player.vy=0;
   player.rot=0;player.rotTarget=0;_trailHead=0;_trailLen=0;player.faceTimer=0;player.alive=true;
   player.grounded=false;player.face='normal';player.canFlip=true;
@@ -158,12 +194,14 @@ function reset(){
   fallingMtns=[];fallingMtnCD=0;coinSwitches=[];coinSwitchCD=0;
   icicles=[];icicleCD=0;magmaFireballs=[];magmaFireCD=0;magmaHurtT=0;
   score=0;dist=0;rawDist=0;speedOffset=0;speed=SPEED_INIT;frame=0;deadT=0;newHi=false;bgmTierOffset=0;
+  if(typeof _gameWasResumed!=='undefined')_gameWasResumed=false;
   combo=0;comboT=0;comboDsp=0;comboDspT=0;airCombo=0;stompCombo=0;
   shakeX=0;shakeY=0;shakeI=0;
   mileT=0;mileTxt='';lastMile=0;
   totalCoins=0;totalFlips=0;maxCombo=0;
-  itemEff={invincible:0,magnet:0};bombCount=0;bombFlashT=0;invCount=0;
+  itemEff={invincible:0,magnet:0,slowmo:0};bombFlashT=0;invCount=0;prepareConsumableLoadout();
   djumpAvailable=!!ct().hasDjump;djumpUsed=false;ghostPhaseT=0;ghostInvis=false;
+  if(typeof refreshAirActionState==='function')refreshAirActionState(true);
   coinCD=0;itemCD=0;enemyCD=0;birdCD=0;flipCount=0;flipTimer=999;lastCoinCourse='';
   flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
   abyssPhase={active:false,len:0,cd:0};
@@ -172,11 +210,13 @@ function reset(){
   bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:BOSS_INTERVAL,lastBossScore:0,lastBossRawDist:0,bossCount:0,bossType:'',bossType2:null,challStrength:1,challIsDual:false,noDamage:true};
   hp=HP_MAX+(ct().hpBonus||0);hurtT=0;
   curTheme=0;prevTheme=0;themeLerp=1;
-  bossChests=0;runChests=0;deadChestsOpened=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null};
+  bossChests=0;runChests=0;deadChestsOpened=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null,rewardGranted:false,_lastRevealIdx:-1};
   usedContinue=false;
 }
 
 function resetPackStage(pi,si,fromCheckpoint){
+  if(typeof resetSpecialState==='function')resetSpecialState();
+  if(typeof resetPetState==='function')resetPetState();
   const pack=STAGE_PACKS[pi];if(!pack)return;
   const stage=pack.stages[si];if(!stage)return;
   isPackMode=true;currentPackIdx=pi;currentPackStageIdx=si;currentPackStage=stage;
@@ -241,8 +281,9 @@ function resetPackStage(pi,si,fromCheckpoint){
   shakeX=0;shakeY=0;shakeI=0;
   mileT=0;mileTxt='';lastMile=0;
   totalCoins=0;totalFlips=0;maxCombo=0;
-  itemEff={invincible:0,magnet:0};bombCount=0;bombFlashT=0;invCount=0;
+  itemEff={invincible:0,magnet:0,slowmo:0};magnetCount=0;bombCount=0;bombFlashT=0;invCount=0;
   djumpAvailable=!!ct().hasDjump;djumpUsed=false;ghostPhaseT=0;ghostInvis=false;
+  if(typeof refreshAirActionState==='function')refreshAirActionState(true);
   coinCD=0;itemCD=0;enemyCD=0;birdCD=0;flipCount=0;flipTimer=999;lastCoinCourse='';
   flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
   abyssPhase={active:false,len:0,cd:0};
@@ -251,13 +292,15 @@ function resetPackStage(pi,si,fromCheckpoint){
   bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:99999,lastBossScore:0,lastBossRawDist:0,bossCount:0,bossType:'',bossType2:null,challStrength:1,challIsDual:false};
   hp=3;hurtT=0; // Stage mode: 3 HP
   curTheme=0;prevTheme=0;themeLerp=1;
-  bossChests=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null};
+  bossChests=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null,rewardGranted:false,_lastRevealIdx:-1};
 }
 function generatePackPlatform(arr,isCeil,stage){
   const last=arr.length>0?arr[arr.length-1]:null;
   const lastH=last?last.h:GROUND_H;
   const lastRight=last?last.x+last.w:0;
   const rng=isCeil?(stageCeilRng||stageRng):stageRng;if(!rng)return;
+  const minH=(isCeil?82:65)+safeBot;
+  const clampH=(nextH,maxRatio)=>Math.max(minH,Math.min(H*maxRatio,nextH));
   const sType=stage.stageType||'';
   // Deterministic distance estimate based on cumulative generation (not runtime dist)
   const genX=isCeil?packCeilGenX:packFloorGenX;
@@ -346,7 +389,7 @@ function generatePackPlatform(arr,isCeil,stage){
       let h=lastH;
       if(rng()<0.65){
         const dh=(rng()<0.5?1:-1)*(20+rng()*50);
-        h=Math.max(65+safeBot,Math.min(H*0.38,h+dh));
+        h=clampH(h+dh,isCeil?0.42:0.38);
       }
       if(rng()<0.12){addedGap=20+rng()*40;} // small gap
       addedW=50+rng()*50;
@@ -412,7 +455,7 @@ function generatePackPlatform(arr,isCeil,stage){
       h=GROUND_H;
     } else if(rng()<hc){
       const dh=(rng()<0.5?1:-1)*(10+rng()*50);
-      h=Math.max(65+safeBot,Math.min(H*0.42,h+dh));
+      h=clampH(h+dh,isCeil?0.46:0.42);
     }
     const wBase=gc>=0.40?40:70;
     const wRange=gc>=0.40?80:140;

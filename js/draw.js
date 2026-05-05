@@ -1192,6 +1192,9 @@ function draw(){
           const faceType=faceCycle===2?2:faceCycle===1||faceCycle===3?1:0;
           ctx.save();ctx.translate(kx,ky);ctx.rotate(tilt);
           if(flip===-1)ctx.scale(1,-1);
+          {const _rD=Math.abs(player.y-baseY),_rF=_rD<100?Math.max(0,_rD/100):1;
+          const _fx=kx-player.x,_fy=ky-player.y,_fd2=Math.sqrt(_fx*_fx+_fy*_fy);
+          ctx.globalAlpha=Math.min(_rF,_fd2<140?Math.max(0,_fd2/140):1)*0.92;}
           // Body - layered fills instead of gradient
           ctx.fillStyle='#8b4513';
           ctx.beginPath();ctx.arc(0,-ksz*0.15,ksz*0.85,0,TAU);ctx.fill();
@@ -1366,28 +1369,6 @@ function draw(){
   if(state===ST.DEAD){drawDead();if(deadChestOpen&&chestOpen.phase!=='none')drawChestOpen();}
   if(state===ST.PAUSE){drawPause();if(settingsOpen)drawTitle();}
   if(state===ST.STAGE_CLEAR)drawStageClear();
-  if(window._fpsShow)drawFpsOverlay();
-}
-
-// Diagnostic FPS overlay — toggled by 5 quick taps on top-left corner (enable)
-// or 3 quick taps on the overlay itself (disable)
-function drawFpsOverlay(){
-  const fps=Math.round(_fpsSmooth||60);
-  const fpsMin=Math.round(_fpsMin||60);
-  const col=fps>=55?'#4ade80':(fps>=40?'#fbbf24':'#f87171');
-  const x=6,y=safeTop+6,w=180,h=56;
-  ctx.fillStyle='rgba(0,0,0,0.7)';rr(x,y,w,h,4);ctx.fill();
-  if(_gcSpikeT>0){ctx.fillStyle='rgba(248,113,113,0.25)';rr(x,y,w,h,4);ctx.fill();}
-  ctx.font='bold 13px monospace';ctx.textAlign='left';ctx.textBaseline='top';
-  ctx.fillStyle=col;ctx.fillText('FPS '+fps+' (min '+fpsMin+')',x+6,y+4);
-  ctx.font='10px monospace';ctx.fillStyle='#e5e7eb';
-  const pN=parts?parts.length:0,eN=enemies?enemies.length:0,bN=bullets?bullets.length:0;
-  const cN=coins?coins.length:0,poN=pops?pops.length:0;
-  ctx.fillText('P:'+pN+' E:'+eN+' B:'+bN+' C:'+cN+' Po:'+poN,x+6,y+18);
-  ctx.fillStyle=_gcSpikeT>0?'#f87171':'#9ca3af';
-  ctx.fillText('lastSpike:'+_lastBigDt+'ms'+(_lowQ?' LOW':''),x+6,y+30);
-  ctx.fillStyle='#6b7280';ctx.font='9px monospace';
-  ctx.fillText('tap here 3x to close',x+6,y+44);
 }
 
 function drawCoin(c){
@@ -3138,8 +3119,8 @@ function drawSpecialParade(){
       const _fdx=kx-player.x,_fdy=ky-player.y;
       const _fd=Math.sqrt(_fdx*_fdx+_fdy*_fdy);
       const _charFade=_fd<140?Math.max(0,_fd/140):1;
-      ctx.globalAlpha=Math.min(_rowFade,_charFade)*0.92;
-      drawCharacter(0,0,charIdx,ksz,0,1,'happy',0,false);
+      // Pass alpha directly to drawCharacter (it sets ctx.globalAlpha internally)
+      drawCharacter(0,0,charIdx,ksz,0,Math.min(_rowFade,_charFade)*0.92,'happy',0,false);
       ctx.restore();
     }
   }

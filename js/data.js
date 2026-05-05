@@ -282,6 +282,7 @@ function syncGameplayBGM(force){
   return target;
 }
 let _rescueSavedGDir=null; // set in hurt() before forced special, cleared after
+let _gameWasResumed=false; // true when current run was restored from save (prevents bossRetry bleed)
 function rescuePlayerFromForcedSpecial(){
   if(!player)return;
   const pr=playerRadius();
@@ -2907,6 +2908,7 @@ function restoreGameFromSave(d){
   if(bossPhase){bossPhase.bossCount=d.bossCount||0;bossPhase.nextAt=(d.rawDist||0)+BOSS_INTERVAL;}
   const ti=THEMES?Math.min(Math.floor(score/1000),THEMES.length-1):0;
   if(ti>0){curTheme=ti;prevTheme=ti;themeLerp=1;}
+  _gameWasResumed=true; // prevent bossRetry bleed when quitting this resumed run
 }
 function ownsItem(id){return ownedItems.includes(id);}
 function addLifetimeCoins(amount){

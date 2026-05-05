@@ -4,23 +4,12 @@
 // Max catch-up ticks per frame to avoid overloading slow devices.
 // If still behind after max ticks, discard leftover time to prevent death spiral.
 let _tickAcc=0,_skipDraw=0,_recoveryFrames=0;
-// --- FPS meter (diagnostic overlay) ---
-// Toggle with 5 quick taps on top-left corner. Persisted in localStorage.
-let _fpsSmooth=60,_fpsMin=60,_fpsMinResetT=0,_gcSpikeT=0,_lastBigDt=0;
+let _gcSpikeT=0,_lastBigDt=0;
 function loop(ts){
   if(!lastTime){lastTime=ts;_tickAcc=0;_skipDraw=2;}
   const dt=ts-lastTime;
   _updateQuality(dt); // adaptive quality monitoring
-  // FPS telemetry
-  if(dt>0&&dt<500){
-    const fps=1000/dt;
-    _fpsSmooth=_fpsSmooth*0.9+fps*0.1;
-    _fpsMinResetT++;
-    if(_fpsMinResetT>90){_fpsMin=fps;_fpsMinResetT=0;}
-    else if(fps<_fpsMin)_fpsMin=fps;
-    // Detect GC-like spike (single long frame)
-    if(dt>40){_gcSpikeT=30;_lastBigDt=Math.round(dt);}
-  }
+  if(dt>0&&dt<500&&dt>40){_gcSpikeT=30;_lastBigDt=Math.round(dt);}
   if(_gcSpikeT>0)_gcSpikeT--;
   // After background return (>500ms gap), reset timing to prevent burst
   if(dt>500){lastTime=ts;_tickAcc=0;_skipDraw=2;_recoveryFrames=5;requestAnimationFrame(loop);return;}
