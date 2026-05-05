@@ -3949,53 +3949,46 @@ function drawTitle(){
       _hRow(t('helpCtrlSwipe'),t('helpCtrlSwipeDesc'));
       _hRow(t('helpCtrlSpecial'),t('helpCtrlSpecialDesc'),'#34d399');
       _hRow(t('helpCtrlItem'),t('helpCtrlItemDesc'),'#a78bfa');
-      ly+=6;
-      _hSec(t('helpSecSpecial'),'#34d399');
-      _hNote(t('helpSpecialCharge'));
-      _hNote(t('helpSpecialActivate'));
-      ly+=4;
-      // Per-character specials
-      const chars=CHARS||[];
-      const charKeys=[t('helpSpecialChar0'),t('helpSpecialChar1'),t('helpSpecialChar2'),t('helpSpecialChar3'),t('helpSpecialChar4'),t('helpSpecialChar5')];
-      const specDescs=[t('specialDescCube'),t('specialDescBounce'),t('specialDescTire'),t('specialDescGhost'),t('specialDescNinja'),t('specialDescStone')];
-      for(let i=0;i<Math.min(6,charKeys.length);i++){
-        const cc=chars[i]?chars[i].col:'#88aaff';
-        ctx.fillStyle=cc;ctx.font='bold 9px monospace';ctx.textAlign='left';
-        ctx.fillText('['+charKeys[i]+']',lx+6,ly+10);
-        const labelW=_cMT('['+charKeys[i]+']','bold 9px monospace')+4;
-        ctx.fillStyle='#fff7';ctx.font='9px monospace';ctx.textAlign='left';
-        // truncate spec desc to fit
-        let desc=specDescs[i]||'';const maxDW=cw-labelW-8;
-        while(desc.length>4&&_cMT(desc,'9px monospace')>maxDW)desc=desc.slice(0,-1);
-        if(desc.length<(specDescs[i]||'').length)desc+='…';
-        ctx.fillText(desc,lx+6+labelW,ly+10);
-        ly+=16;
-      }
+      ly+=8;
+      _hSec(t('helpSecHP'),'#ff6b6b');
+      _hNote(t('helpHPDamage'));
+      _hNote(t('helpHPOver'));
+      _hNote(t('helpHPHeal'));
+      ly+=8;
+      _hSec(t('helpSecNova'),'#34d399');
+      _hNote(t('helpNovaCharge'));
+      _hNote(t('helpNovaFull'));
+      _hNote(t('helpNovaEffect'));
+      _hNote(t('helpNovaTimer'));
     } else if(helpTab===1){
       // === Tab: Modes ===
       ly+=4;
       _hSec(t('helpSecModes'));
-      const modes=[
-        [t('helpModeEndless'),'#00e5ff',t('helpModeEndlessDesc')],
-        [t('helpModeChallenge'),'#ff6b6b',t('helpModeChallengeDesc')],
-        [t('helpModeStage'),'#ffd700',t('helpModeStageDesc')],
+      const modeDefs=[
+        [t('helpModeEndless'),'#00e5ff',[t('helpModeEndlessRule1'),t('helpModeEndlessRule2'),t('helpModeEndlessRule3'),t('helpModeEndlessRule4')]],
+        [t('helpModeChallenge'),'#ff6b6b',[t('helpModeChallengeRule1'),t('helpModeChallengeRule2'),t('helpModeChallengeRule3'),t('helpModeChallengeRule4')]],
+        [t('helpModeStage'),'#ffd700',[t('helpModeStageRule1'),t('helpModeStageRule2'),t('helpModeStageRule3'),t('helpModeStageRule4')]],
       ];
-      for(const[label,col,desc]of modes){
-        // Mode label badge
-        ctx.fillStyle=col+'33';rr(lx+4,ly,cw-8,22,5);ctx.fill();
-        ctx.strokeStyle=col+'88';ctx.lineWidth=1;rr(lx+4,ly,cw-8,22,5);ctx.stroke();
+      for(const[label,col,rules]of modeDefs){
+        ctx.fillStyle=col+'22';rr(lx+2,ly,cw-4,20,5);ctx.fill();
+        ctx.strokeStyle=col+'99';ctx.lineWidth=1;rr(lx+2,ly,cw-4,20,5);ctx.stroke();
         ctx.fillStyle=col;ctx.font='bold 11px monospace';ctx.textAlign='left';
-        ctx.fillText(label,lx+10,ly+15);
-        ly+=26;
-        _hText(desc,'#ccca');
-        ly+=4;
+        ctx.fillText(label,lx+8,ly+14);
+        ly+=24;
+        for(const rule of rules){_hNote(rule);}
+        ly+=6;
       }
     } else {
       // === Tab: Tips ===
       ly+=4;
       _hSec(t('helpSecTips'),'#ffd700');
-      const tips=[t('helpTip1'),t('helpTip2'),t('helpTip3'),t('helpTip4'),t('helpTip5'),t('helpTip6')];
+      const tips=[t('helpTip1'),t('helpTip2'),t('helpTip3'),t('helpTip4'),t('helpTip5'),t('helpTip6'),t('helpTip7')];
       for(const tip of tips){_hNote(tip);}
+      ly+=8;
+      _hSec(t('helpSecShop'),'#fb923c');
+      _hNote(t('helpShop1'));
+      _hNote(t('helpShop2'));
+      _hNote(t('helpShop3'));
       ly+=12;
       // Tutorial restart button
       const tutBY=ly;

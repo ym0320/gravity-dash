@@ -4,6 +4,8 @@ const ctx=canvas.getContext('2d');
 // Performance: shadowBlur is extremely expensive on Canvas 2D.
 // Disable it on ALL platforms. Use glow-simulation techniques instead.
 Object.defineProperty(ctx,'shadowBlur',{set(){},get(){return 0;},configurable:true});
+// Round fillText coordinates to integers to eliminate sub-pixel blurriness.
+(function(){const _ft=ctx.fillText.bind(ctx);ctx.fillText=function(t,x,y,mw){return mw!=null?_ft(t,Math.round(x),Math.round(y),mw):_ft(t,Math.round(x),Math.round(y));};})();
 const MAX_W=430;
 const MAX_H=844;
 let W,H,safeTop=0,safeBot=0;

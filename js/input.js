@@ -481,12 +481,10 @@ function handleHelpTouch(tx,ty){
       if(tx>=tx2&&tx<=tx2+tabW-2){helpTab=i;helpScroll=0;sfx('click');return;}
     }
   }
-  // Tutorial button (tips tab, at approx position) — handled by content scan
+  // Tutorial button (tips tab)
   if(helpTab===2&&ty>=cY){
-    // Estimate tutorial button Y based on tips content height
-    const tipCount=6;const tipH=tipCount*17+20; // approx tips section height
-    const secH=20+4; // section header
-    const tutBtnTop=cY-helpScroll+secH+tipH+12;
+    // tips section: header(20) + 7 tips×17 + gap(8) + shop header(20) + 3×17 + gap(12) = 20+119+8+20+51+12=230
+    const tutBtnTop=cY-helpScroll+230;
     if(ty>=tutBtnTop&&ty<=tutBtnTop+30){
       sfx('select');helpOpen=false;startTutorial();return;
     }
