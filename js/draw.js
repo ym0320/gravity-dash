@@ -3541,12 +3541,28 @@ function drawTitle(){
   ctx.strokeStyle='#00e5ff';ctx.lineWidth=2;rr(modeLay.endless.x,modeLay.endless.y,modeLay.endless.w,modeLay.endless.h,10);ctx.stroke();
   ctx.fillStyle='#00e5ff';ctx.font='bold 16px monospace';ctx.textAlign='center';
   ctx.fillText(t('endless'),modeLay.endless.x+modeLay.endless.w/2,modeLay.endless.y+29);
+  if(hasSaveData('endless')){
+    const _ep=Math.sin(titleT*2.5)*0.12+1;
+    ctx.save();ctx.translate(modeLay.endless.x+modeLay.endless.w-6,modeLay.endless.y+4);ctx.scale(_ep,_ep);
+    ctx.fillStyle='#22d3ee';rr(-22,-8,24,14,6);ctx.fill();
+    ctx.fillStyle='#000c';ctx.font='bold 8px monospace';ctx.textAlign='center';
+    ctx.fillText(gameLang==='ja'?'続き':'CONT',0-10,4);
+    ctx.restore();
+  }
 
   // Challenge mode button (bottom-left)
   ctx.fillStyle='#ff386022';rr(modeLay.challenge.x,modeLay.challenge.y,modeLay.challenge.w,modeLay.challenge.h,8);ctx.fill();
   ctx.strokeStyle='#ff3860';ctx.lineWidth=1.5;rr(modeLay.challenge.x,modeLay.challenge.y,modeLay.challenge.w,modeLay.challenge.h,8);ctx.stroke();
   ctx.fillStyle='#ff6080';ctx.font='bold 13px monospace';
   ctx.fillText(t('challenge'),modeLay.challenge.x+modeLay.challenge.w/2,modeLay.challenge.y+24);
+  if(hasSaveData('challenge')){
+    const _cp=Math.sin(titleT*2.5+1)*0.12+1;
+    ctx.save();ctx.translate(modeLay.challenge.x+modeLay.challenge.w-4,modeLay.challenge.y+2);ctx.scale(_cp,_cp);
+    ctx.fillStyle='#22d3ee';rr(-22,-7,24,13,5);ctx.fill();
+    ctx.fillStyle='#000c';ctx.font='bold 7px monospace';ctx.textAlign='center';
+    ctx.fillText(gameLang==='ja'?'続き':'CONT',0-10,4);
+    ctx.restore();
+  }
 
   // Stage mode button (bottom-right, disabled)
   ctx.fillStyle='#ffffff08';rr(modeLay.stage.x,modeLay.stage.y,modeLay.stage.w,modeLay.stage.h,8);ctx.fill();
