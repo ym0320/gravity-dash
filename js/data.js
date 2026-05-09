@@ -145,8 +145,8 @@ const SPECIAL_KILL_GAIN=2.5;
 const SPECIAL_STOMP_GAIN=4;
 const SPECIAL_GHOST_MAGNET_RADIUS=90;
 const SPECIAL_GHOST_MAGNET_STRENGTH=0.08;
-const GHOST_PASSIVE_COIN_RADIUS=70;
-const GHOST_PASSIVE_COIN_STRENGTH=0.055;
+const GHOST_PASSIVE_COIN_RADIUS=55;
+const GHOST_PASSIVE_COIN_STRENGTH=0.032;
 const SPECIAL_TIRE_MAGNET_RADIUS=270;
 const SPECIAL_TIRE_MAGNET_STRENGTH=0.07;
 const PET_DRONE_MAGNET_RADIUS=50;
@@ -188,10 +188,10 @@ function resetSpecialState(){
   }
 }
 function canChargeSpecial(){
-  return isSpecialModeEnabled()&&!isPackMode&&state===ST.PLAY&&player&&player.alive&&!specialState.active&&!bossPhase.active&&!bossPhase.reward;
+  return isSpecialModeEnabled()&&!isPackMode&&!isChallengeMode&&state===ST.PLAY&&player&&player.alive&&!specialState.active&&!bossPhase.active&&!bossPhase.reward;
 }
 function canActivateSpecial(forced){
-  return isSpecialModeEnabled()&&!isPackMode&&state===ST.PLAY&&player&&player.alive&&!specialState.active&&!bossPhase.active&&!bossPhase.reward&&((!!forced)||specialState.gauge>=SPECIAL_GAUGE_MAX);
+  return isSpecialModeEnabled()&&!isPackMode&&!isChallengeMode&&state===ST.PLAY&&player&&player.alive&&!specialState.active&&!bossPhase.active&&!bossPhase.reward&&((!!forced)||specialState.gauge>=SPECIAL_GAUGE_MAX);
 }
 function getSpecialType(){
   const shape=ct().shape||'cube';

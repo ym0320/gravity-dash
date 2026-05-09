@@ -3335,7 +3335,7 @@ function drawActionPanel(){
     drawRoundBtn(b.magnetX,'#f59e0b','\u{1F9F2}',magnetCount,itemEff.magnet>0||magnetCount>0,magRatio,'#fff7d1');
     drawRoundBtn(b.bombX,'#ff6b35','\u{1F4A3}',bombCount,bombCount>0,0,'#fff');
   }
-  if(isSpecialModeEnabled()&&!isPackMode){
+  if(isSpecialModeEnabled()&&!isPackMode&&!isChallengeMode){
     const spBtn=specialBtnLayout();
     const ratio=Math.max(0,Math.min(1,specialState.gauge/SPECIAL_GAUGE_MAX));
     const bossLocked=state===ST.PLAY&&!specialState.active&&(bossPhase.active||bossPhase.reward);
