@@ -2790,6 +2790,21 @@ function isTitleUnlocked(title){
   }
   return false;
 }
+function getTitleProgress(def){
+  if(!def)return{current:0,total:1,ratio:0};
+  const _r=(c,t)=>({current:Math.min(c,t),total:t,ratio:t>0?Math.min(1,c/t):0});
+  switch(def.kind){
+    case'plays':return _r(played||0,def.value);
+    case'coins':return _r(lifetimeCoinsEarned||0,def.value);
+    case'score':return _r(highScore||0,def.value);
+    case'challenge':return _r(challengeBestKills||0,def.value);
+    case'chests':return _r(totalChestsOpened||0,def.value);
+    case'collection':{const its=SHOP_ITEMS[def.collection]||[];const have=its.filter(i=>ownsItem(i.id)).length;return{current:have,total:its.length,ratio:its.length>0?have/its.length:0};}
+    case'collection_all':{const cats=['skins','eyes','effects','pets','accessories'];let have=0,total=0;cats.forEach(c=>{const it=SHOP_ITEMS[c]||[];total+=it.length;have+=it.filter(i=>ownsItem(i.id)).length;});return{current:have,total:total,ratio:total>0?have/total:0};}
+    case'characters_all':{const have=(unlockedChars||[]).length;return{current:have,total:CHARS.length,ratio:CHARS.length>0?have/CHARS.length:0};}
+  }
+  return{current:0,total:1,ratio:0};
+}
 function getUnlockedTitleDefs(){const arr=[];for(let i=0;i<TITLE_DEFS.length;i++)if(isTitleUnlocked(TITLE_DEFS[i]))arr.push(TITLE_DEFS[i]);return arr;}
 function getTitleMenuEntries(){
   const entries=[];
@@ -2800,7 +2815,7 @@ function getTitleMenuEntries(){
   }
   return entries;
 }
-function titleMenuEntryHeight(entry){return entry.type==='header'?24:60;}
+function titleMenuEntryHeight(entry){return entry.type==='header'?24:80;}
 function titleMenuLayout(){
   const mW=Math.min(336,W-16),topPad=safeTop+8;
   const mH=H-topPad-10,mX=(W-mW)/2,mY=topPad;

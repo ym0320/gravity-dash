@@ -4522,11 +4522,33 @@ function drawTitleMenu(){
       ctx.fillStyle='#fff';ctx.font='bold 8px monospace';ctx.textAlign='center';
       ctx.fillText('NEW',rowX+20,rowY+13);
     }
-    const availW=statusX-descX-4;
-    const wrapCh=Math.max(8,Math.floor(availW/(gameLang==='ja'?9.5:6)));
+    // Progress bar helpers
+    const _pg=getTitleProgress(def);
+    const _fmtN=n=>{if(n>=1000000)return(n/1000000).toFixed(1).replace(/\.0$/,'')+'M';if(n>=1000)return Math.floor(n/1000)+'K';return String(n);};
+    const _cntStr=_fmtN(_pg.current)+'/'+_fmtN(_pg.total);
+    const _cntW=_cMT(_cntStr,'bold 9px monospace')+8;
+    // Condition text — leave room so it doesn't touch the bar count
+    const _availW=statusX-stW-descX-8;
+    const wrapCh=Math.max(8,Math.floor(_availW/(gameLang==='ja'?9.5:6)));
     const lines=_wrapTextLines(getTitleConditionText(def),wrapCh).slice(0,2);
     ctx.fillStyle='#fff8';ctx.font='10px monospace';ctx.textAlign='left';
     for(let li=0;li<lines.length;li++)ctx.fillText(lines[li],descX,cy+26+li*14);
+    // Progress bar
+    const _bY=cy+eh-22;const _bH=7;
+    const _bStartX=descX;const _bEndX=statusX-_cntW-4;const _bW=_bEndX-_bStartX;
+    if(_bW>24){
+      ctx.fillStyle='rgba(255,255,255,0.09)';rr(_bStartX,_bY,_bW,_bH,4);ctx.fill();
+      if(_pg.ratio>0){
+        const _bFill=Math.min(1,_pg.ratio);
+        const _bCol=_bFill>=1?'#34d399':_bFill>=0.75?'#fbbf24':_bFill>=0.5?'#fb923c':_bFill>=0.25?'#f87171':'#64748b';
+        const _bFW=Math.max(8,_bW*_bFill);
+        ctx.fillStyle=_bCol+'cc';rr(_bStartX,_bY,_bFW,_bH,4);ctx.fill();
+        if(_bFill>=1){ctx.strokeStyle='#34d39955';ctx.lineWidth=1;rr(_bStartX,_bY,_bW,_bH,4);ctx.stroke();}
+      }
+      const _cCol=_pg.ratio>=1?'#34d399':_pg.ratio>=0.75?'#fbbf24':_pg.ratio>=0.5?'#fb923c':'rgba(255,255,255,0.5)';
+      ctx.fillStyle=_cCol;ctx.font='bold 9px monospace';ctx.textAlign='right';
+      ctx.fillText(_cntStr,statusX-3,_bY+_bH-1);
+    }
     cy+=eh;
   }
   ctx.restore();
