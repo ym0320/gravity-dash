@@ -36,19 +36,20 @@ function triggerCoinSwitch(cs){
 function rewardEnemySpecialKill(en,col,bonus){
   en.alive=false;
   sfxEnemyDeath(en.type);vibrate('stomp');shakeI=Math.max(shakeI,4);
-  dist+=cubeSpecialKillBonus(bonus);
-  addPop(en.x,en.y-en.sz*en.gDir,'+'+cubeSpecialKillBonus(bonus),col);
+  const bon=cubeSpecialKillBonus(bonus);
+  dist+=bon;
+  if(!isPackMode)addPop(en.x,en.y-en.sz*en.gDir,'+'+bon,col);
   emitParts(en.x,en.y,15,col,4,3);
   player.face='happy';player.faceTimer=18;
 }
 function rewardStackedStompEnemy(en,gstomp){
-  en.alive=false;
+  defeatStompedEnemy(en);
   const baseBon=gstomp?90:30;
-  const bon=cubeSpecialKillBonus(baseBon+stompCombo*(gstomp?60:30));
+  const bon=cubeSpecialStompBonus(baseBon+stompCombo*(gstomp?60:30),stompCombo);
   stompCombo++;
   dist+=bon;
   addSpecialGauge((gstomp?SPECIAL_STOMP_GAIN:SPECIAL_KILL_GAIN)+Math.min(stompCombo,6)*0.8);
-  addPop(en.x,en.y-en.sz*en.gDir,'+'+bon,gstomp?'#ffd700':'#ff3860');
+  if(!isPackMode)addPop(en.x,en.y-en.sz*en.gDir,'+'+bon,gstomp?'#ffd700':'#ff3860');
   emitParts(en.x,en.y,gstomp?20:12,gstomp?'#ffd700':'#ff3860',gstomp?5:4,gstomp?4:3);
 }
 function stompRescuedByStep(en){
@@ -57,6 +58,41 @@ function stompRescuedByStep(en){
     return en._prevY>en.y&&player.vy>=0&&player.y<en._prevY-en.sz*0.2;
   }
   return en._prevY<en.y&&player.vy<=0&&player.y>en._prevY+en.sz*0.2;
+}
+function launchDefeatedEnemy(en){
+  en.alive=false;
+  en._defeatFall=true;
+  en._defeatLife=90;
+  en._defeatRot=(Math.random()<0.5?-1:1)*(0.18+Math.random()*0.14);
+  en.vy=-(4.5+Math.random()*2.2)*en.gDir;
+  en.x+=Math.random()*4-2;
+}
+function defeatStompedEnemy(en){
+  if(cubeSpecialActive())launchDefeatedEnemy(en);
+  else en.alive=false;
+}
+function reaperExplode(en){
+  if(en._exploded)return;
+  en._exploded=true;
+  en.alive=false;
+  sfx('bomb');shakeI=Math.max(shakeI,22);vibrate([35,20,55,25,80]);
+  if(typeof bombFlashT!=='undefined')bombFlashT=Math.max(bombFlashT,18);
+  const blastCols=['#fff3b0','#ffd166','#ff7a00','#ff2d00','#5a1b00'];
+  for(let i=0;i<86&&parts.length<MAX_PARTS;i++){
+    const a=Math.random()*Math.PI*2;
+    const sp=3.5+Math.random()*8.5;
+    parts.push({x:en.x,y:en.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-1.8,life:28+Math.random()*24,col:blastCols[(Math.random()*blastCols.length)|0],sz:3+Math.random()*5});
+  }
+  for(let i=0;i<34&&parts.length<MAX_PARTS;i++){
+    const a=Math.random()*Math.PI*2;
+    const sp=1+Math.random()*3.5;
+    parts.push({x:en.x+Math.cos(a)*12,y:en.y+Math.sin(a)*12,vx:Math.cos(a)*sp*0.8,vy:Math.sin(a)*sp*0.7-1,life:44+Math.random()*30,col:'#3a2418',sz:8+Math.random()*10});
+  }
+  emitParts(en.x,en.y,28,'#ffcc33',7,5);
+  addPop(en.x,en.y-en.sz*1.5,'KABOOM!','#ff7a00');
+  const dx=player.x-en.x,dy=player.y-en.y;
+  const r=playerRadius()+en.sz+54;
+  if(dx*dx+dy*dy<r*r)hurt();
 }
 
 // Shared chest open state machine: wobble -> burst -> reveal -> done
@@ -277,7 +313,7 @@ function update(dt){
         if(storedChests>0){
           startInventoryChestOpen();
           chestOpen.phase='wobble';chestOpen.t=0;
-          totalChestsOpened++;localStorage.setItem('gd5chestTotal',totalChestsOpened.toString());
+          totalChestsOpened++;localStorage.setItem('gd5chestTotal',totalChestsOpened.toString());if(typeof checkNewTitleUnlocks==='function')checkNewTitleUnlocks();
           storedChests--;localStorage.setItem('gd5storedChests',storedChests.toString());
         } else {
           chestOpen.phase='batchDone';chestOpen.t=0;chestBatchMode=false;
@@ -371,16 +407,18 @@ function update(dt){
   } else {
     speed=Math.min(SPEED_MAX,(SPEED_INIT+rawDist*SPEED_INC))*ct().speedMul;
   }
+  // Goal walk: freeze world scrolling
+  if(stageGoalWalkActive)speed=0;
 
-  // Distance scoring (score freezes during boss, catches up on victory)
-  const frameDist=speed*0.08;
-  dist+=frameDist;
-  rawDist+=frameDist;
-  if(canChargeSpecial())addSpecialGauge(frameDist*SPECIAL_DISTANCE_GAIN);
-  if(!bossPhase.active){
-    const ns=Math.floor(dist);
-    if(ns>score){
-      score=ns;checkMile();
+  // Distance scoring (score freezes during boss, catches up on victory; frozen during goal walk)
+  if(!(isPackMode&&stageGoalWalkActive)){
+    const frameDist=speed*0.08;
+    dist+=frameDist;
+    rawDist+=frameDist;
+    if(canChargeSpecial())addSpecialGauge(frameDist*SPECIAL_DISTANCE_GAIN);
+    if(!bossPhase.active){
+      const ns=Math.floor(dist);
+      if(ns>score){score=ns;checkMile();}
     }
   }
   // Theme change every 1000 score (linked to BGM progression)
@@ -423,8 +461,8 @@ function update(dt){
   fip(icicles,ic=>ic.state!=='gone'&&ic.x+ic.w>-80);
   // Generate new platforms ahead (pack mode: seeded terrain)
   if(isPackMode&&currentPackStage){
-    if(platforms.length===0)platforms.push({x:player.x-30,w:200,h:GROUND_H});
-    if(!currentPackStage.noCeiling&&ceilPlats.length===0)ceilPlats.push({x:player.x-30,w:200,h:GROUND_H});
+    if(platforms.length===0)platforms.push({x:W+30,w:220,h:GROUND_H});
+    if(!currentPackStage.noCeiling&&ceilPlats.length===0)ceilPlats.push({x:W+30,w:220,h:GROUND_H});
     while(platforms.length>0&&platforms[platforms.length-1].x+platforms[platforms.length-1].w<W+300){
       generatePackPlatform(platforms,false,currentPackStage);
     }
@@ -467,8 +505,8 @@ function update(dt){
         for(let i=0;i<50&&parts.length<MAX_PARTS;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*4,vy:1+Math.random()*4,life:80+Math.random()*40,ml:120,sz:Math.random()*6+2,col:['#ffd700','#00e5ff','#ff3860','#34d399','#a855f7'][i%5]});
       }
     }
-    // Pack mode clear check (non-boss stages)
-    if(!currentPackStage.boss&&rawDist>=currentPackStage.dist){
+    // Pack mode clear check (non-boss stages) — only when not in goal walk
+    if(!currentPackStage.boss&&rawDist>=currentPackStage.dist&&!stageGoalWalkActive){
       state=ST.STAGE_CLEAR;stageClearT=0;gotNewStars=0;
       sfxFanfare();vibrate([30,20,30,20,60]);shakeI=8;
       let starsThisRun=0;for(let _si=0;_si<stageBigCoins.length;_si++)if(stageBigCoins[_si].col)starsThisRun++;
@@ -489,14 +527,54 @@ function update(dt){
       switchBGM('title');
       for(let i=0;i<30&&parts.length<MAX_PARTS;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*3,vy:1+Math.random()*3,life:60+Math.random()*40,ml:100,sz:Math.random()*5+2,col:['#ffd700','#00e5ff','#ff3860','#34d399','#a855f7'][i%5]});
     }
+    // Goal walk: activate when goal flag is visible on right of screen
+    if(!currentPackStage.boss&&!stageGoalWalkActive&&!bossPhase.active&&!bossPhase.reward&&state===ST.PLAY&&player.alive){
+      const _gDist=currentPackStage.dist;
+      const _gSX=player.x+(_gDist-rawDist)/0.08;
+      if(rawDist<_gDist&&_gSX>=player.x+30&&_gSX<=W*0.88){
+        stageGoalWalkActive=true;
+        stageGoalScreenX=_gSX;
+        // Extend runway to goal so player has solid ground to walk on
+        if(platforms.length>0){const lp=platforms[platforms.length-1];platforms.push({x:lp.x+lp.w,w:Math.max(300,stageGoalScreenX-lp.x+400),h:GROUND_H});}
+        if(!currentPackStage.noCeiling&&ceilPlats.length>0){const lc=ceilPlats[ceilPlats.length-1];ceilPlats.push({x:lc.x+lc.w,w:Math.max(300,stageGoalScreenX-lc.x+400),h:GROUND_H});}
+        // Clear remaining enemies for a clean ending
+        for(let _ei=0;_ei<enemies.length;_ei++)enemies[_ei].alive=false;
+        enemies=enemies.filter(e=>e._defeatFall);
+        bullets=[];
+      }
+    }
+    // Goal walk: auto-walk player rightward toward the goal flag
+    if(stageGoalWalkActive&&state===ST.PLAY&&player.alive){
+      if(player.x<stageGoalScreenX){player.x=Math.min(player.x+3,stageGoalScreenX);}
+      if(player.x>=stageGoalScreenX-8){
+        stageGoalWalkActive=false;
+        state=ST.STAGE_CLEAR;stageClearT=0;gotNewStars=0;
+        sfxFanfare();vibrate([30,20,30,20,60]);shakeI=8;
+        let starsThisRun=0;for(let _si=0;_si<stageBigCoins.length;_si++)if(stageBigCoins[_si].col)starsThisRun++;
+        const _sid=currentPackStage.id;
+        const _prev=packProgress[_sid];
+        const _prevStars=_prev?_prev.stars:0;
+        const _newStars=Math.max(_prevStars,starsThisRun);
+        gotNewStars=Math.max(0,_newStars-_prevStars);
+        packProgress[_sid]={cleared:true,stars:_newStars};
+        localStorage.setItem('gd5pp',JSON.stringify(packProgress));
+        delete stageCheckpoints[_sid];
+        localStorage.setItem('gd5checkpoints',JSON.stringify(stageCheckpoints));
+        totalStars=getTotalStars();
+        const _reward=10+starsThisRun*5+(gotNewStars>0?10:0);
+        walletCoins+=_reward;localStorage.setItem('gd5wallet',walletCoins.toString());addLifetimeCoins(_reward);
+        fbSaveUserData();
+        switchBGM('title');
+        for(let i=0;i<30&&parts.length<MAX_PARTS;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*3,vy:1+Math.random()*3,life:60+Math.random()*40,ml:100,sz:Math.random()*5+2,col:['#ffd700','#00e5ff','#ff3860','#34d399','#a855f7'][i%5]});
+      }
+    }
     // Star scrolling and collection
     const pr2=playerRadius();
     for(let i=0;i<stageBigCoins.length;i++){const bc=stageBigCoins[i];
       bc.x-=speed;bc.p+=0.06;
-      // Compute Y from floor surface + offset
-      const fsy=floorSurfaceY(bc.x);
-      if(fsy<H+100) bc.y=fsy+bc.yOff;
-      else bc.y=H*0.4; // fallback if in gap
+      // Compute Y from floor/ceil surface + offset
+      if(bc.fromCeil){const csy=ceilSurfaceY(bc.x);bc.y=(csy>-100)?csy+bc.yOff:H*0.6;}
+      else{const fsy=floorSurfaceY(bc.x);bc.y=(fsy<H+100)?fsy+bc.yOff:H*0.4;}
     }
     for(let i=0;i<stageBigCoins.length;i++){const bc=stageBigCoins[i];
       if(bc.col)continue;
@@ -509,7 +587,7 @@ function update(dt){
       }
     }
     // Checkpoint flag at 500m (midpoint)
-    if(!checkpointReached&&!checkpointFlag.collected){
+    if(!checkpointReached&&!checkpointFlag.collected&&!currentPackStage.noCheckpoint){
       const cpDist=currentPackStage.dist*0.5; // midpoint
       const cpScreenX=player.x+(cpDist-rawDist)/(speed*0.08)*speed;
       checkpointFlag.x=cpScreenX;
@@ -549,29 +627,38 @@ function update(dt){
       if(!nearGoal){
         if(hillCD>0)hillCD--;
         if(hillCD<=0){
-          // 新しい上下床のスペースを決定する前に、既存の上下床との重なりをチェック
           const hx=W+30+packRng()*120;
-          const hw=50+packRng()*45;
+          const _hw=currentPackStage.hillW||50;
+          const hw=_hw+packRng()*(currentPackStage.hillW?40:45);
           const isFloor=packRng()<0.5;
-          // 同じisFloor側に存在する他の上下床との重なり禁止（絶対ルール）
-          // 余白280pxを含めて完全に重ならない位置のみ許可
-          const minGap=280;
+          const minGap=currentPackStage.hillMinGap||280;
           let overlap=false;
           for(let _i=0;_i<movingHills.length;_i++){
             const mh=movingHills[_i];
-            if(mh.isFloor!==isFloor)continue; // 床と天井は別扱い（視覚的に重ならない）
+            if(mh.isFloor!==isFloor)continue;
             if(hx<mh.x+mh.w+minGap && hx+hw>mh.x-minGap){overlap=true;break;}
           }
           if(overlap){
-            // 重なる位置なら短いCDで再試行
             hillCD=15+Math.floor(packRng()*15);
           } else {
             const baseH=GROUND_H;
             const ampH=40+packRng()*50;
             movingHills.push({x:hx,w:hw,baseH:baseH,ampH:ampH,phase:packRng()*6.28,spd:0.03+packRng()*0.02,isFloor:isFloor});
-            // 通常CDを長く（確実に前の床が十分スクロールするまで待つ）
-            hillCD=90+Math.floor(packRng()*60);
+            const _cd=currentPackStage.hillDensityCD||90;
+            hillCD=_cd+Math.floor(packRng()*(currentPackStage.hillDensityCD?30:60));
           }
+        }
+      }
+    } else if(sType==='pureGrav'){
+      // Pure gravity zone stage: dense grav zones, flat terrain (no platforms gimmick)
+      if(!nearGoal){
+        if(gravZoneCD>0)gravZoneCD--;
+        if(gravZoneCD<=0){
+          const gx=W+30+packRng()*80;
+          const gw=50+packRng()*40;
+          const gdir=packRng()<0.5?1:-1;
+          gravZones.push({x:gx,w:gw,triggered:false,fadeT:0,dir:gdir});
+          gravZoneCD=22+Math.floor(packRng()*28);
         }
       }
     } else if(sType==='void'){
@@ -767,19 +854,8 @@ function update(dt){
     player.vy=0;
   } else {
     const grav=GRAVITY*player.gDir*ct().gravMul;
-    // Drone pet: reduce gravity to 1/3 when falling into a void gap
     let gravMul2=1;
-    if(equippedPet==='pet_drone'&&!player.grounded&&!petDroneBroken){
-      const falling=player.gDir===1?player.vy>0:player.vy<0;
-      const pr2=playerRadius();
-      // ギリギリ判定: 下80%以下 かつ 足元が奈落
-      const nearEdge=player.gDir===1
-        ?(player.y>H*0.78&&floorSurfaceY(player.x)>H+100)
-        :(player.y<H*0.22&&ceilSurfaceY(player.x)<-100);
-      if(falling&&nearEdge){
-        gravMul2=0.33;petDroneAssist=true;
-      } else {petDroneAssist=false;}
-    } else {petDroneAssist=false;}
+    petDroneAssist=false;
     player.vy+=grav*gravMul2;
     player.vy=Math.max(-14,Math.min(14,player.vy));
   }
@@ -870,7 +946,7 @@ function update(dt){
       // Give points IMMEDIATELY at enemy's current position
       const _bon=cubeSpecialKillBonus(Math.floor(10+Math.min(score*0.1,30)));
       dist+=_bon;addSpecialGauge(SPECIAL_KILL_GAIN);
-      addPop(_en.x,_en.y-_en.sz*_en.gDir,'+'+_bon,'#c0b080');
+      if(!isPackMode)addPop(_en.x,_en.y-_en.sz*_en.gDir,'+'+_bon,'#c0b080');
       _en._bounceKnock=Math.random()<0.5?-1:1;
       _en.vy=-( 3+Math.random()*3)*_en.gDir; // launch away from surface
     }
@@ -1262,7 +1338,16 @@ function update(dt){
   // Enemies
   const esm=enemySpeedMul(); // enemy speed multiplier (1.0 to 2.0)
   for(let i=0;i<enemies.length;i++){const en=enemies[i];
-    if(!en.alive)continue;
+    if(!en.alive&&!en._defeatFall)continue;
+    if(en._defeatFall){
+      en.x-=speed*0.35;
+      en.y+=en.vy||0;
+      en.vy=(en.vy||0)+GRAVITY*(en.gDir||1);
+      en.fr+=(en._defeatRot||0);
+      en._defeatLife--;
+      if(en._defeatLife<=0||en.y>H+80||en.y<-80)en._defeatFall=false;
+      continue;
+    }
     // Bounce wave knock: small lateral push then fall into pit nearby
     if(en._bounceKnock){
       en.x+=en._bounceKnock*(1.5+Math.random()*2); // small drift, stay nearby
@@ -1367,10 +1452,11 @@ function update(dt){
       en.y=en.baseY+Math.sin(en.flyPhase)*en.flyAmp;
       en.baseY-=speed*0.01;
       en.visTimer+=esm;
-      if(en.visible&&en.visTimer>=en.visCycle){
-        en.visible=false;en.visTimer=0;en.fadeT=20; // fade out over 20 frames
-      } else if(!en.visible&&en.visTimer>=en.visCycle*0.6){
-        en.visible=true;en.visTimer=0;en.fadeT=20; // fade in over 20 frames
+      const blinkMul=score>=20000?0.52:(score>=10000?0.68:0.88);
+      if(en.visible&&en.visTimer>=en.visCycle*blinkMul){
+        en.visible=false;en.visTimer=0;en.fadeT=score>=20000?12:20; // higher tiers blink faster
+      } else if(!en.visible&&en.visTimer>=en.visCycle*0.6*blinkMul){
+        en.visible=true;en.visTimer=0;en.fadeT=score>=20000?12:20; // higher tiers blink faster
       }
       if(en.fadeT>0)en.fadeT--;
     } else if(en.type===6){
@@ -1391,8 +1477,9 @@ function update(dt){
         if(en.x>en.patrolOriginX+en.patrolRange) en.patrolDir=-1;
         if(en.x<en.patrolOriginX-en.patrolRange) en.patrolDir=1;
         // Detect player within range
-        if(Math.abs(dxP)<300&&Math.abs(player.y-en.y)<100){
-          en.dashState='warn';en.warnT=40;
+        const detectRange=score>=20000?380:(score>=10000?340:300);
+        if(Math.abs(dxP)<detectRange&&Math.abs(player.y-en.y)<100){
+          en.dashState='warn';en.warnT=score>=20000?24:(score>=10000?32:40);
           en.dashDir=dxP<0?-1:1;
         }
       } else if(en.dashState==='warn'){
@@ -1408,7 +1495,7 @@ function update(dt){
       }
     } else if(en.type===7){
       // Bird: fly horizontally at spawn height (no vertical tracking)
-      en.x-=en.flySpd;
+      en.x-=en.flySpd*esm;
     } else if(en.type===8){
       // Splitter: patrol, detect player, then self-split into 2 small bouncing slimes
       en.x+=en.patrolDir*en.walkSpd*esm;
@@ -1458,7 +1545,7 @@ function update(dt){
       const grav=GRAVITY*en.gDir;
       en.vy+=grav;
       en.y+=en.vy;
-      en.x+=en.walkSpd; // drift sideways
+      en.x+=en.walkSpd*esm; // drift sideways
       en.patrolOriginX-=speed;
       if(en.lifeT!==undefined)en.lifeT--;
       const expired=en.lifeT!==undefined&&en.lifeT<=0;
@@ -1473,18 +1560,30 @@ function update(dt){
       }
       // expired: no ground collision → falls off screen
     } else if(en.type===14){
-      // Leaper: cute round creature that notices and leaps at player
+      // Reaper: gets close, then explodes for 1 damage. It cannot be stomped.
       en.patrolOriginX-=speed;
       en._state=en._state||'patrol';
+      const rdx=player.x-en.x,rdy=player.y-en.y;
+      const rDist=Math.sqrt(rdx*rdx+rdy*rdy);
+      if(en._state!=='explode'&&rDist<pr+en.sz+34){
+        en._state='explode';en._explodeT=8;en.vy=0;
+      }
       if(en._state==='patrol'){
         en.x+=en.patrolDir*en.walkSpd*esm;
         if(en.x>en.patrolOriginX+en.patrolRange)en.patrolDir=-1;
         if(en.x<en.patrolOriginX-en.patrolRange)en.patrolDir=1;
         if(en.gDir===1){const sy=floorSupportY(en.x);if(sy<H+100){en.y=sy-en.sz;en.vy=0;}else{en.vy=(en.vy||0)+GRAVITY;en.y+=en.vy;}}
         else{const sy=ceilSupportY(en.x);if(sy>-100){en.y=sy+en.sz;en.vy=0;}else{en.vy=(en.vy||0)-GRAVITY;en.y+=en.vy;}}
-        const ndx=player.x-en.x,ndy=player.y-en.y,nd2=ndx*ndx+ndy*ndy;
-        if(nd2<220*220&&Math.abs(ndy)<H*0.4){
-          en._state='notice';en._noticeT=35;
+        if(en._confusedT>0)en._confusedT--;
+        if(en._confusedCD>0)en._confusedCD--;
+        const ndx=player.x-en.x,ndy=player.y-en.y,adx=Math.abs(ndx);
+        const noticeRange=score>=20000?315:(score>=10000?280:250);
+        if(adx<noticeRange&&Math.abs(ndy)<H*0.82){
+          if(player.gDir!==en.gDir){
+            en._state='notice';en._noticeT=score>=20000?22:(score>=10000?28:32);en._targetX=player.x;en._targetY=player.y;
+          } else if(en._confusedCD<=0){
+            en._confusedT=34;en._confusedCD=55;
+          }
         }
       } else if(en._state==='notice'){
         // Crouch telegraph
@@ -1493,9 +1592,12 @@ function update(dt){
         en._noticeT--;
         if(en._noticeT<=0){
           en._state='jumping';
-          const fdx=player.x-en.x;
-          en._jVx=fdx/28+speed; // compensate for scroll
-          en.vy=en.gDir===1?-10:10;
+          const fdx=player.x-en.x,fdy=player.y-en.y;
+          const leapMul=score>=20000?1.28:(score>=10000?1.12:1);
+          en._jVx=Math.max(-10,Math.min(10,(fdx/26+speed)*leapMul)); // compensate for scroll
+          en.vy=Math.max(-15,Math.min(15,(fdy/24)*leapMul));
+          if(en.gDir===1)en.vy=Math.min(en.vy,-6*leapMul);
+          else en.vy=Math.max(en.vy,6*leapMul);
           if(en.gDir===1){const sy=floorSupportY(en.x);if(sy<H+100)en.y=sy-en.sz;}
           else{const sy=ceilSupportY(en.x);if(sy>-100)en.y=sy+en.sz;}
           sfx('gstomp');shakeI=Math.max(shakeI,3);
@@ -1504,6 +1606,8 @@ function update(dt){
         en.vy+=GRAVITY*en.gDir;
         en.y+=en.vy;
         en.x+=en._jVx||0;
+        const jdx=player.x-en.x,jdy=player.y-en.y;
+        if(jdx*jdx+jdy*jdy<(pr+en.sz+36)*(pr+en.sz+36)){en._state='explode';en._explodeT=5;}
         if(en.gDir===1){
           const sy=floorSupportY(en.x);
           if(en.vy>0&&en.y+en.sz>=sy&&sy<H+100){
@@ -1525,6 +1629,11 @@ function update(dt){
         else{const sy=ceilSupportY(en.x);if(sy>-100){en.y=sy+en.sz;en.vy=0;}}
         en._landT--;
         if(en._landT<=0){en._state='patrol';}
+      } else if(en._state==='explode'){
+        en._explodeT--;
+        en.fr+=0.35;
+        if(en._explodeT%2===0)emitParts(en.x,en.y,5,'#ff7a00',3,3);
+        if(en._explodeT<=0){reaperExplode(en);continue;}
       }
     } else {
       // Default movement (type 1 cannon and legacy)
@@ -1568,11 +1677,11 @@ function update(dt){
       const dx2=player.x-en.x,dy2=player.y-en.y;
       const d2=Math.sqrt(dx2*dx2+dy2*dy2);
       if(d2<pr+en.sz){
-        if(playerDamageImmune()){
+        if(playerDamageImmune()&&!cubeSpecialActive()){
           en.alive=false;sfx('stomp');vibrate('stomp');shakeI=4;
           const bon2=cubeSpecialKillBonus(Math.floor(10+Math.min(score*0.1,20)));dist+=bon2;
           addSpecialGauge(SPECIAL_KILL_GAIN);
-          addPop(en.x,en.y-en.sz*en.gDir,'+'+bon2,'#ff00ff');
+          if(!isPackMode)addPop(en.x,en.y-en.sz*en.gDir,'+'+bon2,'#ff00ff');
           emitParts(en.x,en.y,15,'#ff00ff',4,3);
         } else { hurt(); }
       }
@@ -1592,7 +1701,7 @@ function update(dt){
         continue;
       }
       // Invincible: destroy enemy on contact
-      if(playerDamageImmune()){
+      if(playerDamageImmune()&&!cubeSpecialActive()){
         const bon=cubeSpecialKillBonus(Math.floor(10+Math.min(score*0.1,20)));
         addSpecialGauge(SPECIAL_KILL_GAIN);
         rewardEnemySpecialKill(en,'#ff00ff',bon);
@@ -1602,10 +1711,14 @@ function update(dt){
       const fkill=ct().fastKill&&speed>4;
       // Tire roll kill: grounded tire destroys ground-based enemies by rolling into them
       const tireRoll=isTire&&player.grounded&&(en.type===0||en.type===1||en.type===3);
+      if(en.type===14){
+        en._state='explode';en._explodeT=5;
+        continue;
+      }
       // Check stomp: player approaching from the "top" of the enemy
       const stomped=fkill||tireRoll||(en.gDir===1&&player.y<en.y-en.sz*0.2&&player.vy>=0)||(en.gDir===-1&&player.y>en.y+en.sz*0.2&&player.vy<=0)||stompRescuedByStep(en);
       if(stomped){
-        en.alive=false;
+        defeatStompedEnemy(en);
         // Tire: crush without bouncing; others: bounce off enemy
         if(isTire&&(tireRoll||player.grounded)){
           player.vy=0;
@@ -1618,15 +1731,15 @@ function update(dt){
         const gstomp=flipTimer<40;
         // Stomp combo: base + combo bonus (additive)
         const baseBon=gstomp?90:30;
-        const bon=cubeSpecialKillBonus(baseBon+stompCombo*(gstomp?60:30));
+        const bon=cubeSpecialStompBonus(baseBon+stompCombo*(gstomp?60:30),stompCombo);
         stompCombo++;
         dist+=bon;
         addSpecialGauge((gstomp?SPECIAL_STOMP_GAIN:SPECIAL_KILL_GAIN)+Math.min(stompCombo,6)*0.8);
         if(gstomp){sfx('gstompHeavy');sfxEnemyDeath(en.type);vibrate('stomp_heavy');shakeI=8;}else{sfxEnemyDeath(en.type);vibrate('stomp');}
         if(stompCombo>=2)sfxStompCombo(stompCombo);
-        addPop(en.x,en.y-en.sz*en.gDir,'+'+bon,gstomp?'#ffd700':'#ff3860');
-        if(stompCombo>=2){addPop(en.x,en.y-en.sz*en.gDir-22,t('popCombo').replace('{0}',stompCombo),gstomp?'#ffd700':'#ff6600');emitParts(en.x,en.y,14+stompCombo*3,gstomp?'#ffd700':'#ff6600',4,3);}
-        if(gstomp){addPop(en.x,en.y-en.sz*en.gDir-(stompCombo>=2?40:22),t('popGStomp'),'#ffd700');emitParts(en.x,en.y,20,'#ffd700',5,4);}
+        if(!isPackMode)addPop(en.x,en.y-en.sz*en.gDir,'+'+bon,gstomp?'#ffd700':'#ff3860');
+        if(stompCombo>=2){if(!isPackMode)addPop(en.x,en.y-en.sz*en.gDir-22,t('popCombo').replace('{0}',stompCombo),gstomp?'#ffd700':'#ff6600');emitParts(en.x,en.y,14+stompCombo*3,gstomp?'#ffd700':'#ff6600',4,3);}
+        if(gstomp){if(!isPackMode)addPop(en.x,en.y-en.sz*en.gDir-(stompCombo>=2?40:22),t('popGStomp'),'#ffd700');emitParts(en.x,en.y,20,'#ffd700',5,4);}
         else{emitParts(en.x,en.y,12,'#ff3860',4,3);}
         for(let j=i+1;j<enemies.length;j++){
           const other=enemies[j];
@@ -1639,14 +1752,21 @@ function update(dt){
         if(!player.grounded){airCombo++;sfxAirCombo(airCombo);const acb=airCombo*5;dist+=acb;addPop(en.x,en.y-en.sz*en.gDir-36,airCombo+' AIR COMBO!','#00e5ff');emitParts(en.x,en.y,8,'#00e5ff',3,2);}
         player.face='happy';player.faceTimer=18;
       }else{
+        if(cubeSpecialActive()){
+          player.vy=-JUMP_POWER*0.35*player.gDir;
+          player.x+=dx<0?-4:4;
+          player.grounded=false;
+          emitParts(player.x,player.y,6,'#00e5ff',2,1);
+          continue;
+        }
         hurt();continue;
       }
     }
   }
-  fip(enemies,en=>(en.boss||en.x>-50)&&en.alive&&en.y>-200&&en.y<H+200);
+  fip(enemies,en=>(en.boss||en.x>-50||en._defeatFall)&&(en.alive||en._defeatFall)&&en.y>-200&&en.y<H+200);
 
   // Attack speed multiplier based on score
-  const atkMul=score>=10000?1.5:(score>=5000?1.2:1);
+  const atkMul=score>=20000?1.9:(score>=10000?1.5:(score>=5000?1.2:1));
   // Shooter enemies fire horizontal bullets at player's Y position
   for(let i=0;i<enemies.length;i++){const en=enemies[i];
     if(!en.alive||en.type!==1)continue;

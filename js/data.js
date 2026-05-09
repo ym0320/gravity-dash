@@ -12,9 +12,11 @@ let W,H,safeTop=0,safeBot=0;
 // _appDpr: canvas DPR used by resize() and draw(). Both must match to avoid zoom bugs.
 let _appDpr=1;
 function resize(){
-  // Cap DPR: WebView uses 1.5 (lighter), browser uses 2
+  // Cap DPR: mobile/WebView uses 1.5 (lighter), desktop browser uses 2
   // Higher DPR means more pixels to draw per frame — a major FPS cost
-  const _maxDpr=window.ReactNativeWebView?1.5:2;
+  const _isIOSLike=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const _isMobileLike=_isIOSLike||/Android|Mobi/i.test(navigator.userAgent);
+  const _maxDpr=(window.ReactNativeWebView||_isMobileLike)?1.5:2;
   _appDpr=Math.min(window.devicePixelRatio||1,_maxDpr);
   // Use visualViewport if available and valid, else fallback to innerWidth/Height
   let vw=window.innerWidth,vh=window.innerHeight;
@@ -143,11 +145,13 @@ const SPECIAL_KILL_GAIN=2.5;
 const SPECIAL_STOMP_GAIN=4;
 const SPECIAL_GHOST_MAGNET_RADIUS=90;
 const SPECIAL_GHOST_MAGNET_STRENGTH=0.08;
-const GHOST_PASSIVE_COIN_RADIUS=80; // slightly wider passive pull
-const GHOST_PASSIVE_COIN_STRENGTH=0.07;
+const GHOST_PASSIVE_COIN_RADIUS=70;
+const GHOST_PASSIVE_COIN_STRENGTH=0.055;
 const SPECIAL_TIRE_MAGNET_RADIUS=270;
 const SPECIAL_TIRE_MAGNET_STRENGTH=0.07;
-const GHOST_PHASE_DURATION=120;
+const PET_DRONE_MAGNET_RADIUS=50;
+const PET_DRONE_MAGNET_STRENGTH=0.03;
+const GHOST_PHASE_DURATION=96;
 let specialModeEnabled=true;
 function createSpecialState(){
   return {
@@ -235,7 +239,12 @@ function cubeSpecialCoinMul(){
   return cubeSpecialActive()?2:1;
 }
 function cubeSpecialKillBonus(baseBonus){
-  return cubeSpecialActive()?100:baseBonus;
+  if(!cubeSpecialActive())return baseBonus;
+  return baseBonus>=200?baseBonus:100;
+}
+function cubeSpecialStompBonus(baseBonus,comboIndex){
+  if(!cubeSpecialActive())return baseBonus;
+  return 200*(comboIndex>=1?2:1);
 }
 function playerDamageImmune(){
   return itemEff.invincible>0||specialDamageImmune();
@@ -248,6 +257,7 @@ function playerCoinMagnetRadius(){
   if(itemEff.magnet>0)return 180;
   if(isSpecialActive('ghost'))return SPECIAL_GHOST_MAGNET_RADIUS;
   if(ct().shape==='ghost')return GHOST_PASSIVE_COIN_RADIUS; // passive: coins only
+  if(equippedPet==='pet_drone')return PET_DRONE_MAGNET_RADIUS;
   if(equippedPet==='pet_comet')return 50; // comet pet: gentle coin pull
   return ct().coinMag||0;
 }
@@ -256,17 +266,20 @@ function playerCoinMagnetStrength(){
   if(itemEff.magnet>0)return 0.12;
   if(isSpecialActive('ghost'))return SPECIAL_GHOST_MAGNET_STRENGTH;
   if(ct().shape==='ghost')return GHOST_PASSIVE_COIN_STRENGTH; // passive
+  if(equippedPet==='pet_drone')return PET_DRONE_MAGNET_STRENGTH;
   if(equippedPet==='pet_comet')return 0.03; // 1/4 of magnet strength
   return ct().coinMag>0?0.06:0;
 }
 function playerItemMagnetRadius(){
   if(isSpecialActive('tire'))return SPECIAL_TIRE_MAGNET_RADIUS;
   if(isSpecialActive('ghost'))return SPECIAL_GHOST_MAGNET_RADIUS;
+  if(equippedPet==='pet_drone')return PET_DRONE_MAGNET_RADIUS;
   return 0;
 }
 function playerItemMagnetStrength(){
   if(isSpecialActive('tire'))return SPECIAL_TIRE_MAGNET_STRENGTH;
   if(isSpecialActive('ghost'))return SPECIAL_GHOST_MAGNET_STRENGTH;
+  if(equippedPet==='pet_drone')return PET_DRONE_MAGNET_STRENGTH;
   return 0;
 }
 function currentGameplayBGM(){
@@ -395,6 +408,7 @@ function unlockCharFromChest(idx){
   // Notification badge for new character
   if(!notifNewChars.includes(idx)){notifNewChars.push(idx);localStorage.setItem('gd5notifChars',JSON.stringify(notifNewChars));}
   if(typeof fbSaveUserData==='function')fbSaveUserData();
+  if(typeof checkNewTitleUnlocks==='function')checkNewTitleUnlocks();
   return true;
 }
 
@@ -494,10 +508,11 @@ const UPDATE_NOTES=UPDATE_HISTORY[0].notes;
 let rankingOpen=false;
 let rankingScroll=0;
 let rankingScrollTarget=0;
-let rankingTab='endless'; // 'endless' | 'challenge'
+let rankingTab='endless'; // 'endless' | 'challenge' | 'stage'
 // Dynamic ranking data (cloud only, no sample data)
 let RANKING_DATA=[];
 let CHALLENGE_RANKING_DATA=[];
+let STAGE_RANKING_DATA=[];
 // DEBUG: サンプルランキングデータ（スクリーンショット用・リリース前に削除）
 const _DEBUG_SAMPLE_RANKING=false;
 const _SAMPLE_NAMES_EN=['xStarDust','MoonWalker','NightOwl','SakuraRin','ThunderBolt','GhostHunter','PixelKing','CosmicAce','TurboNinja','BounceQueen','ShadowFox','RollerX','IceBreaker','NovaFlash','HappyPanda','DarkMatter','CubeRookie','SpeedDemon','LuckyClover','StoneWall'];
@@ -548,6 +563,19 @@ function rebuildChallengeRankingData(){
   data.sort((a,b)=>b.kills-a.kills);
   CHALLENGE_RANKING_DATA=data.slice(0,100);
   CHALLENGE_RANKING_DATA.forEach((d,i)=>d.rank=i+1);
+}
+function totalStageStarsEarned(){
+  let total=0;
+  if(!packProgress)return 0;
+  for(const sid in packProgress){
+    if(Object.prototype.hasOwnProperty.call(packProgress,sid)){
+      total+=Math.max(0,Math.min(3,parseInt(packProgress[sid].stars||'0')||0));
+    }
+  }
+  return total;
+}
+function rebuildStageRankingData(){
+  STAGE_RANKING_DATA=[];
 }
 function initAudio(){
   if(audioCtx){
@@ -2053,27 +2081,28 @@ function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a
 const STAGE_PACKS=[
   {name:'宇宙',theme:0,unlock:0,starsPerStage:2,stages:[
     // Pack1 全ステージ spdMul:1.1 固定（進行ごとに速くならない）
-    // 1-1: お試し — ウォーカーまばら、ハザードなし
-    {id:'1-1',name:'1-1',dist:1000,spdMul:1.1,seed:1001,hillChance:0.80,gapChance:0,
-      noFloatPlat:true,noHazards:true,noMovingHill:true,walkerOnly:true,enemyChance:0.10,
-      coins:[{pos:0.25,yOff:-70},{pos:0.55,yOff:-100},{pos:0.80,yOff:-140}]},
-    // 1-2: クリボー大群 + 上下交互チャズム — 境界にgravZoneで反転必須
-    {id:'1-2',name:'1-2',dist:1000,spdMul:1.1,seed:1002,enemyChance:0.85,
+    // 1-1: ウォーカー+キャノン多め、床は均等・フラット
+    {id:'1-1',name:'1-1',dist:1000,spdMul:1.1,seed:1001,hillChance:0,gapChance:0,flatGround:true,flatGoal:true,
+      noFloatPlat:true,noHazards:true,noMovingHill:true,walkerCannonOnly:true,enemyChance:0.65,
+      coins:[{pos:0.25,yOff:-60},{pos:0.55,yOff:-220},{pos:0.80,yOff:-60}]},
+    // 1-2: 上下交互チャズム — 重力ゾーンで反転、スターは反対側に2つ
+    {id:'1-2',name:'1-2',dist:1000,spdMul:1.1,seed:1002,enemyChance:0.85,flatGoal:true,
       stageType:'altChasm',walkerOnly:true,noFloatPlat:true,noMovingHill:true,noHazards:true,
-      altChasmZoneLen:80,altChasmBuffer:25, // 小バッファで安全な反転領域を確保
-      coins:[{pos:0.25,yOff:-50},{pos:0.55,yOff:-80},{pos:0.80,yOff:-150}]},
-    // 1-3: 白い鳥の大群 — 鳥だけ(超高密度)、起伏ありギャップ多様
-    {id:'1-3',name:'1-3',dist:1000,spdMul:1.1,seed:1003,enemyChance:0,gapChance:0.30,hillChance:0.40,
-      birdSwarm:true,noFloatPlat:true,noMovingHill:true,noHazards:true,
+      gravZoneBoost:true,altChasmZoneLen:80,altChasmBuffer:25,
+      coins:[{pos:0.25,yOff:-50},{pos:0.55,fromCeil:true,yOff:60},{pos:0.80,fromCeil:true,yOff:60}]},
+    // 1-3: 全種類の敵が多数スポーン、床は完全フラット
+    {id:'1-3',name:'1-3',dist:1000,spdMul:1.1,seed:1003,enemyChance:0.85,gapChance:0,hillChance:0,flatGround:true,flatGoal:true,
+      allEnemyTypes:true,noFloatPlat:true,noMovingHill:true,noHazards:true,
       coins:[{pos:0.28,yOff:-60},{pos:0.55,yOff:-200},{pos:0.78,yOff:-80}]},
-    // 1-4: 上下床の連続(gravity) — 重ならないよう間隔強化
-    {id:'1-4',name:'1-4',dist:1000,spdMul:1.1,seed:1004,hillChance:0.45,gapChance:0.42,enemyChance:0,
-      stageType:'gravity',noFloatPlat:true,
+    // 1-4: 幅広の上下移動床、敵なし
+    {id:'1-4',name:'1-4',dist:1000,spdMul:1.1,seed:1004,hillChance:0,gapChance:0,enemyChance:0,flatGoal:true,
+      stageType:'gravity',noFloatPlat:true,noHazards:true,
+      hillW:95,hillDensityCD:55,hillMinGap:240,
       coins:[{pos:0.30,yOff:-50},{pos:0.55,yOff:-50},{pos:0.78,yOff:-50}]},
-    // 1-5: スパイク地獄 — 赤スパイクだらけ、敵なし
-    {id:'1-5',name:'1-5',dist:1000,spdMul:1.1,seed:1005,enemyChance:0,
-      stageType:'spikeOnly',denseSpikes:true,noMovingHill:true,noFloatPlat:true,
-      coins:[{pos:0.25,yOff:-80},{pos:0.55,yOff:-180},{pos:0.80,yOff:-60}]},
+    // 1-5: 陸なし・重力ゾーンのみ、チェックポイントなし
+    {id:'1-5',name:'1-5',dist:1000,spdMul:1.1,seed:1005,enemyChance:0,flatGoal:true,
+      stageType:'pureGrav',hillChance:0,gapChance:0,noMovingHill:true,noFloatPlat:true,noHazards:true,noCheckpoint:true,
+      coins:[{pos:0.25,yOff:-90},{pos:0.55,fromCeil:true,yOff:80},{pos:0.80,yOff:-90}]},
   ]},
   {name:'雪山',theme:1,unlock:12,starsPerStage:2,stages:[
     // 2-1: つらら雨 — 頭上からつららが降ってくる、敵はクリボーのみ
@@ -2178,6 +2207,7 @@ let totalStars=getTotalStars();
 let isPackMode=false,currentPackIdx=0,currentPackStageIdx=0,currentPackStage=null,stageRng=null;
 var stageSpawnRng=null; // seeded RNG for enemy/gimmick spawning in stage mode
 var stageCeilRng=null; // seeded RNG for ceiling platform generation (separate from floor)
+let stageGoalWalkActive=false,stageGoalScreenX=0; // Mario-style goal walk phase
 function packRng(){return isPackMode&&stageSpawnRng?stageSpawnRng():Math.random();}
 let stageSelScroll=0,stageSelTarget=0;
 let gotNewStars=0; // how many new stars obtained this clear
@@ -2564,14 +2594,14 @@ const SHOP_ITEMS={
     {id:'skin_aurora',name:'\u30aa\u30fc\u30ed\u30e9',col:'aurora',col2:'aurora',price:42000,desc:'\u6975\u5149\u304c\u63fa\u3089\u3081\u304f',rarity:'super_rare',gachaOnly:true,newItem:true},
     {id:'skin_inferno',name:'\u30a4\u30f3\u30d5\u30a7\u30eb\u30ce',col:'#ff2200',col2:'#880000',price:26000,desc:'\u707c\u71b1\u306e\u696d\u706b',rarity:'rare',gachaOnly:true,newItem:true},
     {id:'skin_hologram',name:'\u30db\u30ed\u30b0\u30e9\u30e0',col:'hologram',col2:'hologram',price:60000,desc:'\u6b21\u5143\u3092\u8d85\u3048\u308b\u5149\u4f53',rarity:'super_rare',gachaOnly:true,newItem:true},
-    {id:'skin_midnight',name:'\u30df\u30c3\u30c9\u30ca\u30a4\u30c8',col:'#101827',col2:'#38bdf8',price:14000,desc:'\u591c\u7a7a\u3068\u9752\u3044\u5149',rarity:'rare',newItem:true},
+    {id:'skin_midnight',name:'\u30df\u30c3\u30c9\u30ca\u30a4\u30c8',col:'#101827',col2:'#38bdf8',price:14000,desc:'\u591c\u7a7a\u3068\u9752\u3044\u5149',newItem:true},
     {id:'skin_lime',name:'\u30e9\u30a4\u30e0',col:'#a3e635',col2:'#3f6212',price:7000,desc:'\u9bae\u3084\u304b\u306a\u30e9\u30a4\u30e0',newItem:true},
     {id:'skin_candy',name:'\u30ad\u30e3\u30f3\u30c7\u30a3',col:'#fb7185',col2:'#67e8f9',price:9000,desc:'\u7518\u3044\u30c4\u30fc\u30c8\u30fc\u30f3',newItem:true},
     {id:'skin_lava_lamp',name:'\u30e9\u30d0\u30e9\u30f3\u30d7',col:'#f97316',col2:'#7c2d12',price:18000,desc:'\u3068\u308d\u3051\u308b\u71b1\u5149',rarity:'rare',newItem:true},
     {id:'skin_deep_sea',name:'\u30c7\u30a3\u30fc\u30d7\u30b7\u30fc',col:'#0f766e',col2:'#042f2e',price:11000,desc:'\u6df1\u6d77\u306e\u7dd1\u9752',newItem:true},
-    {id:'skin_mono',name:'\u30e2\u30ce\u30af\u30ed',col:'#f8fafc',col2:'#0f172a',price:13000,desc:'\u767d\u9ed2\u306e\u30b3\u30f3\u30c8\u30e9\u30b9\u30c8',rarity:'rare',newItem:true},
+    {id:'skin_mono',name:'\u30e2\u30ce\u30af\u30ed',col:'#f8fafc',col2:'#0f172a',price:13000,desc:'\u767d\u9ed2\u306e\u30b3\u30f3\u30c8\u30e9\u30b9\u30c8',newItem:true},
     {id:'skin_royal',name:'\u30ed\u30a4\u30e4\u30eb',col:'#4c1d95',col2:'#facc15',price:22000,desc:'\u738b\u51a0\u306e\u7d2b\u3068\u91d1',rarity:'rare',newItem:true},
-    {id:'skin_pearl',name:'\u30d1\u30fc\u30eb',col:'#fff7ed',col2:'#f9a8d4',price:26000,desc:'\u771f\u73e0\u306e\u3084\u308f\u3089\u304b\u3044\u5149',rarity:'rare',newItem:true},
+    {id:'skin_pearl',name:'\u30d1\u30fc\u30eb',col:'#fff7ed',col2:'#f9a8d4',price:26000,desc:'\u771f\u73e0\u306e\u3084\u308f\u3089\u304b\u3044\u5149',newItem:true},
     {id:'skin_nebula',name:'\u30cd\u30d3\u30e5\u30e9',col:'#312e81',col2:'#ec4899',price:36000,desc:'\u661f\u96f2\u306e\u6df7\u3056\u308b\u5149',rarity:'super_rare',gachaOnly:true,newItem:true},
     {id:'skin_quantum',name:'\u30af\u30a9\u30f3\u30bf\u30e0',col:'#22d3ee',col2:'#a855f7',price:52000,desc:'\u91cf\u5b50\u306e\u3086\u3089\u304e',rarity:'super_rare',gachaOnly:true,newItem:true},
     {id:'skin_obsidian_gold',name:'\u9ed2\u91d1',col:'#080808',col2:'#fbbf24',price:56000,desc:'\u9ed2\u66dc\u77f3\u3068\u91d1\u306e\u8f1d\u304d',rarity:'super_rare',gachaOnly:true,newItem:true},
@@ -2584,63 +2614,69 @@ const SHOP_ITEMS={
     {id:'eye_heart',name:'\u30cf\u30fc\u30c8\u30a2\u30a4',type:'heart',price:6000,desc:'\u30cf\u30fc\u30c8\u578b\u306e\u77b3'},
     {id:'eye_fire',name:'\u30d5\u30a1\u30a4\u30a2\u30a2\u30a4',type:'fire',price:10000,desc:'\u71c3\u3048\u308b\u8d64\u3044\u76ee'},
     {id:'eye_cat',name:'\u30ad\u30e3\u30c3\u30c8\u30a2\u30a4',type:'cat',price:4000,desc:'\u7e26\u9577\u306e\u732b\u76ee'},
-    {id:'eye_spiral',name:'\u30b0\u30eb\u30b0\u30eb\u30a2\u30a4',type:'spiral',price:8000,desc:'\u6e26\u5dfb\u304d\u306e\u76ee'},
-    {id:'eye_cyber',name:'\u30b5\u30a4\u30d0\u30fc\u30a2\u30a4',type:'cyber',price:12000,desc:'\u96fb\u5b50\u306e\u77b3'},
+    {id:'eye_spiral',name:'\u30b0\u30eb\u30b0\u30eb\u30a2\u30a4',type:'spiral',price:30000,desc:'\u6e26\u5dfb\u304d\u306e\u76ee',rarity:'super_rare'},
+    {id:'eye_cyber',name:'\u30b5\u30a4\u30d0\u30fc\u30a2\u30a4',type:'cyber',price:16000,desc:'\u96fb\u5b50\u306e\u77b3',rarity:'rare'},
     {id:'eye_diamond',name:'\u30c0\u30a4\u30a2\u30a2\u30a4',type:'diamond',price:16000,desc:'\u30c0\u30a4\u30e4\u306e\u8f1d\u304d',rarity:'rare'},
     {id:'eye_void',name:'\u30f4\u30a9\u30a4\u30c9\u30a2\u30a4',type:'void',price:24000,desc:'\u865a\u7121\u306e\u6f06\u9ed2',rarity:'rare'},
     {id:'eye_galaxy',name:'\u30ae\u30e3\u30e9\u30af\u30b7\u30fc\u30a2\u30a4',type:'galaxy',price:42000,desc:'\u661f\u96f2\u306e\u77b3',rarity:'super_rare'},
-    {id:'eye_glitch',name:'\u30b0\u30ea\u30c3\u30c1\u30a2\u30a4',type:'glitch',price:36000,desc:'\u30d0\u30b0\u3063\u305f\u77b3',rarity:'rare'},
+    {id:'eye_glitch',name:'\u30b0\u30ea\u30c3\u30c1\u30a2\u30a4',type:'glitch',price:46000,desc:'\u30d0\u30b0\u3063\u305f\u77b3',rarity:'super_rare'},
     {id:'eye_blink',name:'\u30d6\u30ea\u30f3\u30af\u30a2\u30a4',type:'blink',price:18000,desc:'\u77ac\u304d\u3059\u308b\u751f\u304d\u305f\u77b3',rarity:'rare',newItem:true},
-    {id:'eye_pulse',name:'\u30d1\u30eb\u30b9\u30a2\u30a4',type:'pulse',price:22000,desc:'\u8108\u6253\u3064\u3088\u3046\u306b\u5149\u308b\u77b3',rarity:'rare',gachaOnly:true,newItem:true},
+    {id:'eye_shy',name:'\u30b7\u30e3\u30a4\u30a2\u30a4',type:'shy',price:8000,desc:'\u307b\u3063\u307a\u304c\u8d64\u3089\u3080\u4e38\u3044\u77b3',newItem:true},
+    {id:'eye_wink',name:'\u30a6\u30a3\u30f3\u30af\u30a2\u30a4',type:'wink',price:10000,desc:'\u7247\u76ee\u3092\u3064\u3076\u308b\u304a\u8336\u76ee\u306a\u77b3',newItem:true},
+    {id:'eye_sparkle_round',name:'\u3046\u308b\u304d\u3089\u30a2\u30a4',type:'sparkle_round',price:22000,desc:'\u5927\u304d\u306a\u30cf\u30a4\u30e9\u30a4\u30c8\u306e\u77b3',rarity:'rare',newItem:true},
+    {id:'eye_candy_drop',name:'\u30ad\u30e3\u30f3\u30c7\u30a3\u30a2\u30a4',type:'candy_drop',price:24000,desc:'\u7518\u3044\u30b0\u30e9\u30c7\u306e\u3077\u308b\u3093\u3068\u3057\u305f\u77b3',rarity:'rare',newItem:true},
+    {id:'eye_puppy',name:'\u30d1\u30d4\u30fc\u30a2\u30a4',type:'puppy',price:28000,desc:'\u898b\u3064\u3081\u308b\u611f\u3058\u306e\u3046\u308b\u3046\u308b\u77b3',rarity:'rare',newItem:true},
+    {id:'eye_dreamy',name:'\u30c9\u30ea\u30fc\u30df\u30fc\u30a2\u30a4',type:'dreamy',price:44000,desc:'\u661f\u304c\u6d6e\u304b\u3076\u5922\u307f\u305f\u3044\u306a\u77b3',rarity:'super_rare',gachaOnly:true,newItem:true},
+    {id:'eye_pulse',name:'\u30d1\u30eb\u30b9\u30a2\u30a4',type:'pulse',price:42000,desc:'\u8108\u6253\u3064\u3088\u3046\u306b\u5149\u308b\u77b3',rarity:'super_rare',gachaOnly:true,newItem:true},
     {id:'eye_cross',name:'\u30af\u30ed\u30b9\u30a2\u30a4',type:'cross',price:20000,desc:'\u5341\u5b57\u306b\u5149\u308b\u795e\u79d8\u306e\u77b3',rarity:'rare',gachaOnly:true,newItem:true},
     {id:'eye_hypno',name:'\u30d2\u30d7\u30ce\u30a2\u30a4',type:'hypno',price:55000,desc:'\u5e7b\u60d1\u306e\u6e26\u5dfb\u304d\u30a2\u30cb\u30e1\u77b3',rarity:'super_rare',gachaOnly:true,newItem:true},
     {id:'eye_sleepy',name:'\u30b9\u30ea\u30fc\u30d4\u30fc\u30a2\u30a4',type:'sleepy',price:5000,desc:'\u306d\u3080\u305d\u3046\u306a\u534a\u76ee',newItem:true},
     {id:'eye_coin',name:'\u30b3\u30a4\u30f3\u30a2\u30a4',type:'coin',price:9000,desc:'\u30b3\u30a4\u30f3\u307f\u305f\u3044\u306a\u77b3',newItem:true},
     {id:'eye_moon',name:'\u30e0\u30fc\u30f3\u30a2\u30a4',type:'moon',price:11000,desc:'\u4e09\u65e5\u6708\u306e\u77b3',newItem:true},
-    {id:'eye_target',name:'\u30bf\u30fc\u30b2\u30c3\u30c8\u30a2\u30a4',type:'target',price:14000,desc:'\u72d9\u3044\u3092\u5b9a\u3081\u308b\u77b3',rarity:'rare',newItem:true},
+    {id:'eye_target',name:'\u30bf\u30fc\u30b2\u30c3\u30c8\u30a2\u30a4',type:'target',price:14000,desc:'\u72d9\u3044\u3092\u5b9a\u3081\u308b\u77b3',newItem:true},
     {id:'eye_prism',name:'\u30d7\u30ea\u30ba\u30e0\u30a2\u30a4',type:'prism',price:26000,desc:'\u5149\u3092\u5206\u3051\u308b\u4e09\u89d2\u306e\u77b3',rarity:'rare',newItem:true},
     {id:'eye_laser',name:'\u30ec\u30fc\u30b6\u30fc\u30a2\u30a4',type:'laser',price:28000,desc:'\u6a2a\u4e00\u7dda\u306b\u8f1d\u304f\u77b3',rarity:'rare',newItem:true},
-    {id:'eye_tears',name:'\u30c6\u30a3\u30a2\u30fc\u30a2\u30a4',type:'tears',price:15000,desc:'\u6d99\u306e\u5149\u304c\u843d\u3061\u308b\u77b3',rarity:'rare',newItem:true},
-    {id:'eye_crown',name:'\u30af\u30e9\u30a6\u30f3\u30a2\u30a4',type:'crown',price:44000,desc:'\u738b\u51a0\u3092\u5bbf\u3059\u77b3',rarity:'super_rare',gachaOnly:true,newItem:true},
+    {id:'eye_tears',name:'\u30c6\u30a3\u30a2\u30fc\u30a2\u30a4',type:'tears',price:15000,desc:'\u6d99\u306e\u5149\u304c\u843d\u3061\u308b\u77b3',newItem:true},
+    {id:'eye_crown',name:'\u30af\u30e9\u30a6\u30f3\u30a2\u30a4',type:'crown',price:30000,desc:'\u738b\u51a0\u3092\u5bbf\u3059\u77b3',rarity:'rare',gachaOnly:true,newItem:true},
     {id:'eye_eclipse',name:'\u30a8\u30af\u30ea\u30d7\u30b9\u30a2\u30a4',type:'eclipse',price:50000,desc:'\u65e5\u98df\u306e\u5149\u8f2a',rarity:'super_rare',gachaOnly:true,newItem:true},
     {id:'eye_constellation',name:'\u661f\u5ea7\u30a2\u30a4',type:'constellation',price:54000,desc:'\u661f\u3092\u7e4b\u3050\u77b3',rarity:'super_rare',gachaOnly:true,newItem:true},
   ],
   effects:[
     {id:'fx_sparkle',name:'\u30ad\u30e9\u30ad\u30e9',type:'sparkle',price:8000,desc:'\u5149\u306e\u7c92\u5b50\u304c\u821e\u3046'},
-    {id:'fx_fire_aura',name:'\u708e\u30aa\u30fc\u30e9',type:'fire_aura',price:14000,desc:'\u8d64\u3044\u708e\u306e\u30aa\u30fc\u30e9'},
-    {id:'fx_ice_aura',name:'\u6c37\u30aa\u30fc\u30e9',type:'ice_aura',price:14000,desc:'\u9752\u3044\u6c37\u306e\u30aa\u30fc\u30e9'},
-    {id:'fx_electric',name:'\u96fb\u6483',type:'electric',price:18000,desc:'\u96fb\u6c17\u304c\u8d70\u308b'},
+    {id:'fx_fire_aura',name:'\u708e\u30aa\u30fc\u30e9',type:'fire_aura',price:14000,desc:'\u8d64\u3044\u708e\u306e\u30aa\u30fc\u30e9',rarity:'rare'},
+    {id:'fx_ice_aura',name:'\u6c37\u30aa\u30fc\u30e9',type:'ice_aura',price:14000,desc:'\u9752\u3044\u6c37\u306e\u30aa\u30fc\u30e9',rarity:'rare'},
+    {id:'fx_electric',name:'\u96fb\u6483',type:'electric',price:18000,desc:'\u96fb\u6c17\u304c\u8d70\u308b',rarity:'rare'},
     {id:'fx_hearts',name:'\u30cf\u30fc\u30c8',type:'hearts',price:6000,desc:'\u30cf\u30fc\u30c8\u304c\u6d6e\u304b\u3076'},
     {id:'fx_shadow',name:'\u30c0\u30fc\u30af\u30aa\u30fc\u30e9',type:'shadow',price:20000,desc:'\u95c7\u306e\u30aa\u30fc\u30e9',rarity:'rare'},
     {id:'fx_rainbow',name:'\u30ec\u30a4\u30f3\u30dc\u30fc\u30aa\u30fc\u30e9',type:'rainbow',price:46000,desc:'\u8679\u8272\u306b\u5149\u308b\u30aa\u30fc\u30e9',rarity:'super_rare'},
     {id:'fx_sakura',name:'\u685c\u5439\u96ea',type:'sakura',price:10000,desc:'\u685c\u306e\u82b1\u3073\u3089\u304c\u821e\u3046'},
     {id:'fx_star_trail',name:'\u661f\u306e\u8ecc\u8de1',type:'star_trail',price:24000,desc:'\u661f\u304c\u6d41\u308c\u308b\u8ecc\u8de1',rarity:'rare'},
-    {id:'fx_plasma_trail',name:'\u30d7\u30e9\u30ba\u30de\u30c8\u30ec\u30a4\u30eb',type:'plasma_trail',price:32000,desc:'\u30d7\u30e9\u30ba\u30de\u306e\u8ecc\u8de1',rarity:'rare'},
-    {id:'fx_void_aura',name:'\u30f4\u30a9\u30a4\u30c9\u30aa\u30fc\u30e9',type:'void_aura',price:40000,desc:'\u865a\u7121\u306e\u30aa\u30fc\u30e9',rarity:'rare'},
+    {id:'fx_plasma_trail',name:'\u30d7\u30e9\u30ba\u30de\u30c8\u30ec\u30a4\u30eb',type:'plasma_trail',price:42000,desc:'\u30d7\u30e9\u30ba\u30de\u306e\u8ecc\u8de1',rarity:'super_rare'},
+    {id:'fx_void_aura',name:'\u30f4\u30a9\u30a4\u30c9\u30aa\u30fc\u30e9',type:'void_aura',price:48000,desc:'\u865a\u7121\u306e\u30aa\u30fc\u30e9',rarity:'super_rare'},
     {id:'fx_celestial',name:'\u30bb\u30ec\u30b9\u30c6\u30a3\u30a2\u30eb',type:'celestial',price:60000,desc:'\u5929\u754c\u306e\u795e\u8056\u306a\u30aa\u30fc\u30e9',rarity:'super_rare'},
-    {id:'fx_phoenix',name:'\u30d5\u30a7\u30cb\u30c3\u30af\u30b9',type:'phoenix',price:28000,desc:'\u4e0d\u6b7b\u9ce5\u306e\u7fbd\u304c\u821e\u3046',rarity:'rare',gachaOnly:true,newItem:true},
-    {id:'fx_glitch_trail',name:'\u30b0\u30ea\u30c3\u30c1\u30c8\u30ec\u30a4\u30eb',type:'glitch_trail',price:26000,desc:'\u30ce\u30a4\u30ba\u304c\u8d70\u308b\u8ecc\u8de1',rarity:'rare',gachaOnly:true,newItem:true},
+    {id:'fx_phoenix',name:'\u30d5\u30a7\u30cb\u30c3\u30af\u30b9',type:'phoenix',price:50000,desc:'\u4e0d\u6b7b\u9ce5\u306e\u7fbd\u304c\u821e\u3046',rarity:'super_rare',gachaOnly:true,newItem:true},
+    {id:'fx_glitch_trail',name:'\u30b0\u30ea\u30c3\u30c1\u30c8\u30ec\u30a4\u30eb',type:'glitch_trail',price:44000,desc:'\u30ce\u30a4\u30ba\u304c\u8d70\u308b\u8ecc\u8de1',rarity:'super_rare',gachaOnly:true,newItem:true},
     {id:'fx_supernova',name:'\u30b9\u30fc\u30d1\u30fc\u30ce\u30f4\u30a1',type:'supernova',price:65000,desc:'\u8d85\u65b0\u661f\u7206\u767a\u306e\u30aa\u30fc\u30e9',rarity:'super_rare',gachaOnly:true,newItem:true},
     {id:'fx_bubbles',name:'\u30d0\u30d6\u30eb',type:'bubbles',price:7000,desc:'\u6ce1\u304c\u3075\u308f\u3075\u308f\u6d6e\u304b\u3076',newItem:true},
     {id:'fx_confetti',name:'\u30b3\u30f3\u30d5\u30a7\u30c3\u30c6\u30a3',type:'confetti',price:12000,desc:'\u5c0f\u3055\u306a\u7d19\u5439\u96ea',newItem:true},
     {id:'fx_music',name:'\u30df\u30e5\u30fc\u30b8\u30c3\u30af',type:'music',price:13000,desc:'\u97f3\u7b26\u304c\u30ea\u30ba\u30e0\u306b\u821e\u3046',newItem:true},
     {id:'fx_pixel',name:'\u30d4\u30af\u30bb\u30eb',type:'pixel',price:16000,desc:'\u30c9\u30c3\u30c8\u304c\u5f3e\u3051\u308b',rarity:'rare',newItem:true},
     {id:'fx_snowflake',name:'\u30b9\u30ce\u30fc\u30d5\u30ec\u30fc\u30af',type:'snowflake',price:18000,desc:'\u96ea\u306e\u7d50\u6676\u304c\u56de\u308b',rarity:'rare',newItem:true},
-    {id:'fx_meteor',name:'\u30e1\u30c6\u30aa',type:'meteor',price:30000,desc:'\u5c0f\u3055\u306a\u6d41\u661f\u304c\u843d\u3061\u308b',rarity:'rare',newItem:true},
-    {id:'fx_rune',name:'\u30eb\u30fc\u30f3',type:'rune',price:34000,desc:'\u9b54\u6cd5\u9663\u306e\u5149',rarity:'rare',newItem:true},
+    {id:'fx_meteor',name:'\u30e1\u30c6\u30aa',type:'meteor',price:46000,desc:'\u5c0f\u3055\u306a\u6d41\u661f\u304c\u843d\u3061\u308b',rarity:'super_rare',newItem:true},
+    {id:'fx_rune',name:'\u30eb\u30fc\u30f3',type:'rune',price:44000,desc:'\u9b54\u6cd5\u9663\u306e\u5149',rarity:'super_rare',newItem:true},
     {id:'fx_comet_crown',name:'\u30b3\u30e1\u30c3\u30c8\u30af\u30e9\u30a6\u30f3',type:'comet_crown',price:52000,desc:'\u982d\u4e0a\u3092\u5de1\u308b\u5f57\u661f\u306e\u51a0',rarity:'super_rare',gachaOnly:true,newItem:true},
     {id:'fx_matrix',name:'\u30de\u30c8\u30ea\u30af\u30b9',type:'matrix',price:56000,desc:'\u7dd1\u306e\u30b3\u30fc\u30c9\u304c\u6d41\u308c\u308b',rarity:'super_rare',gachaOnly:true,newItem:true},
     {id:'fx_timewarp',name:'\u30bf\u30a4\u30e0\u30ef\u30fc\u30d7',type:'timewarp',price:62000,desc:'\u6642\u8a08\u306e\u8f2a\u304c\u6b6a\u3080',rarity:'super_rare',gachaOnly:true,newItem:true},
   ],
   pets:[
-    {id:'pet_comet',type:'comet',price:50000,desc:'\u30ad\u30e9\u30ea\u3068\u5f8c\u308d\u3092\u98db\u3076\u661f\u5c18\u306e\u76f8\u68d2',ability:'\u2b50 \u30b3\u30a4\u30f3\u3092\u5f31\u304f\u5f15\u304d\u5bc4\u305b\u308b\uff08\u5e38\u6642\uff09'},
-    {id:'pet_puff',type:'puff',price:50000,desc:'\u3077\u304b\u3077\u304b\u8ffd\u3044\u304b\u3051\u308b\u5c0f\u3055\u306a\u304a\u3070\u3051',ability:'\u2728 \u5b9a\u671f\u7684\u306b\u900f\u660e\u5316\u3057\u6575\u306e\u653b\u6483\u3092\u56de\u907f'},
-    {id:'pet_drone',type:'drone',price:60000,desc:'\u30d6\u30fc\u30b9\u30c8\u5674\u5c04\u3067\u8ffd\u5f93\u3059\u308b\u30df\u30cb\u30c9\u30ed\u30fc\u30f3',ability:'\ud83d\ude81 \u843d\u3061\u305d\u3046\u306a\u6642\u306b\u52a9\u3051\u3066\u304f\u308c\u308b\u304b\u3082\u2026'},
+    {id:'pet_comet',type:'comet',price:50000,desc:'\u30ad\u30e9\u30ea\u3068\u5f8c\u308d\u3092\u98db\u3076\u661f\u5c18\u306e\u76f8\u68d2',ability:'\u2b50 \u30b3\u30a4\u30f3\u3092\u5f31\u304f\u5f15\u304d\u5bc4\u305b\u308b\uff08\u5e38\u6642\uff09',rarity:'super_rare'},
+    {id:'pet_puff',type:'puff',price:50000,desc:'\u3077\u304b\u3077\u304b\u8ffd\u3044\u304b\u3051\u308b\u5c0f\u3055\u306a\u304a\u3070\u3051',ability:'\u2728 \u5b9a\u671f\u7684\u306b\u900f\u660e\u5316\u3057\u6575\u306e\u653b\u6483\u3092\u56de\u907f',rarity:'super_rare'},
+    {id:'pet_drone',type:'drone',price:60000,desc:'\u30d6\u30fc\u30b9\u30c8\u5674\u5c04\u3067\u8ffd\u5f93\u3059\u308b\u30df\u30cb\u30c9\u30ed\u30fc\u30f3',ability:'\ud83e\uddf2 \u30a2\u30a4\u30c6\u30e0\u3092\u5f31\u304f\u5f15\u304d\u5bc4\u305b\u308b',rarity:'super_rare'},
   ],
   accessories:[
-    {id:'acc_halo',type:'halo',price:25000,desc:'\u5149\u306e\u7c92\u304c\u821e\u3046\u5929\u4f7f\u306e\u8f2a'},
-    {id:'acc_crown',type:'crown',price:30000,desc:'\u91d1\u8272\u306e\u706b\u82b1\u3092\u6563\u3089\u3059\u738b\u51a0'},
-    {id:'acc_starpin',type:'ribbon',price:27500,desc:'\u3075\u308f\u308a\u3068\u3072\u3089\u3081\u304f\u30c9\u30ec\u30b9\u30ea\u30dc\u30f3'},
+    {id:'acc_halo',type:'halo',price:25000,desc:'\u5149\u306e\u7c92\u304c\u821e\u3046\u5929\u4f7f\u306e\u8f2a',rarity:'super_rare'},
+    {id:'acc_crown',type:'crown',price:30000,desc:'\u91d1\u8272\u306e\u706b\u82b1\u3092\u6563\u3089\u3059\u738b\u51a0',rarity:'super_rare'},
+    {id:'acc_starpin',type:'ribbon',price:27500,desc:'\u3075\u308f\u308a\u3068\u3072\u3089\u3081\u304f\u30c9\u30ec\u30b9\u30ea\u30dc\u30f3',rarity:'super_rare'},
   ],
   items:[
     {id:'item_magnet',type:'magnet',price:1000,desc:'\u624b\u52d5\u767a\u52d5\u3067\u30b3\u30a4\u30f3\u3092\u5f37\u529b\u5438\u53ce',stackMax:99},
@@ -2787,6 +2823,7 @@ let titleMenuOpen=false;
 let titleMenuScroll=0;
 let titlePendingTap=null;
 let titleConfirmPending=null; // {def, nextId} - pending title equip confirmation
+let titleNotifClearOnClose=false;
 let itemStocks=(function(){
   try{
     const raw=JSON.parse(localStorage.getItem('gd5itemStocks')||'{}')||{};
@@ -2801,19 +2838,36 @@ let itemStocks=(function(){
 // --- Notification badges ---
 let notifNewCosmetic=localStorage.getItem('gd5notifCosm')==='1'; // new cosmetic obtained
 let newCosmeticIds=new Set(JSON.parse(localStorage.getItem('gd5newCosm')||'[]')); // individual new cosmetic IDs
+function markCosmeticSeen(id){
+  if(!id||!newCosmeticIds.has(id))return;
+  newCosmeticIds.delete(id);
+  if(newCosmeticIds.size>0){
+    localStorage.setItem('gd5newCosm',JSON.stringify([...newCosmeticIds]));
+    notifNewCosmetic=true;localStorage.setItem('gd5notifCosm','1');
+  } else {
+    localStorage.removeItem('gd5newCosm');
+    notifNewCosmetic=false;localStorage.removeItem('gd5notifCosm');
+  }
+  if(typeof fbSaveUserData==='function')fbSaveUserData();
+}
 let notifNewChars=JSON.parse(localStorage.getItem('gd5notifChars')||'[]'); // newly unlocked char indices
 let notifNewHighScore=localStorage.getItem('gd5notifHi')==='1'; // new high score achieved
 // Shop NEW notifications (pet tab=3, accessory tab=4) — separate flags, auto-expire after 7 days
 const _SHOP_NEW_WEEK=7*24*60*60*1000;
-const _petAlreadyDismissed=localStorage.getItem('gd5shopPetNew')==='0';
-(function(){if(!localStorage.getItem('gd5shopPetNewTime'))localStorage.setItem('gd5shopPetNewTime',Date.now().toString());})();
-(function(){if(!localStorage.getItem('gd5shopAccNewTime'))localStorage.setItem('gd5shopAccNewTime',Date.now().toString());})();
-let notifShopPetNew=!_petAlreadyDismissed&&(Date.now()-parseInt(localStorage.getItem('gd5shopPetNewTime')||'0'))<_SHOP_NEW_WEEK;
-let notifShopAccNew=!_petAlreadyDismissed&&localStorage.getItem('gd5shopAccNew')!=='0'&&(Date.now()-parseInt(localStorage.getItem('gd5shopAccNewTime')||'0'))<_SHOP_NEW_WEEK;
+let notifShopPetNew=false;
+let notifShopAccNew=false;
 // Title NEW notifications — newly acquired title IDs, auto-expire after 7 days
 let notifNewTitleIds=(function(){try{const raw=JSON.parse(localStorage.getItem('gd5notifTitles')||'[]');if(!Array.isArray(raw))return[];const t=parseInt(localStorage.getItem('gd5notifTitlesTime')||'0')||0;if(t&&(Date.now()-t)>_SHOP_NEW_WEEK){localStorage.removeItem('gd5notifTitles');localStorage.removeItem('gd5notifTitlesTime');return[];}return raw.filter(id=>typeof id==='string');}catch(e){return[];}})();
+function clearTitleNotifications(){
+  notifNewTitleIds=[];
+  titleNotifClearOnClose=false;
+  localStorage.removeItem('gd5notifTitles');
+  localStorage.removeItem('gd5notifTitlesTime');
+}
 function checkNewTitleUnlocks(){
-  const knownRaw=JSON.parse(localStorage.getItem('gd5knownTitles')||'[]');
+  let knownRaw;
+  try{knownRaw=JSON.parse(localStorage.getItem('gd5knownTitles')||'[]');}
+  catch(e){knownRaw=[];}
   const known=new Set(Array.isArray(knownRaw)?knownRaw:[]);
   const newlyUnlocked=[];
   for(let i=0;i<TITLE_DEFS.length;i++){if(isTitleUnlocked(TITLE_DEFS[i])&&!known.has(TITLE_DEFS[i].id))newlyUnlocked.push(TITLE_DEFS[i].id);}
@@ -2849,6 +2903,17 @@ function saveGameState(){
   if(state!==ST.PLAY&&state!==ST.PAUSE)return;
   const mode=isChallengeMode?'challenge':'endless';
   if(!isChallengeMode&&gameMode!=='endless')return;
+  const inBoss=!!(bossPhase&&(bossPhase.active||bossPhase.reward||bossPhase.prepare>0));
+  const bossResume=inBoss?{
+    score:bossPhase.lastBossScore||score,
+    rawDist:bossPhase.lastBossRawDist||rawDist,
+    dist:bossPhase.lastBossScore||dist||score,
+    bossCount:Math.max(0,(bossPhase.bossCount||0)-1),
+    bossType:bossPhase.bossType||'',
+    bossType2:bossPhase.bossType2||null,
+    challStrength:bossPhase.challStrength||1,
+    challIsDual:!!bossPhase.challIsDual
+  }:null;
   const d={v:1,mode,ts:Date.now(),
     score,rawDist,dist,speed,frame,hp,totalCoins,
     magnetCount,bombCount,
@@ -2859,6 +2924,7 @@ function saveGameState(){
     // Save terrain so it's the same on resume
     platforms:platforms?platforms.map(p=>({x:Math.round(p.x),w:Math.round(p.w),h:p.h})):[],
     ceilPlats:ceilPlats?ceilPlats.map(p=>({x:Math.round(p.x),w:Math.round(p.w),h:p.h})):[]};
+  if(bossResume)d.bossResume=bossResume;
   if(isChallengeMode){
     d.challengeKills=challengeKills||0;d.challengePhase=challengePhase||0;
     d.challBossQueue=(challBossQueue||[]).slice();
@@ -2882,7 +2948,10 @@ function restoreGameFromSave(d){
     bossRetry=null;isRetryGame=false;
     reset();
   }
-  score=d.score||0;rawDist=d.rawDist||0;dist=d.dist||0;
+  const br=d.bossResume||null;
+  score=br?(br.score||0):(d.score||0);
+  rawDist=br?(br.rawDist||0):(d.rawDist||0);
+  dist=br?(br.dist||br.score||0):(d.dist||0);
   // Recompute speed from rawDist so it exactly matches the formula used during play
   if(d.mode==='challenge'){
     speed=SPEED_INIT*(ct?ct().speedMul||1:1);
@@ -2896,16 +2965,23 @@ function restoreGameFromSave(d){
   bombCount=Math.max(0,d.bombCount||0);
   if(d.itemEff){itemEff.invincible=Math.max(0,d.itemEff.invincible||0);itemEff.magnet=Math.max(0,d.itemEff.magnet||0);itemEff.slowmo=Math.max(0,d.itemEff.slowmo||0);}
   if(specialState&&d.specialGauge)specialState.gauge=Math.min(SPECIAL_GAUGE_MAX,d.specialGauge);
-  if(player){
+  if(player&&!br){
     if(d.player_gDir)player.gDir=d.player_gDir===-1?-1:1;
     if(d.player_y!=null)player.y=d.player_y;
     if(d.player_x!=null)player.x=d.player_x;
   }
   // Restore terrain so it matches what was saved
-  if(d.platforms&&d.platforms.length>0)platforms=d.platforms;
-  if(d.ceilPlats&&d.ceilPlats.length>0)ceilPlats=d.ceilPlats;
+  if(!br&&d.platforms&&d.platforms.length>0)platforms=d.platforms;
+  if(!br&&d.ceilPlats&&d.ceilPlats.length>0)ceilPlats=d.ceilPlats;
   lastMile=Math.floor(score/1000)*1000;
-  if(bossPhase){bossPhase.bossCount=d.bossCount||0;bossPhase.nextAt=(d.rawDist||0)+BOSS_INTERVAL;}
+  if(bossPhase){
+    bossPhase.bossCount=br?Math.max(0,br.bossCount||0):(d.bossCount||0);
+    bossPhase.nextAt=br?rawDist:((d.rawDist||0)+BOSS_INTERVAL);
+    bossPhase.lastBossScore=score;
+    bossPhase.lastBossRawDist=rawDist;
+    bossPhase.resumeBossSpec=br?{bossType:br.bossType||'',bossType2:br.bossType2||null,challStrength:br.challStrength||1,challIsDual:!!br.challIsDual}:null;
+  }
+  if(br&&d.mode==='challenge')challengeNextBossT=1;
   const ti=THEMES?Math.min(Math.floor(score/1000),THEMES.length-1):0;
   if(ti>0){curTheme=ti;prevTheme=ti;themeLerp=1;}
   _gameWasResumed=true; // prevent bossRetry bleed when quitting this resumed run
@@ -2916,6 +2992,7 @@ function addLifetimeCoins(amount){
   if(gain<=0)return lifetimeCoinsEarned||0;
   lifetimeCoinsEarned=(lifetimeCoinsEarned||0)+gain;
   localStorage.setItem('gd5coinTotal',lifetimeCoinsEarned.toString());
+  if(typeof checkNewTitleUnlocks==='function')checkNewTitleUnlocks();
   return lifetimeCoinsEarned;
 }
 function getEquippedTitleDef(){return equippedTitleId?getTitleDef(equippedTitleId):null;}
@@ -2962,6 +3039,7 @@ function buyItem(id,price){
   notifNewCosmetic=true;localStorage.setItem('gd5notifCosm','1');
   newCosmeticIds.add(id);localStorage.setItem('gd5newCosm',JSON.stringify([...newCosmeticIds]));
   if(typeof fbSaveUserData==='function')fbSaveUserData();
+  if(typeof checkNewTitleUnlocks==='function')checkNewTitleUnlocks();
   return true;
 }
 function buyConsumable(item){
@@ -3076,7 +3154,7 @@ function cosmeticModalLayout(){
   const rows=Math.ceil(COSMETIC_TAB_DEFS.length/cols);
   const listY=tabY+rows*(tabH+rowGap)+14;
   const listH=mH-(listY-mY)-50;
-  return{mW,mH,mX,mY,cols,tabH,rowGap,tabW,tabY,rows,listY,listH,rowH:48};
+  return{mW,mH,mX,mY,cols,tabH,rowGap,tabW,tabY,rows,listY,listH,rowH:56};
 }
 function cosmeticTabRect(tab){
   const l=cosmeticModalLayout(),col=tab%l.cols,row=Math.floor(tab/l.cols);

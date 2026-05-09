@@ -72,17 +72,24 @@ function titleBadgePalette(group,locked){
 function drawTitleBadge(cx,cy,title,opts){
   const opt=opts||{};
   const def=typeof title==='string'?getTitleDef(title):title;
-  const label=opt.label||tTitleName(def);
+  let label=opt.label||tTitleName(def);
   if(!label)return null;
   const scale=opt.scale||1;
   const fontPx=Math.max(7,Math.round((opt.fontPx||10)*scale));
   const font='bold '+fontPx+'px monospace';
   const pal=titleBadgePalette(def?def.group:(opt.group||'plays'),!!opt.locked);
+  const maxW=opt.maxW||0;
+  const measureLabel=l=>_cMT(l,font);
+  if(maxW>0&&measureLabel(label)+40*scale>maxW){
+    let s=label;
+    while(s.length>1&&measureLabel(s+'…')+40*scale>maxW)s=s.slice(0,-1);
+    label=s+'…';
+  }
   const textW=_cMT(label,font);
   const h=Math.max(16,Math.round(20*scale));
   const padX=12*scale;
   const gemR=Math.max(2,3.2*scale);
-  const w=Math.max(56*scale,textW+padX*2+gemR*6+10*scale);
+  const w=maxW>0?Math.min(maxW,Math.max(56*scale,textW+padX*2+gemR*6+10*scale)):Math.max(56*scale,textW+padX*2+gemR*6+10*scale);
   const x=cx-w/2,y=cy-h/2;
   const bg=ctx.createLinearGradient(x,y,x+w,y+h);
   bg.addColorStop(0,pal.a);bg.addColorStop(0.55,pal.b);bg.addColorStop(1,pal.a);
@@ -231,7 +238,7 @@ function drawTutorial(){
     }
   }
   // Enemies
-  for(let i=0;i<enemies.length;i++){const en=enemies[i];if(!en.alive)continue;drawEnemy(en);}
+  for(let i=0;i<enemies.length;i++){const en=enemies[i];if(!en.alive&&!en._defeatFall)continue;drawEnemy(en);}
   // Particles & pops
   for(let i=0;i<parts.length;i++){const pp=parts[i];ctx.globalAlpha=pp.life/pp.ml;ctx.fillStyle=pp.col;ctx.beginPath();ctx.arc(pp.x,pp.y,pp.sz,0,TAU);ctx.fill();}
   ctx.globalAlpha=1;
@@ -1013,7 +1020,7 @@ function draw(){
   }
 
   // Pack mode: draw checkpoint flag at midpoint (500m)
-  if(isPackMode&&currentPackStage&&!checkpointFlag.collected){
+  if(isPackMode&&currentPackStage&&!checkpointFlag.collected&&!currentPackStage.noCheckpoint){
     const cpDist=currentPackStage.dist*0.5;
     const cpScreenX=player.x+(cpDist-rawDist)/(speed*0.08)*speed;
     if(cpScreenX>-60&&cpScreenX<W+200){
@@ -1066,7 +1073,7 @@ function draw(){
     }
   }
   // Pack mode: draw collected checkpoint flag indicator
-  if(isPackMode&&currentPackStage&&checkpointFlag.collected){
+  if(isPackMode&&currentPackStage&&checkpointFlag.collected&&!currentPackStage.noCheckpoint){
     const cpDist=currentPackStage.dist*0.5;
     const cpScreenX=player.x+(cpDist-rawDist)/(speed*0.08)*speed;
     if(cpScreenX>-60&&cpScreenX<W+200){
@@ -1082,7 +1089,7 @@ function draw(){
   // Pack mode: draw goal flag at target distance
   if(isPackMode&&currentPackStage){
     const goalDist=currentPackStage.dist;
-    const goalScreenX=player.x+(goalDist-rawDist)/(speed*0.08)*speed;
+    const goalScreenX=stageGoalWalkActive?stageGoalScreenX:(player.x+(goalDist-rawDist)/(speed>0?speed*0.08:0.001)*speed);
     if(goalScreenX>-60&&goalScreenX<W+200){
       const gSurf=floorSurfaceY(goalScreenX);
       const flagBase=gSurf;
@@ -1137,7 +1144,7 @@ function draw(){
   for(let i=0;i<items.length;i++)drawItem(items[i]);
 
   // Enemies
-  for(let i=0;i<enemies.length;i++){const en=enemies[i];if(en.alive)drawEnemy(en);}
+  for(let i=0;i<enemies.length;i++){const en=enemies[i];if(en.alive||en._defeatFall)drawEnemy(en);}
 
   // Bullets
   for(let i=0;i<bullets.length;i++)drawBullet(bullets[i]);
@@ -1595,6 +1602,12 @@ function drawVertMover(en){
   ctx.scale(1/squash,squash);
   ctx.fillStyle=b0;ctx.beginPath();ctx.arc(0,0,s*0.9,0,TAU);ctx.fill();
   ctx.fillStyle=b1;ctx.beginPath();ctx.arc(0,0,s*0.5,0,TAU);ctx.fill();
+  const stompSide=en.gDir===1?-1:1;
+  const padY=stompSide*s*0.74;
+  ctx.fillStyle=_esmTier>=2?'#fff06a':'#7dd3fc';
+  ctx.beginPath();ctx.ellipse(0,padY,s*0.44,s*0.12,0,0,TAU);ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.75)';ctx.lineWidth=Math.max(1,s*0.07);
+  ctx.beginPath();ctx.moveTo(-s*0.26,padY-stompSide*s*0.03);ctx.lineTo(0,padY+stompSide*s*0.09);ctx.lineTo(s*0.26,padY-stompSide*s*0.03);ctx.stroke();
   ctx.fillStyle='#fff5';
   const arrowY=en.moveDir<0?-s*0.5:s*0.5;
   ctx.beginPath();ctx.moveTo(-s*0.3,arrowY);ctx.lineTo(0,arrowY+en.moveDir*(-s*0.4));ctx.lineTo(s*0.3,arrowY);ctx.closePath();ctx.fill();
@@ -2542,7 +2555,7 @@ function drawPlayer(){
   }
   // Draw equipped effect behind character
   const fxData=getEquippedEffectData();
-  if(fxData)drawPlayerEffect(player.x,player.y,pr,fxData.type,ghostA,player.gDir);
+  if(fxData)drawPlayerEffect(player.x,player.y,pr,fxData.type,ghostA,player.gDir,true);
   if(isSpecialActive('tire')){
     ctx.save();
     ctx.translate(player.x,player.y);
@@ -2771,7 +2784,7 @@ function drawPetShowcase(scene,x,y,scale,gDir,alpha){
 }
 
 function drawPlayerEffect(px,py,pr,fxType,alpha,gDir,forcePreview){
-  if(_lowQ&&!forcePreview)return; // skip gameplay cosmetic effects in low quality mode
+  if(_lowQ&&!forcePreview)alpha*=0.45;
   ctx.save();ctx.globalAlpha=alpha*0.8;
   const t=frame||0;const gd=gDir!=null?gDir:1;
   switch(fxType){
@@ -3267,13 +3280,15 @@ function drawActionPanel(){
     else{const barGr=ctx.createLinearGradient(barX,barY,barX+barW*prog,barY);barGr.addColorStop(0,tc('ply'));barGr.addColorStop(1,'#ffd700');ctx.fillStyle=barGr;}
     rr(barX,barY,Math.max(2,barW*prog),barH,4);ctx.fill();
     // Checkpoint flag at 50%
-    const cpX=barX+barW*0.5;
-    const cpCollected=checkpointReached||checkpointFlag.collected;
-    ctx.fillStyle=cpCollected?'#34d399':'#ffffff44';
-    ctx.font='bold 11px monospace';ctx.textAlign='center';
-    ctx.fillText('\u2691',cpX,barY-1);
-    ctx.fillStyle=cpCollected?'#34d399':'#ffffff33';
-    ctx.fillRect(cpX-0.5,barY,1,barH);
+    if(!currentPackStage.noCheckpoint){
+      const cpX=barX+barW*0.5;
+      const cpCollected=checkpointReached||checkpointFlag.collected;
+      ctx.fillStyle=cpCollected?'#34d399':'#ffffff44';
+      ctx.font='bold 11px monospace';ctx.textAlign='center';
+      ctx.fillText('\u2691',cpX,barY-1);
+      ctx.fillStyle=cpCollected?'#34d399':'#ffffff33';
+      ctx.fillRect(cpX-0.5,barY,1,barH);
+    }
     // Goal flag at end
     ctx.fillStyle='#ffd700';ctx.font='bold 11px monospace';ctx.textAlign='center';
     ctx.fillText('\u2691',barX+barW+6,barY-1);
@@ -3317,7 +3332,7 @@ function drawActionPanel(){
     drawRoundBtn(b.magnetX,'#f59e0b','\u{1F9F2}',magnetCount,itemEff.magnet>0||magnetCount>0,magRatio,'#fff7d1');
     drawRoundBtn(b.bombX,'#ff6b35','\u{1F4A3}',bombCount,bombCount>0,0,'#fff');
   }
-  if(isSpecialModeEnabled()){
+  if(isSpecialModeEnabled()&&!isPackMode){
     const spBtn=specialBtnLayout();
     const ratio=Math.max(0,Math.min(1,specialState.gauge/SPECIAL_GAUGE_MAX));
     const bossLocked=state===ST.PLAY&&!specialState.active&&(bossPhase.active||bossPhase.reward);
@@ -3497,6 +3512,13 @@ function drawTitle(){
     if(eqTitle){
       drawTitleBadge(W/2,H*0.18+112,eqTitle,{scale:0.98,fontPx:10});
     }
+    const infoY=eqTitle?H*0.18+136:H*0.18+112;
+    ctx.fillStyle='#ffd700';ctx.font='bold 11px monospace';ctx.textAlign='center';
+    ctx.fillText('\u25CF '+walletCoins,W/2,infoY);
+    if(played>0){
+      ctx.fillStyle='#fff3';ctx.font='10px monospace';
+      ctx.fillText(t('playCount')+': '+played,W/2,infoY+14);
+    }
   }
 
   // Character selection: 2 rows x 3 columns
@@ -3583,17 +3605,14 @@ function drawTitle(){
   // Stats panel (between character grid and mode buttons)
   const statsY=hintY+16;
   {
-    let statLines=2; // endless + challenge always shown
-    statLines++; // coins always shown
-    if(played>0) statLines++;
+    let statLines=3; // endless + challenge + stage
     const statsPanelH=statLines*16+6;
     ctx.fillStyle='rgba(0,0,0,0.35)';rr(W/2-100,statsY,200,statsPanelH,8);ctx.fill();
     ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;rr(W/2-100,statsY,200,statsPanelH,8);ctx.stroke();
     let lineIdx=0;
-    ctx.fillStyle='#ffd700';ctx.font='bold 13px monospace';ctx.textAlign='center';ctx.fillText(t('endlessLabel')+': '+(highScore>0?highScore:'-'),W/2,statsY+16+lineIdx*16);lineIdx++;
+    ctx.fillStyle='#00e5ff';ctx.font='bold 13px monospace';ctx.textAlign='center';ctx.fillText(t('endlessLabel')+': '+(highScore>0?highScore:'-'),W/2,statsY+16+lineIdx*16);lineIdx++;
     ctx.fillStyle='#ff6080';ctx.font='bold 13px monospace';ctx.textAlign='center';ctx.fillText(t('challengeLabel')+': '+(challengeBestKills>0?challengeBestKills:'-'),W/2,statsY+16+lineIdx*16);lineIdx++;
-    ctx.fillStyle='#ffd700';ctx.font='bold 12px monospace';ctx.textAlign='center';ctx.fillText('\u25CF '+walletCoins,W/2,statsY+16+lineIdx*16);lineIdx++;
-    if(played>0){ctx.fillStyle='#fff3';ctx.font='11px monospace';ctx.fillText(t('playCount')+': '+played,W/2,statsY+16+lineIdx*16);}
+    ctx.fillStyle='#34d399';ctx.font='bold 13px monospace';ctx.textAlign='center';ctx.fillText(t('stage')+': -',W/2,statsY+16+lineIdx*16);lineIdx++;
   }
 
   // Endless mode button (top, large)
@@ -3635,10 +3654,6 @@ function drawTitle(){
   // Copyright (bottom center)
   ctx.fillStyle='#fff2';ctx.font='8px monospace';ctx.textAlign='center';
   ctx.fillText('\u00A9 2026 ny',W/2,H-safeBot+4);
-  // Version (top right, below buttons)
-  ctx.fillStyle='#fff2';ctx.font='8px monospace';ctx.textAlign='right';
-  ctx.fillText('v'+GAME_VERSION,W-8,safeTop+124);
-
   // Controls info removed – now accessible via settings panel ❓ button
 
   // Ranking button (top left, row 1)
@@ -3673,14 +3688,6 @@ function drawTitle(){
   ctx.strokeStyle='#ff69b444';ctx.lineWidth=1;rr(8,safeTop+82,36,36,8);ctx.stroke();
   ctx.fillStyle='#ff69b4';ctx.font='16px monospace';ctx.textAlign='center';
   ctx.fillText('\uD83D\uDED2',26,safeTop+105);
-  if(notifShopPetNew||notifShopAccNew){
-    const bp=Math.sin(titleT*3)*0.18+1;
-    ctx.save();ctx.translate(38,safeTop+86);ctx.scale(bp,bp);
-    ctx.fillStyle='#ff3860';rr(-10,-6,22,12,6);ctx.fill();
-    ctx.fillStyle='#fff';ctx.font='bold 8px monospace';ctx.textAlign='center';
-    ctx.fillText('NEW',0,4);
-    ctx.restore();
-  }
   // Dress-up button (top left, row 4)
   ctx.fillStyle='#ffffff14';rr(8,safeTop+120,36,36,8);ctx.fill();
   ctx.strokeStyle='#a855f744';ctx.lineWidth=1;rr(8,safeTop+120,36,36,8);ctx.stroke();
@@ -3694,7 +3701,7 @@ function drawTitle(){
   // Title NEW badge (newly acquired titles)
   if(notifNewTitleIds&&notifNewTitleIds.length>0){
     const bp=Math.sin(titleT*3)*0.18+1;
-    ctx.save();ctx.translate(38,safeTop+162);ctx.scale(bp,bp);
+    ctx.save();ctx.translate(14,safeTop+162);ctx.scale(bp,bp);
     ctx.fillStyle='#ff3860';rr(-10,-6,22,12,6);ctx.fill();
     ctx.fillStyle='#fff';ctx.font='bold 8px monospace';ctx.textAlign='center';
     ctx.fillText('NEW',0,4);
@@ -3719,14 +3726,6 @@ function drawTitle(){
   ctx.strokeStyle='#4488ff44';ctx.lineWidth=1;rr(W-44,safeTop+44,36,36,8);ctx.stroke();
   ctx.fillStyle='#4488ff';ctx.font='16px monospace';ctx.textAlign='center';
   ctx.fillText('\u2753',W-26,safeTop+67);
-  if(notifHelpNew){
-    const bp=Math.sin(titleT*2)*0.15+1;
-    ctx.save();ctx.translate(W-14,safeTop+48);ctx.scale(bp,bp);
-    ctx.fillStyle='#ff3860';ctx.beginPath();ctx.arc(0,0,8,0,TAU);ctx.fill();
-    ctx.fillStyle='#fff';ctx.font='bold 10px monospace';ctx.textAlign='center';
-    ctx.fillText('!',0,4);
-    ctx.restore();
-  }
   // Settings panel overlay
   if(settingsOpen){
     ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,W,H);
@@ -4225,35 +4224,48 @@ function drawTitle(){
     ctx.fillStyle='#0a0a1a';rr(mX,mY,mW,mH,12);ctx.fill();
     ctx.strokeStyle='#ffd70044';ctx.lineWidth=2;rr(mX,mY,mW,mH,12);ctx.stroke();
     // Header
-    const hdrH=76;
+    const hdrH=108;
     ctx.fillStyle='#1a1a2e';rr(mX,mY,mW,hdrH,12);ctx.fill();
     ctx.fillStyle='#ffd700';ctx.font='bold 18px monospace';ctx.textAlign='center';
     ctx.fillText(t('ranking'),W/2,mY+22);
     // Tab buttons
-    const tabY=mY+34,tabH=24,tabW=Math.floor((mW-24)/2);
-    const tabLX=mX+8,tabRX=mX+8+tabW+8;
+    const tabY=mY+34,tabH=24;
+    const tabEnd={x:mX+42,y:tabY,w:mW-84,h:tabH};
+    const tabW=Math.floor((mW-32)/2);
+    const tabChal={x:mX+8,y:tabY+32,w:tabW,h:tabH};
+    const tabStage={x:mX+16+tabW,y:tabY+32,w:tabW,h:tabH};
     // Endless tab
     if(rankingTab==='endless'){
-      ctx.fillStyle='#ffd70033';rr(tabLX,tabY,tabW,tabH,6);ctx.fill();
-      ctx.strokeStyle='#ffd700';ctx.lineWidth=1.5;rr(tabLX,tabY,tabW,tabH,6);ctx.stroke();
-      ctx.fillStyle='#ffd700';
+      ctx.fillStyle='#00e5ff33';rr(tabEnd.x,tabEnd.y,tabEnd.w,tabEnd.h,6);ctx.fill();
+      ctx.strokeStyle='#00e5ff';ctx.lineWidth=1.5;rr(tabEnd.x,tabEnd.y,tabEnd.w,tabEnd.h,6);ctx.stroke();
+      ctx.fillStyle='#00e5ff';
     } else {
-      ctx.fillStyle='#ffffff10';rr(tabLX,tabY,tabW,tabH,6);ctx.fill();
+      ctx.fillStyle='#ffffff10';rr(tabEnd.x,tabEnd.y,tabEnd.w,tabEnd.h,6);ctx.fill();
       ctx.fillStyle='#fff6';
     }
     ctx.font='bold 11px monospace';ctx.textAlign='center';
-    ctx.fillText(t('endless'),tabLX+tabW/2,tabY+16);
+    ctx.fillText(t('endless'),tabEnd.x+tabEnd.w/2,tabEnd.y+16);
     // Challenge tab
     if(rankingTab==='challenge'){
-      ctx.fillStyle='#ff386033';rr(tabRX,tabY,tabW,tabH,6);ctx.fill();
-      ctx.strokeStyle='#ff3860';ctx.lineWidth=1.5;rr(tabRX,tabY,tabW,tabH,6);ctx.stroke();
-      ctx.fillStyle='#ff3860';
+      ctx.fillStyle='#ff386033';rr(tabChal.x,tabChal.y,tabChal.w,tabChal.h,6);ctx.fill();
+      ctx.strokeStyle='#ff3860';ctx.lineWidth=1.5;rr(tabChal.x,tabChal.y,tabChal.w,tabChal.h,6);ctx.stroke();
+      ctx.fillStyle='#ff6080';
     } else {
-      ctx.fillStyle='#ffffff10';rr(tabRX,tabY,tabW,tabH,6);ctx.fill();
+      ctx.fillStyle='#ffffff10';rr(tabChal.x,tabChal.y,tabChal.w,tabChal.h,6);ctx.fill();
       ctx.fillStyle='#fff6';
     }
     ctx.font='bold 11px monospace';ctx.textAlign='center';
-    ctx.fillText(t('challenge'),tabRX+tabW/2,tabY+16);
+    ctx.fillText(t('challenge'),tabChal.x+tabChal.w/2,tabChal.y+16);
+    if(rankingTab==='stage'){
+      ctx.fillStyle='#34d39933';rr(tabStage.x,tabStage.y,tabStage.w,tabStage.h,6);ctx.fill();
+      ctx.strokeStyle='#34d399';ctx.lineWidth=1.5;rr(tabStage.x,tabStage.y,tabStage.w,tabStage.h,6);ctx.stroke();
+      ctx.fillStyle='#34d399';
+    } else {
+      ctx.fillStyle='#ffffff10';rr(tabStage.x,tabStage.y,tabStage.w,tabStage.h,6);ctx.fill();
+      ctx.fillStyle='#fff6';
+    }
+    ctx.font='bold 11px monospace';ctx.textAlign='center';
+    ctx.fillText(t('stage'),tabStage.x+tabStage.w/2,tabStage.y+16);
     // List area
     const listY=mY+hdrH+4;
     const listH=mH-hdrH-50;
@@ -4261,7 +4273,7 @@ function drawTitle(){
     ctx.beginPath();ctx.rect(mX,listY,mW,listH);ctx.clip();
     const rowH=36;
     const scrollOff=-rankingScroll;
-    const rankData=rankingTab==='challenge'?CHALLENGE_RANKING_DATA:RANKING_DATA;
+    const rankData=rankingTab==='stage'?STAGE_RANKING_DATA:(rankingTab==='challenge'?CHALLENGE_RANKING_DATA:RANKING_DATA);
     for(let i=0;i<rankData.length;i++){const entry=rankData[i];
       const ry=listY+i*rowH+scrollOff;
       if(ry+rowH<listY||ry>listY+listH)continue;
@@ -4329,7 +4341,7 @@ function drawTitle(){
         const _bFont='bold 7px monospace';
         const _bLbl=tTitleName(entry.titleId);
         const _bTW=_bLbl?_cMT(_bLbl,_bFont):0;
-        const _bW=Math.max(40,_bTW+38);
+        const _bW=Math.min(74,Math.max(40,_bTW+28));
         nameMaxW=Math.max(28,scX-SCORE_RES-nameX-_bW-6);
       }
       // Truncate name with ellipsis if too long
@@ -4343,22 +4355,25 @@ function drawTitle(){
       const nameW=_cMT(displayName,nameFont);
       let markerX=nameX+nameW+4;
       if(entry.titleId){
-        const badgeCx=Math.min(scX-52,nameX+nameW+42);
-        const rkBd=drawTitleBadge(badgeCx,ry+16,entry.titleId,{scale:0.72,fontPx:9});
+        const badgeMaxW=Math.max(42,Math.min(74,scX-55-(nameX+nameW+8)));
+        const badgeCx=nameX+nameW+8+badgeMaxW/2;
+        const rkBd=drawTitleBadge(badgeCx,ry+16,entry.titleId,{scale:0.62,fontPx:8,maxW:badgeMaxW});
         if(rkBd)markerX=rkBd.x+rkBd.w+4;
       }
       if(entry.isPlayer){
         ctx.fillStyle='#00e5ff';ctx.font='bold 11px monospace';ctx.textAlign='left';
         ctx.fillText('\u25C0',markerX,ry+22);
       }
-      // Value (right-aligned): score for endless, kills for challenge
+      // Value (right-aligned): score for endless, kills for challenge, stars for stage
       if(entry.isPlayer){ctx.fillStyle='#00e5ff';ctx.font='bold 13px monospace';}
       else if(rank===1){ctx.fillStyle='#ffd700';ctx.font='bold 13px monospace';}
       else if(rank===2){ctx.fillStyle='#e0e0e0';ctx.font='bold 12px monospace';}
       else if(rank===3){ctx.fillStyle='#dda060';ctx.font='bold 12px monospace';}
       else{ctx.fillStyle='#fff6';ctx.font='11px monospace';}
       ctx.textAlign='right';
-      if(rankingTab==='challenge'){
+      if(rankingTab==='stage'){
+        ctx.fillText(String(entry.stars||0),scX,ry+22);
+      } else if(rankingTab==='challenge'){
         ctx.fillText(String(entry.kills),scX,ry+22);
       } else {
         ctx.fillText(entry.score.toLocaleString(),scX,ry+22);
@@ -4489,12 +4504,24 @@ function drawTitleMenu(){
     ctx.strokeStyle=equippedTitle?pal.rim:(unlockedTitle?'rgba(255,255,255,0.12)':'rgba(148,163,184,0.16)');
     ctx.lineWidth=equippedTitle?1.5:1;rr(rowX,rowY,rowW,rowH,10);ctx.stroke();
     const bd=drawTitleBadge(mX+72,cy+34,def,{label:unlockedTitle?tTitleName(def):t('titleLockedName'),locked:!unlockedTitle,scale:0.88,fontPx:9});
+    const isNewTitle=unlockedTitle&&notifNewTitleIds&&notifNewTitleIds.indexOf(def.id)!==-1;
     const status=equippedTitle?t('titleEquippedState'):(unlockedTitle?t('titleUnlockedState'):t('titleLockedState'));
     const statusColor=equippedTitle?pal.rim:(unlockedTitle?'#ffffff99':'#94a3b8');
     const descX=bd?Math.max(mX+130,bd.x+bd.w+8):mX+130;
     const statusX=mX+mW-18;
+    ctx.font='bold 9px monospace';ctx.textAlign='right';
+    const stW=Math.max(42,_cMT(status,'bold 9px monospace')+12);
+    ctx.fillStyle=equippedTitle?'rgba(250,204,21,0.18)':(unlockedTitle?'rgba(52,211,153,0.16)':'rgba(100,116,139,0.18)');
+    rr(statusX-stW,cy+6,stW,14,7);ctx.fill();
+    ctx.strokeStyle=equippedTitle?'rgba(250,204,21,0.45)':(unlockedTitle?'rgba(52,211,153,0.35)':'rgba(148,163,184,0.22)');
+    ctx.lineWidth=1;rr(statusX-stW,cy+6,stW,14,7);ctx.stroke();
     ctx.fillStyle=statusColor;ctx.font='bold 9px monospace';ctx.textAlign='right';
-    ctx.fillText(status,statusX,cy+16);
+    ctx.fillText(status,statusX-6,cy+16);
+    if(isNewTitle){
+      ctx.fillStyle='#ff3860';rr(rowX+6,rowY+4,28,12,5);ctx.fill();
+      ctx.fillStyle='#fff';ctx.font='bold 8px monospace';ctx.textAlign='center';
+      ctx.fillText('NEW',rowX+20,rowY+13);
+    }
     const availW=statusX-descX-4;
     const wrapCh=Math.max(8,Math.floor(availW/(gameLang==='ja'?9.5:6)));
     const lines=_wrapTextLines(getTitleConditionText(def),wrapCh).slice(0,2);
@@ -6513,7 +6540,7 @@ function drawShop(){
     const def=shopTabDef(shopTab);
     const isConsumable=isConsumableItem(item);
     const owned=isConsumable?itemStock(item.id)>0:ownsItem(item.id);
-    const isSecret=(item.rarity==='rare'||item.rarity==='super_rare')&&!owned;
+    const isSecret=!!item.gachaOnly&&!owned;
     const isRareShop=item.rarity==='rare';
     const isSuperRareShop=item.rarity==='super_rare';
     const equipped=def.isCosmetic&&equippedIdForSlot(def.equipSlot)===item.id;
@@ -6777,7 +6804,7 @@ function drawCosmeticMenu(){
   ctx.fillText(t('dressUp'),W/2,mY+30);
   // Character preview
   const prevX=W/2,prevY=mY+70;
-  drawEquippedPetAt(prevX-36,prevY+8,12,1,'preview',1);
+  drawPetShowcase('demo',prevX,prevY+8,16,1,1);
   drawCharacter(prevX,prevY,selChar,22,0,1,'normal',0,true);
   const fxD=getEquippedEffectData();
   if(fxD)drawPlayerEffect(prevX,prevY,22,fxD.type,1,1,true);
@@ -6789,6 +6816,13 @@ function drawCosmeticMenu(){
     ctx.strokeStyle=cosmeticTab===i?def.color:def.color+'44';ctx.lineWidth=1;rr(tr.x,tr.y,tr.w,tr.h,6);ctx.stroke();
     ctx.fillStyle=cosmeticTab===i?def.color:'#fff6';ctx.font=cosmeticTab===i?'bold 10px monospace':'10px monospace';
     ctx.fillText(t(def.labelKey),tr.x+tr.w/2,tr.y+18);
+    const tabItems=SHOP_ITEMS[def.key]||[];
+    let tabHasNew=false;for(let ni=0;ni<tabItems.length;ni++){if(newCosmeticIds.has(tabItems[ni].id)){tabHasNew=true;break;}}
+    if(tabHasNew){
+      ctx.fillStyle='#ff3860';rr(tr.x+tr.w-18,tr.y-5,22,11,5);ctx.fill();
+      ctx.fillStyle='#fff';ctx.font='bold 7px monospace';ctx.textAlign='center';
+      ctx.fillText('NEW',tr.x+tr.w-7,tr.y+3);
+    }
   }
   // Item list: show every item as a collection frame; unowned stays hidden as ???.
   const ownedList=cosmeticListForTab(cosmeticTab);
@@ -6803,6 +6837,7 @@ function drawCosmeticMenu(){
     const equipped=def.isCosmetic&&equippedIdForSlot(def.equipSlot)===item.id;
     const isRare=!isNone&&item.rarity==='rare';
     const isSR=!isNone&&item.rarity==='super_rare';
+    const isNewCosm=owned&&!isNone&&newCosmeticIds.has(item.id);
     // Row background with rarity tint
     ctx.fillStyle=!owned?'#ffffff03':isSR?'#ffd70012':isRare?'#a855f710':equipped?'#ffffff18':'#ffffff06';
     rr(mX+8,iy+2,mW-16,rowH-4,8);ctx.fill();
@@ -6846,12 +6881,18 @@ function drawCosmeticMenu(){
       ctx.fillStyle=owned?'#a855f7':'#a855f788';ctx.font='bold 7px monospace';
       ctx.fillText('\u25C6 RARE',mX+56,iy+28);
     }
+    if(isNewCosm){
+      ctx.fillStyle='#ff3860';rr(mX+mW-58,iy+6,34,13,6);ctx.fill();
+      ctx.fillStyle='#fff';ctx.font='bold 8px monospace';ctx.textAlign='center';
+      ctx.fillText('NEW',mX+mW-41,iy+16);
+      ctx.textAlign='left';
+    }
     const isCosmeticPet=def.key==='pets';
     if(isCosmeticPet&&owned){
       ctx.fillStyle='#6ee7b7';ctx.font='bold 7.5px monospace';
-      ctx.fillText('⚡ '+tCosDesc(item.id),mX+56,iy+34,mW-166);
+      ctx.fillText('⚡ '+tCosDesc(item.id),mX+56,iy+39,mW-166);
       ctx.fillStyle='#fff4';ctx.font='7.5px monospace';
-      ctx.fillText(item.desc||'',mX+56,iy+44,mW-166);
+      ctx.fillText(item.desc||'',mX+56,iy+50,mW-166);
     } else {
       ctx.fillStyle='#fff5';ctx.font='9px monospace';
       ctx.fillText(owned?(tCosDesc(item.id)||''):'???',mX+56,iy+38);

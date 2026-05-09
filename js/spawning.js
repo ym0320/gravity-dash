@@ -138,7 +138,7 @@ function trySpawnEnemy(){
   }
   if(!plat)return;
   // forceEnemyType のステージは内部chanceとCDを緩めて敵密度を上げる
-  const isForcedStage=isPackMode&&currentPackStage&&typeof currentPackStage.forceEnemyType==='number';
+  const isForcedStage=isPackMode&&currentPackStage&&(typeof currentPackStage.forceEnemyType==='number'||!!currentPackStage.allEnemyTypes);
   const chance=isForcedStage?0.9:(isPackMode?0.5:Math.min(0.3,0.04+(score-30)*0.002));
   if(packRng()<chance){
     enemyCD=isForcedStage?(8+Math.floor(packRng()*10)):(isPackMode?(25+Math.floor(packRng()*25)):(55+Math.floor(packRng()*50)));
@@ -151,7 +151,14 @@ function trySpawnEnemy(){
       if(typeof currentPackStage.forceEnemyType==='number'){
         // forceEnemyType: 指定した敵タイプのみ出現（0:walker, 1:cannon, 2:flyer, 3:bomber, 4:vertMover, 5:phantom, 6:dasher, 8:splitter）
         eType=currentPackStage.forceEnemyType;
-      } else if(currentPackStage.walkerOnly){eType=0;}
+      } else if(currentPackStage.walkerCannonOnly){eType=packRng()<0.5?0:1;}
+      else if(currentPackStage.walkerOnly){eType=0;}
+      else if(currentPackStage.allEnemyTypes){
+        // 全種類の敵をランダムで出現
+        if(tr<0.14)eType=8;else if(tr<0.27)eType=3;else if(tr<0.38)eType=6;
+        else if(tr<0.48)eType=5;else if(tr<0.57)eType=4;else if(tr<0.67)eType=2;
+        else if(tr<0.78)eType=1;else eType=0;
+      }
       else {
       const stageIdx=currentPackStageIdx; // 0-4
       const progress=dist/currentPackStage.dist;
@@ -188,15 +195,19 @@ function trySpawnEnemy(){
       } // end walkerOnly else
     } else {
       // Endless mode: score-based enemy types
-      if(score>=600&&bossPhase.bossCount>=3&&tr<0.07) eType=3;
-      else if(score>=400&&bossPhase.bossCount>=2&&tr<0.13) eType=8;
-      else if(score>=250&&bossPhase.bossCount>=1&&tr<0.18) eType=6;
-      else if(score>=5000&&tr<0.30) eType=14; // leaper: appears from score 5000
-      else if(score>=160&&tr<0.12) eType=5;
-      else if(score>=140&&tr<0.15) eType=4;
-      else if(score>=120&&tr<0.22) eType=2;
-      else if(score>=80&&tr<0.35) eType=1;
-      else eType=0;
+      const opts=[{type:0,w:44}];
+      if(score>=80)opts.push({type:1,w:18});
+      if(score>=120)opts.push({type:2,w:14});
+      if(score>=140)opts.push({type:4,w:12});
+      if(score>=160)opts.push({type:5,w:12});
+      if(score>=250&&bossPhase.bossCount>=1)opts.push({type:6,w:11});
+      if(score>=400&&bossPhase.bossCount>=2)opts.push({type:8,w:9});
+      if(score>=600&&bossPhase.bossCount>=3)opts.push({type:3,w:8});
+      if(score>=5000)opts.push({type:14,w:12}); // leaper: appears from score 5000
+      let totalW=0;for(let oi=0;oi<opts.length;oi++)totalW+=opts[oi].w;
+      let roll=tr*totalW;
+      eType=opts[0].type;
+      for(let oi=0;oi<opts.length;oi++){roll-=opts[oi].w;if(roll<=0){eType=opts[oi].type;break;}}
     }
 
     if(eType===4){
@@ -251,7 +262,7 @@ function trySpawnEnemy(){
         splitDone:false});
     } else if(eType===14){
       // Leaper: cute round jumper that leaps at player
-      const onCeil14=packRng()<0.4;
+      const onCeil14=packRng()<0.5;
       const gd14=onCeil14?-1:1;
       const surfY14=gd14===1?H-plat.h:ceilSurfaceY(ex);
       const sz14=12;
@@ -386,9 +397,8 @@ function trySpawnFallingMtn(){
     const platArr=isFloor?platforms:ceilPlats;
     // Early-stage fix: allow the first falling floor to be selected from gaps that are
     // already partly visible, so it doesn't pop in only after the terrain has scrolled.
-    const earlyStage=(boostStage||isPackMode||isGimmickFalling)&&fallingMtns.length<2&&rawDist<900;
-    const gapMinX=earlyStage?(player.x+20):W-20;
-    const gapMaxX=earlyStage?(W+Math.max(340,Math.ceil(speed*90))):(W+Math.max(300,Math.ceil(speed*90)));
+    const gapMinX=W+20;
+    const gapMaxX=W+Math.max(360,Math.ceil(speed*110));
     // Look for gaps between platforms in the upcoming area
     let gapX=-1,gapW=0,gapPlatH=GROUND_H;
     for(let i=0;i<platArr.length-1;i++){
@@ -464,9 +474,8 @@ function trySpawnMovingHill(){
     // Normally we only spawn in W-200..W+200 (near the right edge) but that means
     // for gravity/moving stages, no hill exists until terrain scrolls ~half a screen in.
     // When few hills exist and we're still early, allow spawning in the visible area too.
-    const earlyStage=(isGravityStage||isMovingStage||isGimmickMoving)&&movingHills.length<2&&rawDist<600;
-    const gapMinX=earlyStage?(player.x+40):(W-200);
-    const gapMaxX=earlyStage?(W+Math.max(300,Math.ceil(speed*90))):(W+Math.max(200,Math.ceil(speed*90)));
+    const gapMinX=W+20;
+    const gapMaxX=W+Math.max(360,Math.ceil(speed*110));
     // Find a gap (abyss) in platforms to place the moving hill over
     let gapX=-1,gapW=0,gapPlatH2=GROUND_H;
     for(let i=0;i<platArr.length-1;i++){
@@ -474,7 +483,7 @@ function trySpawnMovingHill(){
       const gStart=p1.x+p1.w;
       const gEnd=p2.x;
       const gap=gEnd-gStart;
-      if(gap>=50&&gStart>gapMinX&&gStart<gapMaxX){
+      if(gap>=50&&gEnd>gapMinX&&gStart<gapMaxX){
         gapX=gStart;gapW=gap;gapPlatH2=Math.round((p1.h+p2.h)/2);break;
       }
     }
@@ -509,7 +518,7 @@ function trySpawnGravZone(){
   const boostStage=isPackMode&&currentPackStage&&currentPackStage.gravZoneBoost;
   // gravZoneBoostはnoHazardsでも重力ゾーンを出す（ステージの主役ギミック）
   if(!boostStage&&isPackMode&&currentPackStage&&currentPackStage.noHazards)return;
-  if(isPackMode&&currentPackStage&&currentPackStage.stageType==='altChasm')return;
+  if(isPackMode&&currentPackStage&&currentPackStage.stageType==='altChasm'&&!boostStage)return;
   if(!isPackMode&&(bossPhase.bossCount<1||bossPhase.active))return;
   if(isPackMode&&bossPhase.active)return;
   if(!isPackMode&&score<150)return;

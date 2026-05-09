@@ -22,6 +22,12 @@ function generatePlatform(arr,isCeil,forceGap){
     arr.push({x:lastRight,w:150+Math.random()*100,h:GROUND_H});
     return;
   }
+  if(!isPackMode&&bossPhase.bossCount<1&&rawDist<BOSS_INTERVAL){
+    const softStep=(score>180&&Math.random()<0.08)?(Math.random()<0.5?-1:1)*(2+Math.random()*6):0;
+    const h=clampH(lastH+softStep,isCeil?0.32:0.29);
+    arr.push({x:lastRight,w:180+Math.random()*260,h:h});
+    return;
+  }
   // Forced gap for flip zones: create a large gap to force gravity flip
   if(forceGap){
     const gapSize=120+Math.random()*80;
@@ -207,6 +213,7 @@ function reset(){
   abyssPhase={active:false,len:0,cd:0};
   gravRushPhase={active:false,len:0,cd:0};
   terrainGimmickPhase={active:false,type:'',len:0,cd:0};
+  stageGoalWalkActive=false;stageGoalScreenX=0;
   bossPhase={active:false,prepare:0,alertT:0,enemies:[],defeated:0,total:0,reward:false,rewardT:0,nextAt:BOSS_INTERVAL,lastBossScore:0,lastBossRawDist:0,bossCount:0,bossType:'',bossType2:null,challStrength:1,challIsDual:false,noDamage:true};
   hp=HP_MAX+(ct().hpBonus||0);hurtT=0;
   curTheme=0;prevTheme=0;themeLerp=1;
@@ -272,7 +279,7 @@ function resetPackStage(pi,si,fromCheckpoint){
     }
     const starX=W*0.2 + (starDist-startDist) / (SPEED_INIT * stage.spdMul * 0.08) * (SPEED_INIT * stage.spdMul);
     const yOff=cd.yOff||-50;
-    stageBigCoins.push({x:starX,y:0,yOff:yOff,sz:16,col:false,p:0,distMark:starDist});
+    stageBigCoins.push({x:starX,y:0,yOff:yOff,fromCeil:!!cd.fromCeil,sz:16,col:false,p:0,distMark:starDist});
   }
   stageBigCollected=stageBigCoins.filter(bc=>bc.col).length;stageClearT=0;
   ambientParts=[];
@@ -293,6 +300,7 @@ function resetPackStage(pi,si,fromCheckpoint){
   hp=3;hurtT=0; // Stage mode: 3 HP
   curTheme=0;prevTheme=0;themeLerp=1;
   bossChests=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null,rewardGranted:false,_lastRevealIdx:-1};
+  stageGoalWalkActive=false;stageGoalScreenX=0;
 }
 function generatePackPlatform(arr,isCeil,stage){
   const last=arr.length>0?arr[arr.length-1]:null;
