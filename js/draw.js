@@ -4503,14 +4503,19 @@ function drawTitleMenu(){
     ctx.fillStyle=rowBg;rr(rowX,rowY,rowW,rowH,10);ctx.fill();
     ctx.strokeStyle=equippedTitle?pal.rim:(unlockedTitle?'rgba(255,255,255,0.12)':'rgba(148,163,184,0.16)');
     ctx.lineWidth=equippedTitle?1.5:1;rr(rowX,rowY,rowW,rowH,10);ctx.stroke();
-    const bd=drawTitleBadge(mX+72,cy+34,def,{label:unlockedTitle?tTitleName(def):t('titleLockedName'),locked:!unlockedTitle,scale:0.88,fontPx:9});
     const isNewTitle=unlockedTitle&&notifNewTitleIds&&notifNewTitleIds.indexOf(def.id)!==-1;
     const status=equippedTitle?t('titleEquippedState'):(unlockedTitle?t('titleUnlockedState'):t('titleLockedState'));
     const statusColor=equippedTitle?pal.rim:(unlockedTitle?'#ffffff99':'#94a3b8');
-    const descX=bd?Math.max(mX+130,bd.x+bd.w+8):mX+130;
     const statusX=mX+mW-18;
-    ctx.font='bold 9px monospace';ctx.textAlign='right';
     const stW=Math.max(42,_cMT(status,'bold 9px monospace')+12);
+    // Compute lines first for badge vertical centering
+    const _availW2=statusX-stW-(mX+130)-8;
+    const wrapCh2=Math.max(8,Math.floor(_availW2/(gameLang==='ja'?9.5:6)));
+    const lines2=_wrapTextLines(getTitleConditionText(def),wrapCh2).slice(0,2);
+    const _textCenterY=cy+22+lines2.length*7; // vertical center of text lines
+    const bd=drawTitleBadge(mX+72,_textCenterY,def,{label:unlockedTitle?tTitleName(def):t('titleLockedName'),locked:!unlockedTitle,scale:0.88,fontPx:9});
+    const descX=bd?Math.max(mX+130,bd.x+bd.w+8):mX+130;
+    ctx.font='bold 9px monospace';ctx.textAlign='right';
     ctx.fillStyle=equippedTitle?'rgba(250,204,21,0.18)':(unlockedTitle?'rgba(52,211,153,0.16)':'rgba(100,116,139,0.18)');
     rr(statusX-stW,cy+6,stW,14,7);ctx.fill();
     ctx.strokeStyle=equippedTitle?'rgba(250,204,21,0.45)':(unlockedTitle?'rgba(52,211,153,0.35)':'rgba(148,163,184,0.22)');
@@ -4523,17 +4528,19 @@ function drawTitleMenu(){
       ctx.fillText('NEW',rowX+20,rowY+13);
     }
     // Condition text
-    const _availW=statusX-stW-descX-8;
-    const wrapCh=Math.max(8,Math.floor(_availW/(gameLang==='ja'?9.5:6)));
-    const lines=_wrapTextLines(getTitleConditionText(def),wrapCh).slice(0,2);
     ctx.fillStyle='#fff8';ctx.font='10px monospace';ctx.textAlign='left';
-    for(let li=0;li<lines.length;li++)ctx.fillText(lines[li],descX,cy+26+li*14);
-    // Progress bar — full row width
+    for(let li=0;li<lines2.length;li++)ctx.fillText(lines2[li],descX,cy+26+li*14);
+    // Progress bar — full row width, count at top-right of bar
     const _pg=getTitleProgress(def);
     const _fmtN=n=>Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,',');
     const _cntStr=_fmtN(_pg.current)+' / '+_fmtN(_pg.total);
-    const _bStartX=rowX+6;const _bEndX=rowX+rowW-6;const _bW=_bEndX-_bStartX;
-    const _bY=cy+eh-30;const _bH=8;
+    const _bStartX=rowX+4;const _bEndX=rowX+rowW-4;const _bW=_bEndX-_bStartX;
+    const _bY=cy+eh-22;const _bH=8;
+    // Count text top-right of bar
+    const _cCol=_pg.ratio>=1?'#34d399':_pg.ratio>=0.75?'#fbbf24':_pg.ratio>=0.5?'#fb923c':'rgba(255,255,255,0.45)';
+    ctx.fillStyle=_cCol;ctx.font='bold 9px monospace';ctx.textAlign='right';
+    ctx.fillText(_cntStr,_bEndX,_bY-3);
+    // Bar track
     ctx.fillStyle='rgba(255,255,255,0.08)';rr(_bStartX,_bY,_bW,_bH,4);ctx.fill();
     if(_pg.ratio>0){
       const _bFill=Math.min(1,_pg.ratio);
@@ -4541,10 +4548,6 @@ function drawTitleMenu(){
       ctx.fillStyle=_bCol+'cc';rr(_bStartX,_bY,Math.max(8,_bW*_bFill),_bH,4);ctx.fill();
       if(_bFill>=1){ctx.strokeStyle='#34d39966';ctx.lineWidth=1;rr(_bStartX,_bY,_bW,_bH,4);ctx.stroke();}
     }
-    // Count text below bar, right-aligned
-    const _cCol=_pg.ratio>=1?'#34d399':_pg.ratio>=0.75?'#fbbf24':_pg.ratio>=0.5?'#fb923c':'rgba(255,255,255,0.45)';
-    ctx.fillStyle=_cCol;ctx.font='bold 9px monospace';ctx.textAlign='right';
-    ctx.fillText(_cntStr,_bEndX,_bY+_bH+12);
     cy+=eh;
   }
   ctx.restore();
@@ -4613,10 +4616,8 @@ function drawCharModal(){
   // Demo background circle
   ctx.fillStyle=ch.col+'0a';ctx.beginPath();ctx.arc(W/2,demoY,48,0,TAU);ctx.fill();
   ctx.strokeStyle=ch.col+'22';ctx.lineWidth=1;ctx.beginPath();ctx.arc(W/2,demoY,48,0,TAU);ctx.stroke();
-  // Draw character large with animation
-  const cmFxData=getEquippedEffectData();
-  if(cmFxData)drawPlayerEffect(W/2,demoY+bob,32,cmFxData.type,1,1,true);
-  drawCharacter(W/2,demoY+bob,charModal.idx,32,rot,1,'normal');
+  // Draw character large with animation (no cosmetics/effects)
+  drawCharacter(W/2,demoY+bob,charModal.idx,32,rot,1,'normal',0,false);
   // Trait-specific animated demo effects
   drawTraitDemo(ch,charModal.idx,W/2,demoY,t);
   // Status bars + special abilities
