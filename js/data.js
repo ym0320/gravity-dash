@@ -257,7 +257,6 @@ function playerCoinMagnetRadius(){
   if(itemEff.magnet>0)return 180;
   if(isSpecialActive('ghost'))return SPECIAL_GHOST_MAGNET_RADIUS;
   if(ct().shape==='ghost')return GHOST_PASSIVE_COIN_RADIUS; // passive: coins only
-  if(equippedPet==='pet_drone')return PET_DRONE_MAGNET_RADIUS;
   if(equippedPet==='pet_comet')return 50; // comet pet: gentle coin pull
   return ct().coinMag||0;
 }
@@ -266,7 +265,6 @@ function playerCoinMagnetStrength(){
   if(itemEff.magnet>0)return 0.12;
   if(isSpecialActive('ghost'))return SPECIAL_GHOST_MAGNET_STRENGTH;
   if(ct().shape==='ghost')return GHOST_PASSIVE_COIN_STRENGTH; // passive
-  if(equippedPet==='pet_drone')return PET_DRONE_MAGNET_STRENGTH;
   if(equippedPet==='pet_comet')return 0.03; // 1/4 of magnet strength
   return ct().coinMag>0?0.06:0;
 }
