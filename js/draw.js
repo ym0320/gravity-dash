@@ -164,8 +164,11 @@ function drawCharStatBars(ch,cx,startY,totalW){
   const sectionW=totalW;
   function drawInfoSection(y,label,labelCol,lines,bodyCol){
     const bodyLines=[];
+    // Compute wrap width from actual section pixel width
+    const _innerW=sectionW-26; // 12px left pad + 2 for '- ' prefix + 12px right margin
+    const _wCh=gameLang==='ja'?Math.max(10,Math.floor(_innerW/11)):Math.max(16,Math.floor(_innerW/6.5));
     for(let i=0;i<lines.length;i++){
-      const wrapped=_wrapTextLines(lines[i],gameLang==='ja'?24:30);
+      const wrapped=_wrapTextLines(lines[i],_wCh);
       for(let j=0;j<wrapped.length;j++)bodyLines.push(wrapped[j]);
     }
     const h=24+bodyLines.length*14;
@@ -4621,7 +4624,7 @@ function drawCharModal(){
   // Trait-specific animated demo effects
   drawTraitDemo(ch,charModal.idx,W/2,demoY,t);
   // Status bars + special abilities
-  const barStartY=demoY+72;
+  const barStartY=demoY+82;
   drawCharStatBars(ch,W/2,barStartY,mw-40);
   // Close hint
   ctx.fillStyle='#fff3';ctx.font='10px monospace';ctx.textAlign='center';
@@ -6060,11 +6063,17 @@ function drawStageSel(){
     cg.addColorStop(0,st.bg1+'cc');cg.addColorStop(1,st.bg2+'cc');
     ctx.fillStyle=cg;rr(15,cy,cardW,cardH,12);ctx.fill();
     ctx.strokeStyle=st.line+'88';ctx.lineWidth=1.5;rr(15,cy,cardW,cardH,12);ctx.stroke();
-    // Pack name and progress
+    // Pack name
     ctx.fillStyle=st.ply;ctx.font='bold 16px monospace';ctx.textAlign='left';
     ctx.fillText(tPackName(pi),28,cy+24);
-    ctx.fillStyle='#fff6';ctx.font='11px monospace';
-    ctx.fillText(cleared+'/5 '+t('cleared'),28,cy+40);
+    // Stars + cleared count — top right of card
+    const packStarsPre=pack.stages.reduce((sum,s)=>{const p=packProgress[s.id];return sum+(p?p.stars:0);},0);
+    const _srX=15+cardW-10;
+    ctx.textAlign='right';
+    ctx.fillStyle='#ffd700';ctx.font='bold 15px monospace';
+    _shadow(6,'#ffd70066');ctx.fillText('★ '+packStarsPre,_srX,cy+22);ctx.shadowBlur=0;
+    ctx.fillStyle='#fff8';ctx.font='bold 10px monospace';
+    ctx.fillText(cleared+'/5 '+t('cleared'),_srX,cy+36);
     // Stage buttons (5 in a row)
     const sbW=44,sbH=44,sbGap=8;
     const sbX=15+(cardW-(5*sbW+4*sbGap))/2;
@@ -6084,11 +6093,13 @@ function drawStageSel(){
         if(is3Star){ctx.strokeStyle='#ffd70066';ctx.lineWidth=1;rr(sx+2,sbY+2,sbW-4,sbH-4,8);ctx.stroke();}
         ctx.fillStyle=is3Star?'#00e5ff':'#ffd700';ctx.font='bold 12px monospace';ctx.textAlign='center';
         ctx.fillText(stage.name,sx+sbW/2,sbY+16);
-        // Show stars earned
-        ctx.font='10px monospace';
+        // Show stars earned — bold & glowing
+        ctx.font='bold 13px monospace';
         for(let si2=0;si2<3;si2++){
-          ctx.fillStyle=si2<stageStars?'#ffd700':'#ffffff33';
-          ctx.fillText('★',sx+sbW/2-10+si2*10,sbY+36);
+          const _got=si2<stageStars;
+          ctx.fillStyle=_got?'#ffd700':'#ffffff28';
+          if(_got){_shadow(5,'#ffd70099');}
+          ctx.fillText('★',sx+5+si2*13,sbY+37);ctx.shadowBlur=0;
         }
       } else if(canPlay){
         // Next playable: white border, pulse
@@ -6121,11 +6132,7 @@ function drawStageSel(){
         ctx.restore();
       }
     }
-    // Star total indicator at bottom of card
-    const bcY=sbY+sbH+8;
-    const packStars=pack.stages.reduce((sum,s)=>{const p=packProgress[s.id];return sum+(p?p.stars:0);},0);
-    ctx.fillStyle='#ffd700';ctx.font='9px monospace';ctx.textAlign='left';
-    ctx.fillText('★ '+packStars+' / 15  ('+cleared+'/5 '+t('cleared')+')',28,bcY+4);
+    // (star total moved to card top-right)
   }
   ctx.restore();
   // Scroll indicator

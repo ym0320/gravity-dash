@@ -777,37 +777,31 @@ let _resumeBgmHooked=false;
 let _restoreBgmT=0;
 function restoreVisibleBGM(){
   if(document.hidden)return;
-  // Debounce: ignore duplicate calls within 200ms
   const now=Date.now();if(now-_restoreBgmT<200)return;_restoreBgmT=now;
   initAudio();
   const target=bgmBeforePause||_pauseSavedBGM||bgmCurrent||(state===ST.TITLE||state===ST.LOGIN?'title':(isChallengeMode?'challenge':'play'));
   const _restart=()=>{
     if(document.hidden)return;
-    if(target){switchBGM(target);}
-    bgmBeforePause='';
+    bgmCurrent=''; // force re-init of BGM even if same track
+    if(target)switchBGM(target);
+    bgmBeforePause='';_pauseSavedBGM='';
   };
-  if(audioCtx&&audioCtx.state==='suspended'){
-    audioCtx.resume().then(_restart).catch(()=>{});
-    if(!_resumeBgmHooked){
-      _resumeBgmHooked=true;
-      const resumeAudio=()=>{
-        initAudio();
-        if(audioCtx&&audioCtx.state==='suspended'){
-          audioCtx.resume().then(_restart).catch(()=>{});
-        } else {
-          _restart();
-        }
-        document.removeEventListener('touchstart',resumeAudio,true);
-        document.removeEventListener('mousedown',resumeAudio,true);
-        document.removeEventListener('keydown',resumeAudio,true);
-        _resumeBgmHooked=false;
-      };
-      document.addEventListener('touchstart',resumeAudio,{capture:true,once:true});
-      document.addEventListener('mousedown',resumeAudio,{capture:true,once:true});
-      document.addEventListener('keydown',resumeAudio,{capture:true,once:true});
+  const _tryResume=()=>{
+    initAudio();
+    if(!audioCtx)return;
+    if(audioCtx.state==='suspended'){
+      audioCtx.resume().then(()=>{setTimeout(_restart,80);}).catch(()=>{setTimeout(_restart,300);});
+    } else {
+      _restart();
     }
-  } else {
-    _restart();
+  };
+  _tryResume();
+  // Fallback: also retry on next user interaction in case AudioContext couldn't resume immediately
+  if(audioCtx&&audioCtx.state!=='running'&&!_resumeBgmHooked){
+    _resumeBgmHooked=true;
+    const _hook=()=>{_tryResume();document.removeEventListener('touchstart',_hook,true);document.removeEventListener('mousedown',_hook,true);_resumeBgmHooked=false;};
+    document.addEventListener('touchstart',_hook,{capture:true,once:true});
+    document.addEventListener('mousedown',_hook,{capture:true,once:true});
   }
 }
 document.addEventListener('visibilitychange',()=>{
