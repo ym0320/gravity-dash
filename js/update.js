@@ -407,9 +407,6 @@ function update(dt){
   } else {
     speed=Math.min(SPEED_MAX,(SPEED_INIT+rawDist*SPEED_INC))*ct().speedMul;
   }
-  // Goal walk: freeze world scrolling
-  if(stageGoalWalkActive)speed=0;
-
   // Distance scoring (score freezes during boss, catches up on victory; frozen during goal walk)
   if(!(isPackMode&&stageGoalWalkActive)){
     const frameDist=speed*0.08;
@@ -463,12 +460,14 @@ function update(dt){
   if(isPackMode&&currentPackStage){
     if(platforms.length===0)platforms.push({x:W+30,w:220,h:GROUND_H});
     if(!currentPackStage.noCeiling&&ceilPlats.length===0)ceilPlats.push({x:W+30,w:220,h:GROUND_H});
-    while(platforms.length>0&&platforms[platforms.length-1].x+platforms[platforms.length-1].w<W+300){
-      generatePackPlatform(platforms,false,currentPackStage);
-    }
-    if(!currentPackStage.noCeiling){
-      while(ceilPlats.length>0&&ceilPlats[ceilPlats.length-1].x+ceilPlats[ceilPlats.length-1].w<W+300){
-        generatePackPlatform(ceilPlats,true,currentPackStage);
+    if(!stageGoalWalkActive){
+      while(platforms.length>0&&platforms[platforms.length-1].x+platforms[platforms.length-1].w<W+300){
+        generatePackPlatform(platforms,false,currentPackStage);
+      }
+      if(!currentPackStage.noCeiling){
+        while(ceilPlats.length>0&&ceilPlats[ceilPlats.length-1].x+ceilPlats[ceilPlats.length-1].w<W+300){
+          generatePackPlatform(ceilPlats,true,currentPackStage);
+        }
       }
     }
     // Pack mode: boss stage trigger at 90% distance
@@ -534,9 +533,9 @@ function update(dt){
       if(rawDist<_gDist&&_gSX>=player.x+30&&_gSX<=W*0.88){
         stageGoalWalkActive=true;
         stageGoalScreenX=_gSX;
-        // Extend runway to goal so player has solid ground to walk on
-        if(platforms.length>0){const lp=platforms[platforms.length-1];platforms.push({x:lp.x+lp.w,w:Math.max(300,stageGoalScreenX-lp.x+400),h:GROUND_H});}
-        if(!currentPackStage.noCeiling&&ceilPlats.length>0){const lc=ceilPlats[ceilPlats.length-1];ceilPlats.push({x:lc.x+lc.w,w:Math.max(300,stageGoalScreenX-lc.x+400),h:GROUND_H});}
+        // Extend runway: world scrolls AND player moves, so runway needs to cover both
+        if(platforms.length>0){const lp=platforms[platforms.length-1];platforms.push({x:lp.x+lp.w,w:Math.max(900,stageGoalScreenX-lp.x+900),h:GROUND_H});}
+        if(!currentPackStage.noCeiling&&ceilPlats.length>0){const lc=ceilPlats[ceilPlats.length-1];ceilPlats.push({x:lc.x+lc.w,w:Math.max(900,stageGoalScreenX-lc.x+900),h:GROUND_H});}
         // Clear remaining enemies for a clean ending
         for(let _ei=0;_ei<enemies.length;_ei++)enemies[_ei].alive=false;
         enemies=enemies.filter(e=>e._defeatFall);
@@ -545,7 +544,7 @@ function update(dt){
     }
     // Goal walk: auto-walk player rightward toward the goal flag
     if(stageGoalWalkActive&&state===ST.PLAY&&player.alive){
-      if(player.x<stageGoalScreenX){player.x=Math.min(player.x+3,stageGoalScreenX);}
+      if(player.x<stageGoalScreenX){player.x=Math.min(player.x+speed,stageGoalScreenX);}
       if(player.x>=stageGoalScreenX-8){
         stageGoalWalkActive=false;
         state=ST.STAGE_CLEAR;stageClearT=0;gotNewStars=0;
