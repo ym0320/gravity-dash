@@ -2094,15 +2094,16 @@ const STAGE_PACKS=[
     {id:'1-3',name:'1-3',dist:1000,spdMul:1.1,seed:1003,enemyChance:0.85,gapChance:0,hillChance:0,flatGround:true,flatGoal:true,
       allEnemyTypes:true,noFloatPlat:true,noMovingHill:true,noHazards:true,
       coins:[{pos:0.28,yOff:-60},{pos:0.55,yOff:-200},{pos:0.78,yOff:-80}]},
-    // 1-4: 幅広の上下移動床、敵なし
+    // 1-4: 幅広の上下移動床・密度高め、敵なし
     {id:'1-4',name:'1-4',dist:1000,spdMul:1.1,seed:1004,hillChance:0,gapChance:0,enemyChance:0,flatGoal:true,
       stageType:'gravity',noFloatPlat:true,noHazards:true,
-      hillW:95,hillDensityCD:55,hillMinGap:240,
+      hillW:95,hillDensityCD:35,hillMinGap:160,
       coins:[{pos:0.30,yOff:-50},{pos:0.55,yOff:-50},{pos:0.78,yOff:-50}]},
-    // 1-5: 陸なし・重力ゾーンのみ、チェックポイントなし
-    {id:'1-5',name:'1-5',dist:1000,spdMul:1.1,seed:1005,enemyChance:0,flatGoal:true,
+    // 1-5: スタート以外床なし・重力ゾーン＋空中全種類敵
+    {id:'1-5',name:'1-5',dist:1000,spdMul:1.1,seed:1005,enemyChance:0.80,flatGoal:true,
       stageType:'pureGrav',hillChance:0,gapChance:0,noMovingHill:true,noFloatPlat:true,noHazards:true,noCheckpoint:true,
-      coins:[{pos:0.25,yOff:-90},{pos:0.55,fromCeil:true,yOff:80},{pos:0.80,yOff:-90}]},
+      aerialEnemyTypes:true,
+      coins:[{pos:0.25,fromCeil:true,yOff:70},{pos:0.55,fromCeil:true,yOff:160},{pos:0.80,fromCeil:true,yOff:70}]},
   ]},
   {name:'雪山',theme:1,unlock:12,starsPerStage:2,stages:[
     // 2-1: つらら雨 — 頭上からつららが降ってくる、敵はクリボーのみ

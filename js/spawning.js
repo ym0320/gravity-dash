@@ -136,9 +136,13 @@ function trySpawnEnemy(){
     const mhPlat=findEdgeMovingHill();
     if(mhPlat){plat=mhPlat;useMH=true;}
   }
+  // pureGrav stages: no floor — use a virtual reference position for aerial spawning
+  if(!plat&&isPackMode&&currentPackStage&&currentPackStage.stageType==='pureGrav'){
+    plat={x:W+20+packRng()*80,w:60,h:GROUND_H};
+  }
   if(!plat)return;
-  // forceEnemyType のステージは内部chanceとCDを緩めて敵密度を上げる
-  const isForcedStage=isPackMode&&currentPackStage&&(typeof currentPackStage.forceEnemyType==='number'||!!currentPackStage.allEnemyTypes);
+  // forceEnemyType / aerialEnemyTypes のステージは内部chanceとCDを緩めて敵密度を上げる
+  const isForcedStage=isPackMode&&currentPackStage&&(typeof currentPackStage.forceEnemyType==='number'||!!currentPackStage.allEnemyTypes||!!currentPackStage.aerialEnemyTypes);
   const chance=isForcedStage?0.9:(isPackMode?0.5:Math.min(0.3,0.04+(score-30)*0.002));
   if(packRng()<chance){
     enemyCD=isForcedStage?(8+Math.floor(packRng()*10)):(isPackMode?(25+Math.floor(packRng()*25)):(55+Math.floor(packRng()*50)));
@@ -151,6 +155,9 @@ function trySpawnEnemy(){
       if(typeof currentPackStage.forceEnemyType==='number'){
         // forceEnemyType: 指定した敵タイプのみ出現（0:walker, 1:cannon, 2:flyer, 3:bomber, 4:vertMover, 5:phantom, 6:dasher, 8:splitter）
         eType=currentPackStage.forceEnemyType;
+      } else if(currentPackStage.aerialEnemyTypes){
+        // 空中タイプのみ（flyer/phantom/vertMover）
+        const ar=packRng();if(ar<0.34)eType=2;else if(ar<0.67)eType=5;else eType=4;
       } else if(currentPackStage.walkerCannonOnly){eType=packRng()<0.5?0:1;}
       else if(currentPackStage.walkerOnly){eType=0;}
       else if(currentPackStage.allEnemyTypes){
@@ -210,9 +217,10 @@ function trySpawnEnemy(){
       for(let oi=0;oi<opts.length;oi++){roll-=opts[oi].w;if(roll<=0){eType=opts[oi].type;break;}}
     }
 
+    const _pureGravAerial=isPackMode&&currentPackStage&&currentPackStage.aerialEnemyTypes;
     if(eType===4){
       // Vertical mover: bounces between floor and ceiling
-      const onCeil4=packRng()<0.4;
+      const onCeil4=_pureGravAerial?true:(packRng()<0.4);
       const gd4=onCeil4?-1:1;
       const surfY=gd4===1?H-plat.h:ceilSurfaceY(ex);
       const sz=14;
@@ -220,7 +228,7 @@ function trySpawnEnemy(){
         moveDir:gd4===1?-1:1,moveSpd:2.5+packRng()*1.5,pauseT:0});
     } else if(eType===5){
       // Phantom: floats in air, periodically becomes invisible
-      const onCeil5=packRng()<0.4;
+      const onCeil5=_pureGravAerial?true:(packRng()<0.4);
       const gd5=onCeil5?-1:1;
       const surfY=gd5===1?H-plat.h:ceilSurfaceY(ex);
       const flyY=gd5===1?surfY-50-packRng()*60:surfY+50+packRng()*60;
@@ -230,7 +238,7 @@ function trySpawnEnemy(){
         visTimer:0,visCycle:90+Math.floor(packRng()*60),visible:true,fadeT:0});
     } else if(eType===2){
       // Flying enemy: spawns in the air between floor and ceiling
-      const onCeil2=packRng()<0.4;
+      const onCeil2=_pureGravAerial?true:(packRng()<0.4);
       const gd2=onCeil2?-1:1;
       const surfY=gd2===1?H-plat.h:ceilSurfaceY(ex);
       const flyY=gd2===1?surfY-60-packRng()*80:surfY+60+packRng()*80;
