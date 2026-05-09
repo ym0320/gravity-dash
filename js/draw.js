@@ -6167,7 +6167,7 @@ function drawStageSel(){
       const _sel=stageCharModalChar===_i;
       ctx.fillStyle=_sel?'rgba(56,189,248,0.15)':'rgba(255,255,255,0.05)';rr(_cx,_cy,_cw,_ch,10);ctx.fill();
       ctx.strokeStyle=_sel?CHARS[_i].col:'rgba(255,255,255,0.12)';ctx.lineWidth=_sel?2:1;rr(_cx,_cy,_cw,_ch,10);ctx.stroke();
-      drawCharacter(_cx+_cw/2,_cy+_ch*0.40,_i,Math.floor(_cw*0.20),0,1,'normal',0);
+      drawCharacter(_cx+_cw/2,_cy+_ch*0.40,_i,Math.floor(_cw*0.20),0,1,'normal',0,false);
       ctx.fillStyle=_sel?'#fff':'rgba(255,255,255,0.55)';ctx.font=(_sel?'bold ':'')+'9px monospace';ctx.textAlign='center';
       ctx.fillText(CHARS[_i].name,_cx+_cw/2,_cy+_ch-7);
     }
@@ -6276,7 +6276,7 @@ function handleStageSelTouch(tx,ty){
     for(let _i=0;_i<CHARS.length;_i++){
       const _ci=_i%_cols,_ri=Math.floor(_i/_cols);
       const _cx=_gridX+_ci*(_cw+_cgap),_cy=_gridY+_ri*(_ch+_cgap);
-      if(tx>=_cx&&tx<=_cx+_cw&&ty>=_cy&&ty<=_cy+_ch){stageCharModalChar=_i;sfx('select');return;}
+      if(tx>=_cx&&tx<=_cx+_cw&&ty>=_cy&&ty<=_cy+_ch){stageCharModalChar=_i;sfx('select');if(typeof sfxCharVoice==='function')sfxCharVoice(_i);return;}
     }
     // Checkpoint toggle
     if(_hasCp){
