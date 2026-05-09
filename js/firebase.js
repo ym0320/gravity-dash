@@ -184,19 +184,19 @@ if (fbAuth) {
           _fbLastSyncedUid = user.uid;
           // ランキング登録は「プレイ1回以上 かつ 記録がある」ユーザーのみ
           if (playerName && played > 0 && (highScore || 0) > 0) {
-            const rc = rankChar >= 0 ? rankChar : selChar || 0;
+            const live = typeof currentRankingAppearance === 'function' ? currentRankingAppearance() : { charIdx: selChar || 0, eqSkin: equippedSkin || '', eqEyes: equippedEyes || '', eqFx: equippedEffect || '', eqPet: equippedPet || '', eqAcc: equippedAccessory || '' };
             fbDb.collection('rankings').doc(user.uid).set({
-              name: playerName, charIdx: rc, score: highScore || 0,
-              eqSkin: rankSkin || '', eqEyes: rankEyes || '', eqFx: rankFx || '',
+              name: playerName, charIdx: live.charIdx, score: highScore || 0,
+              eqSkin: live.eqSkin, eqEyes: live.eqEyes, eqFx: live.eqFx, eqPet: live.eqPet, eqAcc: live.eqAcc, titleId: live.titleId || '',
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true }).catch(e => console.error('[Firebase] ranking update error:', e));
           }
           // チャレンジランキングは「キルが1以上」のみ
           if (playerName && played > 0 && (challengeBestKills || 0) > 0) {
-            const crc = challRankChar >= 0 ? challRankChar : selChar || 0;
+            const live = typeof currentRankingAppearance === 'function' ? currentRankingAppearance() : { charIdx: selChar || 0, eqSkin: equippedSkin || '', eqEyes: equippedEyes || '', eqFx: equippedEffect || '', eqPet: equippedPet || '', eqAcc: equippedAccessory || '' };
             fbDb.collection('challengeRankings').doc(user.uid).set({
-              name: playerName, charIdx: crc, kills: challengeBestKills || 0,
-              eqSkin: challRankSkin || '', eqEyes: challRankEyes || '', eqFx: challRankFx || '',
+              name: playerName, charIdx: live.charIdx, kills: challengeBestKills || 0,
+              eqSkin: live.eqSkin, eqEyes: live.eqEyes, eqFx: live.eqFx, eqPet: live.eqPet, eqAcc: live.eqAcc, titleId: live.titleId || '',
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true }).catch(e => console.error('[Firebase] chall ranking update error:', e));
           }
@@ -286,6 +286,7 @@ function fbSaveUserData() {
 function _fbDoSave() {
   if (!fbDb || !fbUser || !_fbDirty) return;
   const uid = fbUser.uid;
+  const live = typeof currentRankingAppearance === 'function' ? currentRankingAppearance() : { charIdx: selChar || 0, eqSkin: equippedSkin || '', eqEyes: equippedEyes || '', eqFx: equippedEffect || '', eqPet: equippedPet || '', eqAcc: equippedAccessory || '' };
   const data = {
     name: playerName || '',
     highScore: highScore || 0,
@@ -296,21 +297,31 @@ function _fbDoSave() {
     eqSkin: equippedSkin || '',
     eqEyes: equippedEyes || '',
     eqFx: equippedEffect || '',
+    eqPet: equippedPet || '',
+    eqAcc: equippedAccessory || '',
+    itemStocks: itemStocks || {},
     plays: played || 0,
+    coinTotal: lifetimeCoinsEarned || 0,
     freeRevives: freeRevivesUsed || 0,
     tutorialDone: tutorialDone || false,
     chestTotal: totalChestsOpened || 0,
     storedChests: storedChests || 0,
     packProgress: packProgress || {},
-    rankChar: rankChar >= 0 ? rankChar : -1,
-    rankSkin: rankSkin || '',
-    rankEyes: rankEyes || '',
-    rankFx: rankFx || '',
+    stageCheckpoints: stageCheckpoints || {},
+    rankChar: live.charIdx,
+    rankSkin: live.eqSkin,
+    rankEyes: live.eqEyes,
+    rankFx: live.eqFx,
+    rankPet: live.eqPet,
+    rankAcc: live.eqAcc,
     challBestKills: challengeBestKills || 0,
-    challRankChar: challRankChar >= 0 ? challRankChar : -1,
-    challRankSkin: challRankSkin || '',
-    challRankEyes: challRankEyes || '',
-    challRankFx: challRankFx || '',
+    challRankChar: live.charIdx,
+    challRankSkin: live.eqSkin,
+    challRankEyes: live.eqEyes,
+    challRankFx: live.eqFx,
+    challRankPet: live.eqPet,
+    challRankAcc: live.eqAcc,
+    titleId: equippedTitleId || '',
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   _fbDirty = false;
@@ -318,28 +329,32 @@ function _fbDoSave() {
     .catch(e => console.error('[Firebase] users/ SAVE FAILED:', e));
   // ランキング登録は「プレイ1回以上 かつ 記録がある」ユーザーのみ
   if (playerName && played > 0 && (highScore || 0) > 0) {
-    const rc = rankChar >= 0 ? rankChar : selChar || 0;
     fbDb.collection('rankings').doc(uid).set({
       name: playerName,
-      charIdx: rc,
+      charIdx: live.charIdx,
       score: highScore || 0,
-      eqSkin: rankSkin || '',
-      eqEyes: rankEyes || '',
-      eqFx: rankFx || '',
+      eqSkin: live.eqSkin,
+      eqEyes: live.eqEyes,
+      eqFx: live.eqFx,
+      eqPet: live.eqPet,
+      eqAcc: live.eqAcc,
+      titleId: live.titleId || '',
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true })
       .catch(e => console.error('[Firebase] rankings/ SAVE FAILED:', e));
   }
   // チャレンジランキングは「キルが1以上」のみ
   if (playerName && played > 0 && (challengeBestKills || 0) > 0) {
-    const crc = challRankChar >= 0 ? challRankChar : selChar || 0;
     fbDb.collection('challengeRankings').doc(uid).set({
       name: playerName,
-      charIdx: crc,
+      charIdx: live.charIdx,
       kills: challengeBestKills || 0,
-      eqSkin: challRankSkin || '',
-      eqEyes: challRankEyes || '',
-      eqFx: challRankFx || '',
+      eqSkin: live.eqSkin,
+      eqEyes: live.eqEyes,
+      eqFx: live.eqFx,
+      eqPet: live.eqPet,
+      eqAcc: live.eqAcc,
+      titleId: live.titleId || '',
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true })
       .catch(e => console.error('[Firebase] challengeRankings/ SAVE FAILED:', e));
@@ -383,6 +398,10 @@ function fbMergeCloudData(data) {
   if (data.highScore !== undefined) { highScore = _clampInt(data.highScore,0,99999); localStorage.setItem('gd5hi', highScore.toString()); }
   if (data.wallet !== undefined) { walletCoins = _clampInt(data.wallet,0,9999999); localStorage.setItem('gd5wallet', walletCoins.toString()); }
   if (data.plays !== undefined) { played = _clampInt(data.plays,0,999999); localStorage.setItem('gd5plays', played.toString()); }
+  if (data.coinTotal !== undefined) {
+    lifetimeCoinsEarned = Math.max(lifetimeCoinsEarned||0, _clampInt(data.coinTotal,0,99999999));
+    localStorage.setItem('gd5coinTotal', lifetimeCoinsEarned.toString());
+  }
   if (data.freeRevives !== undefined) { freeRevivesUsed = _clampInt(data.freeRevives,0,5); localStorage.setItem('gd5freeRevives', freeRevivesUsed.toString()); }
   if (data.chestTotal !== undefined) { totalChestsOpened = _clampInt(data.chestTotal,0,999999); localStorage.setItem('gd5chestTotal', totalChestsOpened.toString()); }
   if (data.storedChests !== undefined) { storedChests = _clampInt(data.storedChests,0,999); localStorage.setItem('gd5storedChests', storedChests.toString()); }
@@ -402,6 +421,16 @@ function fbMergeCloudData(data) {
   if (data.eqSkin) { equippedSkin = _sanitizeCosmeticId(data.eqSkin); localStorage.setItem('gd5eqSkin', equippedSkin); }
   if (data.eqEyes) { equippedEyes = _sanitizeCosmeticId(data.eqEyes); localStorage.setItem('gd5eqEyes', equippedEyes); }
   if (data.eqFx)   { equippedEffect = _sanitizeCosmeticId(data.eqFx);  localStorage.setItem('gd5eqFx', equippedEffect); }
+  if (data.eqPet !== undefined) { equippedPet = _sanitizeCosmeticId(data.eqPet); localStorage.setItem('gd5eqPet', equippedPet); }
+  if (data.eqAcc !== undefined) { equippedAccessory = _sanitizeCosmeticId(data.eqAcc); localStorage.setItem('gd5eqAcc', equippedAccessory); }
+  if (data.titleId !== undefined) { equippedTitleId = _sanitizeTitleId(data.titleId); localStorage.setItem('gd5titleId', equippedTitleId); }
+  if (data.itemStocks && typeof data.itemStocks === 'object') {
+    itemStocks = {
+      item_magnet: _clampInt(data.itemStocks.item_magnet, 0, 99),
+      item_bomb: _clampInt(data.itemStocks.item_bomb, 0, 99)
+    };
+    localStorage.setItem('gd5itemStocks', JSON.stringify(itemStocks));
+  }
   // Character (clamp to valid index range 0-5)
   if (data.character !== undefined) { selChar = _clampInt(data.character,0,5); localStorage.setItem('gd5char', selChar.toString()); }
   // Ranking cosmetics (captured at time of high score)
@@ -409,6 +438,8 @@ function fbMergeCloudData(data) {
   if (data.rankSkin !== undefined) { rankSkin = _sanitizeCosmeticId(data.rankSkin); localStorage.setItem('gd5rankSkin', rankSkin); }
   if (data.rankEyes !== undefined) { rankEyes = _sanitizeCosmeticId(data.rankEyes); localStorage.setItem('gd5rankEyes', rankEyes); }
   if (data.rankFx !== undefined) { rankFx = _sanitizeCosmeticId(data.rankFx); localStorage.setItem('gd5rankFx', rankFx); }
+  if (data.rankPet !== undefined) { rankPet = _sanitizeCosmeticId(data.rankPet); localStorage.setItem('gd5rankPet', rankPet); }
+  if (data.rankAcc !== undefined) { rankAcc = _sanitizeCosmeticId(data.rankAcc); localStorage.setItem('gd5rankAcc', rankAcc); }
   // Challenge best
   if (data.challBestKills !== undefined && data.challBestKills > challengeBestKills) {
     challengeBestKills = _clampInt(data.challBestKills,0,9999); localStorage.setItem('gd5challBest', challengeBestKills.toString());
@@ -417,25 +448,40 @@ function fbMergeCloudData(data) {
   if (data.challRankSkin !== undefined) { challRankSkin = _sanitizeCosmeticId(data.challRankSkin); localStorage.setItem('gd5challRankSkin', challRankSkin); }
   if (data.challRankEyes !== undefined) { challRankEyes = _sanitizeCosmeticId(data.challRankEyes); localStorage.setItem('gd5challRankEyes', challRankEyes); }
   if (data.challRankFx !== undefined) { challRankFx = _sanitizeCosmeticId(data.challRankFx); localStorage.setItem('gd5challRankFx', challRankFx); }
+  if (data.challRankPet !== undefined) { challRankPet = _sanitizeCosmeticId(data.challRankPet); localStorage.setItem('gd5challRankPet', challRankPet); }
+  if (data.challRankAcc !== undefined) { challRankAcc = _sanitizeCosmeticId(data.challRankAcc); localStorage.setItem('gd5challRankAcc', challRankAcc); }
   // Tutorial
   if (data.tutorialDone) { tutorialDone = true; localStorage.setItem('gd5tutorialDone', '1'); }
-  // Pack progress (merge, keep best stars)
+  // Pack progress (merge: keep best stars per stage)
   if (data.packProgress) {
-    // Only merge keys that are valid known stage IDs to prevent prototype/key injection
     const _validStageIds = (typeof STAGE_PACKS !== 'undefined')
       ? new Set(STAGE_PACKS.flatMap(p => p.stages.map(s => s.id)))
       : null;
     for (const k in data.packProgress) {
-      if (_validStageIds && !_validStageIds.has(k)) continue; // skip unknown stage IDs
-      if (!packProgress[k] || (data.packProgress[k].stars || 0) > (packProgress[k].stars || 0)) {
-        packProgress[k] = data.packProgress[k];
-      }
+      if (_validStageIds && !_validStageIds.has(k)) continue;
+      const cloud = data.packProgress[k] || {};
+      const local = packProgress[k] || {};
+      // Keep higher star count; cleared if either side says cleared
+      packProgress[k] = {
+        cleared: !!(cloud.cleared || local.cleared),
+        stars: Math.max(cloud.stars || 0, local.stars || 0)
+      };
     }
-    // Force all stages unlocked with 0 stars (big coin reset)
-    if(typeof STAGE_PACKS!=='undefined')STAGE_PACKS.forEach(p=>p.stages.forEach(s=>{packProgress[s.id]={cleared:true,stars:0};}));
     localStorage.setItem('gd5pp', JSON.stringify(packProgress));
     totalStars = getTotalStars();
   }
+  // Stage checkpoints (merge: keep any checkpoint reached)
+  if (data.stageCheckpoints) {
+    const _validIds2 = (typeof STAGE_PACKS !== 'undefined')
+      ? new Set(STAGE_PACKS.flatMap(p => p.stages.map(s => s.id)))
+      : null;
+    for (const k in data.stageCheckpoints) {
+      if (_validIds2 && !_validIds2.has(k)) continue;
+      if (data.stageCheckpoints[k]) stageCheckpoints[k] = true;
+    }
+    localStorage.setItem('gd5checkpoints', JSON.stringify(stageCheckpoints));
+  }
+  if (typeof ensureEquippedTitleValid === 'function') ensureEquippedTitleValid();
   rebuildRankingData();
 }
 
@@ -451,7 +497,8 @@ function _fbLoadRankCollection(collection, scoreField, cacheRef) {
       snap.forEach(doc => {
         const d = doc.data();
         const entry = { name: d.name || '???', charIdx: d.charIdx || 0,
-          eqSkin: d.eqSkin || '', eqEyes: d.eqEyes || '', eqFx: d.eqFx || '',
+          eqSkin: d.eqSkin || '', eqEyes: d.eqEyes || '', eqFx: d.eqFx || '', eqPet: d.eqPet || '', eqAcc: d.eqAcc || '',
+          titleId: d.titleId || '',
           isPlayer: doc.id === fbUser.uid };
         entry[scoreField] = d[scoreField] || 0;
         arr.push(entry);
@@ -469,13 +516,14 @@ function fbLoadChallengeRankings() { return _fbLoadRankCollection('challengeRank
 
 // Build RANKING_DATA from cloud data (called when ranking overlay opens)
 function fbRefreshRankings() {
+  if(typeof rebuildStageRankingData==='function')rebuildStageRankingData();
   fbLoadRankings().then(cloud => {
     if (!cloud || cloud.length === 0) { rebuildRankingData(); return; }
     const data = cloud.map(d => ({ ...d }));
     if (!data.some(d => d.isPlayer) && highScore > 0) {
-      const rc = rankChar >= 0 ? rankChar : selChar || 0;
-      data.push({ name: playerName || t('youDefault'), charIdx: rc, score: highScore,
-        eqSkin: rankSkin || '', eqEyes: rankEyes || '', eqFx: rankFx || '', isPlayer: true });
+      const live = typeof currentRankingAppearance === 'function' ? currentRankingAppearance() : { charIdx: selChar || 0, eqSkin: equippedSkin || '', eqEyes: equippedEyes || '', eqFx: equippedEffect || '', eqPet: equippedPet || '', eqAcc: equippedAccessory || '' };
+      data.push({ name: playerName || t('youDefault'), charIdx: live.charIdx, score: highScore,
+        eqSkin: live.eqSkin, eqEyes: live.eqEyes, eqFx: live.eqFx, eqPet: live.eqPet, eqAcc: live.eqAcc, titleId: live.titleId || '', isPlayer: true });
     }
     if(_DEBUG_SAMPLE_RANKING)for(let i=0;i<_SAMPLE_BASE.length;i++)data.push({name:_sampleName(i),charIdx:_SAMPLE_BASE[i].charIdx,score:_SAMPLE_BASE[i].score,eqSkin:_SAMPLE_BASE[i].eqSkin,eqEyes:_SAMPLE_BASE[i].eqEyes,eqFx:_SAMPLE_BASE[i].eqFx,isPlayer:false});
     data.sort((a, b) => b.score - a.score);
@@ -490,9 +538,9 @@ function fbRefreshChallengeRankings() {
     if (!cloud || cloud.length === 0) { rebuildChallengeRankingData(); return; }
     const data = cloud.map(d => ({ ...d }));
     if (!data.some(d => d.isPlayer) && challengeBestKills > 0) {
-      const crc = challRankChar >= 0 ? challRankChar : selChar || 0;
-      data.push({ name: playerName || t('youDefault'), charIdx: crc, kills: challengeBestKills,
-        eqSkin: challRankSkin || '', eqEyes: challRankEyes || '', eqFx: challRankFx || '', isPlayer: true });
+      const live = typeof currentRankingAppearance === 'function' ? currentRankingAppearance() : { charIdx: selChar || 0, eqSkin: equippedSkin || '', eqEyes: equippedEyes || '', eqFx: equippedEffect || '', eqPet: equippedPet || '', eqAcc: equippedAccessory || '' };
+      data.push({ name: playerName || t('youDefault'), charIdx: live.charIdx, kills: challengeBestKills,
+        eqSkin: live.eqSkin, eqEyes: live.eqEyes, eqFx: live.eqFx, eqPet: live.eqPet, eqAcc: live.eqAcc, titleId: live.titleId || '', isPlayer: true });
     }
     if(_DEBUG_SAMPLE_RANKING)for(let i=0;i<_SAMPLE_BASE.length;i++)data.push({name:_sampleName(i),charIdx:_SAMPLE_BASE[i].charIdx,kills:_SAMPLE_BASE[i].kills,eqSkin:_SAMPLE_BASE[i].eqSkin,eqEyes:_SAMPLE_BASE[i].eqEyes,eqFx:_SAMPLE_BASE[i].eqFx,isPlayer:false});
     data.sort((a, b) => b.kills - a.kills);
