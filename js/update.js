@@ -660,7 +660,7 @@ function update(dt){
           // Always alternate direction to create wave-like bouncing
           const _lastDir=gravZones.length>0?gravZones[gravZones.length-1].dir:1;
           gravZones.push({x:gx,w:gw,triggered:false,fadeT:0,dir:-_lastDir});
-          gravZoneCD=14+Math.floor(packRng()*14);
+          gravZoneCD=30+Math.floor(packRng()*25);
         }
       }
     } else if(sType==='void'){
