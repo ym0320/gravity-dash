@@ -2258,27 +2258,38 @@ let challTransition={
 const _CHALL_BOSS_TYPES=['wizard','bruiser','guardian','dodge'];
 function _challShuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 function _challBossPairs(){const p=[];for(let i=0;i<4;i++)for(let j=i+1;j<4;j++)p.push([_CHALL_BOSS_TYPES[i],_CHALL_BOSS_TYPES[j]]);return p;}
+function _challBossTriples(){const t=_CHALL_BOSS_TYPES;return [[t[0],t[1],t[2]],[t[0],t[1],t[3]],[t[0],t[2],t[3]],[t[1],t[2],t[3]]];}
 
 // Generate challenge boss queue: structured wave progression
 function generateChallBossQueue(){
   const types=_CHALL_BOSS_TYPES;
   const pairs=_challBossPairs();
+  const triples=_challBossTriples();
   const q=[];
   // Wave 1-4: single, strength 1
-  _challShuffle(types.slice()).forEach(t=>q.push({type:t,type2:null,strength:1,isDual:false}));
+  _challShuffle(types.slice()).forEach(t=>q.push({type:t,type2:null,strength:1,isDual:false,count:1}));
   // Wave 5-8: single, strength 2
-  _challShuffle(types.slice()).forEach(t=>q.push({type:t,type2:null,strength:2,isDual:false}));
+  _challShuffle(types.slice()).forEach(t=>q.push({type:t,type2:null,strength:2,isDual:false,count:1}));
   // Wave 9-14: dual, strength 1
-  _challShuffle(pairs.slice()).forEach(p=>q.push({type:p[0],type2:p[1],strength:1,isDual:true}));
+  _challShuffle(pairs.slice()).forEach(p=>q.push({type:p[0],type2:p[1],strength:1,isDual:true,count:2}));
   // Wave 15-20: dual, strength 2
-  _challShuffle(pairs.slice()).forEach(p=>q.push({type:p[0],type2:p[1],strength:2,isDual:true}));
+  _challShuffle(pairs.slice()).forEach(p=>q.push({type:p[0],type2:p[1],strength:2,isDual:true,count:2}));
   // Wave 21-26: dual, strength 3
-  _challShuffle(pairs.slice()).forEach(p=>q.push({type:p[0],type2:p[1],strength:3,isDual:true}));
+  _challShuffle(pairs.slice()).forEach(p=>q.push({type:p[0],type2:p[1],strength:3,isDual:true,count:2}));
+  // Wave 27-30: triple, strength 1
+  _challShuffle(triples.slice()).forEach(p=>q.push({type:p[0],type2:p[1],type3:p[2],strength:1,isDual:true,count:3}));
+  // Wave 31-34: triple, strength 2
+  _challShuffle(triples.slice()).forEach(p=>q.push({type:p[0],type2:p[1],type3:p[2],strength:2,isDual:true,count:3}));
+  // Wave 35-38: triple, strength 3
+  _challShuffle(triples.slice()).forEach(p=>q.push({type:p[0],type2:p[1],type3:p[2],strength:3,isDual:true,count:3}));
+  // Wave 39-41: quad (all 4 bosses), strengths 1→2→3
+  [1,2,3].forEach(s=>q.push({type:types[0],type2:types[1],type3:types[2],type4:types[3],strength:s,isDual:true,count:4}));
   return q;
 }
 function extendChallBossQueue(){
-  // Extend with 6 more dual strength 3
-  _challShuffle(_challBossPairs()).forEach(p=>challBossQueue.push({type:p[0],type2:p[1],strength:3,isDual:true}));
+  // Extend with quad strength 3 (all 4 bosses)
+  const types=_CHALL_BOSS_TYPES;
+  challBossQueue.push({type:types[0],type2:types[1],type3:types[2],type4:types[3],strength:3,isDual:true,count:4});
 }
 
 // ===== STATE =====

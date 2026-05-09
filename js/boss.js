@@ -1,6 +1,26 @@
 'use strict';
 // Reusable array to avoid GC pressure from filter() in boss update loop
 const _tmpBoss=[];
+function bossSurfaceSafe(en,nextX){
+  const margin=Math.max(18,en.sz*0.35);
+  if(en.gDir===1){
+    const cur=floorSupportY(en.x);
+    const next=floorSupportY(nextX);
+    const edge=floorSupportY(nextX+(nextX>=en.x?margin:-margin));
+    return next<H+80&&edge<H+80&&Math.abs(next-cur)<en.sz*0.45;
+  }
+  const cur=ceilSupportY(en.x);
+  const next=ceilSupportY(nextX);
+  const edge=ceilSupportY(nextX+(nextX>=en.x?margin:-margin));
+  return next>-80&&edge>-80&&Math.abs(next-cur)<en.sz*0.45;
+}
+function bossMoveOnSafeSurface(en,dx){
+  const nx=en.x+dx;
+  if(bossSurfaceSafe(en,nx)){en.x=nx;return true;}
+  if(en.state==='charge'||en.state==='enter'){en.state='retreat';en.timer=0;}
+  else if(en.state==='retreat'||en.state==='feint'){en.state='charge';en.timer=0;}
+  return false;
+}
 // ===== BOSS PHASE =====
 function startBossPhase(){
   bossPhase.active=true;
@@ -28,14 +48,27 @@ function startBossPhase(){
   // Pre-determine boss type for display during warning screen
   const _allTypes=['wizard','bruiser','guardian','dodge'];
   const _pickType=()=>_allTypes[Math.floor(Math.random()*4)];
-  if(isChallengeMode){
+  const resumeSpec=bossPhase.resumeBossSpec||null;
+  bossPhase.resumeBossSpec=null;
+  if(resumeSpec){
+    bossPhase.bossType=resumeSpec.bossType||_pickType();
+    bossPhase.bossType2=resumeSpec.bossType2||null;
+    bossPhase.challStrength=resumeSpec.challStrength||1;
+    bossPhase.challIsDual=!!resumeSpec.challIsDual;
+    bossPhase.challBossCount=resumeSpec.challBossCount||((resumeSpec.challIsDual)?2:1);
+    bossPhase.bossType3=resumeSpec.bossType3||null;
+    bossPhase.bossType4=resumeSpec.bossType4||null;
+  } else if(isChallengeMode){
     // Queue-based boss selection
     if(challQueueIdx>=challBossQueue.length) extendChallBossQueue();
     const wave=challBossQueue[challQueueIdx];
     bossPhase.bossType=wave.type;
-    bossPhase.bossType2=wave.type2;
+    bossPhase.bossType2=wave.type2||null;
+    bossPhase.bossType3=wave.type3||null;
+    bossPhase.bossType4=wave.type4||null;
     bossPhase.challStrength=wave.strength;
     bossPhase.challIsDual=wave.isDual;
+    bossPhase.challBossCount=wave.count||(wave.isDual?2:1);
     challQueueIdx++;
   } else if(isPackMode&&currentPackStage&&currentPackStage.boss){
     if(currentPackStage.bossVariant==='snowman') bossPhase.bossType='wizard';
@@ -103,7 +136,7 @@ function spawnBossEnemies(){
       quakeDuration:25+Math.min(effectiveBc-1,6)*2,
       quakeT:0,
       feintEnabled:effectiveBc>=3,
-      feintProb:Math.min(0.80,0.35+Math.max(0,effectiveBc-3)*0.08),
+      feintProb:Math.min(0.90,0.35+Math.max(0,effectiveBc-3)*0.10),
       feintCount:0,feintsDone:0,feintCooldown:0,
       swordSwingT:0,
       swordDuration:25+Math.min(effectiveBc-1,8)*2,
@@ -127,8 +160,9 @@ function spawnBossEnemies(){
       variant:isSnowman?'snowman':''
     };
   }
+  const challBossCount=isChallengeMode?(bossPhase.challBossCount||1):1;
   function addDodgeQueue(delayOffset){
-    const dodgeCount=isDual?20:10; // dual=20体, 通常=10体
+    const dodgeCount=challBossCount>=4?30:challBossCount>=3?25:isDual?20:10;
     const dodgeLevel=effectiveBc;
     const baseSpd=1.5+Math.min(dodgeLevel-1,12)*0.2; // same staged strength parameter as other bosses
     const baseInterval=Math.max(35,80-Math.min(dodgeLevel-1,11)*5); // lv1=80, lv2=75, lv3=70...
@@ -179,9 +213,17 @@ function spawnBossEnemies(){
   // Dual boss spawning
   const packBoss=isPackMode&&currentPackStage&&currentPackStage.boss;
   if(isChallengeMode&&isDual){
-    // Challenge mode: second boss from queue
+    // Challenge mode: 2nd boss (ceiling side)
     const type2=bossPhase.bossType2||bossType;
     bossPhase.total+=spawnBoss(type2,-1,40,50);
+    // 3rd boss (floor side, extra offset)
+    if(challBossCount>=3&&bossPhase.bossType3){
+      bossPhase.total+=spawnBoss(bossPhase.bossType3,1,90,100);
+    }
+    // 4th boss (ceiling side, extra offset)
+    if(challBossCount>=4&&bossPhase.bossType4){
+      bossPhase.total+=spawnBoss(bossPhase.bossType4,-1,130,150);
+    }
   } else if(isDual||packBoss){
     // Endless/Stage mode: second boss same type on ceiling
     if(bossType!=='dodge'){
@@ -314,10 +356,10 @@ function updateBossPhase(){
     if(b.hurtFlash>0)b.hurtFlash--;
     if(b.invT>0)b.invT--;
     if(b.state==='enter'){
-      b.x+=b.chargeVx*0.5;
+      bossMoveOnSafeSurface(b,b.chargeVx*0.5);
       if(b.x<=W*0.7){b.state='charge';b.timer=0;b.feinted=false;}
     } else if(b.state==='charge'){
-      b.x+=b.chargeVx;
+      bossMoveOnSafeSurface(b,b.chargeVx);
       b.fr+=0.15;
       if(frame%2===0&&parts.length<MAX_PARTS)parts.push({x:b.x+b.sz,y:b.y,vx:2,vy:(Math.random()-0.5)*1.5,life:15,ml:15,sz:Math.random()*5+2,col:'#ff3860'});
       if(bc>=2&&b.timer>15&&b.timer<50&&!b.feinted&&Math.random()<0.003*Math.min(bc,12)){
@@ -325,15 +367,15 @@ function updateBossPhase(){
       }
       if(b.x<W*0.15){b.state='retreat';b.timer=0;}
     } else if(b.state==='feint'){
-      b.x+=b.retreatVx*1.8;
+      bossMoveOnSafeSurface(b,b.retreatVx*1.8);
       b.feintT--;
       if(frame%3===0&&parts.length<MAX_PARTS)parts.push({x:b.x-b.sz*0.3,y:b.y,vx:-1,vy:(Math.random()-0.5),life:10,ml:10,sz:Math.random()*3+1,col:'#ffaa00'});
       if(b.feintT<=0){b.state='charge';b.timer=0;}
     } else if(b.state==='invincible'){
-      b.x+=b.retreatVx*0.6;
+      bossMoveOnSafeSurface(b,b.retreatVx*0.6);
       if(b.invT<=0){b.state='retreat';b.timer=0;}
     } else if(b.state==='retreat'){
-      b.x+=b.retreatVx;
+      bossMoveOnSafeSurface(b,b.retreatVx);
       if(b.x>=W*0.7){
         if(b.flipEnabled&&Math.random()<0.4){
           b.gDir*=-1;
@@ -431,7 +473,7 @@ function updateBossPhase(){
       }
     };
     if(g.state==='enter'){
-      g.x-=2;
+      bossMoveOnSafeSurface(g,-2);
       snapToSurface();
       if(g.x<=W*0.65){
         g.state='jumpPrep';g.timer=0;g.feintsDone=0;
@@ -440,7 +482,7 @@ function updateBossPhase(){
     } else if(g.state==='jumpPrep'){
       // Brief crouch before jumping - irregular timing (shorter at higher phases)
       snapToSurface();
-      g.x+=(Math.random()-0.5)*1.0; // shake telegraph
+      bossMoveOnSafeSurface(g,(Math.random()-0.5)*1.0); // shake telegraph
       // Random prep duration (set once when entering this state)
       // Prep gets shorter with each jump (faster attacks)
       if(!g._jumpPrepTarget){
@@ -449,15 +491,17 @@ function updateBossPhase(){
       }
       if(g.timer>=g._jumpPrepTarget){
         g._jumpPrepTarget=0;
-        // Feint before real jump (bc>=3): jump toward other surface at high power,
-        // feintJump state has ceiling/floor catch so guardian can't actually reach it
+        // Feint before real jump: visually matches the earthquake jump.
         if(g.feintEnabled&&!g.feintsDone&&Math.random()<(g.feintProb||0.35)){
-          const feintPow=(g.bigJumpBase+Math.random()*g.bigJumpVariance)*(0.70+Math.random()*0.20);
+          const feintRandom=0.4+Math.random()*(0.55+Math.min(bc-1,10)*0.035);
+          const feintPow=(g.bigJumpBase+Math.random()*g.bigJumpVariance)*Math.min(1.18,feintRandom);
           g.jumpVy=-feintPow*g.gDir;
           g.state='feintJump';g.timer=0;g.feintsDone=1;
-          sfx('guardianJump');shakeI=4;vibrate(10);
+          g._feintMaxTravel=g.sz*(1.5+Math.random()*(2.4+Math.min(bc-1,10)*0.18));
+          g._feintStartY=g.y;
+          sfx('guardianJump');shakeI=5;vibrate(10);
           const dustY2=g.gDir===1?floorY2:ceilY2;
-          emitParts(g.x,dustY2,6,'#8a7060',3,1);
+          emitParts(g.x,dustY2,8,'#8a7060',4,2);
         } else {
           // Real big jump
           const willFlip=g.flipEnabled&&Math.random()<0.45;
@@ -473,14 +517,19 @@ function updateBossPhase(){
         }
       }
     } else if(g.state==='feintJump'){
-      // Small jump - lands on same surface without earthquake
-      g.jumpVy+=GRAVITY*g.gDir;
+      // Looks like the real jump, but turns back before the earthquake landing.
+      const gravMul=1.3+Math.min(bc-1,10)*0.08;
+      g.jumpVy+=GRAVITY*g.gDir*gravMul;
       g.y+=g.jumpVy;
+      const travel=Math.abs(g.y-(g._feintStartY||g.y));
+      if(g._feintMaxTravel&&travel>=g._feintMaxTravel){
+        g.jumpVy=Math.abs(g.jumpVy)*g.gDir;
+      }
       if(g.gDir===1){
         const sy=floorSurfaceY(g.x);
         if(g.jumpVy>0&&g.y+g.sz>=sy){
           g.y=sy-g.sz;g.jumpVy=0;g.feintsDone++;
-          shakeI=3;sfx('stomp');emitParts(g.x,sy,4,'#8a7060',2,1);
+          shakeI=5;sfx('stomp');emitParts(g.x,sy,8,'#8a7060',4,2);
           g.state='jumpPrep';g.timer=0;
         }
         if(g.y<ceilY2+g.sz*0.3){g.y=ceilY2+g.sz*0.3;g.jumpVy=1;}
@@ -488,7 +537,7 @@ function updateBossPhase(){
         const sy=ceilSurfaceY(g.x);
         if(g.jumpVy<0&&g.y-g.sz<=sy){
           g.y=sy+g.sz;g.jumpVy=0;g.feintsDone++;
-          shakeI=3;sfx('stomp');emitParts(g.x,sy,4,'#8a7060',2,1);
+          shakeI=5;sfx('stomp');emitParts(g.x,sy,8,'#8a7060',4,2);
           g.state='jumpPrep';g.timer=0;
         }
         if(g.y+g.sz>floorY2-g.sz*0.3){g.y=floorY2-g.sz*1.3;g.jumpVy=-1;}
@@ -561,8 +610,10 @@ function updateBossPhase(){
       const targetX=g._chargeTargetX||player.x;
       const dx=targetX-g.x;
       // Irregular speed: pulses fast/slow to make timing harder
-      const speedMod=0.80+Math.sin(g.timer*0.28)*0.42+Math.sin(g.timer*0.73)*0.18;
-      g.x+=Math.sign(dx)*g.chargeSpd*speedMod;
+      const phaseBoost=1+Math.min(bc-1,12)*0.035;
+      const jitter=0.20+Math.min(bc-1,12)*0.018;
+      const speedMod=(0.80+Math.sin(g.timer*0.28)*0.42+Math.sin(g.timer*0.73)*jitter)*phaseBoost;
+      bossMoveOnSafeSurface(g,Math.sign(dx)*g.chargeSpd*speedMod);
       g.fr+=0.15;
       snapToSurface();
       // Trail particles
@@ -598,7 +649,7 @@ function updateBossPhase(){
         g.state='retreat';g.timer=0;
       }
     } else if(g.state==='retreat'){
-      g.x+=g.retreatSpd;
+      bossMoveOnSafeSurface(g,g.retreatSpd);
       g.fr+=0.08;
       snapToSurface();
       if(g.timer>=35||g.x>=W*0.65){
@@ -614,7 +665,7 @@ function updateBossPhase(){
       // Move toward original position (W*0.65)
       const homeX=W*0.65;
       const dx2=homeX-g.x;
-      g.x+=Math.sign(dx2)*Math.min(Math.abs(dx2),g.retreatSpd);
+      bossMoveOnSafeSurface(g,Math.sign(dx2)*Math.min(Math.abs(dx2),g.retreatSpd));
       snapToSurface();
       if(g.invT<=0){g.state='jumpPrep';g.timer=0;g.feintsDone=0;g.feintCount=0;g._jumpPrepTarget=0;}
     }
@@ -637,12 +688,12 @@ function updateBossPhase(){
           emitParts(g.x,g.y,15,'#ff00ff',4,3);
           if(g.hp<=0){bossGuardianDefeat(g);}
         } else {
-          // Stomp check: VERY generous - player center above guardian center = stomp
-          // Works in ANY state - always deals damage!
+          // Stomp check: generous - player center above guardian center = stomp
+          // Works in any state and deals damage.
           const guardianCenter=g.y+g.sz*0.5*g.gDir;
           const stomped=g.gDir===1
-            ?(player.y<guardianCenter) // player center above guardian center
-            :(player.y>guardianCenter); // player center below guardian center (ceiling)
+            ?(player.y<guardianCenter)
+            :(player.y>guardianCenter);
           if(stomped){
             g.hp--;g.hurtFlash=20;g.invT=g.stunDuration+60;
             g.state='stunned';g.stunT=g.stunDuration;g.timer=0;g.jumpVy=0;
@@ -817,7 +868,6 @@ function updateBossPhase(){
             player.vy=-JUMP_POWER*0.8*player.gDir;player.grounded=false;
             flipCount=0;player.canFlip=true;djumpUsed=false;if(typeof refreshAirActionState==='function')refreshAirActionState(true);else if(ct().hasDjump)djumpAvailable=true;
             shakeI=12;sfx('gstomp');vibrate('stomp_heavy');
-            addPop(w.x,w.y-20,t('popDefeat'),'#ffd700');
             emitParts(w.x,w.y,12,'#aa44ff',5,3);
             if(w.hp<=0){bossWizardDefeat(w);}
             else{w.invT=60;w.state='teleport';w.timer=0;w.teleportT=0;
@@ -870,8 +920,8 @@ function updateBossPhase(){
       addPop(W/2,H*0.55,'SPECIAL +'+Math.round(specialBonus)+'%','#22d3ee');
     }
     if(hp<maxHp()){hp++;addPop(player.x,player.y-40,'HP +1','#ff3860');}
-    const bonus=30+bossPhase.total*5;
-    walletCoins+=bonus;localStorage.setItem('gd5wallet',walletCoins.toString());
+    const bonus=200;
+    walletCoins+=bonus;localStorage.setItem('gd5wallet',walletCoins.toString());addLifetimeCoins(bonus);
     totalCoins+=bonus;fbSaveUserData();
     addPop(W/2,H*0.45,'+'+bonus+' COINS!','#ffd700');
     for(let i=0;i<40&&parts.length<MAX_PARTS;i++)parts.push({x:W*Math.random(),y:-10,vx:(Math.random()-0.5)*4,vy:1+Math.random()*4,life:80+Math.random()*40,ml:120,sz:Math.random()*5+3,col:['#ffd700','#ffaa00','#fff4b0'][i%3]});
