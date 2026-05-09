@@ -2082,7 +2082,7 @@ const STAGE_PACKS=[
   {name:'宇宙',theme:0,unlock:0,starsPerStage:2,stages:[
     // Pack1 全ステージ spdMul:1.1 固定（進行ごとに速くならない）
     // 1-1: ウォーカー+キャノン多め、床は均等・フラット
-    {id:'1-1',name:'1-1',dist:1000,spdMul:1.1,seed:1001,hillChance:0,gapChance:0,flatGround:true,flatGoal:true,
+    {id:'1-1',name:'1-1',dist:1000,spdMul:1.1,seed:1001,hillChance:0.40,gapChance:0,flatGoal:true,
       noFloatPlat:true,noHazards:true,noMovingHill:true,walkerCannonOnly:true,enemyChance:0.65,
       coins:[{pos:0.25,yOff:-60},{pos:0.55,yOff:-220},{pos:0.80,yOff:-60}]},
     // 1-2: 上下交互チャズム — 重力ゾーンで反転、スターは反対側に2つ
