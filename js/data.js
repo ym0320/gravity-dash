@@ -2225,6 +2225,11 @@ let useCheckpoint=false; // true when starting from checkpoint
 let stageStartChoice=''; // 'start'|'checkpoint' — selection before stage begins
 let showStartChoice=false; // show start choice modal
 let pendingPackPi=-1,pendingPackSi=-1; // pending stage to start after choice
+// Stage character select modal
+let showStageCharModal=false;
+let stageCharModalPi=-1,stageCharModalSi=-1;
+let stageCharModalChar=0;
+let stageCharModalFromCp=false;
 // Ambient particles for stage themes
 let ambientParts=[];
 // Challenge mode (boss rush)

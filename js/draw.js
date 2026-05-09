@@ -6119,6 +6119,62 @@ function drawStageSel(){
     ctx.fillStyle='#ffffff22';rr(W-6,60+safeTop,4,viewH,2);ctx.fill();
     ctx.fillStyle='#ffffff55';rr(W-6,barY,4,barH,2);ctx.fill();
   }
+  // ===== Stage character select modal =====
+  if(showStageCharModal&&stageCharModalPi>=0&&stageCharModalSi>=0){
+    const _csStage=STAGE_PACKS[stageCharModalPi].stages[stageCharModalSi];
+    const _hasCp=!!stageCheckpoints[_csStage.id];
+    const mw=Math.min(320,W-20);
+    const _cols=3,_cw=Math.floor((mw-24-(_cols-1)*8)/_cols),_ch=76,_cgap=8;
+    const _rows=Math.ceil(CHARS.length/_cols);
+    const _gridH=_rows*_ch+(_rows-1)*_cgap;
+    const _cpH=_hasCp?58:0;
+    const mh=56+_gridH+_cpH+62;
+    const mx=W/2-mw/2,my=Math.max(safeTop+8,H/2-mh/2);
+    ctx.fillStyle='rgba(0,0,0,0.78)';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#0f172a';rr(mx,my,mw,mh,16);ctx.fill();
+    ctx.strokeStyle='#38bdf8';ctx.lineWidth=1.5;rr(mx,my,mw,mh,16);ctx.stroke();
+    // Title
+    ctx.fillStyle='#e2e8f0';ctx.font='bold 14px monospace';ctx.textAlign='center';
+    ctx.fillText(gameLang==='ja'?'キャラクター選択':'SELECT CHARACTER',W/2,my+26);
+    // Close ×
+    ctx.fillStyle='#94a3b8';ctx.font='bold 16px monospace';ctx.textAlign='center';
+    ctx.fillText('×',mx+mw-16,my+26);
+    // Character grid
+    const _gridX=W/2-(_cols*_cw+(_cols-1)*_cgap)/2;
+    const _gridY=my+40;
+    for(let _i=0;_i<CHARS.length;_i++){
+      const _ci=_i%_cols,_ri=Math.floor(_i/_cols);
+      const _cx=_gridX+_ci*(_cw+_cgap),_cy=_gridY+_ri*(_ch+_cgap);
+      const _sel=stageCharModalChar===_i;
+      ctx.fillStyle=_sel?'rgba(56,189,248,0.15)':'rgba(255,255,255,0.05)';rr(_cx,_cy,_cw,_ch,10);ctx.fill();
+      ctx.strokeStyle=_sel?CHARS[_i].col:'rgba(255,255,255,0.12)';ctx.lineWidth=_sel?2:1;rr(_cx,_cy,_cw,_ch,10);ctx.stroke();
+      drawCharacter(_cx+_cw/2,_cy+_ch*0.42,_i,Math.floor(_cw*0.28),0,1,'normal',HP_MAX);
+      ctx.fillStyle=_sel?'#fff':'rgba(255,255,255,0.55)';ctx.font=(_sel?'bold ':'')+'9px monospace';ctx.textAlign='center';
+      ctx.fillText(CHARS[_i].name,_cx+_cw/2,_cy+_ch-7);
+    }
+    // Checkpoint toggle
+    if(_hasCp){
+      const _tY=_gridY+_gridH+14;
+      const _bw=(mw-28)/2-4,_bh=38;
+      const _b1X=mx+12,_b2X=mx+12+_bw+8;
+      const _isBegin=!stageCharModalFromCp;
+      ctx.fillStyle=_isBegin?'rgba(255,255,255,0.15)':'rgba(255,255,255,0.05)';rr(_b1X,_tY,_bw,_bh,8);ctx.fill();
+      ctx.strokeStyle=_isBegin?'#fff':'rgba(255,255,255,0.2)';ctx.lineWidth=_isBegin?1.5:1;rr(_b1X,_tY,_bw,_bh,8);ctx.stroke();
+      ctx.fillStyle=_isBegin?'#fff':'rgba(255,255,255,0.45)';ctx.font=(_isBegin?'bold ':'')+'11px monospace';ctx.textAlign='center';
+      ctx.fillText(gameLang==='ja'?'はじめから':'FROM START',_b1X+_bw/2,_tY+25);
+      ctx.fillStyle=stageCharModalFromCp?'rgba(52,211,153,0.2)':'rgba(255,255,255,0.05)';rr(_b2X,_tY,_bw,_bh,8);ctx.fill();
+      ctx.strokeStyle=stageCharModalFromCp?'#34d399':'rgba(255,255,255,0.2)';ctx.lineWidth=stageCharModalFromCp?1.5:1;rr(_b2X,_tY,_bw,_bh,8);ctx.stroke();
+      ctx.fillStyle=stageCharModalFromCp?'#34d399':'rgba(255,255,255,0.45)';ctx.font=(stageCharModalFromCp?'bold ':'')+'11px monospace';ctx.textAlign='center';
+      ctx.fillText(gameLang==='ja'?'CPから':'FROM CP',_b2X+_bw/2,_tY+25);
+    }
+    // Start button
+    const _sbY=my+mh-54;
+    const _sbX=mx+12,_sbW=mw-24,_sbH=42;
+    ctx.fillStyle='rgba(20,83,45,0.9)';rr(_sbX,_sbY,_sbW,_sbH,10);ctx.fill();
+    ctx.strokeStyle='#34d399';ctx.lineWidth=2;rr(_sbX,_sbY,_sbW,_sbH,10);ctx.stroke();
+    ctx.fillStyle='#34d399';ctx.font='bold 15px monospace';ctx.textAlign='center';
+    ctx.fillText(gameLang==='ja'?'スタート':'START',W/2,_sbY+28);
+  }
   // Start choice modal overlay
   if(showStartChoice){
     ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,W,H);
@@ -6176,6 +6232,50 @@ function drawStageSel(){
 }
 function handleStageSelTouch(tx,ty){
   if(stageSelGuardT>0)return; // ignore taps right after transitioning to stage select
+  // Character select modal
+  if(showStageCharModal&&stageCharModalPi>=0&&stageCharModalSi>=0){
+    const _csStage=STAGE_PACKS[stageCharModalPi].stages[stageCharModalSi];
+    const _hasCp=!!stageCheckpoints[_csStage.id];
+    const mw=Math.min(320,W-20);
+    const _cols=3,_cw=Math.floor((mw-24-(_cols-1)*8)/_cols),_ch=76,_cgap=8;
+    const _rows=Math.ceil(CHARS.length/_cols);
+    const _gridH=_rows*_ch+(_rows-1)*_cgap;
+    const _cpH=_hasCp?58:0;
+    const mh=56+_gridH+_cpH+62;
+    const mx=W/2-mw/2,my=Math.max(safeTop+8,H/2-mh/2);
+    // Outside tap or close ×
+    if(tx<mx||tx>mx+mw||ty<my||ty>my+mh||(tx>=mx+mw-28&&ty<=my+36)){
+      showStageCharModal=false;sfx('cancel');return;
+    }
+    // Character grid
+    const _gridX=W/2-(_cols*_cw+(_cols-1)*_cgap)/2;
+    const _gridY=my+40;
+    for(let _i=0;_i<CHARS.length;_i++){
+      const _ci=_i%_cols,_ri=Math.floor(_i/_cols);
+      const _cx=_gridX+_ci*(_cw+_cgap),_cy=_gridY+_ri*(_ch+_cgap);
+      if(tx>=_cx&&tx<=_cx+_cw&&ty>=_cy&&ty<=_cy+_ch){stageCharModalChar=_i;sfx('select');return;}
+    }
+    // Checkpoint toggle
+    if(_hasCp){
+      const _tY=_gridY+_gridH+14;
+      const _bw=(mw-28)/2-4,_bh=38,_b1X=mx+12,_b2X=mx+12+_bw+8;
+      if(tx>=_b1X&&tx<=_b1X+_bw&&ty>=_tY&&ty<=_tY+_bh){stageCharModalFromCp=false;sfx('select');return;}
+      if(tx>=_b2X&&tx<=_b2X+_bw&&ty>=_tY&&ty<=_tY+_bh){stageCharModalFromCp=true;sfx('select');return;}
+    }
+    // Start button
+    const _sbY=my+mh-54;
+    const _sbX=mx+12,_sbW=mw-24,_sbH=42;
+    if(tx>=_sbX&&tx<=_sbX+_sbW&&ty>=_sbY&&ty<=_sbY+_sbH){
+      selChar=stageCharModalChar;
+      localStorage.setItem('gd5char',selChar.toString());
+      showStageCharModal=false;
+      gameMode='pack';isPackMode=true;
+      resetPackStage(stageCharModalPi,stageCharModalSi,stageCharModalFromCp&&_hasCp);
+      state=ST.COUNTDOWN;countdownT=180;sfx('countdown');
+      return;
+    }
+    return;
+  }
   // Reset confirmation modal
   if(stageResetConfirm){
     const mw=Math.min(280,W-20),mh=160;
@@ -6253,19 +6353,12 @@ function handleStageSelTouch(tx,ty){
       const stage=pack.stages[si];
       const sx=sbX+si*(sbW+sbGap);
       if(tx>=sx&&tx<=sx+sbW&&ty>=sbY&&ty<=sbY+sbH){
-        // All stages unlocked
-        // Check if checkpoint exists for this stage
-        if(stageCheckpoints[stage.id]){
-          // Show start choice modal
-          showStartChoice=true;stageStartChoice='';
-          pendingPackPi=pi;pendingPackSi=si;
-          sfx('select');return;
-        }
-        // Start this stage!
-        gameMode='pack';isPackMode=true;
-        resetPackStage(pi,si,false);
-        state=ST.COUNTDOWN;countdownT=180;sfx('countdown');
-        return;
+        // Open character select modal
+        showStageCharModal=true;
+        stageCharModalPi=pi;stageCharModalSi=si;
+        stageCharModalChar=selChar;
+        stageCharModalFromCp=!!stageCheckpoints[stage.id];
+        sfx('select');return;
       }
     }
     return;
