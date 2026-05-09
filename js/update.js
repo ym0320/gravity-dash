@@ -290,7 +290,7 @@ function update(dt){
     if(itemEff.invincible>0)itemEff.invincible--;
     return;
   }
-  if(state===ST.STAGE_SEL){frame++;if(stageSelGuardT>0)stageSelGuardT--;return;}
+  if(state===ST.STAGE_SEL){frame++;if(stageSelGuardT>0)stageSelGuardT--;if(charModal.show)charModal.animT++;return;}
   if(state===ST.TITLE){
     // Auto-show update info on first title entry (disabled for now)
     // if(!updateInfoShown&&localStorage.getItem('gd5updateDismissed')!==UPDATE_VER){

@@ -953,7 +953,7 @@ function draw(){
     // Screen transition fade-in (white overlay fading out to reveal title)
     if(screenFadeIn>0){ctx.fillStyle='rgba(255,255,255,'+(screenFadeIn/90)+')';ctx.fillRect(0,0,W,H);}
     ctx.restore();return;}
-  if(state===ST.STAGE_SEL){drawStageSel();ctx.restore();return;}
+  if(state===ST.STAGE_SEL){drawStageSel();drawCharModal();ctx.restore();return;}
 
   // Platforms
   drawPlatforms(platforms,true);
@@ -6148,13 +6148,17 @@ function drawStageSel(){
       const _sel=stageCharModalChar===_i;
       ctx.fillStyle=_sel?'rgba(56,189,248,0.15)':'rgba(255,255,255,0.05)';rr(_cx,_cy,_cw,_ch,10);ctx.fill();
       ctx.strokeStyle=_sel?CHARS[_i].col:'rgba(255,255,255,0.12)';ctx.lineWidth=_sel?2:1;rr(_cx,_cy,_cw,_ch,10);ctx.stroke();
-      drawCharacter(_cx+_cw/2,_cy+_ch*0.42,_i,Math.floor(_cw*0.28),0,1,'normal',HP_MAX);
+      drawCharacter(_cx+_cw/2,_cy+_ch*0.40,_i,Math.floor(_cw*0.20),0,1,'normal',0);
       ctx.fillStyle=_sel?'#fff':'rgba(255,255,255,0.55)';ctx.font=(_sel?'bold ':'')+'9px monospace';ctx.textAlign='center';
       ctx.fillText(CHARS[_i].name,_cx+_cw/2,_cy+_ch-7);
     }
+    // Long-press hint
+    const _hintY=_gridY+_gridH+10;
+    ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font='10px monospace';ctx.textAlign='center';
+    ctx.fillText(gameLang==='ja'?'長押しでステータス確認':'Hold to check stats',W/2,_hintY);
     // Checkpoint toggle
     if(_hasCp){
-      const _tY=_gridY+_gridH+14;
+      const _tY=_gridY+_gridH+28;
       const _bw=(mw-28)/2-4,_bh=38;
       const _b1X=mx+12,_b2X=mx+12+_bw+8;
       const _isBegin=!stageCharModalFromCp;
@@ -6165,7 +6169,7 @@ function drawStageSel(){
       ctx.fillStyle=stageCharModalFromCp?'rgba(52,211,153,0.2)':'rgba(255,255,255,0.05)';rr(_b2X,_tY,_bw,_bh,8);ctx.fill();
       ctx.strokeStyle=stageCharModalFromCp?'#34d399':'rgba(255,255,255,0.2)';ctx.lineWidth=stageCharModalFromCp?1.5:1;rr(_b2X,_tY,_bw,_bh,8);ctx.stroke();
       ctx.fillStyle=stageCharModalFromCp?'#34d399':'rgba(255,255,255,0.45)';ctx.font=(stageCharModalFromCp?'bold ':'')+'11px monospace';ctx.textAlign='center';
-      ctx.fillText(gameLang==='ja'?'CPから':'FROM CP',_b2X+_bw/2,_tY+25);
+      ctx.fillText(gameLang==='ja'?'続きから':'CONTINUE',_b2X+_bw/2,_tY+25);
     }
     // Start button
     const _sbY=my+mh-54;
@@ -6257,7 +6261,7 @@ function handleStageSelTouch(tx,ty){
     }
     // Checkpoint toggle
     if(_hasCp){
-      const _tY=_gridY+_gridH+14;
+      const _tY=_gridY+_gridH+28;
       const _bw=(mw-28)/2-4,_bh=38,_b1X=mx+12,_b2X=mx+12+_bw+8;
       if(tx>=_b1X&&tx<=_b1X+_bw&&ty>=_tY&&ty<=_tY+_bh){stageCharModalFromCp=false;sfx('select');return;}
       if(tx>=_b2X&&tx<=_b2X+_bw&&ty>=_tY&&ty<=_tY+_bh){stageCharModalFromCp=true;sfx('select');return;}

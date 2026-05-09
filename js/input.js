@@ -250,6 +250,7 @@ function handleInventoryChestTap(tapX,tapY){
           if(!rw.isNew){walletCoins+=300;localStorage.setItem('gd5wallet',walletCoins.toString());addLifetimeCoins(300);}
         }
         totalChestsOpened++;
+        if(typeof checkNewTitleUnlocks==='function')checkNewTitleUnlocks();
       }
       localStorage.setItem('gd5chestTotal',totalChestsOpened.toString());
       storedChests=0;localStorage.setItem('gd5storedChests','0');
@@ -269,7 +270,7 @@ function handleInventoryChestTap(tapX,tapY){
   }
   if(chestOpen.phase==='waiting'){
     chestOpen.phase='wobble';chestOpen.t=0;sfx('select');vibrate(15);
-    totalChestsOpened++;localStorage.setItem('gd5chestTotal',totalChestsOpened.toString());
+    totalChestsOpened++;localStorage.setItem('gd5chestTotal',totalChestsOpened.toString());if(typeof checkNewTitleUnlocks==='function')checkNewTitleUnlocks();
     storedChests--;localStorage.setItem('gd5storedChests',storedChests.toString());
     if(deadChestOpen)deadChestsOpened++;
     if(typeof fbSaveUserData==='function')fbSaveUserData();
@@ -283,7 +284,7 @@ function handleInventoryChestTap(tapX,tapY){
         startInventoryChestOpen();
         // Auto-open immediately in batch mode
         chestOpen.phase='wobble';chestOpen.t=0;
-        totalChestsOpened++;localStorage.setItem('gd5chestTotal',totalChestsOpened.toString());
+        totalChestsOpened++;localStorage.setItem('gd5chestTotal',totalChestsOpened.toString());if(typeof checkNewTitleUnlocks==='function')checkNewTitleUnlocks();
         storedChests--;localStorage.setItem('gd5storedChests',storedChests.toString());
       } else {
         // All done - show batch summary
@@ -433,6 +434,9 @@ function continueFromDeath(){
   shakeX=0;shakeY=0;shakeI=0;flipCount=0;flipTimer=999;
   coinCD=0;itemCD=0;enemyCD=0;birdCD=0;spikeCD=0;hillCD=0;floatCD=0;gravZoneCD=0;icicleCD=0;
   flipZone={active:false,type:0,len:0,cd:0,lastType:-1};
+  abyssPhase={active:false,len:0,cd:0};
+  gravRushPhase={active:false,len:0,cd:0};
+  terrainGimmickPhase={active:false,type:'',len:0,cd:0};
   bossChests=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null,rewardGranted:false,_lastRevealIdx:-1};
   beginGameplayCountdown();
   curTheme=0;prevTheme=0;themeLerp=1; // reset theme to initial color
@@ -503,25 +507,27 @@ function handleHelpTouch(tx,ty){
 
 // Settings panel input helpers (must match drawTitle layout)
 function settingsLayout(){
-  const pw=Math.min(320,W-24),ph=484,px=W/2-pw/2,py=H/2-ph/2;
-  const slW=pw-50,slX=px+25,barX=slX+42,barW=slW-42;
-  const slY1=py+52,slY2=slY1+44;
-  const barH=10;
-  const langBtnW=48,langBtnH=22,langBtnGap=6;
-  const langBtnX=slX+54;
+  const pw=Math.min(340,W-20),ph=Math.min(488,H-24),px=W/2-pw/2,py=H/2-ph/2;
+  const pad=18,slX=px+pad,contentW=pw-pad*2,labelW=70;
+  const ctrlX=slX+labelW,ctrlW=contentW-labelW;
+  const slY1=py+58,slY2=slY1+42;
+  const valueW=36,barX=ctrlX,barW=ctrlW-valueW,barH=12;
+  const langBtnGap=8,langBtnW=(ctrlW-langBtnGap)/2,langBtnH=26;
+  const langBtnX=ctrlX;
   const engBtnX=langBtnX+langBtnW+langBtnGap;
-  const vibY=slY2+32;
+  const vibY=slY2+40;
   const langY=vibY+34;
-  const nameY=langY+24;
-  const tutBtnY=nameY+22;
-  const resetBtnY=tutBtnY+38;
-  const methodY=resetBtnY+42;
-  const linkBtnOffset=fbLoginMethod==='anonymous'?42:0;
-  const linkY=methodY+10;
-  const linkBW=(pw-48)/2;
-  const logoutBtnY=methodY+8+linkBtnOffset;
-  const deleteAccBtnY=logoutBtnY+56;
-  return{px,py,pw,ph,slX,barX,barW,barY1:slY1-8,barY2:slY2-8,barH,vibY,langY,langBtnX,langBtnW,langBtnH,engBtnX,nameY,tutBtnY,resetBtnY,linkY,linkBW,logoutBtnY,deleteAccBtnY,closeY:py+ph-42};
+  const nameY=langY+38;
+  const methodY=nameY+42;
+  const linkY=methodY+12;
+  const linkBW=(contentW-8)/2;
+  const accountActionY=methodY+(fbLoginMethod==='anonymous'?50:18);
+  const actionGap=8,actionW=(contentW-actionGap)/2;
+  const resetBtnX=slX,logoutBtnX=slX+actionW+actionGap;
+  const resetBtnY=accountActionY,logoutBtnY=accountActionY;
+  const deleteAccBtnY=accountActionY+42;
+  const closeY=py+ph-42;
+  return{px,py,pw,ph,pad,slX,contentW,labelW,ctrlX,ctrlW,barX,barW,barY1:slY1-8,barY2:slY2-8,barH,vibY,langY,langBtnX,langBtnW,langBtnH,engBtnX,nameY,methodY,linkY,linkBW,resetBtnX,resetBtnY,logoutBtnX,logoutBtnY,actionW,deleteAccBtnY,closeY};
 }
 function hitSettingsGear(tx,ty){return hitRect(tx,ty,W-44,safeTop+6,36,36);}
 function hitHelpBtn(tx,ty){return hitRect(tx,ty,W-44,safeTop+44,36,36);}
@@ -540,8 +546,13 @@ function handleConfirmModalTouch(tx,ty){
   // Confirm button
   if(tx>=confirmX&&tx<=confirmX+btnW&&ty>=btnY&&ty<=btnY+btnH){
     if(confirmModal.type==='reset'){
-      // Reset: 2-step confirmation
-      if(confirmModal.step===0){confirmModal.step=1;sfx('hurt');vibrate(30);return true;}
+      // Reset: deliberately slow 3-step confirmation to prevent accidental deletion.
+      if(confirmModal.readyAt&&Date.now()<confirmModal.readyAt){sfx('hurt');vibrate(8);return true;}
+      if(confirmModal.step<2){
+        confirmModal.step++;
+        confirmModal.readyAt=Date.now()+900;
+        sfx('hurt');vibrate(30);return true;
+      }
       const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('gd5'))keys.push(k);}
       keys.forEach(k=>localStorage.removeItem(k));
       sfx('bomb');vibrate(50);
@@ -598,21 +609,21 @@ function handleSettingsTouch(tx,ty){
   if(confirmModal){return handleConfirmModalTouch(tx,ty);}
   const s=settingsLayout();
   // Close button
-  if(tx>=s.px+20&&tx<=s.px+s.pw-20&&ty>=s.closeY&&ty<=s.closeY+32){sfx('click');settingsOpen=false;resetConfirmStep=0;nameEditMode=false;logoutConfirm=false;confirmModal=null;return true;}
+  if(tx>=s.slX&&tx<=s.slX+s.contentW&&ty>=s.closeY&&ty<=s.closeY+32){sfx('click');settingsOpen=false;resetConfirmStep=0;nameEditMode=false;logoutConfirm=false;confirmModal=null;return true;}
   // Vibration toggle
-  if(ty>=s.vibY-14&&ty<=s.vibY+8){
+  if(ty>=s.vibY-16&&ty<=s.vibY+10){
     if(tx>=s.langBtnX&&tx<=s.langBtnX+s.langBtnW){setHapticEnabled(true);sfx('click');return true;}
     if(tx>=s.langBtnX+s.langBtnW+6&&tx<=s.langBtnX+s.langBtnW*2+6){setHapticEnabled(false);sfx('click');return true;}
   }
   // Language buttons
-  if(ty>=s.langY-14&&ty<=s.langY-14+s.langBtnH){
+  if(ty>=s.langY-16&&ty<=s.langY-16+s.langBtnH){
     if(tx>=s.langBtnX&&tx<=s.langBtnX+s.langBtnW){setLang('ja');sfx('click');return true;}
     if(tx>=s.engBtnX&&tx<=s.engBtnX+s.langBtnW){setLang('en');sfx('click');return true;}
   }
   // Name change button / OK button
   if(nameEditMode){
     // OK button (right side of input)
-    if(tx>=s.px+s.pw-42&&tx<=s.px+s.pw&&ty>=s.nameY-14&&ty<=s.nameY+8){
+    if(tx>=s.px+s.pw-58&&tx<=s.px+s.pw-18&&ty>=s.nameY-16&&ty<=s.nameY+10){
       const newName=nameEditBuf.trim();
       if(newName.length<1){sfx('hurt');vibrate(10);return true;}
       if(newName===playerName){nameEditMode=false;sfx('click');return true;}
@@ -640,7 +651,7 @@ function handleSettingsTouch(tx,ty){
     return true;
   } else {
     // "変更" button
-    if(tx>=s.px+s.pw-72&&tx<=s.px+s.pw-6&&ty>=s.nameY-14&&ty<=s.nameY+8){
+    if(tx>=s.px+s.pw-78&&tx<=s.px+s.pw-18&&ty>=s.nameY-16&&ty<=s.nameY+10){
       nameEditMode=true;nameEditBuf=playerName||'';
       sfx('click');
       // Show virtual keyboard by creating temporary input
@@ -648,18 +659,14 @@ function handleSettingsTouch(tx,ty){
       return true;
     }
   }
-  // Tutorial replay button
-  if(tx>=s.px+20&&tx<=s.px+s.pw-20&&ty>=s.tutBtnY&&ty<=s.tutBtnY+30){
-    sfx('select');settingsOpen=false;resetConfirmStep=0;nameEditMode=false;logoutConfirm=false;startTutorial();return true;
-  }
   // Data reset button - opens modal
-  if(tx>=s.px+20&&tx<=s.px+s.pw-20&&ty>=s.resetBtnY&&ty<=s.resetBtnY+30){
-    confirmModal={type:'reset',step:0};sfx('hurt');vibrate(20);return true;
+  if(tx>=s.resetBtnX&&tx<=s.resetBtnX+s.actionW&&ty>=s.resetBtnY&&ty<=s.resetBtnY+32){
+    confirmModal={type:'reset',step:0,readyAt:Date.now()+900};sfx('hurt');vibrate(20);return true;
   }
   // Account linking buttons (guest only)
-  if(fbLoginMethod==='anonymous'&&ty>=s.linkY&&ty<=s.linkY+28){
+  if(fbLoginMethod==='anonymous'&&ty>=s.linkY&&ty<=s.linkY+30){
     // Google link
-    if(tx>=s.px+20&&tx<=s.px+20+s.linkBW){
+    if(tx>=s.slX&&tx<=s.slX+s.linkBW){
       sfx('select');
       if(typeof fbLinkGoogle==='function'){
         fbLinkGoogle().then(()=>{
@@ -686,7 +693,7 @@ function handleSettingsTouch(tx,ty){
       return true;
     }
     // Apple link
-    if(tx>=s.px+20+s.linkBW+8&&tx<=s.px+20+s.linkBW+8+s.linkBW){
+    if(tx>=s.slX+s.linkBW+8&&tx<=s.slX+s.linkBW+8+s.linkBW){
       sfx('select');
       if(typeof fbLinkApple==='function'){
         fbLinkApple().then(()=>{
@@ -713,12 +720,12 @@ function handleSettingsTouch(tx,ty){
     }
   }
   // Logout button - always show confirmation modal
-  if(tx>=s.px+20&&tx<=s.px+s.pw-20&&ty>=s.logoutBtnY&&ty<=s.logoutBtnY+30){
+  if(tx>=s.logoutBtnX&&tx<=s.logoutBtnX+s.actionW&&ty>=s.logoutBtnY&&ty<=s.logoutBtnY+32){
     confirmModal={type:'logout',step:0};sfx('hurt');vibrate(15);
     return true;
   }
   // Delete Account button
-  if(tx>=s.px+20&&tx<=s.px+s.pw-20&&ty>=s.deleteAccBtnY&&ty<=s.deleteAccBtnY+28){
+  if(tx>=s.slX&&tx<=s.slX+s.contentW&&ty>=s.deleteAccBtnY&&ty<=s.deleteAccBtnY+30){
     confirmModal={type:'deleteAccount',step:0};sfx('hurt');vibrate(20);
     return true;
   }
@@ -981,7 +988,7 @@ function _checkSecretStageUnlockFromEvent(e){
   if(typeof stageResetConfirm!=='undefined')stageResetConfirm=false;
   rankingOpen=false;settingsOpen=false;inventoryOpen=false;shopOpen=false;
   if(typeof cosmeticMenuOpen!=='undefined')cosmeticMenuOpen=false;
-  if(typeof titleMenuOpen!=='undefined'){titleMenuOpen=false;titleConfirmPending=null;}
+  if(typeof titleMenuOpen!=='undefined'){if(typeof closeTitleMenu==='function')closeTitleMenu();else{titleMenuOpen=false;titleConfirmPending=null;}}
   helpOpen=false;
   if(typeof updateInfoOpen!=='undefined')updateInfoOpen=false;
   isPackMode=false;state=ST.STAGE_SEL;stageSelScroll=0;stageSelGuardT=20;
@@ -1013,7 +1020,33 @@ canvas.addEventListener('touchstart',e=>{
   if(state===ST.TUTORIAL){handleTutorialTouch(p.x,p.y);return;}
   if(state===ST.TITLE&&!charModal.show&&hitSettingsGear(p.x,p.y)){sfx('click');vibrate(5);settingsOpen=true;return;}
   if(state===ST.TITLE&&!charModal.show&&hitHelpBtn(p.x,p.y)){sfx('select');vibrate(5);helpOpen=true;if(notifHelpNew){notifHelpNew=false;localStorage.setItem('gd5helpSeen','1');}return;}
-  if(state===ST.STAGE_SEL){stageSelTouchY=t.clientY;stageSelDragging=false;return;}
+  if(state===ST.STAGE_SEL){
+    stageSelTouchY=t.clientY;stageSelDragging=false;
+    // Long press on character cell in stage char modal
+    if(showStageCharModal&&stageCharModalPi>=0&&stageCharModalSi>=0){
+      longPressFired=false;
+      const _csStage2=STAGE_PACKS[stageCharModalPi].stages[stageCharModalSi];
+      const _hasCp2=!!stageCheckpoints[_csStage2.id];
+      const mw2=Math.min(320,W-20);
+      const _cols2=3,_cw2=Math.floor((mw2-24-(_cols2-1)*8)/_cols2),_ch2=76,_cgap2=8;
+      const _gridH2=Math.ceil(CHARS.length/_cols2)*_ch2+(Math.ceil(CHARS.length/_cols2)-1)*_cgap2;
+      const _cpH2=_hasCp2?58:0;
+      const mh2=56+_gridH2+_cpH2+62;
+      const mx2=W/2-mw2/2,my2=Math.max(safeTop+8,H/2-mh2/2);
+      const _gridX2=W/2-(_cols2*_cw2+(_cols2-1)*_cgap2)/2;
+      const _gridY2=my2+40;
+      for(let _i2=0;_i2<CHARS.length;_i2++){
+        const _ci2=_i2%_cols2,_ri2=Math.floor(_i2/_cols2);
+        const _cx2=_gridX2+_ci2*(_cw2+_cgap2),_cy2=_gridY2+_ri2*(_ch2+_cgap2);
+        if(p.x>=_cx2&&p.x<=_cx2+_cw2&&p.y>=_cy2&&p.y<=_cy2+_ch2){
+          const _lpIdx=_i2;
+          longPressTimer=setTimeout(()=>{longPressFired=true;charModal={show:true,idx:_lpIdx,animT:0};vibrate(15);if(typeof sfxCharVoice==='function')sfxCharVoice(_lpIdx);},400);
+          break;
+        }
+      }
+    }
+    return;
+  }
   if(state===ST.STAGE_CLEAR&&stageClearT>60){
     sfx('click');state=ST.STAGE_SEL;isPackMode=false;stageSelScroll=0;switchBGM('title');return;
   }
@@ -1070,8 +1103,9 @@ canvas.addEventListener('touchmove',e=>{
     touchStartY=t.clientY;
     const rowH=36;
     const topPad=safeTop+8;
-    const mH=H-topPad-10,hdrH=76,listH=mH-hdrH-50;
-    const totalH=RANKING_DATA.length*rowH;
+    const mH=H-topPad-10,hdrH=108,listH=mH-hdrH-50;
+    const rankData=rankingTab==='stage'?STAGE_RANKING_DATA:(rankingTab==='challenge'?CHALLENGE_RANKING_DATA:RANKING_DATA);
+    const totalH=rankData.length*rowH;
     const maxScroll=Math.max(0,totalH-listH);
     rankingScrollTarget=Math.max(0,Math.min(maxScroll,rankingScrollTarget-dy2*2.5));
     return;
@@ -1149,10 +1183,12 @@ canvas.addEventListener('touchend',e=>{
   }
   if(updateInfoOpen||helpOpen||settingsOpen||rankingOpen||inventoryOpen)return;
   clearSettingsGearHold();
-  // Stage selection: handle tap only if user didn't drag
+  // Stage selection: handle tap only if user didn't drag and didn't long-press
   if(state===ST.STAGE_SEL){
-    if(!stageSelDragging){const ct3=e.changedTouches[0];const cp2=canvasXY(ct3.clientX,ct3.clientY);handleStageSelTouch(cp2.x,cp2.y);}
-    stageSelDragging=false;return;
+    if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}
+    if(charModal.show&&!longPressFired){sfx('cancel');charModal.show=false;longPressFired=false;stageSelDragging=false;return;}
+    if(!stageSelDragging&&!longPressFired){const ct3=e.changedTouches[0];const cp2=canvasXY(ct3.clientX,ct3.clientY);handleStageSelTouch(cp2.x,cp2.y);}
+    longPressFired=false;stageSelDragging=false;return;
   }
   // Shop/cosmetic: confirm pending item taps if user didn't scroll
   if(shopOpen){
@@ -1358,7 +1394,7 @@ document.addEventListener('keydown',e=>{
   if(updateInfoOpen){if(e.code==='Escape'){localStorage.setItem('gd5updateDismissed',UPDATE_VER);updateInfoOpen=false;updateInfoPage=0;sfx('cancel');}if(e.code==='ArrowLeft'&&updateInfoPage>0){updateInfoPage--;sfx('click');}if(e.code==='ArrowRight'&&updateInfoPage<UPDATE_HISTORY.length-1){updateInfoPage++;sfx('click');}e.preventDefault();return;}
   if(helpOpen){if(e.code==='Escape'){helpOpen=false;sfx('cancel');}e.preventDefault();return;}
   if(rankingOpen){if(e.code==='Escape'){rankingOpen=false;sfx('cancel');}e.preventDefault();return;}
-  if(titleMenuOpen){if(e.code==='Escape'){titleMenuOpen=false;titlePendingTap=null;titleConfirmPending=null;sfx('cancel');}e.preventDefault();return;}
+  if(titleMenuOpen){if(e.code==='Escape'){closeTitleMenu();sfx('cancel');}e.preventDefault();return;}
   if(settingsOpen){if(e.code==='Escape'){if(confirmModal){confirmModal=null;sfx('cancel');}else if(nameEditMode){nameEditMode=false;}else{settingsOpen=false;logoutConfirm=false;resetConfirmStep=0;}sfx('cancel');e.preventDefault();}if(!nameEditMode){e.preventDefault();}return;}
   if(e.code==='Escape'){
     e.preventDefault();
@@ -1486,7 +1522,7 @@ function getCharGridIdx(tx,ty){
 function handleTitleTouch(tx,ty){
   // Ranking button (top-left, row 1)
   if(tx>=8&&tx<=44&&ty>=safeTop+6&&ty<=safeTop+42){
-    rebuildRankingData();rebuildChallengeRankingData();if(typeof fbRefreshRankings==='function')fbRefreshRankings();rankingOpen=true;rankingTab='endless';rankingScroll=0;rankingScrollTarget=0;notifNewHighScore=false;localStorage.removeItem('gd5notifHi');sfx('select');vibrate(5);return;
+    rebuildRankingData();rebuildChallengeRankingData();if(typeof rebuildStageRankingData==='function')rebuildStageRankingData();if(typeof fbRefreshRankings==='function')fbRefreshRankings();rankingOpen=true;rankingTab='endless';rankingScroll=0;rankingScrollTarget=0;notifNewHighScore=false;localStorage.removeItem('gd5notifHi');sfx('select');vibrate(5);return;
   }
   // Inventory button (top-left, row 2)
   if(tx>=8&&tx<=44&&ty>=safeTop+44&&ty<=safeTop+80){
@@ -1512,14 +1548,15 @@ function handleTitleTouch(tx,ty){
       const lay=titleMenuLayout();
       let cy=0,targetY=0;
       for(let i=0;i<entries.length;i++){
-        if(entries[i].type==='title'&&notifNewTitleIds.indexOf(entries[i].def.id)!==-1){targetY=cy;break;}
+        if(entries[i].type==='title'&&notifNewTitleIds.indexOf(entries[i].def.id)!==-1){targetY=cy-lay.listH*0.35;break;}
         cy+=titleMenuEntryHeight(entries[i]);
       }
       const maxS=Math.max(0,titleMenuContentHeight(entries)-lay.listH);
       titleMenuScroll=Math.max(0,Math.min(maxS,targetY));
-      notifNewTitleIds=[];localStorage.removeItem('gd5notifTitles');localStorage.removeItem('gd5notifTitlesTime');
+      titleNotifClearOnClose=true;
     } else {
       titleMenuScroll=0;
+      titleNotifClearOnClose=false;
     }
     sfx('select');vibrate(5);return;
   }
@@ -1570,11 +1607,15 @@ function handleRankingTouch(tx,ty){
   const mH=H-topPad-10;
   const mX=(W-mW)/2,mY=topPad;
   // Tab buttons
-  const tabY=mY+34,tabH=24,tabW=Math.floor((mW-24)/2);
-  const tabLX=mX+8,tabRX=mX+8+tabW+8;
-  if(ty>=tabY&&ty<=tabY+tabH){
-    if(tx>=tabLX&&tx<=tabLX+tabW){rankingTab='endless';rankingScroll=0;rankingScrollTarget=0;sfx('click');return;}
-    if(tx>=tabRX&&tx<=tabRX+tabW){rankingTab='challenge';rankingScroll=0;rankingScrollTarget=0;sfx('click');return;}
+  const tabY=mY+34,tabH=24;
+  const tabEnd={x:mX+42,y:tabY,w:mW-84,h:tabH};
+  const tabW=Math.floor((mW-32)/2);
+  const tabChal={x:mX+8,y:tabY+32,w:tabW,h:tabH};
+  const tabStage={x:mX+16+tabW,y:tabY+32,w:tabW,h:tabH};
+  if(tx>=tabEnd.x&&tx<=tabEnd.x+tabEnd.w&&ty>=tabEnd.y&&ty<=tabEnd.y+tabEnd.h){rankingTab='endless';rankingScroll=0;rankingScrollTarget=0;sfx('click');return;}
+  if(ty>=tabChal.y&&ty<=tabChal.y+tabH){
+    if(tx>=tabChal.x&&tx<=tabChal.x+tabChal.w){rankingTab='challenge';rankingScroll=0;rankingScrollTarget=0;sfx('click');return;}
+    if(tx>=tabStage.x&&tx<=tabStage.x+tabStage.w){rankingTab='stage';rankingScroll=0;rankingScrollTarget=0;sfx('click');return;}
   }
   // Footer close button
   const ftY=mY+mH-40;
@@ -1585,6 +1626,12 @@ function handleRankingTouch(tx,ty){
   if(tx<mX||tx>mX+mW||ty<mY||ty>mY+mH){
     rankingOpen=false;sfx('cancel');return;
   }
+}
+function closeTitleMenu(){
+  titleMenuOpen=false;
+  titlePendingTap=null;
+  titleConfirmPending=null;
+  if(titleNotifClearOnClose&&typeof clearTitleNotifications==='function')clearTitleNotifications();
 }
 function confirmTitleMenuTap(){
   if(!titlePendingTap)return;
@@ -1624,11 +1671,11 @@ function handleTitleMenuTouch(tx,ty){
   }
   titlePendingTap=null;
   if(tx<mX||tx>mX+mW||ty<mY||ty>mY+mH){
-    titleMenuOpen=false;titleConfirmPending=null;sfx('cancel');return;
+    closeTitleMenu();sfx('cancel');return;
   }
   const ftY=lay.footerY;
   if(tx>=W/2-50&&tx<=W/2+50&&ty>=ftY&&ty<=ftY+30){
-    titleMenuOpen=false;titleConfirmPending=null;sfx('cancel');return;
+    closeTitleMenu();sfx('cancel');return;
   }
   if(ty<lay.listY||ty>lay.listY+lay.listH)return;
   const entries=getTitleMenuEntries();
@@ -1647,8 +1694,9 @@ canvas.addEventListener('wheel',e=>{
   if(rankingOpen){
     e.preventDefault();
     const rowH=36;
-    const topPad=safeTop+8,mH=H-topPad-10,hdrH=76,listH=mH-hdrH-50;
-    const totalH=RANKING_DATA.length*rowH;
+    const topPad=safeTop+8,mH=H-topPad-10,hdrH=108,listH=mH-hdrH-50;
+    const rankData=rankingTab==='stage'?STAGE_RANKING_DATA:(rankingTab==='challenge'?CHALLENGE_RANKING_DATA:RANKING_DATA);
+    const totalH=rankData.length*rowH;
     const maxScroll=Math.max(0,totalH-listH);
     rankingScrollTarget=Math.max(0,Math.min(maxScroll,rankingScrollTarget+e.deltaY*1.5));
   }
@@ -1817,8 +1865,8 @@ function confirmShopTap(){
     sfx('select');vibrate(10);
     return;
   } else {
-    // Block purchase of secret/rare/super_rare items (gacha only)
-    if(item.rarity==='rare'||item.rarity==='super_rare'){
+    // Block only truly chest-only items; coin-priced rare/super rare items stay buyable.
+    if(item.gachaOnly){
       sfx('hurt');vibrate(15);
       addPop(W/2,H/2,t('popGachaOnly'),item.rarity==='super_rare'?'#ffd700':'#a855f7');
       return;
@@ -1850,9 +1898,9 @@ function handleCosmeticTouch(tx,ty){
   }
   // Footer close button
   const cosClY=mY+mH-42;
-  if(tx>=W/2-50&&tx<=W/2+50&&ty>=cosClY&&ty<=cosClY+30){cosmeticMenuOpen=false;newCosmeticIds.clear();localStorage.removeItem('gd5newCosm');sfx('cancel');return;}
+  if(tx>=W/2-50&&tx<=W/2+50&&ty>=cosClY&&ty<=cosClY+30){cosmeticMenuOpen=false;sfx('cancel');return;}
   // Outside modal
-  if(tx<mX||tx>mX+mW||ty<mY||ty>mY+mH){cosmeticMenuOpen=false;newCosmeticIds.clear();localStorage.removeItem('gd5newCosm');sfx('cancel');return;}
+  if(tx<mX||tx>mX+mW||ty<mY||ty>mY+mH){cosmeticMenuOpen=false;sfx('cancel');return;}
   // Tabs
   for(let i=0;i<COSMETIC_TAB_DEFS.length;i++){
     const tr=cosmeticTabRect(i);
@@ -1884,6 +1932,7 @@ function confirmCosmeticTap(){
     addPop(W/2,H/2,'???',item.rarity==='super_rare'?'#ffd700':item.rarity==='rare'?'#a855f7':'#fff8');
     return;
   }
+  if(item.id!==''&&typeof markCosmeticSeen==='function')markCosmeticSeen(item.id);
   // Show equip confirmation dialog
   cosmeticConfirm={item,tab};sfx('select');
 }
