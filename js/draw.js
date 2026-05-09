@@ -5771,9 +5771,8 @@ function drawDead(){
     // Card background
     ctx.fillStyle='rgba(10,10,30,0.92)';rr(cardX,cardY,cardW,cardH,14);ctx.fill();
     ctx.strokeStyle='#ffd70044';ctx.lineWidth=1.5;rr(cardX,cardY,cardW,cardH,14);ctx.stroke();
-    // Character: キューブ(0)固定、コスメなしで純粋に
     drawPetShowcase('gameover',W/2,cardY+32,15,1,e);
-    drawCharacter(W/2,cardY+32,0,15,0,1,'dead',1,false);
+    drawCharacter(W/2,cardY+32,selChar,16,0,1,'dead',maxHp());
     // ラベル
     ctx.fillStyle='#ffd70099';ctx.font='11px monospace';ctx.textAlign='center';
     ctx.fillText(gameLang==='ja'?'獲得スター':'STARS',W/2,cardY+72);

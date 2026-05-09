@@ -422,24 +422,18 @@ function generatePackPlatform(arr,isCeil,stage){
       }
     }
   }
-  // --- PURE GRAVITY stage: floor exists only at start and near goal ---
+  // --- PURE GRAVITY stage: no floor or ceiling, only start/goal platforms ---
   else if(sType==='pureGrav'){
-    if(!isCeil){
-      // Floor: start platform, then abyss, flat runway near goal
-      if(approxDist<10){
-        addedW=100+rng()*60;
-        arr.push({x:lastRight,w:addedW,h:GROUND_H});
-      } else if(approxDist>=stage.dist*0.88){
-        addedGap=0;addedW=80+rng()*60;
-        arr.push({x:lastRight,w:addedW,h:GROUND_H});
-      } else {
-        addedGap=9999;addedW=1;
-        arr.push({x:lastRight+addedGap,w:1,h:0});
-      }
-    } else {
-      // Ceiling: flat throughout
-      addedW=100+rng()*80;
+    // Both floor and ceiling: start platform + abyss + goal runway
+    if(approxDist<10){
+      addedW=120+rng()*60;
       arr.push({x:lastRight,w:addedW,h:GROUND_H});
+    } else if(approxDist>=stage.dist*0.88){
+      addedGap=0;addedW=100+rng()*60;
+      arr.push({x:lastRight,w:addedW,h:GROUND_H});
+    } else {
+      addedGap=9999;addedW=1;
+      arr.push({x:lastRight+addedGap,w:1,h:0});
     }
   }
   // --- CHASM stage: deep gaps, floor-level only ---

@@ -188,10 +188,10 @@ function resetSpecialState(){
   }
 }
 function canChargeSpecial(){
-  return isSpecialModeEnabled()&&state===ST.PLAY&&player&&player.alive&&!specialState.active&&!bossPhase.active&&!bossPhase.reward;
+  return isSpecialModeEnabled()&&!isPackMode&&state===ST.PLAY&&player&&player.alive&&!specialState.active&&!bossPhase.active&&!bossPhase.reward;
 }
 function canActivateSpecial(forced){
-  return isSpecialModeEnabled()&&state===ST.PLAY&&player&&player.alive&&!specialState.active&&!bossPhase.active&&!bossPhase.reward&&((!!forced)||specialState.gauge>=SPECIAL_GAUGE_MAX);
+  return isSpecialModeEnabled()&&!isPackMode&&state===ST.PLAY&&player&&player.alive&&!specialState.active&&!bossPhase.active&&!bossPhase.reward&&((!!forced)||specialState.gauge>=SPECIAL_GAUGE_MAX);
 }
 function getSpecialType(){
   const shape=ct().shape||'cube';
@@ -2099,11 +2099,11 @@ const STAGE_PACKS=[
       stageType:'gravity',noFloatPlat:true,noHazards:true,
       hillW:95,hillDensityCD:35,hillMinGap:160,
       coins:[{pos:0.30,yOff:-50},{pos:0.55,yOff:-50},{pos:0.78,yOff:-50}]},
-    // 1-5: スタート以外床なし・重力ゾーン＋空中全種類敵
-    {id:'1-5',name:'1-5',dist:1000,spdMul:1.1,seed:1005,enemyChance:0.80,flatGoal:true,
+    // 1-5: 上下床なし・重力ゾーン＋空中敵（少なめ）
+    {id:'1-5',name:'1-5',dist:1000,spdMul:1.1,seed:1005,enemyChance:0.45,flatGoal:true,
       stageType:'pureGrav',hillChance:0,gapChance:0,noMovingHill:true,noFloatPlat:true,noHazards:true,noCheckpoint:true,
       aerialEnemyTypes:true,
-      coins:[{pos:0.25,fromCeil:true,yOff:70},{pos:0.55,fromCeil:true,yOff:160},{pos:0.80,fromCeil:true,yOff:70}]},
+      coins:[{pos:0.25,yOff:-50},{pos:0.55,fromCeil:true,yOff:50},{pos:0.80,yOff:-50}]},
   ]},
   {name:'雪山',theme:1,unlock:12,starsPerStage:2,stages:[
     // 2-1: つらら雨 — 頭上からつららが降ってくる、敵はクリボーのみ

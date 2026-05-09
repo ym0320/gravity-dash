@@ -220,28 +220,28 @@ function trySpawnEnemy(){
     const _pureGravAerial=isPackMode&&currentPackStage&&currentPackStage.aerialEnemyTypes;
     if(eType===4){
       // Vertical mover: bounces between floor and ceiling
-      const onCeil4=_pureGravAerial?true:(packRng()<0.4);
+      const onCeil4=_pureGravAerial?false:(packRng()<0.4);
       const gd4=onCeil4?-1:1;
-      const surfY=gd4===1?H-plat.h:ceilSurfaceY(ex);
+      const surfY=_pureGravAerial?H*0.5:(gd4===1?H-plat.h:ceilSurfaceY(ex));
       const sz=14;
       enemies.push({x:ex,y:gd4===1?surfY-sz:surfY+sz,vy:gd4===1?(-2.5-packRng()*1.5):(2.5+packRng()*1.5),gDir:gd4,walkSpd:0,sz:sz,alive:true,fr:packRng()*100,type:4,shootT:999,
         moveDir:gd4===1?-1:1,moveSpd:2.5+packRng()*1.5,pauseT:0});
     } else if(eType===5){
       // Phantom: floats in air, periodically becomes invisible
-      const onCeil5=_pureGravAerial?true:(packRng()<0.4);
+      const onCeil5=_pureGravAerial?false:(packRng()<0.4);
       const gd5=onCeil5?-1:1;
       const surfY=gd5===1?H-plat.h:ceilSurfaceY(ex);
-      const flyY=gd5===1?surfY-50-packRng()*60:surfY+50+packRng()*60;
+      const flyY=_pureGravAerial?H*(0.1+packRng()*0.8):(gd5===1?surfY-50-packRng()*60:surfY+50+packRng()*60);
       const sz=13;
       enemies.push({x:ex,y:flyY,vy:0,gDir:gd5,walkSpd:0,sz:sz,alive:true,fr:packRng()*100,type:5,shootT:999,
         baseY:flyY,flyPhase:packRng()*6.28,flyAmp:15+packRng()*15,
         visTimer:0,visCycle:90+Math.floor(packRng()*60),visible:true,fadeT:0});
     } else if(eType===2){
       // Flying enemy: spawns in the air between floor and ceiling
-      const onCeil2=_pureGravAerial?true:(packRng()<0.4);
+      const onCeil2=_pureGravAerial?false:(packRng()<0.4);
       const gd2=onCeil2?-1:1;
       const surfY=gd2===1?H-plat.h:ceilSurfaceY(ex);
-      const flyY=gd2===1?surfY-60-packRng()*80:surfY+60+packRng()*80;
+      const flyY=_pureGravAerial?H*(0.1+packRng()*0.8):(gd2===1?surfY-60-packRng()*80:surfY+60+packRng()*80);
       enemies.push({x:ex,y:flyY,vy:0,gDir:gd2,walkSpd:0,sz:sz,alive:true,fr:packRng()*100,type:2,shootT:999,
         baseY:flyY,flyPhase:packRng()*6.28,flyAmp:20+packRng()*25});
     } else if(eType===3){

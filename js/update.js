@@ -407,6 +407,8 @@ function update(dt){
   } else {
     speed=Math.min(SPEED_MAX,(SPEED_INIT+rawDist*SPEED_INC))*ct().speedMul;
   }
+  // Goal walk: freeze world scrolling so floor is stationary, player walks right
+  if(stageGoalWalkActive)speed=0;
   // Distance scoring (score freezes during boss, catches up on victory; frozen during goal walk)
   if(!(isPackMode&&stageGoalWalkActive)){
     const frameDist=speed*0.08;
@@ -544,7 +546,7 @@ function update(dt){
     }
     // Goal walk: auto-walk player rightward toward the goal flag
     if(stageGoalWalkActive&&state===ST.PLAY&&player.alive){
-      if(player.x<stageGoalScreenX){player.x=Math.min(player.x+speed,stageGoalScreenX);}
+      if(player.x<stageGoalScreenX){player.x=Math.min(player.x+2.5,stageGoalScreenX);}
       if(player.x>=stageGoalScreenX-8){
         stageGoalWalkActive=false;
         state=ST.STAGE_CLEAR;stageClearT=0;gotNewStars=0;
@@ -649,15 +651,16 @@ function update(dt){
         }
       }
     } else if(sType==='pureGrav'){
-      // Pure gravity zone stage: dense grav zones, flat terrain (no platforms gimmick)
+      // No floor/ceiling: bounce at screen edges, dense alternating gravity zones
       if(!nearGoal){
         if(gravZoneCD>0)gravZoneCD--;
         if(gravZoneCD<=0){
-          const gx=W+30+packRng()*80;
-          const gw=50+packRng()*40;
-          const gdir=packRng()<0.5?1:-1;
-          gravZones.push({x:gx,w:gw,triggered:false,fadeT:0,dir:gdir});
-          gravZoneCD=22+Math.floor(packRng()*28);
+          const gx=W+20+packRng()*60;
+          const gw=60+packRng()*40;
+          // Always alternate direction to create wave-like bouncing
+          const _lastDir=gravZones.length>0?gravZones[gravZones.length-1].dir:1;
+          gravZones.push({x:gx,w:gw,triggered:false,fadeT:0,dir:-_lastDir});
+          gravZoneCD=14+Math.floor(packRng()*14);
         }
       }
     } else if(sType==='void'){
@@ -1236,8 +1239,14 @@ function update(dt){
   if(fSurf-cSurf<pr*2+4){
     hurt(true);return;
   }
-  // Boundaries (void fall = instant death, lose all HP)
-  if(player.y+pr>H+30||player.y-pr<-30){die(false);return;}
+  // Boundaries (void fall = instant death; pureGrav: bounce instead)
+  if(player.y+pr>H+30||player.y-pr<-30){
+    if(isPackMode&&currentPackStage&&currentPackStage.stageType==='pureGrav'){
+      if(player.y+pr>H+30){player.y=H+30-pr;player.vy=-(Math.abs(player.vy)*0.5+2.5);player.gDir=-1;}
+      else{player.y=-30+pr;player.vy=Math.abs(player.vy)*0.5+2.5;player.gDir=1;}
+      player.grounded=false;emitParts(player.x,player.y,10,tc('ply'),3,2);
+    } else {die(false);return;}
+  }
 
   // Rotation (tire spins continuously when grounded)
   if(ct().shape==='tire'&&player.grounded){
