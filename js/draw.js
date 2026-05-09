@@ -6059,8 +6059,9 @@ function drawStageSel(){
   ctx.fillStyle='#ff3860';ctx.font='bold 10px monospace';ctx.textAlign='center';
   ctx.fillText(t('reset'),W-35,42+safeTop);
   // Star total display
-  ctx.fillStyle='#ffd700';ctx.font='bold 14px monospace';ctx.textAlign='right';
-  ctx.fillText('\u2605'+totalStars,W-68,42+safeTop);
+  _shadow(8,'#ffd70088');
+  ctx.fillStyle='#ffd700';ctx.font='bold 20px monospace';ctx.textAlign='right';
+  ctx.fillText('\u2605'+totalStars,W-68,44+safeTop);ctx.shadowBlur=0;
   // Scrollable pack list
   ctx.save();
   ctx.beginPath();ctx.rect(0,60+safeTop,W,H-70-safeTop-safeBot);ctx.clip();
@@ -6084,8 +6085,8 @@ function drawStageSel(){
     const packStarsPre=pack.stages.reduce((sum,s)=>{const p=packProgress[s.id];return sum+(p?p.stars:0);},0);
     const _srX=15+cardW-10;
     ctx.textAlign='right';
-    ctx.fillStyle='#ffd700';ctx.font='bold 15px monospace';
-    _shadow(6,'#ffd70066');ctx.fillText('★ '+packStarsPre,_srX,cy+22);ctx.shadowBlur=0;
+    ctx.fillStyle='#ffd700';ctx.font='bold 20px monospace';
+    _shadow(8,'#ffd70088');ctx.fillText('★ '+packStarsPre,_srX,cy+26);ctx.shadowBlur=0;
     ctx.fillStyle='#fff8';ctx.font='bold 10px monospace';
     ctx.fillText(cleared+'/5 '+t('cleared'),_srX,cy+36);
     // Stage buttons (5 in a row)
