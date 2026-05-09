@@ -3613,19 +3613,22 @@ function drawTitle(){
       {col:'#ff6080',label:t('challengeLabel'),val:challengeBestKills>0?challengeBestKills:'-'},
       {col:'#34d399',label:t('stage'),val:totalStars>0?('★'+totalStars):'-'}
     ];
-    const rowH=18,panW=Math.min(240,W-40),panH=statRows.length*rowH+10;
+    const rowH=18,panW=Math.min(180,W-60),panH=statRows.length*rowH+14;
     const panX=W/2-panW/2;
     ctx.fillStyle='rgba(0,0,0,0.35)';rr(panX,statsY,panW,panH,8);ctx.fill();
     ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;rr(panX,statsY,panW,panH,8);ctx.stroke();
-    const _sepX=W/2+4; // colon position — all rows share same X
+    const _sepX=W/2+4; // colon — all rows share same X
     ctx.font='bold 12px monospace';
+    // Vertically center content within panel
+    const _contentH=statRows.length*rowH;
+    const _topPad=(panH-_contentH)/2+rowH*0.75;
     for(let li=0;li<statRows.length;li++){
       const r=statRows[li];
-      const ry=statsY+14+li*rowH;
+      const ry=statsY+_topPad+li*rowH;
       ctx.fillStyle=r.col;
-      ctx.textAlign='right';ctx.fillText(r.label,_sepX-6,ry);
+      ctx.textAlign='right';ctx.fillText(r.label,_sepX-5,ry);
       ctx.fillStyle='rgba(255,255,255,0.4)';ctx.textAlign='center';ctx.fillText(':',_sepX,ry);
-      ctx.fillStyle=r.col;ctx.textAlign='left';ctx.fillText(r.val,_sepX+6,ry);
+      ctx.fillStyle=r.col;ctx.textAlign='left';ctx.fillText(r.val,_sepX+5,ry);
     }
   }
 
@@ -6104,13 +6107,13 @@ function drawStageSel(){
         if(is3Star){ctx.strokeStyle='#ffd70066';ctx.lineWidth=1;rr(sx+2,sbY+2,sbW-4,sbH-4,8);ctx.stroke();}
         ctx.fillStyle=is3Star?'#00e5ff':'#ffd700';ctx.font='bold 12px monospace';ctx.textAlign='center';
         ctx.fillText(stage.name,sx+sbW/2,sbY+16);
-        // Show stars earned — bold & glowing
-        ctx.font='bold 13px monospace';
+        // Show stars earned — centered in button, bold & glowing
+        ctx.font='bold 13px monospace';ctx.textAlign='center';
         for(let si2=0;si2<3;si2++){
           const _got=si2<stageStars;
           ctx.fillStyle=_got?'#ffd700':'#ffffff28';
           if(_got){_shadow(5,'#ffd70099');}
-          ctx.fillText('★',sx+5+si2*13,sbY+37);ctx.shadowBlur=0;
+          ctx.fillText('★',sx+sbW/2-13+si2*13,sbY+37);ctx.shadowBlur=0;
         }
       } else if(canPlay){
         // Next playable: white border, pulse
