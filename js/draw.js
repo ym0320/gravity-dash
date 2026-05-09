@@ -3608,14 +3608,25 @@ function drawTitle(){
   // Stats panel (between character grid and mode buttons)
   const statsY=hintY+16;
   {
-    let statLines=3; // endless + challenge + stage
-    const statsPanelH=statLines*16+6;
-    ctx.fillStyle='rgba(0,0,0,0.35)';rr(W/2-100,statsY,200,statsPanelH,8);ctx.fill();
-    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;rr(W/2-100,statsY,200,statsPanelH,8);ctx.stroke();
-    let lineIdx=0;
-    ctx.fillStyle='#00e5ff';ctx.font='bold 13px monospace';ctx.textAlign='center';ctx.fillText(t('endlessLabel')+': '+(highScore>0?highScore:'-'),W/2,statsY+16+lineIdx*16);lineIdx++;
-    ctx.fillStyle='#ff6080';ctx.font='bold 13px monospace';ctx.textAlign='center';ctx.fillText(t('challengeLabel')+': '+(challengeBestKills>0?challengeBestKills:'-'),W/2,statsY+16+lineIdx*16);lineIdx++;
-    ctx.fillStyle='#34d399';ctx.font='bold 13px monospace';ctx.textAlign='center';ctx.fillText(t('stage')+': -',W/2,statsY+16+lineIdx*16);lineIdx++;
+    const statRows=[
+      {col:'#00e5ff',label:t('endlessLabel'),val:highScore>0?highScore.toLocaleString():'-'},
+      {col:'#ff6080',label:t('challengeLabel'),val:challengeBestKills>0?challengeBestKills:'-'},
+      {col:'#34d399',label:t('stage'),val:totalStars>0?('★'+totalStars):'-'}
+    ];
+    const rowH=18,panW=Math.min(240,W-40),panH=statRows.length*rowH+10;
+    const panX=W/2-panW/2;
+    ctx.fillStyle='rgba(0,0,0,0.35)';rr(panX,statsY,panW,panH,8);ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;rr(panX,statsY,panW,panH,8);ctx.stroke();
+    const _sepX=W/2+4; // colon position — all rows share same X
+    ctx.font='bold 12px monospace';
+    for(let li=0;li<statRows.length;li++){
+      const r=statRows[li];
+      const ry=statsY+14+li*rowH;
+      ctx.fillStyle=r.col;
+      ctx.textAlign='right';ctx.fillText(r.label,_sepX-6,ry);
+      ctx.fillStyle='rgba(255,255,255,0.4)';ctx.textAlign='center';ctx.fillText(':',_sepX,ry);
+      ctx.fillStyle=r.col;ctx.textAlign='left';ctx.fillText(r.val,_sepX+6,ry);
+    }
   }
 
   // Endless mode button (top, large)
