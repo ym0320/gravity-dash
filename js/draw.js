@@ -75,21 +75,21 @@ function drawTitleBadge(cx,cy,title,opts){
   let label=opt.label||tTitleName(def);
   if(!label)return null;
   const scale=opt.scale||1;
-  const fontPx=Math.max(7,Math.round((opt.fontPx||10)*scale));
-  const font='bold '+fontPx+'px monospace';
-  const pal=titleBadgePalette(def?def.group:(opt.group||'plays'),!!opt.locked);
-  const maxW=opt.maxW||0;
-  const measureLabel=l=>_cMT(l,font);
-  if(maxW>0&&measureLabel(label)+40*scale>maxW){
-    let s=label;
-    while(s.length>1&&measureLabel(s+'…')+40*scale>maxW)s=s.slice(0,-1);
-    label=s+'…';
-  }
-  const textW=_cMT(label,font);
-  const h=Math.max(16,Math.round(20*scale));
   const padX=12*scale;
   const gemR=Math.max(2,3.2*scale);
-  const w=maxW>0?Math.min(maxW,Math.max(56*scale,textW+padX*2+gemR*6+10*scale)):Math.max(56*scale,textW+padX*2+gemR*6+10*scale);
+  const _overhead=padX*2+gemR*6+10*scale;
+  const maxW=opt.maxW||0;
+  // Determine font size: shrink to fit maxW if needed
+  let fontPx=Math.max(7,Math.round((opt.fontPx||10)*scale));
+  if(maxW>0){
+    const textBudget=maxW-_overhead;
+    while(fontPx>6&&_cMT(label,'bold '+fontPx+'px monospace')>textBudget)fontPx--;
+  }
+  const font='bold '+fontPx+'px monospace';
+  const pal=titleBadgePalette(def?def.group:(opt.group||'plays'),!!opt.locked);
+  const textW=_cMT(label,font);
+  const h=Math.max(16,Math.round(20*scale));
+  const w=maxW>0?Math.min(maxW,Math.max(56*scale,textW+_overhead)):Math.max(56*scale,textW+_overhead);
   const x=cx-w/2,y=cy-h/2;
   const bg=ctx.createLinearGradient(x,y,x+w,y+h);
   bg.addColorStop(0,pal.a);bg.addColorStop(0.55,pal.b);bg.addColorStop(1,pal.a);
@@ -4516,7 +4516,7 @@ function drawTitleMenu(){
     const wrapCh2=Math.max(8,Math.floor(_availW2/(gameLang==='ja'?9.5:6)));
     const lines2=_wrapTextLines(getTitleConditionText(def),wrapCh2).slice(0,2);
     const _textCenterY=cy+22+lines2.length*7; // vertical center of text lines
-    const bd=drawTitleBadge(mX+72,_textCenterY,def,{label:unlockedTitle?tTitleName(def):t('titleLockedName'),locked:!unlockedTitle,scale:0.88,fontPx:9});
+    const bd=drawTitleBadge(mX+72,_textCenterY,def,{label:unlockedTitle?tTitleName(def):t('titleLockedName'),locked:!unlockedTitle,scale:0.88,fontPx:9,maxW:112});
     const descX=bd?Math.max(mX+130,bd.x+bd.w+8):mX+130;
     ctx.font='bold 9px monospace';ctx.textAlign='right';
     ctx.fillStyle=equippedTitle?'rgba(250,204,21,0.18)':(unlockedTitle?'rgba(52,211,153,0.16)':'rgba(100,116,139,0.18)');
