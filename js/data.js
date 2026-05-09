@@ -2070,7 +2070,7 @@ let stageBigCollected=0; // stars collected this run
 // 5 themed packs × 5 stages each = 25 stages
 const STAGE_THEMES=[
   {bg1:'#05051e',bg2:'#0a0a3a',gnd:'#1a2a5f',gnd2:'#10184a',line:'#2266cc',ply:'#00e5ff',obs:'#ff3860',n:'宇宙',partType:'twinkle',partCol:'#6688ff'},
-  {bg1:'#b8ccdd',bg2:'#7899bb',gnd:'#dde8f2',gnd2:'#c0d0e4',line:'#88aacc',ply:'#00b4d8',obs:'#e63946',n:'雪山',partType:'snow',partCol:'#ffffff'},
+  {bg1:'#0d1e30',bg2:'#162840',gnd:'#ddeaf8',gnd2:'#b8ccde',line:'#4488bb',ply:'#22ccff',obs:'#ff2244',n:'雪山',partType:'snow',partCol:'#ddeeff'},
   {bg1:'#1a0500',bg2:'#3a0800',gnd:'#5a1a00',gnd2:'#3a1000',line:'#ff4400',ply:'#ffaa00',obs:'#ff0044',n:'マグマ',partType:'ember',partCol:'#ff6600'},
   {bg1:'#001830',bg2:'#003060',gnd:'#004488',gnd2:'#003366',line:'#00aaff',ply:'#00ffc8',obs:'#ff6b9d',n:'海',partType:'bubble',partCol:'#66ccff'},
   {bg1:'#1a0a1e',bg2:'#2a1030',gnd:'#3a1840',gnd2:'#2a1030',line:'#ff69b4',ply:'#ffb7d5',obs:'#cc00ff',n:'桜幻',partType:'petal',partCol:'#ffaacc'},
@@ -2108,9 +2108,9 @@ const STAGE_PACKS=[
     {id:'2-1',name:'2-1',dist:1000,spdMul:1.3,seed:2001,hillChance:0.30,gapChance:0.25,
       enemyChance:0.85,forceEnemyType:0,icicleChance:0.4,noFloatPlat:true,noMovingHill:true,
       coins:[{pos:0.25,yOff:-90},{pos:0.55,yOff:-180},{pos:0.80,yOff:-70}]},
-    // 2-2: ダッシャー追走 — 高速ダッシャーに追われる
+    // 2-2: ダッシャー追走 — 空中床にダッシャーを1体ずつ配置
     {id:'2-2',name:'2-2',dist:1000,spdMul:1.35,seed:2002,hillChance:0.30,gapChance:0.30,
-      enemyChance:0.90,forceEnemyType:6,noFloatPlat:true,noMovingHill:true,noHazards:true,
+      enemyChance:0,forceEnemyType:6,dasherOnFloat:true,noMovingHill:true,noHazards:true,
       coins:[{pos:0.25,yOff:-100},{pos:0.55,yOff:-220},{pos:0.80,yOff:-80}]},
     // 2-3: 浮遊足場ゾーン — 飛行敵 + 浮遊プラットフォームでの空中移動
     {id:'2-3',name:'2-3',dist:1000,spdMul:1.4,seed:2003,hillChance:0.25,gapChance:0.55,
@@ -2120,10 +2120,10 @@ const STAGE_PACKS=[
     {id:'2-4',name:'2-4',dist:1000,spdMul:1.4,seed:2004,hillChance:0.35,gapChance:0.28,
       enemyChance:0.90,forceEnemyType:5,noFloatPlat:true,noMovingHill:true,noHazards:true,
       coins:[{pos:0.25,yOff:-130},{pos:0.55,yOff:-200},{pos:0.80,yOff:-100}]},
-    // 2-5: 雪だるまボス戦 — void地形で立ち回る
-    {id:'2-5',name:'2-5',dist:1000,spdMul:1.5,seed:2005,hillChance:0.50,gapChance:0.48,enemyChance:0.30,boss:true,noFloatPlat:true,
-      stageType:'void',noMovingHill:true,bossVariant:'snowman',
-      coins:[{pos:0.25,yOff:-50},{pos:0.58,yOff:-50},{pos:0.78,yOff:-50}]},
+    // 2-5: 雪だるまウィザードステージ — dist250から雪玉攻撃＋スノーマン登場
+    {id:'2-5',name:'2-5',dist:1000,spdMul:1.3,seed:2005,hillChance:0.55,gapChance:0.30,enemyChance:0,flatGoal:true,
+      snowmanWizardStage:true,noFloatPlat:true,noMovingHill:true,noHazards:true,
+      coins:[{pos:0.22,yOff:-70},{pos:0.50,fromCeil:true,yOff:80}]},
   ]},
   {name:'マグマ',theme:2,unlock:24,starsPerStage:2,stages:[
     // 3-1: 火球豪雨 — マグマ地面に火球、敵なし、反射神経勝負
@@ -2207,6 +2207,10 @@ let isPackMode=false,currentPackIdx=0,currentPackStageIdx=0,currentPackStage=nul
 var stageSpawnRng=null; // seeded RNG for enemy/gimmick spawning in stage mode
 var stageCeilRng=null; // seeded RNG for ceiling platform generation (separate from floor)
 let stageGoalWalkActive=false,stageGoalScreenX=0; // Mario-style goal walk phase
+let snowmanWizardKilled=false; // 2-5: tracks if snowman wizard defeated (3rd star)
+let snowmanWizardCD=0; // spawn cooldown
+let snowballCD=0; // periodic snowball attack CD
+let snowStarParts=[]; // flying star particles toward player
 function packRng(){return isPackMode&&stageSpawnRng?stageSpawnRng():Math.random();}
 let stageSelScroll=0,stageSelTarget=0;
 let gotNewStars=0; // how many new stars obtained this clear

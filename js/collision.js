@@ -89,6 +89,7 @@ function die(){
 
 const MILE_MSGS=['Nice!','Great!','Awesome!','Fantastic!','Incredible!','Unstoppable!','Legendary!','GODLIKE!','BEYOND!','INFINITE!'];
 function checkMile(){
+  if(isPackMode)return; // no milestone popups in stage mode
   // 1000pt intervals with English praise
   const nextMile=Math.ceil(score/1000)*1000;
   const prevMile=nextMile-1000;

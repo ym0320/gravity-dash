@@ -305,10 +305,11 @@ function trySpawnFloatPlat(){
   if(isPackMode&&currentPackStage&&currentPackStage.noFloatPlat)return;
   const plat=findEdgeSpawnPlat();
   if(!plat)return;
+  const isDasherFloat=isPackMode&&currentPackStage&&currentPackStage.dasherOnFloat;
   const isFloatStage=isPackMode&&currentPackStage&&(currentPackStage.stageType==='moving'||currentPackStage.stageType==='swarm'||currentPackStage.stageType==='chasm'||currentPackStage.stageType==='void');
-  const chance=isPackMode?(isFloatStage?0.45:0.30):Math.min(0.18,0.04+(score-35)*0.002);
+  const chance=isPackMode?(isDasherFloat?0.70:(isFloatStage?0.45:0.30)):Math.min(0.18,0.04+(score-35)*0.002);
   if(packRng()<chance){
-    floatCD=isPackMode?(isFloatStage?20+Math.floor(packRng()*20):40+Math.floor(packRng()*30)):(80+Math.floor(packRng()*60));
+    floatCD=isPackMode?(isDasherFloat?25+Math.floor(packRng()*20):(isFloatStage?20+Math.floor(packRng()*20):40+Math.floor(packRng()*30))):(80+Math.floor(packRng()*60));
     const fx=Math.max(W+20,plat.x);
     const fw=50+packRng()*60; // width: 50-110px
     const floorY=H-plat.h;
@@ -325,6 +326,14 @@ function trySpawnFloatPlat(){
       _bobPhase:isBobbing?packRng()*6.28:undefined,
       _bobAmp:isBobbing?(18+packRng()*14):undefined,
       _bobSpd:isBobbing?(0.028+packRng()*0.016):undefined});
+    // dasherOnFloat: spawn one Dasher on the platform (2-2 style)
+    if(isPackMode&&currentPackStage&&currentPackStage.dasherOnFloat){
+      const sz=14;
+      const surfY=fy; // top of float platform
+      enemies.push({x:fx+fw/2,y:surfY-sz,vy:0,gDir:1,walkSpd:0.3,sz:sz,alive:true,fr:packRng()*100,type:6,shootT:999,
+        patrolDir:-1,patrolOriginX:fx+fw/2,patrolRange:fw*0.35,
+        dashState:'patrol',dashTimer:0,dashSpd:5+packRng()*2,dashDir:-1,warnT:0});
+    }
     // Sometimes spawn an item or coins on the floating platform (not in stage mode, mutually exclusive)
     if(!isPackMode){
       const fpRoll=packRng();

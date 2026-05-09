@@ -33,9 +33,23 @@ function triggerCoinSwitch(cs){
     }
   }
 }
+function _spawnSnowmanStar(en){
+  if(!en.isSnowmanWizard||snowmanWizardKilled)return;
+  // Star pops above wizard, flies to player
+  sfx('bigcoin');vibrate('milestone');
+  emitParts(en.x,en.y,30,'#ffd700',7,5);
+  // Spawn flying star particle
+  const _starP={x:en.x,y:en.y-40,tx:player.x,ty:player.y,life:120,p:0,sz:18};
+  snowStarParts.push(_starP);
+  // Also add 3rd stageBigCoin entry if not already there
+  if(stageBigCoins.length<3){
+    stageBigCoins.push({x:-999,y:-999,yOff:0,fromCeil:false,sz:16,col:false,p:0,distMark:rawDist});
+  }
+}
 function rewardEnemySpecialKill(en,col,bonus){
   en.alive=false;
   sfxEnemyDeath(en.type);vibrate('stomp');shakeI=Math.max(shakeI,4);
+  if(en.isSnowmanWizard){_spawnSnowmanStar(en);return;}
   const bon=cubeSpecialKillBonus(bonus);
   dist+=bon;
   if(!isPackMode)addPop(en.x,en.y-en.sz*en.gDir,'+'+bon,col);
@@ -43,6 +57,7 @@ function rewardEnemySpecialKill(en,col,bonus){
   player.face='happy';player.faceTimer=18;
 }
 function rewardStackedStompEnemy(en,gstomp){
+  if(en.isSnowmanWizard){en.alive=false;_spawnSnowmanStar(en);return;}
   defeatStompedEnemy(en);
   const baseBon=gstomp?90:30;
   const bon=cubeSpecialStompBonus(baseBon+stompCombo*(gstomp?60:30),stompCombo);
@@ -716,6 +731,51 @@ function update(dt){
         trySpawnFallingMtn();
       }
     }
+    // ===== Snowman Wizard Stage (2-5) =====
+    if(currentPackStage.snowmanWizardStage&&state===ST.PLAY&&player.alive){
+      const _smDist=250; // wizard appears from rawDist>=250
+      // Periodic homing snowball attack from off-screen (all stage)
+      if(!nearGoal){
+        if(snowballCD>0)snowballCD--;
+        if(snowballCD<=0){
+          snowballCD=55+Math.floor(packRng()*45);
+          // Spawn a large snowball from off right, aimed at player Y
+          const _sbVx=-(2.8+packRng()*1.2);
+          const _sbVy=(player.y-(H*0.5))*0.012; // slight Y aim
+          bullets.push({x:W+30,y:player.y+(packRng()-0.5)*40,vx:_sbVx,vy:_sbVy,
+            sz:14,bossType:'snowball',col:false,fr:0});
+        }
+      }
+      // Snowman wizard enemy: spawn periodically from rawDist>=250
+      if(rawDist>=_smDist&&!snowmanWizardKilled&&!nearGoal){
+        if(snowmanWizardCD>0)snowmanWizardCD--;
+        if(snowmanWizardCD<=0){
+          snowmanWizardCD=180+Math.floor(packRng()*120);
+          // Spawn as a large flyer (type 2) with snowman flag
+          const _smSz=24;
+          const _smY=H*(0.2+packRng()*0.6);
+          enemies.push({x:W+50,y:_smY,vy:0,gDir:1,walkSpd:0,sz:_smSz,alive:true,fr:packRng()*100,
+            type:2,shootT:999,baseY:_smY,flyPhase:packRng()*6.28,flyAmp:18+packRng()*14,
+            isSnowmanWizard:true});
+        }
+      }
+      // Update flying star parts toward player
+      for(let _sp=snowStarParts.length-1;_sp>=0;_sp--){
+        const _s=snowStarParts[_sp];
+        _s.x+=(_s.tx-_s.x)*0.12;_s.y+=(_s.ty-_s.y)*0.12;_s.tx=player.x;_s.ty=player.y;_s.life--;_s.p+=0.2;
+        if(_s.life<=0||(Math.abs(_s.x-player.x)<15&&Math.abs(_s.y-player.y)<15)){
+          // Star reached player — award 3rd star
+          snowmanWizardKilled=true;
+          if(stageBigCoins.length>=3&&!stageBigCoins[2].col){
+            stageBigCoins[2].col=true;stageBigCollected++;
+            sfx('bigcoin');vibrate('bigcoin');shakeI=8;
+            addPop(player.x,player.y-25,'★ STAR!','#ffd700');
+            emitParts(player.x,player.y,25,'#ffd700',6,4);
+          }
+          snowStarParts.splice(_sp,1);
+        }
+      }
+    }
     // Bird enemy spawning (all stages, rare)
     trySpawnBird();
     // Icicle spawning (snow stages, controlled by icicleChance)
@@ -1118,7 +1178,7 @@ function update(dt){
         // No shake, no fall - just a static obstacle
       } else {
         // Already hanging from ceiling. Shake when icicle is slightly AHEAD of player.
-        const triggerDist=160; // trigger when player is approaching (icicle ahead)
+        const triggerDist=100; // trigger when icicle is closer to player
         if(ic.x<player.x+triggerDist+ic.w&&ic.x+ic.w>player.x-20){
           ic.warnT++;
           if(ic.warnT>=30){
@@ -1726,6 +1786,7 @@ function update(dt){
       // Check stomp: player approaching from the "top" of the enemy
       const stomped=fkill||tireRoll||(en.gDir===1&&player.y<en.y-en.sz*0.2&&player.vy>=0)||(en.gDir===-1&&player.y>en.y+en.sz*0.2&&player.vy<=0)||stompRescuedByStep(en);
       if(stomped){
+        if(en.isSnowmanWizard){en.alive=false;_spawnSnowmanStar(en);player.vy=-JUMP_POWER*0.7*player.gDir;player.grounded=false;continue;}
         defeatStompedEnemy(en);
         // Tire: crush without bouncing; others: bounce off enemy
         if(isTire&&(tireRoll||player.grounded)){

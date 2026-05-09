@@ -301,6 +301,7 @@ function resetPackStage(pi,si,fromCheckpoint){
   curTheme=0;prevTheme=0;themeLerp=1;
   bossChests=0;chestFall={active:false,x:0,y:0,vy:0,sparkT:0,gotT:0};chestOpen={phase:'none',t:0,charIdx:-1,parts:[],reward:null,rewardGranted:false,_lastRevealIdx:-1};
   stageGoalWalkActive=false;stageGoalScreenX=0;
+  snowmanWizardKilled=false;snowmanWizardCD=0;snowballCD=0;snowStarParts=[];
 }
 function generatePackPlatform(arr,isCeil,stage){
   const last=arr.length>0?arr[arr.length-1]:null;
