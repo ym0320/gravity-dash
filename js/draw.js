@@ -3280,8 +3280,8 @@ function drawUI(){
     ctx.fillText(t('challengeLabel'),10,hudTop+10);
   }
 
-  // HP hearts at top-left
-  const hpY=hudTop+18;
+  // HP hearts at top-left (vertical center aligned with pause/settings button)
+  const hpY=hudTop+28;
   drawSpecialHpHearts(24,hpY,28,34,false);
 
   // Combo display (center area) — suppressed in stage mode
@@ -3552,12 +3552,12 @@ function drawTitle(){
   const p=Math.sin(titleT)*0.035+1;
   ctx.save();ctx.translate(W/2,H*0.18);ctx.scale(p,p);
   _shadow(35,'#00e5ff44');ctx.fillStyle='#00e5ff';
-  ctx.font='bold 44px monospace';ctx.textAlign='center';ctx.fillText('GRAV',0,0);
-  ctx.shadowColor='#ff386044';ctx.fillStyle='#ff3860';ctx.fillText('HOPPER',0,48);ctx.shadowBlur=0;
+  ctx.font='bold 38px monospace';ctx.textAlign='center';ctx.fillText('GRAVITY',0,0);
+  ctx.shadowColor='#ff386044';ctx.fillStyle='#ff3860';ctx.fillText('DASH',0,48);ctx.shadowBlur=0;
   ctx.restore();
 
   ctx.fillStyle='#ffffff33';ctx.font='11px monospace';ctx.textAlign='center';
-  ctx.fillText('Gravity-Flip Action Runner',W/2,H*0.18+72);
+  ctx.fillText('Gravity Dash',W/2,H*0.18+72);
 
   // Player name
   if(playerName){

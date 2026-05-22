@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as SplashScreen from 'expo-splash-screen';
+import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from 'expo-av';
 import GameScreen from './src/GameScreen';
 
 SplashScreen.preventAutoHideAsync();
@@ -12,6 +13,16 @@ export default function App() {
 
   useEffect(() => {
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+    // Configure audio session so WebView audio is captured by iOS screen recording
+    // (default ambient category is not captured by ReplayKit; playback category is)
+    Audio.setAudioModeAsync({
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: false,
+      interruptionModeIOS: InterruptionModeIOS.MixWithOthers,
+      interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+      shouldDuckAndroid: true,
+      playThroughEarpieceAndroid: false,
+    }).catch(() => {});
   }, []);
 
   const handleReady = useCallback(async () => {

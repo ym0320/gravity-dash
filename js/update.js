@@ -964,7 +964,24 @@ function update(dt){
     if(stillInside){player._dropThrough=Math.max(player._dropThrough,4);} // keep active while overlapping
     else{player._dropThrough--;}
   }
-  // Clear onFloatPlat when not grounded
+  // Floating platform: follow current platform when previously grounded on it.
+  // Fixes micro-bounce on bobbing (上下動) platforms — without this, gravity displaces
+  // the player below the surface each frame before re-landing, causing rapid
+  // grounded/airborne flicker that swallowed jump inputs.
+  if(player._onFloatPlat&&!player._dropThrough){
+    const fp=player._onFloatPlat;
+    const inX=player.x>=fp.x-pr*0.5&&player.x<=fp.x+fp.w+pr*0.5;
+    // Only follow when not jumping away from the surface
+    const notJumpingAway=player.gDir===1?player.vy>=0:player.vy<=0;
+    if(inX&&notJumpingAway){
+      if(player.gDir===1){player.y=fp.y-pr;}
+      else{player.y=fp.y+fp.th+pr;}
+      player.vy=0;player.grounded=true;resetFlipState();
+    } else {
+      player._onFloatPlat=null;
+    }
+  }
+  // Clear onFloatPlat when not grounded (covers jump and walk-off cases)
   if(!player.grounded)player._onFloatPlat=null;
   // Floating platform collision (mid-air landing + wall)
   if(!player.grounded&&!player._dropThrough){
