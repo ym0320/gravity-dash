@@ -615,7 +615,7 @@ function bgmOsc(type,freq,t,dur,vol){
   o.start(t);o.stop(t+dur);return o;
 }
 const _noiseBufCache={};
-const _noiseCommonDur=[0.015,0.02,0.03,0.04,0.05,0.06,0.08,0.12,0.15,0.25];
+const _noiseCommonDur=[0.015,0.02,0.03,0.04,0.05,0.06,0.08,0.1,0.12,0.14,0.15,0.18,0.2,0.25,0.3,0.35,0.4,0.5];
 function _noiseBuffersFor(dur){
   const len=Math.max(1,Math.floor(audioCtx.sampleRate*dur));
   const key=audioCtx.sampleRate+'|'+len;
@@ -642,6 +642,17 @@ function bgmNoise(t,dur,vol){
   g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur*0.9);
   n.onended=function(){try{g.disconnect();}catch(e){}};
   n.start(t);n.stop(t+dur);
+}
+function sfxNoise(t,dur,vol,delay,fadeDur){
+  const d0=delay||0;
+  const fd=fadeDur||dur;
+  const n=audioCtx.createBufferSource();
+  const entry=_noiseBuffersFor(dur);
+  n.buffer=entry.bufs[entry.idx++&3];
+  const g=audioCtx.createGain();n.connect(g);g.connect(sfxGain);
+  g.gain.setValueAtTime(vol,t+d0);g.gain.exponentialRampToValueAtTime(0.001,t+d0+fd);
+  n.onended=function(){try{g.disconnect();}catch(e){}};
+  n.start(t+d0);n.stop(t+d0+fd+0.01);
 }
 function bgmKick(t){
   const o=audioCtx.createOscillator(),g=audioCtx.createGain();
@@ -1379,7 +1390,7 @@ function sfx(type){
         {const hc=audioCtx.createOscillator(),hcg=audioCtx.createGain();hc.connect(hcg);hcg.connect(sfxGain);hc.type='sine';hc.frequency.setValueAtTime(2093,t+0.2);hcg.gain.setValueAtTime(0.05,t+0.2);hcg.gain.exponentialRampToValueAtTime(0.001,t+0.5);hc.start(t+0.2);hc.stop(t+0.5);}
         break;
       case'bomb':o.type='sawtooth';o.frequency.setValueAtTime(120,t);o.frequency.exponentialRampToValueAtTime(40,t+0.3);g.gain.setValueAtTime(0.2,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.4);o.start(t);o.stop(t+0.4);
-        {const bn=audioCtx.createBufferSource(),bbuf=audioCtx.createBuffer(1,audioCtx.sampleRate*0.3,audioCtx.sampleRate),bd=bbuf.getChannelData(0);for(let i=0;i<bd.length;i++)bd[i]=(Math.random()*2-1)*0.3*Math.exp(-i/(audioCtx.sampleRate*0.1));bn.buffer=bbuf;const bng=audioCtx.createGain();bn.connect(bng);bng.connect(sfxGain);bng.gain.setValueAtTime(0.15,t);bng.gain.exponentialRampToValueAtTime(0.001,t+0.35);bn.start(t);bn.stop(t+0.35);}
+        sfxNoise(t,0.3,0.15,0,0.35);
         break;
       case'newhi':o.type='sine';o.frequency.setValueAtTime(880,t);o.frequency.exponentialRampToValueAtTime(1760,t+0.15);g.gain.setValueAtTime(0.1,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.4);o.start(t);o.stop(t+0.4);
         [1047,1319,1568].forEach((f,i)=>{const x=audioCtx.createOscillator(),y=audioCtx.createGain();x.connect(y);y.connect(sfxGain);x.type='triangle';x.frequency.setValueAtTime(f,t+0.08*(i+1));y.gain.setValueAtTime(0.07,t+0.08*(i+1));y.gain.exponentialRampToValueAtTime(0.001,t+0.08*(i+1)+0.3);x.start(t+0.08*(i+1));x.stop(t+0.08*(i+1)+0.35);});
@@ -1393,11 +1404,11 @@ function sfx(type){
         break;
       case'pause':o.type='triangle';o.frequency.setValueAtTime(440,t);o.frequency.exponentialRampToValueAtTime(330,t+0.1);g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.12);o.start(t);o.stop(t+0.12);break;
       case'bossHit':o.type='square';o.frequency.setValueAtTime(200,t);o.frequency.exponentialRampToValueAtTime(80,t+0.15);g.gain.setValueAtTime(0.18,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.2);o.start(t);o.stop(t+0.22);
-        {const n2=audioCtx.createBufferSource(),b2=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.1)),audioCtx.sampleRate),d2=b2.getChannelData(0);for(let i=0;i<d2.length;i++)d2[i]=(Math.random()*2-1)*Math.exp(-i/(audioCtx.sampleRate*0.03));n2.buffer=b2;const g2=audioCtx.createGain();n2.connect(g2);g2.connect(sfxGain);g2.gain.setValueAtTime(0.15,t);g2.gain.exponentialRampToValueAtTime(0.001,t+0.1);n2.start(t);n2.stop(t+0.1);}
+        sfxNoise(t,0.1,0.15);
         break;
       case'gstompHeavy':o.type='sine';o.frequency.setValueAtTime(180,t);o.frequency.exponentialRampToValueAtTime(40,t+0.2);g.gain.setValueAtTime(0.2,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.35);o.start(t);o.stop(t+0.37);
         {const h1=audioCtx.createOscillator(),hg1=audioCtx.createGain();h1.connect(hg1);hg1.connect(sfxGain);h1.type='sawtooth';h1.frequency.setValueAtTime(120,t);h1.frequency.exponentialRampToValueAtTime(30,t+0.3);hg1.gain.setValueAtTime(0.12,t);hg1.gain.exponentialRampToValueAtTime(0.001,t+0.3);h1.start(t);h1.stop(t+0.32);}
-        {const n3=audioCtx.createBufferSource(),b3=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.15)),audioCtx.sampleRate),d3=b3.getChannelData(0);for(let i=0;i<d3.length;i++)d3[i]=(Math.random()*2-1)*Math.exp(-i/(audioCtx.sampleRate*0.05));n3.buffer=b3;const g3=audioCtx.createGain();n3.connect(g3);g3.connect(sfxGain);g3.gain.setValueAtTime(0.18,t);g3.gain.exponentialRampToValueAtTime(0.001,t+0.15);n3.start(t);n3.stop(t+0.15);}
+        sfxNoise(t,0.15,0.18);
         break;
       case'earthquake':
         // Deep rumble: low sine + noise + sub-bass wobble
@@ -1407,10 +1418,7 @@ function sfx(type){
         {const eq1=audioCtx.createOscillator(),eq1g=audioCtx.createGain();eq1.connect(eq1g);eq1g.connect(sfxGain);
         eq1.type='sawtooth';eq1.frequency.setValueAtTime(60,t);eq1.frequency.exponentialRampToValueAtTime(20,t+0.5);
         eq1g.gain.setValueAtTime(0.12,t);eq1g.gain.exponentialRampToValueAtTime(0.001,t+0.5);eq1.start(t);eq1.stop(t+0.55);}
-        {const eqn=audioCtx.createBufferSource(),eqb=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.5)),audioCtx.sampleRate),eqd=eqb.getChannelData(0);
-        for(let i=0;i<eqd.length;i++)eqd[i]=(Math.random()*2-1)*0.5*Math.exp(-i/(audioCtx.sampleRate*0.15));
-        eqn.buffer=eqb;const eqng=audioCtx.createGain();eqn.connect(eqng);eqng.connect(sfxGain);
-        eqng.gain.setValueAtTime(0.18,t);eqng.gain.exponentialRampToValueAtTime(0.001,t+0.5);eqn.start(t);eqn.stop(t+0.55);}
+        sfxNoise(t,0.5,0.18,0,0.5);
         break;
       case'swordSlash':
         // Sharp metallic swoosh: high-pitched sine sweep + noise burst
@@ -1420,20 +1428,14 @@ function sfx(type){
         {const sw1=audioCtx.createOscillator(),sw1g=audioCtx.createGain();sw1.connect(sw1g);sw1g.connect(sfxGain);
         sw1.type='sine';sw1.frequency.setValueAtTime(2000,t);sw1.frequency.exponentialRampToValueAtTime(600,t+0.08);
         sw1g.gain.setValueAtTime(0.08,t);sw1g.gain.exponentialRampToValueAtTime(0.001,t+0.1);sw1.start(t);sw1.stop(t+0.12);}
-        {const swn=audioCtx.createBufferSource(),swb=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.08)),audioCtx.sampleRate),swd=swb.getChannelData(0);
-        for(let i=0;i<swd.length;i++)swd[i]=(Math.random()*2-1)*Math.exp(-i/(audioCtx.sampleRate*0.02));
-        swn.buffer=swb;const swng=audioCtx.createGain();swn.connect(swng);swng.connect(sfxGain);
-        swng.gain.setValueAtTime(0.1,t);swng.gain.exponentialRampToValueAtTime(0.001,t+0.08);swn.start(t);swn.stop(t+0.1);}
+        sfxNoise(t,0.08,0.1);
         break;
       case'dodgeWhoosh':
         // Fast whoosh: filtered noise + sine sweep
         o.type='sine';o.frequency.setValueAtTime(400,t);o.frequency.exponentialRampToValueAtTime(150,t+0.15);
         g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);
         o.start(t);o.stop(t+0.2);
-        {const dwn=audioCtx.createBufferSource(),dwb=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.12)),audioCtx.sampleRate),dwd=dwb.getChannelData(0);
-        for(let i=0;i<dwd.length;i++){const env=Math.sin(Math.PI*i/dwd.length);dwd[i]=(Math.random()*2-1)*0.3*env;}
-        dwn.buffer=dwb;const dwng=audioCtx.createGain();dwn.connect(dwng);dwng.connect(sfxGain);
-        dwng.gain.setValueAtTime(0.12,t);dwng.gain.exponentialRampToValueAtTime(0.001,t+0.12);dwn.start(t);dwn.stop(t+0.14);}
+        sfxNoise(t,0.12,0.12);
         break;
       case'spikeHit':
         // Soft rubbery bump: sine boop + gentle thud
@@ -1460,10 +1462,7 @@ function sfx(type){
         o.type='sine';o.frequency.setValueAtTime(2000,t);o.frequency.exponentialRampToValueAtTime(500,t+0.12);
         g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);
         o.start(t);o.stop(t+0.2);
-        {const icn=audioCtx.createBufferSource(),icb=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.15)),audioCtx.sampleRate),icd=icb.getChannelData(0);
-        for(let i=0;i<icd.length;i++)icd[i]=(Math.random()*2-1)*0.4*Math.exp(-i/(audioCtx.sampleRate*0.05));
-        icn.buffer=icb;const icng=audioCtx.createGain();icn.connect(icng);icng.connect(sfxGain);
-        icng.gain.setValueAtTime(0.1,t+0.02);icng.gain.exponentialRampToValueAtTime(0.001,t+0.15);icn.start(t+0.02);icn.stop(t+0.18);}
+        sfxNoise(t,0.15,0.1,0.02,0.15);
         {const ich=audioCtx.createOscillator(),ichg=audioCtx.createGain();ich.connect(ichg);ichg.connect(sfxGain);
         ich.type='sine';ich.frequency.setValueAtTime(3500,t);ich.frequency.exponentialRampToValueAtTime(2500,t+0.15);
         ichg.gain.setValueAtTime(0.06,t);ichg.gain.exponentialRampToValueAtTime(0.001,t+0.2);ich.start(t);ich.stop(t+0.22);}
@@ -1549,11 +1548,7 @@ function sfxEnemyDeath(type){
     // Helper: noise burst
     function _noise(vol,dur,dl){
       const d0=dl||0;
-      const n=audioCtx.createBufferSource(),buf=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*dur)),audioCtx.sampleRate),d=buf.getChannelData(0);
-      for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);
-      n.buffer=buf;const ng=audioCtx.createGain();n.connect(ng);ng.connect(sfxGain);
-      ng.gain.setValueAtTime(vol,t+d0);ng.gain.exponentialRampToValueAtTime(0.001,t+d0+dur);
-      n.start(t+d0);n.stop(t+d0+dur+0.01);
+      sfxNoise(t,dur,vol,d0,dur);
     }
     // Helper: vibrato oscillator
     function _vib(tp,f1,f2,vol,dur,vibHz,vibAmt,dl){
@@ -1766,11 +1761,7 @@ function sfxCharVoice(idx){
       o.frequency.exponentialRampToValueAtTime(120,t+0.2);
       g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);
       o.start(t);o.stop(t+0.27);
-      const n=audioCtx.createBufferSource(),buf=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.15)),audioCtx.sampleRate);
-      const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*0.3;
-      n.buffer=buf;const ng=audioCtx.createGain();n.connect(ng);ng.connect(sfxGain);
-      ng.gain.setValueAtTime(0.06,t);ng.gain.exponentialRampToValueAtTime(0.001,t+0.15);
-      n.start(t);n.stop(t+0.15);
+      sfxNoise(t,0.15,0.06);
     } else if(idx===3){
       // Ghost: ethereal whisper - high sine with vibrato
       const o=audioCtx.createOscillator(),g=audioCtx.createGain();
@@ -1793,11 +1784,7 @@ function sfxCharVoice(idx){
       o.frequency.setValueAtTime(2000,t);o.frequency.exponentialRampToValueAtTime(400,t+0.08);
       g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.1);
       o.start(t);o.stop(t+0.12);
-      const n=audioCtx.createBufferSource(),buf=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.08)),audioCtx.sampleRate);
-      const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);
-      n.buffer=buf;const ng=audioCtx.createGain();n.connect(ng);ng.connect(sfxGain);
-      ng.gain.setValueAtTime(0.1,t);ng.gain.exponentialRampToValueAtTime(0.001,t+0.06);
-      n.start(t);n.stop(t+0.08);
+      sfxNoise(t,0.08,0.1,0,0.06);
     } else if(idx===5){
       // Stone: heavy thud - low triangle with impact noise
       const o=audioCtx.createOscillator(),g=audioCtx.createGain();
@@ -1805,11 +1792,7 @@ function sfxCharVoice(idx){
       o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(60,t+0.15);
       g.gain.setValueAtTime(0.15,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);
       o.start(t);o.stop(t+0.27);
-      const n=audioCtx.createBufferSource(),buf=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.1)),audioCtx.sampleRate);
-      const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(audioCtx.sampleRate*0.03));
-      n.buffer=buf;const ng=audioCtx.createGain();n.connect(ng);ng.connect(sfxGain);
-      ng.gain.setValueAtTime(0.12,t);ng.gain.exponentialRampToValueAtTime(0.001,t+0.1);
-      n.start(t);n.stop(t+0.1);
+      sfxNoise(t,0.1,0.12);
       const o2=audioCtx.createOscillator(),g2=audioCtx.createGain();
       o2.connect(g2);g2.connect(sfxGain);o2.type='sine';
       o2.frequency.setValueAtTime(50,t);o2.frequency.exponentialRampToValueAtTime(30,t+0.2);
@@ -1957,12 +1940,7 @@ function sfxFloorCrumble(){
     r.start(t);r.stop(t+2.1);
     // Rock cracking impacts
     [0,0.15,0.35,0.5,0.7,0.9,1.1,1.3].forEach(d=>{
-      const n=audioCtx.createBufferSource();
-      const buf=audioCtx.createBuffer(1,Math.max(1,Math.floor(audioCtx.sampleRate*0.12)),audioCtx.sampleRate);
-      const data=buf.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1);
-      n.buffer=buf;const ng=audioCtx.createGain();n.connect(ng);ng.connect(sfxGain);
-      ng.gain.setValueAtTime(0.04+Math.random()*0.03,t+d);ng.gain.exponentialRampToValueAtTime(0.001,t+d+0.1);
-      n.start(t+d);n.stop(t+d+0.12);
+      sfxNoise(t,0.12,0.04+Math.random()*0.03,d,0.1);
     });
     // Sub-bass thud impacts
     [0.1,0.4,0.7,1.0].forEach(d=>{
