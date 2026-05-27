@@ -6078,7 +6078,7 @@ function trySpawnEnemy(){
       if(score>=250&&bossPhase.bossCount>=1)opts.push({type:6,w:11});
       if(score>=400&&bossPhase.bossCount>=2)opts.push({type:8,w:9});
       if(score>=600&&bossPhase.bossCount>=3)opts.push({type:3,w:8});
-      if(score>=5000)opts.push({type:14,w:12}); // leaper: appears from score 5000
+      if(score>=6500)opts.push({type:14,w:10}); // leaper: appears later and a little less often
       let totalW=0;for(let oi=0;oi<opts.length;oi++)totalW+=opts[oi].w;
       let roll=tr*totalW;
       eType=opts[0].type;
@@ -6138,13 +6138,14 @@ function trySpawnEnemy(){
         splitDone:false});
     } else if(eType===14){
       // Leaper: cute round jumper that leaps at player
+      const leapX=ex+36;
       const onCeil14=packRng()<0.5;
       const gd14=onCeil14?-1:1;
-      const surfY14=gd14===1?H-plat.h:ceilSurfaceY(ex);
+      const surfY14=gd14===1?H-plat.h:ceilSurfaceY(leapX);
       const sz14=12;
-      enemies.push({x:ex,y:gd14===1?surfY14-sz14:surfY14+sz14,vy:0,gDir:gd14,
+      enemies.push({x:leapX,y:gd14===1?surfY14-sz14:surfY14+sz14,vy:0,gDir:gd14,
         walkSpd:0.4+packRng()*0.5,sz:sz14,alive:true,fr:packRng()*100,type:14,shootT:999,
-        patrolDir:1,patrolOriginX:ex,patrolRange:30+packRng()*40,
+        patrolDir:1,patrolOriginX:leapX,patrolRange:30+packRng()*40,
         _state:'patrol',_noticeT:0,_jVx:0,_landT:0,_hopCD:undefined});
     } else {
       const onCeil=packRng()<0.4;
@@ -12381,10 +12382,10 @@ function update(dt){
         if(en._confusedT>0)en._confusedT--;
         if(en._confusedCD>0)en._confusedCD--;
         const ndx=player.x-en.x,ndy=player.y-en.y,adx=Math.abs(ndx);
-        const noticeRange=score>=20000?315:(score>=10000?280:250);
+        const noticeRange=score>=20000?285:(score>=10000?255:230);
         if(adx<noticeRange&&Math.abs(ndy)<H*0.82){
           if(player.gDir!==en.gDir){
-            en._state='notice';en._noticeT=score>=20000?22:(score>=10000?28:32);en._targetX=player.x;en._targetY=player.y;
+            en._state='notice';en._noticeT=score>=20000?28:(score>=10000?34:38);en._targetX=player.x;en._targetY=player.y;
           } else if(en._confusedCD<=0){
             en._confusedT=34;en._confusedCD=55;
           }
@@ -12397,11 +12398,11 @@ function update(dt){
         if(en._noticeT<=0){
           en._state='jumping';
           const fdx=player.x-en.x,fdy=player.y-en.y;
-          const leapMul=score>=20000?1.28:(score>=10000?1.12:1);
-          en._jVx=Math.max(-10,Math.min(10,(fdx/26+speed)*leapMul)); // compensate for scroll
-          en.vy=Math.max(-15,Math.min(15,(fdy/24)*leapMul));
-          if(en.gDir===1)en.vy=Math.min(en.vy,-6*leapMul);
-          else en.vy=Math.max(en.vy,6*leapMul);
+          const leapMul=score>=20000?1.12:(score>=10000?1.03:0.94);
+          en._jVx=Math.max(-8.5,Math.min(8.5,(fdx/34+speed*0.85)*leapMul)); // compensate for scroll, but leave dodge room
+          en.vy=Math.max(-13,Math.min(13,(fdy/31)*leapMul));
+          if(en.gDir===1)en.vy=Math.min(en.vy,-5.3*leapMul);
+          else en.vy=Math.max(en.vy,5.3*leapMul);
           if(en.gDir===1){const sy=floorSupportY(en.x);if(sy<H+100)en.y=sy-en.sz;}
           else{const sy=ceilSupportY(en.x);if(sy>-100)en.y=sy+en.sz;}
           sfx('gstomp');shakeI=Math.max(shakeI,3);

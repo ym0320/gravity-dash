@@ -210,7 +210,7 @@ function trySpawnEnemy(){
       if(score>=250&&bossPhase.bossCount>=1)opts.push({type:6,w:11});
       if(score>=400&&bossPhase.bossCount>=2)opts.push({type:8,w:9});
       if(score>=600&&bossPhase.bossCount>=3)opts.push({type:3,w:8});
-      if(score>=5000)opts.push({type:14,w:12}); // leaper: appears from score 5000
+      if(score>=6500)opts.push({type:14,w:10}); // leaper: appears later and a little less often
       let totalW=0;for(let oi=0;oi<opts.length;oi++)totalW+=opts[oi].w;
       let roll=tr*totalW;
       eType=opts[0].type;
@@ -270,13 +270,14 @@ function trySpawnEnemy(){
         splitDone:false});
     } else if(eType===14){
       // Leaper: cute round jumper that leaps at player
+      const leapX=ex+36;
       const onCeil14=packRng()<0.5;
       const gd14=onCeil14?-1:1;
-      const surfY14=gd14===1?H-plat.h:ceilSurfaceY(ex);
+      const surfY14=gd14===1?H-plat.h:ceilSurfaceY(leapX);
       const sz14=12;
-      enemies.push({x:ex,y:gd14===1?surfY14-sz14:surfY14+sz14,vy:0,gDir:gd14,
+      enemies.push({x:leapX,y:gd14===1?surfY14-sz14:surfY14+sz14,vy:0,gDir:gd14,
         walkSpd:0.4+packRng()*0.5,sz:sz14,alive:true,fr:packRng()*100,type:14,shootT:999,
-        patrolDir:1,patrolOriginX:ex,patrolRange:30+packRng()*40,
+        patrolDir:1,patrolOriginX:leapX,patrolRange:30+packRng()*40,
         _state:'patrol',_noticeT:0,_jVx:0,_landT:0,_hopCD:undefined});
     } else {
       const onCeil=packRng()<0.4;
