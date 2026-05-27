@@ -5,6 +5,8 @@
 // If still behind after max ticks, discard leftover time to prevent death spiral.
 let _tickAcc=0,_skipDraw=0,_recoveryFrames=0;
 let _gcSpikeT=0,_lastBigDt=0;
+const _perfLog=localStorage.getItem('gd5perfLog')==='1';
+const _FIXED_STEP=1000/60;
 function loop(ts){
   if(!lastTime){lastTime=ts;_tickAcc=0;_skipDraw=2;}
   const dt=ts-lastTime;
@@ -21,22 +23,30 @@ function loop(ts){
   _tickAcc+=Math.min(dt,100);
   lastTime=ts;
   let ticks=0;
-  while(_tickAcc>=16.67&&ticks<maxTicks){
+  while(_tickAcc>=_FIXED_STEP&&ticks<maxTicks){
     try{
-      const _u0=performance.now();update();const _ud=performance.now()-_u0;
-      if(_ud>8)console.warn('[SPIKE] update '+_ud.toFixed(1)+'ms state='+state+' score='+score+' bgm='+bgmCurrent+' en='+(enemies&&enemies.length)+' bu='+(bullets&&bullets.length)+' pa='+(parts&&parts.length)+' co='+(coins&&coins.length)+' boss='+!!(bossPhase&&bossPhase.active));
+      if(_perfLog){
+        const _u0=performance.now();update();const _ud=performance.now()-_u0;
+        if(_ud>8)console.warn('[SPIKE] update '+_ud.toFixed(1)+'ms state='+state+' score='+score+' bgm='+bgmCurrent+' en='+(enemies&&enemies.length)+' bu='+(bullets&&bullets.length)+' pa='+(parts&&parts.length)+' co='+(coins&&coins.length)+' boss='+!!(bossPhase&&bossPhase.active));
+      } else {
+        update();
+      }
     }catch(e){console.error('loop error:',e);}
-    _tickAcc-=16.67;
+    _tickAcc-=_FIXED_STEP;
     ticks++;
   }
   if(_recoveryFrames>0)_recoveryFrames--;
   // Cap leftover time to 1 frame instead of discarding — prevents stutter from lost time
-  if(_tickAcc>16.67)_tickAcc=16.67;
+  if(_tickAcc>_FIXED_STEP)_tickAcc=_FIXED_STEP;
   // Skip first draws after background return (GPU context warmup)
   if(_skipDraw>0){_skipDraw--;} else {
     try{
-      const _d0=performance.now();draw();const _dd=performance.now()-_d0;
-      if(_dd>8)console.warn('[SPIKE] draw '+_dd.toFixed(1)+'ms state='+state+' en='+(enemies&&enemies.length)+' pa='+(parts&&parts.length)+' bgm='+bgmCurrent);
+      if(_perfLog){
+        const _d0=performance.now();draw();const _dd=performance.now()-_d0;
+        if(_dd>8)console.warn('[SPIKE] draw '+_dd.toFixed(1)+'ms state='+state+' en='+(enemies&&enemies.length)+' pa='+(parts&&parts.length)+' bgm='+bgmCurrent);
+      } else {
+        draw();
+      }
     }catch(e){console.error('draw error:',e);}
   }
   requestAnimationFrame(loop);

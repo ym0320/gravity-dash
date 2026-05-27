@@ -31,6 +31,19 @@ function rr(x,y,w,h,r){
   ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
 }
 
+function drawHeartGlyph(x,y,sz,col){
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.scale(sz/24,sz/24);
+  ctx.fillStyle=col;
+  ctx.beginPath();
+  ctx.moveTo(0,8);
+  ctx.bezierCurveTo(-13,-2,-9,-13,0,-7);
+  ctx.bezierCurveTo(9,-13,13,-2,0,8);
+  ctx.fill();
+  ctx.restore();
+}
+
 // Helper: white ghost close button (used in inventory, ranking, shop, cosmetic menu)
 function _drawCloseBtn(y){
   ctx.fillStyle='#ffffff12';rr(W/2-50,y,100,30,BTN_R);ctx.fill();
@@ -1437,8 +1450,13 @@ function drawItem(it){
   ctx.rotate(Math.PI/4+it.p*0.3);
   rr(-sz/2,-sz/2,sz,sz,3);ctx.fill();
   ctx.rotate(-(Math.PI/4+it.p*0.3));
-  ctx.fillStyle=isHeart?col:'#fff';ctx.font='bold 10px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillText(ITEMS[it.t].icon,0,1);ctx.textBaseline='alphabetic';ctx.restore();
+  if(isHeart){
+    drawHeartGlyph(0,0,sz*0.72,col);
+  } else {
+    ctx.fillStyle='#fff';ctx.font='bold 10px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(ITEMS[it.t].icon,0,1);ctx.textBaseline='alphabetic';
+  }
+  ctx.restore();
 }
 
 // Speed tier for current enemy draw frame (0=normal,1=1.3x,2=1.5x,3=2.0x,4=2.5x)
@@ -3304,8 +3322,9 @@ function drawUI(){
   if(state===ST.PAUSE){
     // Settings gear (tapping opens settings without unpausing)
     ctx.strokeStyle='#ffffff55';ctx.lineWidth=1;rr(pauseX,pauseY,pauseBW,pauseBH,8);ctx.stroke();
-    ctx.fillStyle='#fff9';ctx.font='22px monospace';ctx.textAlign='center';
-    ctx.fillText('⚙️',pauseX+pauseBW/2,pauseY+pauseBH*0.7);
+    ctx.fillStyle='#fff9';ctx.font='24px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('\u2699',pauseX+pauseBW/2,pauseY+pauseBH/2);
+    ctx.textBaseline='alphabetic';
   } else {
     ctx.strokeStyle='#ffffff18';ctx.lineWidth=1;rr(pauseX,pauseY,pauseBW,pauseBH,8);ctx.stroke();
     ctx.fillStyle='#fffa';ctx.fillRect(pauseX+14,pauseY+8,6,24);ctx.fillRect(pauseX+28,pauseY+8,6,24);
@@ -3788,8 +3807,9 @@ function drawTitle(){
 
   // Settings gear button (top right)
   ctx.fillStyle='#ffffff14';rr(W-44,safeTop+6,36,36,8);ctx.fill();
-  ctx.fillStyle='#fff6';ctx.font='18px monospace';ctx.textAlign='center';
-  ctx.fillText('\u2699\uFE0F',W-26,safeTop+30);
+  ctx.fillStyle='#fff8';ctx.font='20px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('\u2699',W-26,safeTop+24);
+  ctx.textBaseline='alphabetic';
   // Help button
   ctx.fillStyle='#ffffff14';rr(W-44,safeTop+44,36,36,8);ctx.fill();
   ctx.strokeStyle='#4488ff44';ctx.lineWidth=1;rr(W-44,safeTop+44,36,36,8);ctx.stroke();
